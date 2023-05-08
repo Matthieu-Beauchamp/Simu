@@ -41,17 +41,18 @@ function(simu_update_submodules dir)
     find_package(Git)
 
     if (${Git_FOUND})
-        simu_has_internet(hasInternet)
-        if (${hasInternet})
+        # TODO: github workflows does not allow us to ping, causing this to not run
+        # simu_has_internet(hasInternet)
+        # if (${hasInternet})
             execute_process(
                 COMMAND "${GIT_EXECUTABLE}" submodule update --init --recursive .
                 WORKING_DIRECTORY "${dir}"
             )
-        else()
-            message(WARN "Not connected to internet, cannot update submodules")
-        endif()
+        # else()
+        #     message(WARNING "Not connected to internet, cannot update submodules")
+        # endif()
     else()
-        message(WARN "Could not find git, cannot update submodules")
+        message(WARNING "Could not find git, cannot update submodules")
     endif()
 endfunction()
 
