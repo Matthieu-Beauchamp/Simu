@@ -67,7 +67,7 @@ macro(simu_set_compile_options targetName)
 		endif()
     else()
 		target_compile_options(${targetName} PRIVATE 
-            -fsigned-char -fanalyser
+            -fsigned-char -fanalyzer
             -Wall -Wextra -Wpedantic -Werror
             -Woverloaded-virtual -Wno-unknown-pragmas -Wno-enum-compare
         )
