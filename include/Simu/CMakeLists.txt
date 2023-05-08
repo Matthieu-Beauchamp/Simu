@@ -1,6 +1,6 @@
 target_sources(simu-math PUBLIC config.hpp)
 
-list(APPEND simu_coverage_src config.hpp)
+simu_append_coverage_src(config.hpp)
 
 foreach(component IN LISTS simuComponents)
     file(GLOB_RECURSE ${component}Headers 

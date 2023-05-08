@@ -76,7 +76,6 @@ endmacro()
 
 find_program(GCOV_PATH gcov)
 macro(simu_coverage targetName)
-    message(STATUS "${simu_coverage_src}")
     if (NOT MSVC)
         if (GCOV_PATH)
             target_compile_options(${targetName} PRIVATE --coverage)
