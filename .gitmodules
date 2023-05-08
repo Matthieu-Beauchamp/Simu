@@ -1,0 +1,3 @@
+[submodule "docs/Spirit-Doxygen"]
+	path = docs/Spirit-Doxygen
+	url = https://github.com/Matthieu-Beauchamp/Spirit-Doxgen

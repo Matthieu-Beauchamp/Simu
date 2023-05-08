@@ -1,0 +1,14 @@
+# IDEs
+.vs
+.vscode
+.idea
+
+# Build directories
+**/build*/**
+**/cmake-build*/**
+
+# Misc
+docs/out/
+**/__pycache__/**
+
+
