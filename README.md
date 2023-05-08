@@ -1,3 +1,5 @@
+[![License](https://img.shields.io/github/license/Matthieu-Beauchamp/Simu)](https://github.com/Matthieu-Beauchamp/Simu/blob/master/LICENSE)
+
 # Simu
 Simu is a 2D physics engine aimed towards real-time simulation of rigid bodies and
 gravitationnal/magnetic fields.

@@ -2,5 +2,5 @@
 
 TEST_CASE("dummy test")
 {
-    REQUIRE(false);
+    REQUIRE(true);
 }
