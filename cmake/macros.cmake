@@ -1,4 +1,4 @@
-include(${CMAKE_CURRENT_LIST_DIR}/cmake-modules/CodeCoverage.cmake)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake-modules")
 
 # Taken from https://github.com/SFML/SFML
 macro(simu_define_option var default type docstring)
@@ -77,6 +77,8 @@ macro(simu_set_compile_options targetName)
 endmacro()
 
 macro(simu_coverage targetName)
+    include(CodeCoverage)
+
     if (NOT MSVC)
         target_compile_options(${targetName} PRIVATE --coverage)
         if (CMAKE_VERSION VERSION_LESS "3.13.0")
