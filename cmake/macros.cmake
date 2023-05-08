@@ -1,3 +1,6 @@
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake-modules")
+include(CodeCoverage)
+
 # Taken from https://github.com/SFML/SFML
 macro(simu_define_option var default type docstring)
     if (NOT DEFINED ${var})
@@ -74,24 +77,19 @@ macro(simu_set_compile_options targetName)
     endif()
 endmacro()
 
-find_program(GCOV_PATH gcov)
 macro(simu_coverage targetName)
     if (NOT MSVC)
-        if (GCOV_PATH)
-            target_compile_options(${targetName} PRIVATE --coverage)
-            if (CMAKE_VERSION VERSION_LESS "3.13.0")
-                set_target_properties(${targetName} PROPERTIES COMPILE_OPTIONS --coverage)
-            else()
-                target_link_options(${targetName} PRIVATE --coverage)
-            endif()
-
-            add_custom_target(${targetName}-coverage
-                COMMAND ${targetName}
-                COMMAND ${GCOV_PATH} -s "${CMAKE_CURRENT_SOURCE_DIR}" -r -f -m "${simuCoverageSrc}"
-            
-                DEPENDS ${targetName}
-            )
+        target_compile_options(${targetName} PRIVATE --coverage)
+        if (CMAKE_VERSION VERSION_LESS "3.13.0")
+            set_target_properties(${targetName} PROPERTIES COMPILE_OPTIONS --coverage)
+        else()
+            target_link_options(${targetName} PRIVATE --coverage)
         endif()
+        
+        setup_target_for_coverage_lcov(NAME ${targetName}-coverage 
+            EXECUTABLE ${targetName}
+            EXCLUDE "test/*" "*/catch2/*"
+        )
     endif()
 endmacro()
 
