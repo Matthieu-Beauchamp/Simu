@@ -33,4 +33,7 @@ jobs:
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --target simu-test-coverage
 
     - name: Upload coverage reports to Codecov
-      run: bash <(curl -s https://codecov.io/bash) -f build/simu-test-coverage.info -t ${{ secrets.CODECOV_TOKEN }}|| echo "Codecov did not collect reports"
+      uses: codecov/codecov-action@v3
+      with:
+        files: build/simu-test-coverage.info 
+        token: ${{ secrets.CODECOV_TOKEN }}
