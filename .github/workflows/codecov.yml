@@ -30,7 +30,7 @@ jobs:
 
     - name: Run coverage
       # Build your program with the given configuration
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -DSIMU_BUILD_TESTS=ON -DSIMU_TEST_COVERAGE=ON --target simu-test-coverage
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -D SIMU_BUILD_TESTS=ON -D SIMU_TEST_COVERAGE=ON --target simu-test-coverage
 
     - name: Upload coverage reports to Codecov
       run: bash <(curl -s https://codecov.io/bash) -f build/simu-test-coverage.info -t ${{ secrets.CODECOV_TOKEN }}|| echo "Codecov did not collect reports"
