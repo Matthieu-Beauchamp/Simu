@@ -20,7 +20,7 @@ jobs:
     steps:
     - name: Install lcov
       run: sudo apt install lcov
-      
+
     - uses: actions/checkout@v3
 
     - name: Configure CMake
@@ -34,4 +34,4 @@ jobs:
 
     - name: Upload coverage reports to Codecov
       # uses: codecov/codecov-action@v3
-      run: bash <(curl -s https://codecov.io/bash)
+      run: bash <(curl -s https://codecov.io/bash) -f simu-test-coverage.info || echo "Codecov did not collect reports"
