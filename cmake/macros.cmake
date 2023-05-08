@@ -84,6 +84,13 @@ macro(simu_coverage targetName)
             else()
                 target_link_options(${targetName} PRIVATE --coverage)
             endif()
+
+            add_custom_target(${targetName}-coverage
+                COMMAND ${targetName}
+                COMMAND ${GCOV_PATH} -s "${CMAKE_CURRENT_SOURCE_DIR}" -r -f -m "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/${targetName}.dir/*.gcda"
+            
+                DEPENDS ${targetName}
+            )
         endif()
     endif()
 endmacro()
