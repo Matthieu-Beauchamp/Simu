@@ -31,6 +31,6 @@ namespace simu
 
 Uint32 testCoverage(Uint32 x);
 
-
+void unused();
 
 } // namepace simu 
