@@ -79,7 +79,7 @@ target_link_libraries(simu-test PRIVATE
 catch_discover_tests(simu-test)
 
 add_subdirectory(test)
-
+simu_coverage(simu-test)
 
 ############################################################
 # Docs
