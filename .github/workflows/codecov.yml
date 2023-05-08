@@ -18,6 +18,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Install lcov
+      run: sudo apt install lcov
+      
     - uses: actions/checkout@v3
 
     - name: Configure CMake
