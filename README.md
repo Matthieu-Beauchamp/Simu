@@ -1,4 +1,7 @@
 [![License](https://img.shields.io/github/license/Matthieu-Beauchamp/Simu)](https://github.com/Matthieu-Beauchamp/Simu/blob/master/LICENSE)
+
+[![Build](https://github.com/Matthieu-Beauchamp/Simu/actions/workflows/build.yml/badge.svg)](https://github.com/Matthieu-Beauchamp/Simu/actions/workflows/build.yml)
+
 [![codecov](https://codecov.io/gh/Matthieu-Beauchamp/Simu/branch/master/graph/badge.svg?token=AYAKQV1UZI)](https://codecov.io/gh/Matthieu-Beauchamp/Simu)
 
 # Simu
