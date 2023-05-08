@@ -10,7 +10,7 @@ foreach(component IN LISTS simuComponents)
         ${component}/*.hpp
     )
 
-    list(APPEND simu_coverage_src ${${component}Headers})
+    simu_append_coverage_src(${${component}Headers})
 
     target_sources(simu-${component} PUBLIC ${${component}Headers})
 endforeach()

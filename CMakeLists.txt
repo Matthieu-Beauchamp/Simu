@@ -44,7 +44,6 @@ foreach(lib IN LISTS simuLibs)
     )
 endforeach()
 
-set(simu_coverage_src "")
 add_subdirectory(include/Simu)
 add_subdirectory(src/Simu)
 

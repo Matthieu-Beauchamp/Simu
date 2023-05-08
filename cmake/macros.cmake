@@ -76,6 +76,7 @@ endmacro()
 
 find_program(GCOV_PATH gcov)
 macro(simu_coverage targetName)
+    message(STATUS "${simu_coverage_src}")
     if (NOT MSVC)
         if (GCOV_PATH)
             target_compile_options(${targetName} PRIVATE --coverage)
@@ -87,11 +88,28 @@ macro(simu_coverage targetName)
 
             add_custom_target(${targetName}-coverage
                 COMMAND ${targetName}
-                COMMAND ${GCOV_PATH} -s "${CMAKE_CURRENT_SOURCE_DIR}" -r -f -m "${simu_coverage_src}"
+                COMMAND ${GCOV_PATH} -s "${CMAKE_CURRENT_SOURCE_DIR}" -r -f -m "${simuCoverageSrc}"
             
                 DEPENDS ${targetName}
             )
         endif()
+    endif()
+endmacro()
+
+macro(simu_append_coverage_src ...)
+    # https://stackoverflow.com/a/7049380
+    file (RELATIVE_PATH relPath "${PROJECT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
+    set(src ${...} ${ARGN})
+    foreach (f ${src})
+        if (relPath)
+            list (APPEND simuCoverageSrc "${relPath}/${f}")
+        else()
+            list (APPEND simuCoverageSrc "${f}")
+        endif()
+    endforeach()
+
+    if (relPath)
+        set (simuCoverageSrc ${simuCoverageSrc} PARENT_SCOPE)
     endif()
 endmacro()
 

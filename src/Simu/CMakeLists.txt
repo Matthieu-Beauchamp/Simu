@@ -5,8 +5,8 @@ foreach(component IN LISTS simuComponents)
         RELATIVE ${CMAKE_CURRENT_LIST_DIR}
         ${component}/*.cpp
     )
-    
-    list(APPEND simu_coverage_src ${${component}Src})
+
+    simu_append_coverage_src(${${component}Src})
 
     target_sources(simu-${component} PUBLIC ${${component}Src})
 endforeach()
