@@ -1,6 +1,4 @@
-foreach(lib IN LISTS simuLibs)
-    target_sources(${lib} PUBLIC config.hpp)
-endforeach()
+target_sources(simu-math PUBLIC config.hpp)
 
 list(APPEND simu_coverage_src config.hpp)
 

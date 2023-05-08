@@ -29,8 +29,7 @@
 namespace simu
 {
 
-
-
+Uint32 testCoverage(Uint32 x);
 
 
 

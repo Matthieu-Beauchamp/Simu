@@ -27,7 +27,10 @@
 namespace simu
 {
 
-
+Uint32 testCoverage(Uint32 x){
+    bool a = (x > 1);
+    return x*2;
+}
 
 
 
