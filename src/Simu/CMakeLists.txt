@@ -6,7 +6,5 @@ foreach(component IN LISTS simuComponents)
         ${component}/*.cpp
     )
 
-    simu_append_coverage_src(${${component}Src})
-
     target_sources(simu-${component} PUBLIC ${${component}Src})
 endforeach()

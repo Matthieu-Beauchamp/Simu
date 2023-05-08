@@ -1,5 +1,4 @@
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake-modules")
-include(CodeCoverage)
+include(${CMAKE_CURRENT_LIST_DIR}/cmake-modules/CodeCoverage.cmake)
 
 # Taken from https://github.com/SFML/SFML
 macro(simu_define_option var default type docstring)
@@ -90,23 +89,6 @@ macro(simu_coverage targetName)
             EXECUTABLE ${targetName}
             EXCLUDE "test/*" "*/catch2/*"
         )
-    endif()
-endmacro()
-
-macro(simu_append_coverage_src ...)
-    # https://stackoverflow.com/a/7049380
-    file (RELATIVE_PATH relPath "${PROJECT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
-    set(src ${...} ${ARGN})
-    foreach (f ${src})
-        if (relPath)
-            list (APPEND simuCoverageSrc "${relPath}/${f}")
-        else()
-            list (APPEND simuCoverageSrc "${f}")
-        endif()
-    endforeach()
-
-    if (relPath)
-        set (simuCoverageSrc ${simuCoverageSrc} PARENT_SCOPE)
     endif()
 endmacro()
 
