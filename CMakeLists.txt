@@ -16,6 +16,16 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 simu_update_submodules(${CMAKE_CURRENT_LIST_DIR})
 
 ############################################################
+# Options
+############################################################
+
+simu_define_option(SIMU_BUILD_TESTS   OFF BOOL "Build tests")
+simu_define_option(SIMU_TEST_COVERAGE OFF BOOL "Produce coverage report for tests")
+
+simu_define_option(SIMU_BUILD_DOCS    OFF BOOL "Build documentation")
+
+
+############################################################
 # Build external libs
 ############################################################
 
@@ -52,41 +62,48 @@ add_subdirectory(src/Simu)
 # Tests
 ############################################################
 
-include(FetchContent)
-FetchContent_Declare(
-  Catch2
-  GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-  GIT_TAG        605a34765aa5d5ecbf476b4598a862ada971b0cc # v3.0.1
-)
-FetchContent_MakeAvailable(Catch2)
-list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
+if (SIMU_BUILD_TESTS)
+    include(FetchContent)
+    FetchContent_Declare(
+      Catch2
+      GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+      GIT_TAG        605a34765aa5d5ecbf476b4598a862ada971b0cc # v3.0.1
+    )
+    FetchContent_MakeAvailable(Catch2)
+    list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
 
-# hack to prevent CTest targets from showing up
-# https://stackoverflow.com/a/57240389
-set_property(GLOBAL PROPERTY CTEST_TARGETS_ADDED 1) 
-include(CTest)
+    # hack to prevent CTest targets from showing up
+    # https://stackoverflow.com/a/57240389
+    set_property(GLOBAL PROPERTY CTEST_TARGETS_ADDED 1) 
+    include(CTest)
 
-include(Catch)
+    include(Catch)
 
-enable_testing()
+    enable_testing()
 
-add_executable(simu-test "")
-target_link_libraries(simu-test PRIVATE 
-    Catch2::Catch2WithMain
-    simu-math
-    simu-physics
-)
-catch_discover_tests(simu-test)
+    add_executable(simu-test "")
+    target_link_libraries(simu-test PRIVATE 
+        Catch2::Catch2WithMain
+        simu-math
+        simu-physics
+    )
+    catch_discover_tests(simu-test)
 
-add_subdirectory(test)
-simu_coverage(simu-test)
+    add_subdirectory(test)
+    
+    if (SIMU_TEST_COVERAGE)
+        simu_coverage(simu-test)
+    endif()
+endif()
+
 
 ############################################################
 # Docs
 ############################################################
 
-add_subdirectory(docs)
-
+if (SIMU_BUILD_DOCS)
+    add_subdirectory(docs)
+endif()
 
 ############################################################
 # TODO: Installation 
