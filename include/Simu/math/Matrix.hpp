@@ -38,7 +38,9 @@ namespace simu
 template <class T, simu::Uint32 mRows_, simu::Uint32 nCols_>
 struct MatrixData
 {
-    typedef T value_type;
+    typedef T        value_type;
+    typedef T*       iterator;
+    typedef const T* const_iterator;
 
     static constexpr simu::Uint32 mRows = mRows_;
     static constexpr simu::Uint32 nCols = nCols_;
@@ -46,45 +48,26 @@ struct MatrixData
     MatrixData() = default;
 
     template <class U>
-    explicit MatrixData(const MatrixData<U, mRows, nCols>& other)
-    {
-        for (simu::Uint32 i = 0; i < size(); ++i) data[i] = other.data[i];
-    }
-
+    explicit MatrixData(const MatrixData<U, mRows_, nCols_>& other);
 
     simu::Uint32 size() const { return mRows * nCols; }
 
-    T& operator(simu::Uint32 row, simu::Uint32 col)
-    {
-        return data[row * nCols + col];
-    }
-    const T& operator(simu::Uint32 row, simu::Uint32 col) const
-    {
-        return data[row * nCols + col];
-    }
+    T&       operator()(simu::Uint32 row, simu::Uint32 col);
+    const T& operator()(simu::Uint32 row, simu::Uint32 col) const;
 
-    typedef T*       iterator;
-    typedef const T* const_iterator;
+    T&       operator[](simu::Uint32 index);
+    const T& operator[](simu::Uint32 index) const;
 
-    iterator begin() { return data[0]; }
-    iterator end() { return data[mRows * nCols - 1]; }
 
-    const_iterator begin() const { return data[0]; }
-    const_iterator end() const { return data[mRows * nCols - 1]; }
+    iterator begin() { return data; }
+    iterator end() { return data + (mRows * nCols - 1); }
 
-    template <class U>
-    bool operator==(const Matrix<U, mRows, nCols>& other) const = default;
-    template <class U>
-    bool operator<(const Matrix<U, mRows, nCols>& other) const = default;
-    template <class U>
-    bool operator<=(const Matrix<U, mRows, nCols>& other) const = default;
-    template <class U>
-    bool operator>(const Matrix<U, mRows, nCols>& other) const = default;
-    template <class U>
-    bool operator>=(const Matrix<U, mRows, nCols>& other) const = default;
+    const_iterator begin() const { return data; }
+    const_iterator end() const { return data + (mRows * nCols - 1); }
 
     T data[mRows * nCols];
 };
+
 
 template <class T, simu::Uint32 m, simu::Uint32 n>
 struct Matrix : public MatrixData<T, m, n>
@@ -250,4 +233,60 @@ typedef Matrix<float, 3, 3> Mat33;
 typedef Matrix<float, 4, 4> Mat44;
 
 
+////////////////////////////////////////////////////////////
+// Comparison facilities
+////////////////////////////////////////////////////////////
+
+template <simu::Uint32 m, simu::Uint32 n>
+using ComparisonMatrix = MatrixData<bool, m, n>;
+
+template <class T, class U, simu::Uint32 m, simu::Uint32 n>
+ComparisonMatrix<m, n>
+operator==(const Matrix<T, m, n>& lhs, const Matrix<U, m, n>& rhs);
+
+template <class T, class U, simu::Uint32 m, simu::Uint32 n>
+ComparisonMatrix<m, n>
+operator!=(const Matrix<T, m, n>& lhs, const Matrix<U, m, n>& rhs);
+
+template <class T, class U, simu::Uint32 m, simu::Uint32 n>
+ComparisonMatrix<m, n>
+operator<(const Matrix<T, m, n>& lhs, const Matrix<U, m, n>& rhs);
+
+template <class T, class U, simu::Uint32 m, simu::Uint32 n>
+ComparisonMatrix<m, n>
+operator<=(const Matrix<T, m, n>& lhs, const Matrix<U, m, n>& rhs);
+
+template <class T, class U, simu::Uint32 m, simu::Uint32 n>
+ComparisonMatrix<m, n>
+operator>(const Matrix<T, m, n>& lhs, const Matrix<U, m, n>& rhs);
+
+template <class T, class U, simu::Uint32 m, simu::Uint32 n>
+ComparisonMatrix<m, n>
+operator>=(const Matrix<T, m, n>& lhs, const Matrix<U, m, n>& rhs);
+
+
+
+template <simu::Uint32 m, simu::Uint32 n>
+bool all(const ComparisonMatrix<m, n>& comp);
+
+template <simu::Uint32 m, simu::Uint32 n>
+bool any(const ComparisonMatrix<m, n>& comp);
+
+template <simu::Uint32 m, simu::Uint32 n>
+ComparisonMatrix<m, n>
+operator&&(const ComparisonMatrix<m, n>& lhs, const ComparisonMatrix<m, n>& rhs);
+
+template <simu::Uint32 m, simu::Uint32 n>
+ComparisonMatrix<m, n>
+operator||(const ComparisonMatrix<m, n>& lhs, const ComparisonMatrix<m, n>& rhs);
+
+template <simu::Uint32 m, simu::Uint32 n>
+ComparisonMatrix<m, n>
+operator!(const ComparisonMatrix<m, n>& unary);
+
+
+
 } // namespace simu
+
+
+#include "Simu/math/Matrix.inl.hpp"
