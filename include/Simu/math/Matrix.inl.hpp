@@ -33,36 +33,284 @@ namespace simu
 // Matrix Data
 ////////////////////////////////////////////////////////////
 
-template <class T, simu::Uint32 m, simu::Uint32 n>
+template <class T, Uint32 m, Uint32 n>
 template <class U>
 MatrixData<T, m, n>::MatrixData(const MatrixData<U, m, n>& other)
 {
-    for (simu::Uint32 i = 0; i < lhs.size(); ++i) data[i] = other.data[i];
+    for (Uint32 i = 0; i < lhs.size(); ++i)
+        data[i] = other.data[i];
 }
 
-template <class T, simu::Uint32 m, simu::Uint32 n>
-T& MatrixData<T, m, n>::operator()(simu::Uint32 row, simu::Uint32 col)
+template <class T, Uint32 m, Uint32 n>
+T& MatrixData<T, m, n>::operator()(Uint32 row, Uint32 col)
 {
     return data[row * nCols + col];
 }
 
-template <class T, simu::Uint32 m, simu::Uint32 n>
-const T&
-MatrixData<T, m, n>::operator()(simu::Uint32 row, simu::Uint32 col) const
+template <class T, Uint32 m, Uint32 n>
+const T& MatrixData<T, m, n>::operator()(Uint32 row, Uint32 col) const
 {
     return data[row * nCols + col];
 }
 
-template <class T, simu::Uint32 m, simu::Uint32 n>
-T& MatrixData<T, m, n>::operator[](simu::Uint32 index)
+template <class T, Uint32 m, Uint32 n>
+T& MatrixData<T, m, n>::operator[](Uint32 index)
 {
     return data[index];
 }
 
-template <class T, simu::Uint32 m, simu::Uint32 n>
-const T& MatrixData<T, m, n>::operator[](simu::Uint32 index) const
+template <class T, Uint32 m, Uint32 n>
+const T& MatrixData<T, m, n>::operator[](Uint32 index) const
 {
     return data[index];
+}
+
+
+////////////////////////////////////////////////////////////
+// Matrix
+////////////////////////////////////////////////////////////
+
+template <class T, Uint32 dim>
+Matrix<T, dim, dim> SpecialConstructors<T, dim, dim>::identity()
+{
+    Matrix<T, dim, dim> ident{};
+    for (Uint32 i = 0; i < dim; ++i)
+        ident(i, i) = 1;
+
+    return ident;
+}
+
+
+template <class T, Uint32 dim>
+Vector<T, dim> SpecialConstructors<T, dim, 1>::i()
+{
+    Vector<T, dim> vec{};
+    if (0 < dim)
+        vec[0] = 1;
+
+    return vec;
+}
+
+template <class T, Uint32 dim>
+Vector<T, dim> SpecialConstructors<T, dim, 1>::j()
+{
+    Vector<T, dim> vec{};
+    if (1 < dim)
+        vec[1] = 1;
+
+    return vec;
+}
+
+template <class T, Uint32 dim>
+Vector<T, dim> SpecialConstructors<T, dim, 1>::k()
+{
+    Vector<T, dim> vec{};
+    if (2 < dim)
+        vec[2] = 1;
+
+    return vec;
+}
+
+template <class T, Uint32 dim>
+Vector<T, dim> SpecialConstructors<T, dim, 1>::w()
+{
+    Vector<T, dim> vec{};
+    if (3 < dim)
+        vec[3] = 1;
+
+    return vec;
+}
+
+
+template <class T, Uint32 m, Uint32 n>
+template <class U>
+Matrix<T, m, n>::Matrix(const Matrix<U, m, n>& other)
+    : MatrixData{static_cast<const MatrixData<U, m, n>&>(other)}
+{
+}
+
+
+template <class T, Uint32 m, Uint32 n>
+Matrix<T, m, n>::Matrix(const MatrixData<T, m, n>& data) : MatrixData{data}
+{
+}
+
+
+template <class T, Uint32 m, Uint32 n>
+Matrix<T, m, n>::Matrix(const std::initializer_list<T>& init)
+{
+    auto it = begin();
+    for (const T& val : init)
+    {
+        if (it == end())
+            return;
+
+        *it++ = val;
+    }
+}
+
+template <class T, Uint32 m, Uint32 n>
+template <class U>
+Matrix<T, m, n>
+Matrix<T, m, n>::fromRows(const std::initializer_list<Vector<U, n>>& rows)
+{
+    Matrix mat{};
+    Uint32 rowIndex = 0;
+    for (const auto& row : rows)
+    {
+        for (Uint32 col = 0; col < n; ++col)
+        {
+            mat(rowIndex, col) = row[col];
+        }
+        rowIndex++;
+    }
+
+    return mat;
+}
+
+template <class T, Uint32 m, Uint32 n>
+template <class U>
+Matrix<T, m, n>
+Matrix<T, m, n>::fromCols(const std::initializer_list<Vector<U, m>>& cols)
+{
+    return transpose(Matrix<T, n, m>::fromRows(cols));
+}
+
+template <class T, Uint32 m, Uint32 n>
+Matrix<T, m, n> Matrix<T, m, n>::filled(T val)
+{
+    Matrix<T, m, n> mat{};
+    for (auto& elem : mat)
+        elem = val;
+
+    return mat;
+}
+
+
+template <class T, Uint32 m, Uint32 n>
+Matrix<T, m, n> Matrix<T, m, n>::operator+() const
+{
+    return *this;
+}
+
+template <class T, Uint32 m, Uint32 n>
+Matrix<T, m, n> Matrix<T, m, n>::operator-() const
+{
+    Matrix null{};
+    return null -= *this;
+}
+
+template <class T, Uint32 m, Uint32 n>
+template <class U>
+Matrix<T, m, n>& Matrix<T, m, n>::operator+=(const Matrix<U, m, n>& other)
+{
+    for (Uint32 i = 0; i < size(); ++i)
+        data[i] += other.data[i];
+
+    return *this;
+}
+
+template <class T, Uint32 m, Uint32 n>
+template <class U>
+Matrix<T, m, n>& Matrix<T, m, n>::operator-=(const Matrix<U, m, n>& other)
+{
+    for (Uint32 i = 0; i < size(); ++i)
+        data[i] -= other.data[i];
+
+    return *this;
+}
+
+template <class T, Uint32 m, Uint32 n>
+template <class U>
+Matrix<T, m, n>& Matrix<T, m, n>::operator*=(U scalar)
+{
+    for (Uint32 i = 0; i < size(); ++i)
+        data[i] *= scalar;
+
+    return *this;
+}
+
+template <class T, Uint32 m, Uint32 n>
+template <class U>
+Matrix<T, m, n>& Matrix<T, m, n>::operator/=(U scalar)
+{
+    for (Uint32 i = 0; i < size(); ++i)
+        data[i] /= scalar;
+
+    return *this;
+}
+
+
+template <class T, class U, Uint32 m, Uint32 n>
+Matrix<details::Promoted<T, U>, m, n>
+operator+(const Matrix<T, m, n>& lhs, const Matrix<U, m, n>& rhs)
+{
+    Matrix<details::Promoted<T, U>, m, n> res{lhs};
+    return res += rhs;
+}
+
+template <class T, class U, Uint32 m, Uint32 n>
+Matrix<details::Promoted<T, U>, m, n>
+operator-(const Matrix<T, m, n>& lhs, const Matrix<U, m, n>& rhs)
+{
+    Matrix<details::Promoted<T, U>, m, n> res{lhs};
+    return res -= rhs;
+}
+
+template <class T, class U, Uint32 m, Uint32 n>
+Matrix<details::Promoted<T, U>, m, n>
+operator*(U scalar, const Matrix<T, m, n>& mat)
+{
+    Matrix<details::Promoted<T, U>, m, n> res{mat};
+    return res *= scalar;
+}
+
+template <class T, class U, Uint32 m, Uint32 n>
+Matrix<details::Promoted<T, U>, m, n>
+operator*(const Matrix<T, m, n>& mat, U scalar)
+{
+    return scalar * mat
+}
+
+template <class T, class U, Uint32 m, Uint32 n>
+Matrix<details::Promoted<T, U>, m, n>
+operator/(const Matrix<T, m, n>& mat, U scalar)
+{
+    Matrix<details::Promoted<T, U>, m, n> res{mat};
+    return res /= scalar;
+}
+
+template <class T, class U, Uint32 mLeft, Uint32 nLeft, Uint32 nRight>
+Matrix<details::Promoted<T, U>, mLeft, nRight>
+operator*(const Matrix<T, mLeft, nLeft>& lhs, const Matrix<U, nLeft, nRight>& rhs)
+{
+    Matrix<details::Promoted<T, U>, mLeft, nRight> res{};
+    for (Uint32 row = 0; row < lhs.mRows; ++row)
+    {
+        for (Uint32 col = 0; col < rhs.nCols; ++col)
+        {
+            for (Uint32 k = 0; k < lhs.nCols; ++k)
+            {
+                res(row, col) += lhs(row, k) * rhs(k, col);
+            }
+        }
+    }
+}
+
+
+template <class T, Uint32 m, Uint32 n>
+Matrix<T, n, m> transpose(const Matrix<T, m, n>& original)
+{
+    Matrix<T, n, m> res;
+    for (Uint32 row = 0; row < m; ++row)
+    {
+        for (Uint32 col = 0; col < n; ++col)
+        {
+            res(col, row) = original(row, col);
+        }
+    }
+
+    return res;
 }
 
 
@@ -70,61 +318,67 @@ const T& MatrixData<T, m, n>::operator[](simu::Uint32 index) const
 // Comparison facilities
 ////////////////////////////////////////////////////////////
 
-template <class T, class U, simu::Uint32 m, simu::Uint32 n>
-ComparisonMatrix<m, n> operator==(const Matrix<T, m, n>& lhs, const Matrix<U, m, n>& rhs)
+template <class T, class U, Uint32 m, Uint32 n>
+ComparisonMatrix<m, n>
+operator==(const Matrix<T, m, n>& lhs, const Matrix<U, m, n>& rhs)
 {
     ComparisonMatrix<m, n> res;
-    for (simu::Uint32 i = 0; i < lhs.size(); ++i) { res[i] = lhs[i] == rhs[i]; }
+    for (Uint32 i = 0; i < lhs.size(); ++i)
+    {
+        res[i] = lhs[i] == rhs[i];
+    }
 
     return res;
 }
 
-template <class T, class U, simu::Uint32 m, simu::Uint32 n>
-ComparisonMatrix<m, n> operator!=(const Matrix<T, m, n>& lhs, const Matrix<U, m, n>& rhs)
+template <class T, class U, Uint32 m, Uint32 n>
+ComparisonMatrix<m, n>
+operator!=(const Matrix<T, m, n>& lhs, const Matrix<U, m, n>& rhs)
+{
+    return !(lhs == rhs);
+}
+
+template <class T, class U, Uint32 m, Uint32 n>
+ComparisonMatrix<m, n>
+operator<(const Matrix<T, m, n>& lhs, const Matrix<U, m, n>& rhs)
 {
     ComparisonMatrix<m, n> res;
-    for (simu::Uint32 i = 0; i < lhs.size(); ++i) { res[i] = lhs[i] != rhs[i]; }
+    for (Uint32 i = 0; i < lhs.size(); ++i)
+    {
+        res[i] = lhs[i] < rhs[i];
+    }
 
     return res;
 }
 
-template <class T, class U, simu::Uint32 m, simu::Uint32 n>
-ComparisonMatrix<m, n> operator<(const Matrix<T, m, n>& lhs, const Matrix<U, m, n>& rhs)
+template <class T, class U, Uint32 m, Uint32 n>
+ComparisonMatrix<m, n>
+operator<=(const Matrix<T, m, n>& lhs, const Matrix<U, m, n>& rhs)
+{
+    return !(lhs > rhs);
+}
+
+template <class T, class U, Uint32 m, Uint32 n>
+ComparisonMatrix<m, n>
+operator>(const Matrix<T, m, n>& lhs, const Matrix<U, m, n>& rhs)
 {
     ComparisonMatrix<m, n> res;
-    for (simu::Uint32 i = 0; i < lhs.size(); ++i) { res[i] = lhs[i] < rhs[i]; }
+    for (Uint32 i = 0; i < lhs.size(); ++i)
+    {
+        res[i] = lhs[i] > rhs[i];
+    }
 
     return res;
 }
 
-template <class T, class U, simu::Uint32 m, simu::Uint32 n>
-ComparisonMatrix<m, n> operator<=(const Matrix<T, m, n>& lhs, const Matrix<U, m, n>& rhs)
+template <class T, class U, Uint32 m, Uint32 n>
+ComparisonMatrix<m, n>
+operator>=(const Matrix<T, m, n>& lhs, const Matrix<U, m, n>& rhs)
 {
-    ComparisonMatrix<m, n> res;
-    for (simu::Uint32 i = 0; i < lhs.size(); ++i) { res[i] = lhs[i] <= rhs[i]; }
-
-    return res;
+    return !(lhs < rhs);
 }
 
-template <class T, class U, simu::Uint32 m, simu::Uint32 n>
-ComparisonMatrix<m, n> operator>(const Matrix<T, m, n>& lhs, const Matrix<U, m, n>& rhs)
-{
-    ComparisonMatrix<m, n> res;
-    for (simu::Uint32 i = 0; i < lhs.size(); ++i) { res[i] = lhs[i] > rhs[i]; }
-
-    return res;
-}
-
-template <class T, class U, simu::Uint32 m, simu::Uint32 n>
-ComparisonMatrix<m, n> operator>=(const Matrix<T, m, n>& lhs, const Matrix<U, m, n>& rhs)
-{
-    ComparisonMatrix<m, n> res;
-    for (simu::Uint32 i = 0; i < lhs.size(); ++i) { res[i] = lhs[i] >= rhs[i]; }
-
-    return res;
-}
-
-template <simu::Uint32 m, simu::Uint32 n>
+template <Uint32 m, Uint32 n>
 bool all(const ComparisonMatrix<m, n>& comp)
 {
     for (bool b : comp)
@@ -134,7 +388,7 @@ bool all(const ComparisonMatrix<m, n>& comp)
     return true;
 }
 
-template <simu::Uint32 m, simu::Uint32 n>
+template <Uint32 m, Uint32 n>
 bool any(const ComparisonMatrix<m, n>& comp)
 {
     for (bool b : comp)
@@ -144,32 +398,77 @@ bool any(const ComparisonMatrix<m, n>& comp)
     return false;
 }
 
-template <simu::Uint32 m, simu::Uint32 n>
+template <Uint32 m, Uint32 n>
 ComparisonMatrix<m, n>
 operator&&(const ComparisonMatrix<m, n>& lhs, const ComparisonMatrix<m, n>& rhs)
 {
     ComparisonMatrix<m, n> res;
-    for (simu::Uint32 i = 0; i < lhs.size(); ++i) { res[i] = lhs[i] && rhs[i]; }
+    for (Uint32 i = 0; i < lhs.size(); ++i)
+    {
+        res[i] = lhs[i] && rhs[i];
+    }
 
     return res;
 }
 
-template <simu::Uint32 m, simu::Uint32 n>
+template <Uint32 m, Uint32 n>
 ComparisonMatrix<m, n>
-operator||(const ComparisonMatrix<m, n>& lhs, const ComparisonMatrix<m, n>& rhs){
+operator||(const ComparisonMatrix<m, n>& lhs, const ComparisonMatrix<m, n>& rhs)
+{
     ComparisonMatrix<m, n> res;
-    for (simu::Uint32 i = 0; i < lhs.size(); ++i) { res[i] = lhs[i] || rhs[i]; }
+    for (Uint32 i = 0; i < lhs.size(); ++i)
+    {
+        res[i] = lhs[i] || rhs[i];
+    }
 
     return res;
 }
 
-template <simu::Uint32 m, simu::Uint32 n>
-ComparisonMatrix<m, n> operator!(const ComparisonMatrix<m, n>& unary){
+template <Uint32 m, Uint32 n>
+ComparisonMatrix<m, n> operator!(const ComparisonMatrix<m, n>& unary)
+{
     ComparisonMatrix<m, n> res;
-    for (simu::Uint32 i = 0; i < lhs.size(); ++i) { res[i] = !unary[i]; }
+    for (Uint32 i = 0; i < lhs.size(); ++i)
+    {
+        res[i] = !unary[i];
+    }
 
     return res;
 }
 
 
 } // namespace simu
+
+
+////////////////////////////////////////////////////////////
+// std overloads
+////////////////////////////////////////////////////////////
+
+namespace std
+{
+
+template <class T, simu::Uint32 m, simu::Uint32 n>
+simu::Matrix<T, m, n> abs(const simu::Matrix<T, m, n>& mat)
+{
+    const Matrix<T, m, n>& res;
+    for (Uint32 i = 0; i < mat.size(); ++i)
+    {
+        res[i] = std::abs(mat[i]);
+    }
+
+    return res;
+}
+
+template <class T, simu::Uint32 m, simu::Uint32 n>
+simu::Matrix<T, m, n> round(const simu::Matrix<T, m, n>& mat)
+{
+    const Matrix<T, m, n>& res;
+    for (Uint32 i = 0; i < mat.size(); ++i)
+    {
+        res[i] = std::round(mat[i]);
+    }
+
+    return res;
+}
+
+} // namespace std
