@@ -25,10 +25,16 @@
 #pragma once
 
 #include "Simu/config.hpp"
+#include <cmath>
 
 namespace simu
 {
 
+////////////////////////////////////////////////////////////
+/// \brief Interval or range of values
+/// 
+/// The min and max of the interval are always included
+////////////////////////////////////////////////////////////
 template <class T>
 class Interval
 {
@@ -36,7 +42,11 @@ public:
 
     Interval(T min, T max) : min_{min}, max_{max} {}
 
-    bool contains(T value) const { return min_ <= value && value <= max_; }
+    ////////////////////////////////////////////////////////////
+    /// Returns bool for most types.
+    /// Returns a ComparisonMatrix if T is a Matrix type. 
+    ////////////////////////////////////////////////////////////
+    auto contains(T value) const { return min_ <= value && value <= max_; }
 
 
 private:
@@ -45,9 +55,14 @@ private:
     T max_;
 };
 
+////////////////////////////////////////////////////////////
+/// \brief defines an interval for the approximation: value +/- epsilon
+/// 
+////////////////////////////////////////////////////////////
 template <class T>
 Interval<T> approx(T value, T epsilon)
 {
+    epsilon = std::abs(epsilon);
     return Interval<T>{value - epsilon, value + epsilon};
 }
 
