@@ -33,7 +33,9 @@ namespace simu
 ////////////////////////////////////////////////////////////
 /// \brief Interval or range of values
 /// 
-/// The min and max of the interval are always included
+/// The min and max of the interval are always included.
+/// if min > max, then the interval is degenerate and contains nothing.
+/// if min == max, the interval contains a single value.
 ////////////////////////////////////////////////////////////
 template <class T>
 class Interval
