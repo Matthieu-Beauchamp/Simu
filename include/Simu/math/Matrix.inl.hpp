@@ -242,49 +242,46 @@ Matrix<T, m, n>& Matrix<T, m, n>::operator/=(U scalar)
 
 
 template <class T, class U, Uint32 m, Uint32 n>
-Matrix<details::Promoted<T, U>, m, n>
+Matrix<Promoted<T, U>, m, n>
 operator+(const Matrix<T, m, n>& lhs, const Matrix<U, m, n>& rhs)
 {
-    Matrix<details::Promoted<T, U>, m, n> res{lhs};
+    Matrix<Promoted<T, U>, m, n> res{lhs};
     return res += rhs;
 }
 
 template <class T, class U, Uint32 m, Uint32 n>
-Matrix<details::Promoted<T, U>, m, n>
+Matrix<Promoted<T, U>, m, n>
 operator-(const Matrix<T, m, n>& lhs, const Matrix<U, m, n>& rhs)
 {
-    Matrix<details::Promoted<T, U>, m, n> res{lhs};
+    Matrix<Promoted<T, U>, m, n> res{lhs};
     return res -= rhs;
 }
 
 template <class T, class U, Uint32 m, Uint32 n>
-Matrix<details::Promoted<T, U>, m, n>
-operator*(U scalar, const Matrix<T, m, n>& mat)
+Matrix<Promoted<T, U>, m, n> operator*(U scalar, const Matrix<T, m, n>& mat)
 {
-    Matrix<details::Promoted<T, U>, m, n> res{mat};
+    Matrix<Promoted<T, U>, m, n> res{mat};
     return res *= scalar;
 }
 
 template <class T, class U, Uint32 m, Uint32 n>
-Matrix<details::Promoted<T, U>, m, n>
-operator*(const Matrix<T, m, n>& mat, U scalar)
+Matrix<Promoted<T, U>, m, n> operator*(const Matrix<T, m, n>& mat, U scalar)
 {
     return scalar * mat
 }
 
 template <class T, class U, Uint32 m, Uint32 n>
-Matrix<details::Promoted<T, U>, m, n>
-operator/(const Matrix<T, m, n>& mat, U scalar)
+Matrix<Promoted<T, U>, m, n> operator/(const Matrix<T, m, n>& mat, U scalar)
 {
-    Matrix<details::Promoted<T, U>, m, n> res{mat};
+    Matrix<Promoted<T, U>, m, n> res{mat};
     return res /= scalar;
 }
 
 template <class T, class U, Uint32 mLeft, Uint32 nLeft, Uint32 nRight>
-Matrix<details::Promoted<T, U>, mLeft, nRight>
+Matrix<Promoted<T, U>, mLeft, nRight>
 operator*(const Matrix<T, mLeft, nLeft>& lhs, const Matrix<U, nLeft, nRight>& rhs)
 {
-    Matrix<details::Promoted<T, U>, mLeft, nRight> res{};
+    Matrix<Promoted<T, U>, mLeft, nRight> res{};
     for (Uint32 row = 0; row < lhs.mRows; ++row)
     {
         for (Uint32 col = 0; col < rhs.nCols; ++col)

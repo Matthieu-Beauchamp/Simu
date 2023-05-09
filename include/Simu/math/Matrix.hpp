@@ -25,6 +25,7 @@
 #pragma once
 
 #include <initializer_list>
+#include <type_traits>
 #include <cmath>
 
 #include "Simu/config.hpp"
@@ -145,50 +146,29 @@ struct Matrix : public MatrixData<T, m, n>, public SpecialConstructors<T, m, n>
 };
 
 
-namespace details
-{
-
 template <class T, class U>
-struct PromotedImpl
-{
-    typedef decltype(std::declval<T>() + std::declval<U>()) Type;
-};
-
-// in case of nested matrices
-template <class T, class U, Uint32 m, Uint32 n>
-struct PromotedImpl<MatrixData<T, m, n>, MatrixData<U, m, n>>
-{
-    typedef MatrixData<typename PromotedImpl<T, U>::Type, m, n> Type;
-};
-
-template <class T, class U>
-using Promoted = typename PromotedImpl<T, U>::Type;
-
-} // namespace details
+using Promoted = std::common_type_t<T, U>;
 
 
 template <class T, class U, Uint32 m, Uint32 n>
-Matrix<details::Promoted<T, U>, m, n>
+Matrix<Promoted<T, U>, m, n>
 operator+(const Matrix<T, m, n>& lhs, const Matrix<U, m, n>& rhs);
 
 template <class T, class U, Uint32 m, Uint32 n>
-Matrix<details::Promoted<T, U>, m, n>
+Matrix<Promoted<T, U>, m, n>
 operator-(const Matrix<T, m, n>& lhs, const Matrix<U, m, n>& rhs);
 
 template <class T, class U, Uint32 m, Uint32 n>
-Matrix<details::Promoted<T, U>, m, n>
-operator*(U scalar, const Matrix<T, m, n>& mat);
+Matrix<Promoted<T, U>, m, n> operator*(U scalar, const Matrix<T, m, n>& mat);
 
 template <class T, class U, Uint32 m, Uint32 n>
-Matrix<details::Promoted<T, U>, m, n>
-operator*(const Matrix<T, m, n>& mat, U scalar);
+Matrix<Promoted<T, U>, m, n> operator*(const Matrix<T, m, n>& mat, U scalar);
 
 template <class T, class U, Uint32 m, Uint32 n>
-Matrix<details::Promoted<T, U>, m, n>
-operator/(const Matrix<T, m, n>& mat, U scalar);
+Matrix<Promoted<T, U>, m, n> operator/(const Matrix<T, m, n>& mat, U scalar);
 
 template <class T, class U, Uint32 mLeft, Uint32 nLeft, Uint32 nRight>
-Matrix<details::Promoted<T, U>, mLeft, nRight>
+Matrix<Promoted<T, U>, mLeft, nRight>
 operator*(const Matrix<T, mLeft, nLeft>& lhs, const Matrix<U, nLeft, nRight>& rhs);
 
 
@@ -208,11 +188,6 @@ typedef Vector<Int32, 2> Vec2i;
 typedef Vector<Int32, 3> Vec3i;
 typedef Vector<Int32, 4> Vec4i;
 
-typedef Vector<Uint32, 2> Vec2u;
-typedef Vector<Uint32, 3> Vec3u;
-typedef Vector<Uint32, 4> Vec4u;
-
-
 typedef Matrix<float, 2, 2> Mat2;
 typedef Matrix<float, 3, 3> Mat3;
 typedef Matrix<float, 4, 4> Mat4;
@@ -220,10 +195,6 @@ typedef Matrix<float, 4, 4> Mat4;
 typedef Matrix<Int32, 2, 2> Mat2i;
 typedef Matrix<Int32, 3, 3> Mat3i;
 typedef Matrix<Int32, 4, 4> Mat4i;
-
-typedef Matrix<Uint32, 2, 2> Mat2u;
-typedef Matrix<Uint32, 3, 3> Mat3u;
-typedef Matrix<Uint32, 4, 4> Mat4u;
 
 
 ////////////////////////////////////////////////////////////
@@ -303,6 +274,12 @@ ComparisonMatrix<m, n> operator!(const ComparisonMatrix<m, n>& unary);
 
 namespace std
 {
+
+template<class T, class U, simu::Uint32 m, simu::Uint32 n>
+struct std::common_type<simu::Matrix<T, m, n>, simu::Matrix<U, m, n>>
+{
+    typedef simu::Matrix<typename std::common_type<T, U>::type, m, n> type;
+};
 
 template <class T, simu::Uint32 m, simu::Uint32 n>
 simu::Matrix<T, m, n> abs(const simu::Matrix<T, m, n>& mat);
