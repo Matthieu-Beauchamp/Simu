@@ -19,7 +19,7 @@ simu_update_submodules(${CMAKE_CURRENT_LIST_DIR})
 # Options
 ############################################################
 
-simu_define_option(SIMU_BUILD_TESTS   OFF BOOL "Build tests")
+simu_define_option(SIMU_BUILD_TESTS   ON BOOL  "Build tests")
 simu_define_option(SIMU_TEST_COVERAGE OFF BOOL "Produce coverage report for tests")
 
 simu_define_option(SIMU_BUILD_DOCS    OFF BOOL "Build documentation")
