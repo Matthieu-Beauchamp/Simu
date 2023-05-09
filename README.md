@@ -4,6 +4,9 @@
 
 [![codecov](https://codecov.io/gh/Matthieu-Beauchamp/Simu/branch/master/graph/badge.svg?token=AYAKQV1UZI)](https://codecov.io/gh/Matthieu-Beauchamp/Simu)
 
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/6eae28fc833d47f8858fc4fbe3328dff)](https://app.codacy.com/gh/Matthieu-Beauchamp/Simu/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
+
+
 # Simu
 Simu is a 2D physics engine aimed towards real-time simulation of rigid bodies and
 gravitationnal/magnetic fields.
