@@ -24,45 +24,135 @@
 
 #pragma once
 
+#include <initializer_list>
+
 #include "Simu/config.hpp"
 
 namespace simu
 {
 
+////////////////////////////////////////////////////////////
+/// \brief Matrix data is stored row-major
+///
+////////////////////////////////////////////////////////////
 template <class T, simu::Uint32 mRows_, simu::Uint32 nCols_>
-struct MatrixBase
+struct MatrixData
 {
     typedef T value_type;
+
     static constexpr simu::Uint32 mRows = mRows_;
     static constexpr simu::Uint32 nCols = nCols_;
 
-    typedef T * iterator;
-    typedef const T * const_iterator;
+    MatrixData() = default;
 
-    iterator
-    begin()
+    template <class U>
+    explicit MatrixData(const MatrixData<U, mRows, nCols>& other)
     {
-        return data[0];
-    }
-    iterator
-    end()
-    {
-        return data[mRows * nCols - 1];
+        for (simu::Uint32 i = 0; i < size(); ++i) data[i] = other.data[i];
     }
 
-    const_iterator
-    begin() const
+
+    simu::Uint32 size() const { return mRows * nCols; }
+
+    T& operator(simu::Uint32 row, simu::Uint32 col)
     {
-        return data[0];
+        return data[row * nCols + col];
     }
-    const_iterator
-    end() const
+    const T& operator(simu::Uint32 row, simu::Uint32 col) const
     {
-        return data[mRows * nCols - 1];
+        return data[row * nCols + col];
     }
+
+    typedef T*       iterator;
+    typedef const T* const_iterator;
+
+    iterator begin() { return data[0]; }
+    iterator end() { return data[mRows * nCols - 1]; }
+
+    const_iterator begin() const { return data[0]; }
+    const_iterator end() const { return data[mRows * nCols - 1]; }
+
+    template <class U>
+    bool operator==(const Matrix<U, mRows, nCols>& other) const = default;
+    template <class U>
+    bool operator<(const Matrix<U, mRows, nCols>& other) const = default;
+    template <class U>
+    bool operator<=(const Matrix<U, mRows, nCols>& other) const = default;
+    template <class U>
+    bool operator>(const Matrix<U, mRows, nCols>& other) const = default;
+    template <class U>
+    bool operator>=(const Matrix<U, mRows, nCols>& other) const = default;
 
     T data[mRows * nCols];
 };
+
+template <class T, simu::Uint32 m, simu::Uint32 n>
+struct Matrix : public MatrixData<T, m, n>
+{
+    typedef Matrix<T, 1, n> Row;
+    typedef Matrix<T, m, 1> Col;
+
+    Matrix() = default;
+
+    template <class U>
+    explicit Matrix(const Matrix<U, m, n>& other)
+        : MatrixData{static_cast<const MatrixData<U, m, n>&>(other)}
+    {
+    }
+
+    Matrix(const MatrixData<T, m, n>& data) : MatrixData{data} {}
+
+    Matrix(const std::initializer_list<T>& init)
+    {
+        auto it = begin();
+        for (const T& val : init)
+        {
+            if (it == end())
+                return;
+
+            *it++ = val;
+        }
+    }
+
+
+    Matrix operator+() const { return *this; }
+
+    Matrix operator-() const
+    {
+        Matrix null{};
+        return null -= *this;
+    }
+
+
+    template <class U>
+    Matrix& operator+=(const Matrix<U, m, n>& other)
+    {
+        for (simu::Uint32 i = 0; i < size(); ++i) { data[i] += other.data[i]; }
+        return *this;
+    }
+
+    template <class U>
+    Matrix& operator-=(const Matrix<U, m, n>& other)
+    {
+        for (simu::Uint32 i = 0; i < size(); ++i) { data[i] -= other.data[i]; }
+        return *this;
+    }
+
+    template <class U>
+    Matrix& operator*=(U scalar)
+    {
+        for (simu::Uint32 i = 0; i < size(); ++i) { data[i] *= scalar; }
+        return *this;
+    }
+
+    template <class U>
+    Matrix& operator/=(U scalar)
+    {
+        for (simu::Uint32 i = 0; i < size(); ++i) { data[i] /= scalar; }
+        return *this;
+    }
+};
+
 
 namespace details
 {
@@ -74,9 +164,9 @@ struct PromotedImpl
 };
 
 template <class T, class U, simu::Uint32 m, simu::Uint32 n>
-struct PromotedImpl<MatrixBase<T, m, n>, MatrixBase<U, m, n>>
+struct PromotedImpl<MatrixData<T, m, n>, MatrixData<U, m, n>>
 {
-    typedef MatrixBase<typename PromotedImpl<T, U>::Type, m, n> Type;
+    typedef MatrixData<typename PromotedImpl<T, U>::Type, m, n> Type;
 };
 
 template <class T, class U>
@@ -84,17 +174,68 @@ using Promoted = typename PromotedImpl<T, U>::Type;
 
 } // namespace details
 
+
 template <class T, class U, simu::Uint32 m, simu::Uint32 n>
-MatrixBase<details::Promoted<T, U>, m, n>
-operator+=(MatrixBase<T, m, n> lhs, MatrixBase<U, m, n> rhs)
+Matrix<details::Promoted<T, U>, m, n>
+operator+(const Matrix<T, m, n>& lhs, const Matrix<U, m, n>& rhs)
 {
-    MatrixBase<details::Promoted<T, U>, m, n> res;
+    Matrix<details::Promoted<T, U>, m, n> res{lhs};
+    return res += rhs;
 }
 
+template <class T, class U, simu::Uint32 m, simu::Uint32 n>
+Matrix<details::Promoted<T, U>, m, n>
+operator-(const Matrix<T, m, n>& lhs, const Matrix<U, m, n>& rhs)
+{
+    Matrix<details::Promoted<T, U>, m, n> res{lhs};
+    return res -= rhs;
+}
 
+template <class T, class U, simu::Uint32 m, simu::Uint32 n>
+Matrix<details::Promoted<T, U>, m, n>
+operator*(U scalar, const Matrix<T, m, n>& rhs)
+{
+    Matrix<details::Promoted<T, U>, m, n> res{rhs};
+    return res *= scalar;
+}
 
+template <class T, class U, simu::Uint32 m, simu::Uint32 n>
+Matrix<details::Promoted<T, U>, m, n>
+operator/(U scalar, const Matrix<T, m, n>& rhs)
+{
+    Matrix<details::Promoted<T, U>, m, n> res{rhs};
+    return res /= scalar;
+}
 
+template <class T, class U, simu::Uint32 mLeft, simu::Uint32 nLeft, simu::Uint32 nRight>
+Matrix<details::Promoted<T, U>, mLeft, nRight>
+operator*(const Matrix<T, mLeft, nLeft>& lhs, const Matrix<U, nLeft, nRight>& rhs)
+{
+    Matrix<details::Promoted<T, U>, mLeft, nRight> res{};
+    for (simu::Uint32 row = 0; row < lhs.mRows; ++row)
+    {
+        for (simu::Uint32 col = 0; col < rhs.nCols; ++col)
+        {
+            for (simu::Uint32 k = 0; k < lhs.nCols; ++k)
+            {
+                res(row, col) += lhs(row, k) * rhs(k, col);
+            }
+        }
+    }
+}
 
+template <class T, simu::Uint32 m, simu::Uint32 n>
+Matrix<T, n, m> transpose(const Matrix<T, m, n>& original)
+{
+    Matrix<T, n, m> res;
+    for (simu::Uint32 row = 0; row < m; ++row)
+    {
+        for (simu::Uint32 col = 0; col < n; ++col)
+        {
+            res(row, col) = original(col, row);
+        }
+    }
+}
 
 
 template <class T, simu::Uint32 dim>
@@ -102,5 +243,11 @@ using Vector = Matrix<T, dim, 1>;
 
 template <class T, simu::Uint32 dim>
 using RowVector = Matrix<T, 1, dim>;
+
+
+typedef Matrix<float, 2, 2> Mat22;
+typedef Matrix<float, 3, 3> Mat33;
+typedef Matrix<float, 4, 4> Mat44;
+
 
 } // namespace simu
