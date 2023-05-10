@@ -119,7 +119,7 @@ TEST_CASE("Matrix")
             std::sin(theta),  std::cos(theta)
         };
 
-        bool a = (all(approx(normalized(Vec2{1, 1}), Vec2::filled(1e-6f))
+        REQUIRE(all(approx(normalized(Vec2{1, 1}), Vec2::filled(1e-6f))
                         .contains(rot * Vec2::i())));
     }
 
