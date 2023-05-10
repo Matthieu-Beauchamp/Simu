@@ -89,19 +89,19 @@ struct Matrix;
 template <class T, Uint32 dim>
 using Vector = Matrix<T, dim, 1>;
 
-template <class T, Uint32 m, Uint32 n>
+template <class T, Uint32 m, Uint32 n, bool isVector = (n == 1)>
 struct SpecialConstructors
 {
 };
 
 template <class T, Uint32 dim>
-struct SpecialConstructors<T, dim, dim>
+struct SpecialConstructors<T, dim, dim, false>
 {
     static Matrix<T, dim, dim> identity();
 };
 
 template <class T, Uint32 dim>
-struct SpecialConstructors<T, dim, 1>
+struct SpecialConstructors<T, dim, 1, true>
 {
     static Vector<T, dim> i();
     static Vector<T, dim> j();
@@ -147,7 +147,7 @@ struct Matrix : public MatrixData<T, m, n>, public SpecialConstructors<T, m, n>
 
 
 template <class T, class U>
-using Promoted = std::common_type_t<T, U>;
+using Promoted = typename std::common_type<T, U>::type;
 
 
 template <class T, class U, Uint32 m, Uint32 n>
@@ -275,7 +275,7 @@ ComparisonMatrix<m, n> operator!(const ComparisonMatrix<m, n>& unary);
 namespace std
 {
 
-template<class T, class U, simu::Uint32 m, simu::Uint32 n>
+template <class T, class U, simu::Uint32 m, simu::Uint32 n>
 struct std::common_type<simu::Matrix<T, m, n>, simu::Matrix<U, m, n>>
 {
     typedef simu::Matrix<typename std::common_type<T, U>::type, m, n> type;

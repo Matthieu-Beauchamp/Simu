@@ -37,7 +37,7 @@ template <class T, Uint32 m, Uint32 n>
 template <class U>
 MatrixData<T, m, n>::MatrixData(const MatrixData<U, m, n>& other)
 {
-    for (Uint32 i = 0; i < lhs.size(); ++i)
+    for (Uint32 i = 0; i < size(); ++i)
         data[i] = other.data[i];
 }
 
@@ -71,7 +71,7 @@ const T& MatrixData<T, m, n>::operator[](Uint32 index) const
 ////////////////////////////////////////////////////////////
 
 template <class T, Uint32 dim>
-Matrix<T, dim, dim> SpecialConstructors<T, dim, dim>::identity()
+Matrix<T, dim, dim> SpecialConstructors<T, dim, dim, false>::identity()
 {
     Matrix<T, dim, dim> ident{};
     for (Uint32 i = 0; i < dim; ++i)
@@ -82,7 +82,7 @@ Matrix<T, dim, dim> SpecialConstructors<T, dim, dim>::identity()
 
 
 template <class T, Uint32 dim>
-Vector<T, dim> SpecialConstructors<T, dim, 1>::i()
+Vector<T, dim> SpecialConstructors<T, dim, 1, true>::i()
 {
     Vector<T, dim> vec{};
     if (0 < dim)
@@ -92,7 +92,7 @@ Vector<T, dim> SpecialConstructors<T, dim, 1>::i()
 }
 
 template <class T, Uint32 dim>
-Vector<T, dim> SpecialConstructors<T, dim, 1>::j()
+Vector<T, dim> SpecialConstructors<T, dim, 1, true>::j()
 {
     Vector<T, dim> vec{};
     if (1 < dim)
@@ -102,7 +102,7 @@ Vector<T, dim> SpecialConstructors<T, dim, 1>::j()
 }
 
 template <class T, Uint32 dim>
-Vector<T, dim> SpecialConstructors<T, dim, 1>::k()
+Vector<T, dim> SpecialConstructors<T, dim, 1, true>::k()
 {
     Vector<T, dim> vec{};
     if (2 < dim)
@@ -112,7 +112,7 @@ Vector<T, dim> SpecialConstructors<T, dim, 1>::k()
 }
 
 template <class T, Uint32 dim>
-Vector<T, dim> SpecialConstructors<T, dim, 1>::w()
+Vector<T, dim> SpecialConstructors<T, dim, 1, true>::w()
 {
     Vector<T, dim> vec{};
     if (3 < dim)
@@ -253,8 +253,7 @@ template <class T, class U, Uint32 m, Uint32 n>
 Matrix<Promoted<T, U>, m, n>
 operator-(const Matrix<T, m, n>& lhs, const Matrix<U, m, n>& rhs)
 {
-    Matrix<Promoted<T, U>, m, n> res{lhs};
-    return res -= rhs;
+    return lhs + (-rhs);
 }
 
 template <class T, class U, Uint32 m, Uint32 n>
@@ -267,7 +266,7 @@ Matrix<Promoted<T, U>, m, n> operator*(U scalar, const Matrix<T, m, n>& mat)
 template <class T, class U, Uint32 m, Uint32 n>
 Matrix<Promoted<T, U>, m, n> operator*(const Matrix<T, m, n>& mat, U scalar)
 {
-    return scalar * mat
+    return scalar * mat;
 }
 
 template <class T, class U, Uint32 m, Uint32 n>
@@ -292,6 +291,8 @@ operator*(const Matrix<T, mLeft, nLeft>& lhs, const Matrix<U, nLeft, nRight>& rh
             }
         }
     }
+
+    return res;
 }
 
 
@@ -425,7 +426,7 @@ template <Uint32 m, Uint32 n>
 ComparisonMatrix<m, n> operator!(const ComparisonMatrix<m, n>& unary)
 {
     ComparisonMatrix<m, n> res;
-    for (Uint32 i = 0; i < lhs.size(); ++i)
+    for (Uint32 i = 0; i < res.size(); ++i)
     {
         res[i] = !unary[i];
     }
@@ -447,7 +448,7 @@ namespace std
 template <class T, simu::Uint32 m, simu::Uint32 n>
 simu::Matrix<T, m, n> abs(const simu::Matrix<T, m, n>& mat)
 {
-    const Matrix<T, m, n>& res;
+    Matrix<T, m, n> res;
     for (Uint32 i = 0; i < mat.size(); ++i)
     {
         res[i] = std::abs(mat[i]);
@@ -459,7 +460,7 @@ simu::Matrix<T, m, n> abs(const simu::Matrix<T, m, n>& mat)
 template <class T, simu::Uint32 m, simu::Uint32 n>
 simu::Matrix<T, m, n> round(const simu::Matrix<T, m, n>& mat)
 {
-    const Matrix<T, m, n>& res;
+    Matrix<T, m, n> res;
     for (Uint32 i = 0; i < mat.size(); ++i)
     {
         res[i] = std::round(mat[i]);

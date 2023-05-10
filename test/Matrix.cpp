@@ -13,10 +13,7 @@ TEST_CASE("Matrix")
 
     SECTION("Construct from vectors")
     {
-        Matrix<int, 2, 4> ref{
-            1, 2, 3, 4, 
-            5, 6, 7, 8
-        };
+        Matrix<int, 2, 4> ref{1, 2, 3, 4, 5, 6, 7, 8};
 
         REQUIRE(
             all(ref
@@ -64,6 +61,9 @@ TEST_CASE("Matrix")
             all(Mat4::identity()
                 == Mat4::fromRows({Vec4::i(), Vec4::j(), Vec4::k(), Vec4::w()}))
         );
+
+        // may also be made to not compile
+        REQUIRE(all(Vec3i::w() == Vec3i{}));
     }
 
     SECTION("Unary operators")
@@ -71,6 +71,7 @@ TEST_CASE("Matrix")
         Mat2i ident = Mat2i::identity();
         REQUIRE(all(+ident == ident));
         REQUIRE(all(-ident + ident == Mat2i{}));
+        REQUIRE(all(+-+-ident == ident));
     }
 
     SECTION("Arithmetic assignement")
@@ -85,13 +86,44 @@ TEST_CASE("Matrix")
 
         ones += ones;
         REQUIRE(all(ones == Mat2::filled(2.f)));
-        
+
         ones -= ones;
         REQUIRE(all(ones == Mat2{}));
     }
 
     SECTION("Linear combination (non-member operators)")
     {
+        // Binary operators returning by value must promote the return type
+        auto combination = Vec3i::i() * 0.5f - Vec3i::i() 
+                           + 0.5f * Vec3i::j()
+                           + Vec3i::k() / 2.f;
 
+        REQUIRE(all(combination == Vec3{-0.5f, 0.5f, 0.5f}));
+    }
+
+    SECTION("Matrix multiplication")
+    {
+        Mat2 ident = Mat2::identity();
+        REQUIRE(all(ident * ident == ident));
+
+        REQUIRE(all(transpose(Vec2::i()) * Vec2::j() == Vector<int, 1>{0}));
+
+        REQUIRE(all(Vec2{1, 2} * transpose(Vec2{2, 1}) == Mat2{2, 1, 
+                                                               4, 2}));
+    }
+
+    SECTION("std and comparison matrices")
+    {
+        Vec3 v = Vec3::filled(-1.25f);
+
+        REQUIRE(!any(v == std::abs(v)));
+        REQUIRE(all(v != std::abs(v)));
+
+        Vec3 absV = std::abs(v);
+        REQUIRE(all(v < absV));
+        REQUIRE(all(v <= absV));
+
+        REQUIRE(all(absV > std::round(absV)));
+        REQUIRE(all(absV >= std::round(absV)));
     }
 }
