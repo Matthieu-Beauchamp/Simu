@@ -1,5 +1,9 @@
+#include <numbers>
+
 #include "catch2/catch_test_macros.hpp"
+
 #include "Simu/math/Matrix.hpp"
+#include "Simu/math/Interval.hpp"
 
 using namespace simu;
 
@@ -94,8 +98,7 @@ TEST_CASE("Matrix")
     SECTION("Linear combination (non-member operators)")
     {
         // Binary operators returning by value must promote the return type
-        auto combination = Vec3i::i() * 0.5f - Vec3i::i() 
-                           + 0.5f * Vec3i::j()
+        auto combination = Vec3i::i() * 0.5f - Vec3i::i() + 0.5f * Vec3i::j()
                            + Vec3i::k() / 2.f;
 
         REQUIRE(all(combination == Vec3{-0.5f, 0.5f, 0.5f}));
@@ -108,8 +111,16 @@ TEST_CASE("Matrix")
 
         REQUIRE(all(transpose(Vec2::i()) * Vec2::j() == Vector<int, 1>{0}));
 
-        REQUIRE(all(Vec2{1, 2} * transpose(Vec2{2, 1}) == Mat2{2, 1, 
-                                                               4, 2}));
+        REQUIRE(all(Vec2{1, 2} * transpose(Vec2{2, 1}) == Mat2{2, 1, 4, 2}));
+
+        float theta = std::numbers::pi / 4;
+        Mat2  rot{
+            std::cos(theta), -std::sin(theta),
+            std::sin(theta),  std::cos(theta)
+        };
+
+        bool a = (all(approx(normalized(Vec2{1, 1}), Vec2::filled(1e-6f))
+                        .contains(rot * Vec2::i())));
     }
 
     SECTION("std and comparison matrices")

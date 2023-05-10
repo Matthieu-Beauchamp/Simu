@@ -125,7 +125,7 @@ Vector<T, dim> SpecialConstructors<T, dim, 1, true>::w()
 template <class T, Uint32 m, Uint32 n>
 template <class U>
 Matrix<T, m, n>::Matrix(const Matrix<U, m, n>& other)
-    : MatrixData{static_cast<const MatrixData<U, m, n>&>(other)}
+    : MatrixData<T, m, n>{static_cast<const MatrixData<U, m, n>&>(other)}
 {
 }
 
@@ -139,10 +139,10 @@ Matrix<T, m, n>::Matrix(const MatrixData<T, m, n>& data) : MatrixData{data}
 template <class T, Uint32 m, Uint32 n>
 Matrix<T, m, n>::Matrix(const std::initializer_list<T>& init)
 {
-    auto it = begin();
+    auto it = this->begin();
     for (const T& val : init)
     {
-        if (it == end())
+        if (it == this->end())
             return;
 
         *it++ = val;
@@ -204,8 +204,8 @@ template <class T, Uint32 m, Uint32 n>
 template <class U>
 Matrix<T, m, n>& Matrix<T, m, n>::operator+=(const Matrix<U, m, n>& other)
 {
-    for (Uint32 i = 0; i < size(); ++i)
-        data[i] += other.data[i];
+    for (Uint32 i = 0; i < this->size(); ++i)
+        this->data[i] += other.data[i];
 
     return *this;
 }
@@ -214,8 +214,8 @@ template <class T, Uint32 m, Uint32 n>
 template <class U>
 Matrix<T, m, n>& Matrix<T, m, n>::operator-=(const Matrix<U, m, n>& other)
 {
-    for (Uint32 i = 0; i < size(); ++i)
-        data[i] -= other.data[i];
+    for (Uint32 i = 0; i < this->size(); ++i)
+        this->data[i] -= other.data[i];
 
     return *this;
 }
@@ -224,8 +224,8 @@ template <class T, Uint32 m, Uint32 n>
 template <class U>
 Matrix<T, m, n>& Matrix<T, m, n>::operator*=(U scalar)
 {
-    for (Uint32 i = 0; i < size(); ++i)
-        data[i] *= scalar;
+    for (Uint32 i = 0; i < this->size(); ++i)
+        this->data[i] *= scalar;
 
     return *this;
 }
@@ -234,8 +234,8 @@ template <class T, Uint32 m, Uint32 n>
 template <class U>
 Matrix<T, m, n>& Matrix<T, m, n>::operator/=(U scalar)
 {
-    for (Uint32 i = 0; i < size(); ++i)
-        data[i] /= scalar;
+    for (Uint32 i = 0; i < this->size(); ++i)
+        this->data[i] /= scalar;
 
     return *this;
 }
@@ -448,8 +448,8 @@ namespace std
 template <class T, simu::Uint32 m, simu::Uint32 n>
 simu::Matrix<T, m, n> abs(const simu::Matrix<T, m, n>& mat)
 {
-    Matrix<T, m, n> res;
-    for (Uint32 i = 0; i < mat.size(); ++i)
+    simu::Matrix<T, m, n> res;
+    for (simu::Uint32 i = 0; i < mat.size(); ++i)
     {
         res[i] = std::abs(mat[i]);
     }
@@ -460,8 +460,8 @@ simu::Matrix<T, m, n> abs(const simu::Matrix<T, m, n>& mat)
 template <class T, simu::Uint32 m, simu::Uint32 n>
 simu::Matrix<T, m, n> round(const simu::Matrix<T, m, n>& mat)
 {
-    Matrix<T, m, n> res;
-    for (Uint32 i = 0; i < mat.size(); ++i)
+    simu::Matrix<T, m, n> res;
+    for (simu::Uint32 i = 0; i < mat.size(); ++i)
     {
         res[i] = std::round(mat[i]);
     }

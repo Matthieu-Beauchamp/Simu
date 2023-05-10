@@ -177,6 +177,32 @@ Matrix<T, n, m> transpose(const Matrix<T, m, n>& original);
 
 
 ////////////////////////////////////////////////////////////
+// Vector operations
+////////////////////////////////////////////////////////////
+
+template<class T, class U, Uint32 dim>
+Promoted<T, U> dot(const Vector<T, dim> & lhs, const Vector<U, dim> & rhs)
+{
+    Promoted<T, U> sum{};
+    for (Uint32 i = 0; i < dim; ++i)
+        sum += lhs[i] * rhs[i];
+
+    return sum;
+}
+
+template<class T, Uint32 dim>
+T norm(const Vector<T, dim> & v)
+{
+    return std::sqrt(dot(v, v));
+}
+
+template<class T, Uint32 dim>
+Vector<T, dim> normalized(const Vector<T, dim> & v)
+{
+    return v / norm(v);
+}
+
+////////////////////////////////////////////////////////////
 // Aliases
 ////////////////////////////////////////////////////////////
 

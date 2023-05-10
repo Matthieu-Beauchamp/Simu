@@ -10,7 +10,8 @@ include(macros)
 
 cmake_policy(SET CMP0076 NEW) # target_sources converted to absolute path
 
-set(CMAKE_CXX_STANDARD_REQUIRED 20)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 simu_update_submodules(${CMAKE_CURRENT_LIST_DIR})
