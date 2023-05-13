@@ -313,6 +313,48 @@ Matrix<T, n, m> transpose(const Matrix<T, m, n>& original)
 
 
 ////////////////////////////////////////////////////////////
+// Vector operations
+////////////////////////////////////////////////////////////
+
+template <class T, class U, Uint32 dim>
+Promoted<T, U> dot(const Vector<T, dim>& lhs, const Vector<U, dim>& rhs)
+{
+    Promoted<T, U> sum{};
+    for (Uint32 i = 0; i < dim; ++i)
+        sum += lhs[i] * rhs[i];
+
+    return sum;
+}
+
+template <class T, Uint32 dim>
+T norm(const Vector<T, dim>& v)
+{
+    return std::sqrt(dot(v, v));
+}
+
+template <class T, Uint32 dim>
+Vector<T, dim> normalized(const Vector<T, dim>& v)
+{
+    return v / norm(v);
+}
+
+template <class T, class U>
+Vector<Promoted<T, U>, 3> cross(const Vector<T, 3>& lhs, const Vector<U, 3>& rhs)
+{
+    return Vector<Promoted<T, U>, 3>{
+        cross(Vector<T, 2>{lhs[1], lhs[2]}, Vector<U, 2>{rhs[1], rhs[2]}),
+        -cross(Vector<T, 2>{lhs[0], lhs[2]}, Vector<U, 2>{rhs[0], rhs[2]}),
+        cross(Vector<T, 2>{lhs[0], lhs[1]}, Vector<U, 2>{rhs[0], rhs[1]})};
+}
+
+template <class T, class U>
+Promoted<T, U> cross(const Vector<T, 2>& lhs, const Vector<U, 2>& rhs)
+{
+    return lhs[0] * rhs[1] - lhs[1] * rhs[0];
+}
+
+
+////////////////////////////////////////////////////////////
 // Comparison facilities
 ////////////////////////////////////////////////////////////
 

@@ -123,6 +123,20 @@ TEST_CASE("Matrix")
                         .contains(rot * Vec2::i())));
     }
 
+    SECTION("Vector operations")
+    {
+        REQUIRE(all(cross(Vec3::i(), Vec3::j()) == Vec3::k()));
+        REQUIRE(all(cross(Vec3::j(), Vec3::i()) == -Vec3::k()));
+
+        REQUIRE(all(cross(Vec3::j(), Vec3::k()) == Vec3::i()));
+        REQUIRE(all(cross(Vec3::k(), Vec3::j()) == -Vec3::i()));
+
+        REQUIRE(all(cross(Vec3::k(), Vec3::i()) == Vec3::j()));
+        REQUIRE(all(cross(Vec3::i(), Vec3::k()) == -Vec3::j()));
+
+        REQUIRE(all(cross(Vec3::i(), Vec3::i()) == Vec3{}));
+    }
+
     SECTION("std and comparison matrices")
     {
         Vec3 v = Vec3::filled(-1.25f);

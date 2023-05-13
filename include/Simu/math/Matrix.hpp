@@ -180,27 +180,21 @@ Matrix<T, n, m> transpose(const Matrix<T, m, n>& original);
 // Vector operations
 ////////////////////////////////////////////////////////////
 
-template<class T, class U, Uint32 dim>
-Promoted<T, U> dot(const Vector<T, dim> & lhs, const Vector<U, dim> & rhs)
-{
-    Promoted<T, U> sum{};
-    for (Uint32 i = 0; i < dim; ++i)
-        sum += lhs[i] * rhs[i];
+template <class T, class U, Uint32 dim>
+Promoted<T, U> dot(const Vector<T, dim>& lhs, const Vector<U, dim>& rhs);
 
-    return sum;
-}
+template<class T, class U>
+Vector<Promoted<T, U>, 3> cross(const Vector<T, 3>& lhs, const Vector<U, 3>& rhs);
 
-template<class T, Uint32 dim>
-T norm(const Vector<T, dim> & v)
-{
-    return std::sqrt(dot(v, v));
-}
+template<class T, class U>
+Promoted<T, U> cross(const Vector<T, 2>& lhs, const Vector<U, 2>& rhs);
 
-template<class T, Uint32 dim>
-Vector<T, dim> normalized(const Vector<T, dim> & v)
-{
-    return v / norm(v);
-}
+template <class T, Uint32 dim>
+T norm(const Vector<T, dim>& v);
+
+template <class T, Uint32 dim>
+Vector<T, dim> normalized(const Vector<T, dim>& v);
+
 
 ////////////////////////////////////////////////////////////
 // Aliases
