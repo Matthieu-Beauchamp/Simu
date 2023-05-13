@@ -6,7 +6,7 @@ AccessModifierOffset: -4
 AlignAfterOpenBracket: BlockIndent
 AlignArrayOfStructures: Left
 AlignConsecutiveAssignments: true
-AlignConsecutiveDeclarations: false
+AlignConsecutiveDeclarations: true
 
 AlignConsecutiveMacros: AcrossEmptyLines
 AlignEscapedNewlines: Right
@@ -14,7 +14,7 @@ AlignOperands: true
 AlignTrailingComments: true
 
 AllowAllArgumentsOnNextLine: false
-AllowAllConstructorInitializersOnNextLine: false # This option is deprecated. See NextLine of PackConstructorInitializers.
+# AllowAllConstructorInitializersOnNextLine: false # deprecated. See NextLine of PackConstructorInitializers.
 AllowAllParametersOfDeclarationOnNextLine: false
 
 AllowShortBlocksOnASingleLine: Always
@@ -22,10 +22,10 @@ AllowShortCaseLabelsOnASingleLine: true
 AllowShortFunctionsOnASingleLine: All
 AllowShortIfStatementsOnASingleLine: Never
 AllowShortLambdasOnASingleLine: All
-AllowShortLoopsOnASingleLine: true
+AllowShortLoopsOnASingleLine: false
 
-AlwaysBreakAfterDefinitionReturnType: All
-AlwaysBreakAfterReturnType: All
+# AlwaysBreakAfterDefinitionReturnType: All # deprecated
+AlwaysBreakAfterReturnType: None
 AlwaysBreakBeforeMultilineStrings: false
 AlwaysBreakTemplateDeclarations: Yes
 
@@ -118,7 +118,7 @@ PenaltyBreakString: 1000
 PenaltyBreakTemplateDeclaration: 1000
 PenaltyExcessCharacter: 15
 PenaltyReturnTypeOnItsOwnLine: 0
-PointerAlignment: Middle
+PointerAlignment: Left
 ReflowComments:  true
 SortIncludes:    false
 SortUsingDeclarations: true

@@ -10,7 +10,8 @@ include(macros)
 
 cmake_policy(SET CMP0076 NEW) # target_sources converted to absolute path
 
-set(CMAKE_CXX_STANDARD_REQUIRED 20)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 simu_update_submodules(${CMAKE_CURRENT_LIST_DIR})
@@ -19,7 +20,7 @@ simu_update_submodules(${CMAKE_CURRENT_LIST_DIR})
 # Options
 ############################################################
 
-simu_define_option(SIMU_BUILD_TESTS   OFF BOOL "Build tests")
+simu_define_option(SIMU_BUILD_TESTS   ON BOOL  "Build tests")
 simu_define_option(SIMU_TEST_COVERAGE OFF BOOL "Produce coverage report for tests")
 
 simu_define_option(SIMU_BUILD_DOCS    OFF BOOL "Build documentation")
