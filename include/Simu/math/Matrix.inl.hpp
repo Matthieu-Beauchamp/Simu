@@ -327,9 +327,15 @@ Promoted<T, U> dot(const Vector<T, dim>& lhs, const Vector<U, dim>& rhs)
 }
 
 template <class T, Uint32 dim>
+T normSquared(const Vector<T, dim>& v)
+{
+    return dot(v, v);
+}
+
+template <class T, Uint32 dim>
 T norm(const Vector<T, dim>& v)
 {
-    return std::sqrt(dot(v, v));
+    return std::sqrt(normSquared(v));
 }
 
 template <class T, Uint32 dim>

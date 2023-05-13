@@ -190,6 +190,9 @@ template<class T, class U>
 Promoted<T, U> cross(const Vector<T, 2>& lhs, const Vector<U, 2>& rhs);
 
 template <class T, Uint32 dim>
+T normSquared(const Vector<T, dim>& v);
+
+template <class T, Uint32 dim>
 T norm(const Vector<T, dim>& v);
 
 template <class T, Uint32 dim>

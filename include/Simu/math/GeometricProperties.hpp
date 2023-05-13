@@ -22,16 +22,27 @@
 //
 ////////////////////////////////////////////////////////////
 
-#include "Simu/math/math.hpp"
+#pragma once
+
+#include "Simu/config.hpp"
+#include "Simu/math/Matrix.hpp"
+
 
 namespace simu
 {
 
-Uint32 testCoverage(Uint32 x){
-    return x*2;
-}
+class ConvexGeometry;
 
-void unused(){}
+struct GeometricProperties
+{
+    GeometricProperties() = default;
+
+    GeometricProperties(const ConvexGeometry& geometry); 
+
+    Vec2  centroid{};
+    float area = 0.f;
+    float momentOfArea = 0.f;
+};
 
 
-} // namepace simu 
+} // namespace simu

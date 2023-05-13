@@ -22,15 +22,41 @@
 //
 ////////////////////////////////////////////////////////////
 
-#pragma once
-
-#include "Simu/config.hpp"
+#include "Simu/math/GeometricProperties.hpp"
+#include "Simu/math/Geometry.hpp"
 
 namespace simu
 {
 
-Uint32 testCoverage(Uint32 x);
+GeometricProperties::GeometricProperties(const ConvexGeometry& geometry)
+{
+    Vertex previous = *(--geometry.end());
+    for (const Vertex& vertex : geometry)
+    {
+        float vertexCross = cross(previous, vertex);
+        area += vertexCross;
 
-void unused();
+        centroid += (previous + vertex) * vertexCross;
 
-} // namepace simu 
+        momentOfArea += vertexCross
+                        * (dot(previous, previous) + dot(previous, vertex)
+                           + dot(vertex, vertex));
+
+        previous = vertex;
+    }
+
+    SIMU_ASSERT(
+        area > 0,
+        "Area must not be null and must be positive, ensure that vertices are "
+        "positively oriented."
+    );
+
+
+    area /= 2;
+    centroid /= 6 * area;
+    momentOfArea /= 12;
+    momentOfArea -= area * normSquared(centroid);
+}
+
+
+} // namespace simu
