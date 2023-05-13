@@ -71,10 +71,11 @@ public:
         const char*          msg,
         std::source_location loc = std::source_location::current()
     )
+        : std::exception{}
     {
         std::stringstream ss{};
-        ss << "From " << loc.function_name() << " in " << loc.file_name()
-           << ": " << loc.line() << '\n'
+        ss << "From " << loc.function_name() << " in " << loc.file_name() << ":"
+           << loc.line() << '\n'
            << msg;
         msg_ = ss.str();
     }
