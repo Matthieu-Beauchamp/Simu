@@ -296,7 +296,7 @@ namespace std
 {
 
 template <class T, class U, simu::Uint32 m, simu::Uint32 n>
-struct std::common_type<simu::Matrix<T, m, n>, simu::Matrix<U, m, n>>
+struct common_type<simu::Matrix<T, m, n>, simu::Matrix<U, m, n>>
 {
     typedef simu::Matrix<typename std::common_type<T, U>::type, m, n> type;
 };

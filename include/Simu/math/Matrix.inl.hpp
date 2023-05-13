@@ -131,7 +131,7 @@ Matrix<T, m, n>::Matrix(const Matrix<U, m, n>& other)
 
 
 template <class T, Uint32 m, Uint32 n>
-Matrix<T, m, n>::Matrix(const MatrixData<T, m, n>& data) : MatrixData{data}
+Matrix<T, m, n>::Matrix(const MatrixData<T, m, n>& data) : MatrixData<T, m, n>{data}
 {
 }
 
