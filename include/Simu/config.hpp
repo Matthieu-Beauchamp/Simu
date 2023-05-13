@@ -26,6 +26,10 @@
 
 #include <cstdint>
 
+#include <exception>
+#include <source_location>
+#include <sstream>
+
 ////////////////////////////////////////////////////////////
 /// \brief Define DLL export/import macro
 ////////////////////////////////////////////////////////////
@@ -37,9 +41,9 @@
 #if defined(SIMU_OS_WINDOWS)
 #    undef SIMU_API
 #    if defined(SIMU_EXPORT)
-#        define SPIRIT_ENGINE_API __declspec(dllexport)
+#        define SIMU_API __declspec(dllexport)
 #    else
-#        define SPIRIT_ENGINE_API __declspec(dllimport)
+#        define SIMU_API __declspec(dllimport)
 #    endif
 
 #elif defined(SIMU_OS_LINUX)
@@ -51,8 +55,36 @@
 #endif
 
 
+#define SIMU_ASSERT(cond, msg)                                                 \
+    if (!(cond))                                                               \
+    throw simu::Exception(msg)
+
+
 namespace simu
 {
+
+class Exception : public std::exception
+{
+public:
+
+    Exception(
+        const char*          msg,
+        std::source_location loc = std::source_location::current()
+    )
+    {
+        std::stringstream ss{};
+        ss << "From " << loc.function_name() << " in " << loc.file_name()
+           << ": " << loc.line() << '\n'
+           << msg;
+        msg_ = ss.str();
+    }
+
+    char const* what() const override { return msg_.c_str(); }
+
+private:
+
+    std::string msg_;
+};
 
 typedef std::int8_t  Int8;
 typedef std::uint8_t Uint8;
@@ -66,5 +98,4 @@ typedef std::uint32_t Uint32;
 typedef std::int64_t  Int64;
 typedef std::uint64_t Uint64;
 
-} // namepace simu 
-
+} // namespace simu
