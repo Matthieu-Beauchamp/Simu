@@ -131,7 +131,8 @@ Matrix<T, m, n>::Matrix(const Matrix<U, m, n>& other)
 
 
 template <class T, Uint32 m, Uint32 n>
-Matrix<T, m, n>::Matrix(const MatrixData<T, m, n>& data) : MatrixData<T, m, n>{data}
+Matrix<T, m, n>::Matrix(const MatrixData<T, m, n>& data)
+    : MatrixData<T, m, n>{data}
 {
 }
 
@@ -342,6 +343,12 @@ template <class T, Uint32 dim>
 Vector<T, dim> normalized(const Vector<T, dim>& v)
 {
     return v / norm(v);
+}
+
+template <class T>
+Vector<T, 2> perp(const Vector<T, 2>& v, bool clockwise)
+{
+    return clockwise ? Vector<T, 2>{-v[1], v[0]} : -perp(v, true);
 }
 
 template <class T, class U>

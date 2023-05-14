@@ -22,27 +22,23 @@
 //
 ////////////////////////////////////////////////////////////
 
-#pragma once
-
-#include "Simu/config.hpp"
-#include "Simu/math/Matrix.hpp"
-
+#include "Simu/math/Geometry.hpp"
 
 namespace simu
 {
 
-class ConvexPolygon;
-
-struct SIMU_API GeometricProperties
+Orientation orientation(Vec2 v0, Vec2 v1, Vec2 v2, float epsilon)
 {
-    GeometricProperties() = default;
+    float c = cross(v1 - v0, v2 - v1);
 
-    GeometricProperties(const ConvexPolygon& geometry);
+    if (approx(0.f, epsilon).contains(c))
+        return Orientation::collinear;
 
-    Vec2  centroid{};
-    float area         = 0.f;
-    float momentOfArea = 0.f;
-};
+    if (c > 0)
+        return Orientation::positive;
+
+    return Orientation::negative;
+}
 
 
 } // namespace simu

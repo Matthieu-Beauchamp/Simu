@@ -24,113 +24,19 @@
 
 #pragma once
 
-#include <vector>
-
-#include "Simu/config.hpp"
 #include "Simu/math/Matrix.hpp"
-#include "Simu/math/GeometricProperties.hpp"
+#include "Simu/math/Interval.hpp"
 
 namespace simu
 {
 
-template <class T, Uint32 dim>
-concept VertexIterator = requires(T it) {
-    {
-        *it
-    } -> std::convertible_to<Vector<float, dim>>;
-    {
-        ++it
-    };
-};
-
-template <class T>
-concept VertexIterator2D = VertexIterator<T, 2>;
-
-
-class ConvexGeometry;
-typedef std::vector<ConvexGeometry> Polygons;
-
-typedef Vec2                Vertex;
-typedef std::vector<Vertex> Vertices;
-
-class Geometry
+enum class Orientation
 {
-public:
-
-    virtual ~Geometry() = default;
-
-    // (minkowski support function)
-    virtual Vec2 furthestVertexInDirection(const Vec2& direction) const = 0;
-
-    const GeometricProperties& properties() const { return properties_; }
-
-    virtual Polygons polygons() const = 0;
-
-protected:
-
-    GeometricProperties properties_;
+    positive,
+    collinear,
+    negative
 };
 
-
-class ConvexGeometry : public Geometry
-{
-public:
-
-    ConvexGeometry(const std::initializer_list<Vertex>& vertices)
-        : ConvexGeometry(vertices.begin(), vertices.end())
-    {
-    }
-
-    template <VertexIterator2D It>
-    ConvexGeometry(It begin, It end)
-    {
-        SIMU_ASSERT(
-            std::distance(begin, end) >= 3,
-            "Convex Geometry must have at least 3 vertices"
-        );
-
-        while (begin != end)
-            vertices_.emplace_back(*begin++);
-
-        properties_ = GeometricProperties{*this};
-
-        for (Vertex& v : vertices_)
-            v -= properties_.centroid;
-
-        properties_.centroid = Vertex{0, 0};
-    }
-
-    Vec2 furthestVertexInDirection(const Vec2& direction) const override
-    {
-        Vec2  furthest = vertices_[0];
-        float maxDist  = dot(furthest, direction);
-        for (const Vertex& v : vertices_)
-        {
-            float dist = dot(v, direction);
-            if (dist > maxDist)
-            {
-                maxDist  = dist;
-                furthest = v;
-            }
-        }
-
-        return furthest;
-    }
-
-
-    Polygons polygons() const override { return {*this}; }
-
-    Vertices::const_iterator begin() const { return vertices_.begin(); }
-    Vertices::const_iterator end() const { return vertices_.end(); }
-
-private:
-
-    Vertices vertices_;
-};
-
-class CompositeGeometry : public Geometry
-{
-    // TODO:
-};
+Orientation orientation(Vec2 v0, Vec2 v1, Vec2 v2, float epsilon = simu::EPSILON);
 
 } // namespace simu

@@ -24,24 +24,40 @@
 
 #pragma once
 
-#include "Simu/config.hpp"
-#include "Simu/math/Matrix.hpp"
+#include <array>
 
+#include "Simu/math/Polygon.hpp"
 
 namespace simu
 {
 
-class ConvexPolygon;
+template <class T>
+concept Collidable = requires(T collidable) {
+    {
+        collidable.furthestVertexInDirection(Vec2{})
+    } -> std::convertible_to<Vec2>;
+};
 
-struct SIMU_API GeometricProperties
+template<Collidable T = simu::ConvexPolygon>
+class Gjk
 {
-    GeometricProperties() = default;
+public:
 
-    GeometricProperties(const ConvexPolygon& geometry);
+    Gjk(const T& first, const T& second);
 
-    Vec2  centroid{};
-    float area         = 0.f;
-    float momentOfArea = 0.f;
+private:
+
+    Vec2 furthestVertexInDirection(const Vec2& direction) const;
+
+    Vec2 updateSimplex(const Vertex& v);
+
+    const T& first_;
+    const T& second_;
+    float                 distance_;
+
+    std::array<Vertex, 3> simplex_{};
+    std::size_t           simplexIndex_ = 0;
+    bool                  done_         = false;
 };
 
 

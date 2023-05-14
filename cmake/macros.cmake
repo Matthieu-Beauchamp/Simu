@@ -83,5 +83,7 @@ macro(simu_add_library targetName src...)
     add_library(${targetName} ${src})
     simu_set_compile_options(${targetName})
     simu_set_compile_definitions(${targetName})
+    target_compile_definitions(${targetName} PRIVATE SIMU_EXPORT)
+
     
 endmacro()

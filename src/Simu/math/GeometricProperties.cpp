@@ -23,12 +23,12 @@
 ////////////////////////////////////////////////////////////
 
 #include "Simu/math/GeometricProperties.hpp"
-#include "Simu/math/Geometry.hpp"
+#include "Simu/math/Polygon.hpp"
 
 namespace simu
 {
 
-GeometricProperties::GeometricProperties(const ConvexGeometry& geometry)
+GeometricProperties::GeometricProperties(const ConvexPolygon& geometry)
 {
     Vertex previous = *(--geometry.end());
     for (const Vertex& vertex : geometry)
