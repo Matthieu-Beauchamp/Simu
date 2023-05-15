@@ -3,4 +3,6 @@ target_sources(simu-test PUBLIC
     Matrix.cpp
     Assertion.cpp
     Polygon.cpp
+    Gjk.cpp
+    BarycentricCoordinates.cpp
 )
