@@ -348,7 +348,7 @@ Vector<T, dim> normalized(const Vector<T, dim>& v)
 template <class T>
 Vector<T, 2> perp(const Vector<T, 2>& v, bool clockwise)
 {
-    return clockwise ? Vector<T, 2>{-v[1], v[0]} : -perp(v, true);
+    return clockwise ? -perp(v, false) : Vector<T, 2>{-v[1], v[0]};
 }
 
 template <class T, class U>

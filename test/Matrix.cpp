@@ -115,9 +115,10 @@ TEST_CASE("Matrix")
 
         float theta = std::numbers::pi / 4;
         Mat2  rot{
-            std::cos(theta), -std::sin(theta),
-            std::sin(theta),  std::cos(theta)
-        };
+            std::cos(theta),
+            -std::sin(theta),
+            std::sin(theta),
+            std::cos(theta)};
 
         REQUIRE(all(approx(normalized(Vec2{1, 1}), Vec2::filled(1e-6f))
                         .contains(rot * Vec2::i())));
@@ -135,6 +136,9 @@ TEST_CASE("Matrix")
         REQUIRE(all(cross(Vec3::i(), Vec3::k()) == -Vec3::j()));
 
         REQUIRE(all(cross(Vec3::i(), Vec3::i()) == Vec3{}));
+
+        REQUIRE(all(perp(Vec2::i()) == Vec2::j()));
+        REQUIRE(all(perp(Vec2::i(), true) == -Vec2::j()));
     }
 
     SECTION("std and comparison matrices")
