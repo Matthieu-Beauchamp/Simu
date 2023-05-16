@@ -28,6 +28,7 @@
 
 #include <concepts>
 #include <vector>
+#include <algorithm>
 
 #include "Simu/config.hpp"
 #include "Simu/math/Matrix.hpp"
@@ -54,17 +55,20 @@ concept VertexIterator2D = VertexIterator<T, 2>;
 typedef Vec2                Vertex;
 typedef std::vector<Vertex> Vertices;
 
-SIMU_API class ConvexPolygon
+typedef std::pair<Vertex, Vertex> Edge;
+
+
+class Polygon
 {
 public:
 
-    ConvexPolygon(const std::initializer_list<Vertex>& vertices)
-        : ConvexPolygon(vertices.begin(), vertices.end())
+    Polygon(const std::initializer_list<Vertex>& vertices)
+        : Polygon(vertices.begin(), vertices.end())
     {
     }
 
     template <VertexIterator2D It>
-    ConvexPolygon(It begin, It end)
+    Polygon(It begin, It end)
     {
         SIMU_ASSERT(
             std::distance(begin, end) >= 3,
@@ -74,7 +78,12 @@ public:
         while (begin != end)
             vertices_.emplace_back(*begin++);
 
-        GeometricProperties{*this}; // asserts validity
+        properties_ = GeometricProperties{*this};
+        if (properties().area < 0)
+        {
+            std::reverse(vertices_.begin(), vertices_.end());
+            properties_.area *= -1;
+        }
     }
 
     Vec2 furthestVertexInDirection(const Vec2& direction) const
@@ -96,7 +105,7 @@ public:
 
     bool contains(const Vec2& point)
     {
-        Vertex previous = *(--end());
+        Vertex previous = *std::prev(end());
         for (const Vertex& vertex : *this)
         {
             if (orientation(previous, vertex, point) == Orientation::negative)
@@ -104,17 +113,21 @@ public:
 
             previous = vertex;
         }
+
+        return true;
     }
 
-    Vertices::iterator begin() { return vertices_.begin(); }
-    Vertices::iterator end() { return vertices_.end(); }
+    GeometricProperties properties() const { return properties_; }
 
     Vertices::const_iterator begin() const { return vertices_.begin(); }
     Vertices::const_iterator end() const { return vertices_.end(); }
 
 private:
 
-    Vertices vertices_;
+    GeometricProperties properties_;
+    Vertices            vertices_;
 };
 
 } // namespace simu
+
+#include "Simu/math/Polygon.inl.hpp"

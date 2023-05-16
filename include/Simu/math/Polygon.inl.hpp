@@ -22,41 +22,12 @@
 //
 ////////////////////////////////////////////////////////////
 
-#include "Simu/math/GeometricProperties.hpp"
+#pragma once
+
 #include "Simu/math/Polygon.hpp"
 
 namespace simu
 {
-
-GeometricProperties::GeometricProperties(const Polygon& polygon)
-{
-    Vertex previous = *std::prev(polygon.end());
-    for (const Vertex& vertex : polygon)
-    {
-        float vertexCross = cross(previous, vertex);
-        area += vertexCross;
-
-        centroid += (previous + vertex) * vertexCross;
-
-        momentOfArea += vertexCross
-                        * (dot(previous, previous) + dot(previous, vertex)
-                           + dot(vertex, vertex));
-
-        previous = vertex;
-    }
-
-    if (area == 0.f)
-    {
-        isDegenerate = true;
-    }
-    else
-    {
-        area /= 2;
-        centroid /= 6 * std::abs(area);
-        momentOfArea /= 12;
-        momentOfArea -= std::abs(area) * normSquared(centroid);
-    }
-}
 
 
 } // namespace simu

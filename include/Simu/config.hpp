@@ -39,13 +39,12 @@
 // this is because compiler specific macros are not very reliable,
 // msys/gcc would define Linux as the platform on Windows.
 #if defined(SIMU_OS_WINDOWS)
-// TODO: Broken
-// #    undef SIMU_API
-// #    if defined(SIMU_EXPORT)
-// #        define SIMU_API __declspec(dllexport)
-// #    else
-// #        define SIMU_API __declspec(dllimport)
-// #    endif
+#    undef SIMU_API
+#    if defined(SIMU_EXPORT)
+#        define SIMU_API __declspec(dllexport)
+#    else
+#        define SIMU_API __declspec(dllimport)
+#    endif
 
 #elif defined(SIMU_OS_LINUX)
 

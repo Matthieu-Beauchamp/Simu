@@ -58,8 +58,6 @@ TriangleBarycentric::TriangleBarycentric(Vec2 A, Vec2 B, Vec2 C, Vec2 Q)
         w = -w;
     }
 
-    // TODO: If collinear ***
-
     // vertex regions
     if ((AB.v <= 0) && (CA.u <= 0))
         closestPoint = A;

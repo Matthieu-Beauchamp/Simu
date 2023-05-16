@@ -38,27 +38,73 @@ concept Collidable = requires(T collidable) {
     } -> std::convertible_to<Vec2>;
 };
 
-template<Collidable T = simu::ConvexPolygon>
+struct Simplex
+{
+    void pushPoint(Vertex v);
+    Vec2 nextDirection() const;
+
+    Vec2 closestPoint(Vec2 Q) const;
+
+    std::array<Vertex, 3> pointStack{};
+
+    // hold the outwards facing normals of edges P0-P1 and P0-P2 respectively,
+    // updated on pushPoint once there are 3 valid vertices
+    std::array<Vec2, 2> normals{};
+
+    std::size_t nIterations = 0;
+
+private:
+
+    mutable bool keepBottomPoint_ = false;
+};
+
+template <Collidable T = simu::Polygon>
 class Gjk
 {
 public:
 
     Gjk(const T& first, const T& second);
 
+    bool areColliding() const { return areColliding_; }
+
+    ////////////////////////////////////////////////////////////
+    /// \brief Minimum translation vector such that areColliding() would be true  
+    /// 
+    /// If areColliding(), returns a null vector.
+    /// 
+    /// In order to make first and second only touch, both are equivalent:
+    ///     - translate first by separation()
+    ///     - translate seccond by -separation()
+    ///
+    ////////////////////////////////////////////////////////////
+    Vec2 separation();
+
+    ////////////////////////////////////////////////////////////
+    /// \brief Minimum translation vector such that first and second are only touching
+    /// 
+    /// If not areColliding(), returns a null vector.
+    /// 
+    /// In order to make first and second only touch, both are equivalent:
+    ///     - translate first by penetration()
+    ///     - translate seccond by -penetration()
+    ///     
+    ////////////////////////////////////////////////////////////
+    Vec2 penetration();
+
 private:
 
     Vec2 furthestVertexInDirection(const Vec2& direction) const;
 
-    Vec2 updateSimplex(const Vertex& v);
-
     const T& first_;
     const T& second_;
-    float                 distance_;
 
-    std::array<Vertex, 3> simplex_{};
-    std::size_t           simplexIndex_ = 0;
-    bool                  done_         = false;
+    Simplex simplex_;
+
+    bool done_         = false;
+    bool areColliding_ = false;
 };
 
 
 } // namespace simu
+
+#include "Gjk.inl.hpp"

@@ -31,17 +31,18 @@
 namespace simu
 {
 
-class ConvexPolygon;
+class Polygon;
 
-struct SIMU_API GeometricProperties
+struct GeometricProperties
 {
     GeometricProperties() = default;
 
-    GeometricProperties(const ConvexPolygon& geometry);
+    GeometricProperties(const Polygon& geometry);
 
     Vec2  centroid{};
     float area         = 0.f;
     float momentOfArea = 0.f;
+    bool  isDegenerate = false;
 };
 
 
