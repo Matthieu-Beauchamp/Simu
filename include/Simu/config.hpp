@@ -29,9 +29,9 @@
 #include <exception>
 #if __has_include(<source_location>)
 #    include <source_location>
-#    include <sstream>
 #    define SIMU_HAS_SOURCE_LOCATION
 #endif
+#include <sstream>
 
 ////////////////////////////////////////////////////////////
 /// \brief Define DLL export/import macro
