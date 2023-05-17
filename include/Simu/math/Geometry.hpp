@@ -41,17 +41,30 @@ namespace simu
 ////////////////////////////////////////////////////////////
 
 // clang-format off
+
+////////////////////////////////////////////////////////////
+/// \brief Any iterator that dereferences to a vector of dimension dim
+/// 
+////////////////////////////////////////////////////////////
 template <class T, Uint32 dim>
 concept VertexIterator = requires(T it) {
     { *it } -> std::convertible_to<Vector<float, dim>>;
 } && std::forward_iterator<T>;
 
+////////////////////////////////////////////////////////////
+/// \brief Any iterator that dereferences to a Vertex
+/// 
+////////////////////////////////////////////////////////////
 template <class T>
 concept VertexIterator2D = VertexIterator<T, 2>;
 
 typedef Vec2                Vertex;
 typedef std::vector<Vertex> Vertices;
 
+////////////////////////////////////////////////////////////
+/// \brief Any type that allows iterating over vertices
+/// 
+////////////////////////////////////////////////////////////
 template<class T>
 concept Geometry = requires(T geo){
     { geo.begin() } -> VertexIterator2D;

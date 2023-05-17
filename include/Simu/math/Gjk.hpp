@@ -79,12 +79,16 @@ struct Polytope
 
 } // namespace priv
 
-
+////////////////////////////////////////////////////////////
+/// \ingroup Geometry
+/// \brief Any type that can return the furthest vertex in a given direction
+/// 
+////////////////////////////////////////////////////////////
 template <class T>
 concept Collidable = requires(T collidable) {
     {
-        collidable.furthestVertexInDirection(Vec2{})
-    } -> std::convertible_to<Vec2>;
+        collidable.furthestVertexInDirection(Vertex{})
+    } -> std::convertible_to<Vertex>;
 };
 
 ////////////////////////////////////////////////////////////
