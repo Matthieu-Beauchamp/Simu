@@ -32,7 +32,7 @@ namespace simu
 
 ////////////////////////////////////////////////////////////
 /// \brief Interval or range of values
-/// 
+///
 /// The min and max of the interval are always included.
 /// if min > max, then the interval is degenerate and contains nothing.
 /// if min == max, the interval contains a single value.
@@ -46,7 +46,7 @@ public:
 
     ////////////////////////////////////////////////////////////
     /// Returns bool for most types.
-    /// Returns a ComparisonMatrix if T is a Matrix type. 
+    /// Returns a ComparisonMatrix if T is a Matrix type.
     ////////////////////////////////////////////////////////////
     auto contains(T value) const { return min_ <= value && value <= max_; }
 
@@ -59,7 +59,7 @@ private:
 
 ////////////////////////////////////////////////////////////
 /// \brief defines an interval for the approximation: value +/- epsilon
-/// 
+///
 ////////////////////////////////////////////////////////////
 template <class T>
 Interval<T> approx(T value, T epsilon)

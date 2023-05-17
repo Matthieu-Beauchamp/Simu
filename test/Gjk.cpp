@@ -24,10 +24,10 @@ void testPenetration(const Polygon& first, const Polygon& second, Vec2 penetrati
     REQUIRE(gjkInv.areColliding());
     REQUIRE(all(gjkInv.penetration() == -penetration));
 
-    if (all(penetration != Vec2{0, 0}))
+    if (any(penetration != Vec2{0, 0}))
     {
-        testPenetration(translated(first, penetration), second, Vec2{0, 0});
-        testPenetration(first, translated(second, -penetration), Vec2{0, 0});
+        testPenetration(translated(first, -penetration), second, Vec2{0, 0});
+        testPenetration(first, translated(second, penetration), Vec2{0, 0});
     }
 }
 
@@ -102,7 +102,7 @@ TEST_CASE("Gjk")
         REQUIRE_FALSE(gjkInv.areColliding());
     }
 
-    SECTION("Distance")
+    SECTION("Separation")
     {
         SECTION("Edge to Edge")
         {
@@ -174,5 +174,130 @@ TEST_CASE("Gjk")
 
             testSeparation(left, right, Vec2{1, 0});
         }
+    }
+
+    SECTION("Penetration")
+    {
+        SECTION("Edge to Edge")
+        {
+            Polygon left{
+                Vertex{0, 0},
+                Vertex{1, 0},
+                Vertex{1, 1},
+                Vertex{0, 1}
+            };
+
+            Polygon right{
+                Vertex{0.5, 0},
+                Vertex{1.5, 0},
+                Vertex{1.5, 1},
+                Vertex{0.5, 1}
+            };
+
+            testPenetration(left, right, Vec2{0.5, 0});
+        }
+
+        SECTION("Edge to Edge (diagonals)")
+        {
+            Polygon lower{
+                Vertex{0, 0},
+                Vertex{1, 0},
+                Vertex{0, 1},
+            };
+
+            Polygon upper{
+                Vertex{0.5,  0},
+                Vertex{0.5,  1},
+                Vertex{-0.5, 1},
+            };
+
+            testPenetration(lower, upper, Vec2{0.25, 0.25});
+        }
+
+        SECTION("Point to edge")
+        {
+            Polygon left{
+                Vertex{0, 0},
+                Vertex{1, 1},
+                Vertex{0, 2},
+            };
+
+            Polygon right{
+                Vertex{0.5, 0},
+                Vertex{1.5, 0},
+                Vertex{1.5, 2},
+                Vertex{0.5, 2}
+            };
+
+            testPenetration(left, right, Vec2{0.5, 0});
+        }
+
+        SECTION("Point to point")
+        {
+            Polygon left{
+                Vertex{0, 0},
+                Vertex{2, 0},
+                Vertex{2, 2},
+                Vertex{0, 2},
+            };
+
+            Polygon right{
+                Vertex{1, 1},
+                Vertex{3, 1},
+                Vertex{3, 3},
+                Vertex{1, 3}
+            };
+
+            Vec2 upwards{0, 1};
+            Vec2 sideways{1, 0};
+
+            Gjk gjk{left, right};
+            REQUIRE(gjk.areColliding());
+            REQUIRE(
+                (all(gjk.penetration() == upwards)
+                 || all(gjk.penetration() == sideways))
+            );
+
+            Gjk gjkInv{right, left};
+            REQUIRE(gjkInv.areColliding());
+            REQUIRE(
+                (all(gjkInv.penetration() == -upwards)
+                 || all(gjkInv.penetration() == -sideways))
+            );
+
+            testPenetration(translated(left, -sideways), right, Vec2{0, 0});
+            testPenetration(translated(left, -upwards), right, Vec2{0, 0});
+
+            testPenetration(left, translated(right, sideways), Vec2{0, 0});
+            testPenetration(left, translated(right, upwards), Vec2{0, 0});
+        }
+    }
+
+    SECTION("Degenerate")
+    {
+        Polygon line{
+            Vertex{1, 0},
+            Vertex{1, 1},
+            Vertex{1, 2},
+        };
+
+        testSeparation(line, translated(line, Vec2{1, 0}), Vec2{1, 0});
+
+        Polygon hline{
+            Vertex{0, 0.5},
+            Vertex{1, 0.5},
+            Vertex{2, 0.5},
+        };
+
+        testPenetration(line, hline, Vec2{0, -0.5});
+
+        Polygon point{
+            Vertex{0, 0},
+            Vertex{0, 0},
+            Vertex{0, 0}
+        };
+        
+        testSeparation(point, translated(point, Vec2{1, 0}), Vec2{1, 0});
+        testPenetration(point, point, Vec2{0, 0});
     }
 }

@@ -58,6 +58,29 @@ private:
     mutable bool keepBottomPoint_ = false;
 };
 
+struct Polytope
+{
+    Polytope(const Simplex& simplex);
+
+    struct Edge
+    {
+        Vec2               normal; // not normalized, any orientation
+        Vertices::iterator from;
+        Vertices::iterator to;
+
+        float distanceToOrigin() const
+        {
+            return std::abs(dot(normalized(normal), *to));
+        }
+    };
+
+    bool addVertex(const Edge& where, Vertex v);
+
+    Edge getEdge(std::size_t index); // index in [0, vertices.size()-1]
+
+    Vertices vertices{};
+};
+
 template <Collidable T = simu::Polygon>
 class Gjk
 {
@@ -68,10 +91,12 @@ public:
     bool areColliding() const { return areColliding_; }
 
     ////////////////////////////////////////////////////////////
-    /// \brief Minimum translation vector such that areColliding() would be true  
-    /// 
+    /// \brief Minimum translation vector such that areColliding() would be true
+    ///
+    /// It is the vector of the closest feature of first to the closest feature of second
+    ///
     /// If areColliding(), returns a null vector.
-    /// 
+    ///
     /// In order to make first and second only touch, both are equivalent:
     ///     - translate first by separation()
     ///     - translate seccond by -separation()
@@ -81,13 +106,15 @@ public:
 
     ////////////////////////////////////////////////////////////
     /// \brief Minimum translation vector such that first and second are only touching
-    /// 
+    ///
+    /// It is the vector of the penetration of second into first
+    ///
     /// If not areColliding(), returns a null vector.
-    /// 
+    ///
     /// In order to make first and second only touch, both are equivalent:
-    ///     - translate first by penetration()
-    ///     - translate seccond by -penetration()
-    ///     
+    ///     - translate first by -penetration()
+    ///     - translate seccond by penetration()
+    ///
     ////////////////////////////////////////////////////////////
     Vec2 penetration();
 

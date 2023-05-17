@@ -111,6 +111,54 @@ Vec2 Simplex::closestPoint(Vec2 Q) const
 }
 
 
+Polytope::Polytope(const Simplex& simplex)
+{
+    Vertex first  = simplex.pointStack[0];
+    Vertex second = simplex.pointStack[1];
+    Vertex third  = simplex.pointStack[2];
+
+    vertices.emplace_back(first);
+
+    if (any(second != first))
+    {
+        vertices.emplace_back(second);
+        if (orientation(first, second, third) != Orientation::collinear)
+            vertices.emplace_back(third);
+    }
+    else if (any(third != first))
+    {
+        vertices.emplace_back(third);
+    }
+}
+
+bool Polytope::addVertex(const Edge& where, Vertex v)
+{
+    bool areCollinear
+        = orientation(*where.from, *where.to, v, 0.f) == Orientation::collinear;
+
+    bool isFurther = std::abs(dot(where.normal, v))
+                     > std::abs(dot(where.normal, *where.to));
+
+    if (!areCollinear && isFurther)
+    {
+        vertices.insert(where.to, v);
+        return true;
+    }
+
+    return false;
+}
+
+typename Polytope::Edge Polytope::getEdge(std::size_t index)
+{
+    Edge edge;
+    edge.to = vertices.begin() + index;
+    edge.from
+        = std::prev(edge.to == vertices.begin() ? vertices.end() : edge.to);
+
+    edge.normal = perp(*edge.to - *edge.from);
+    return edge;
+}
+
 template <Collidable T>
 Gjk<T>::Gjk(const T& first, const T& second) : first_{first}, second_{second}
 {
@@ -164,48 +212,29 @@ Vec2 Gjk<T>::penetration()
     if (!areColliding())
         return Vec2{};
 
-    std::vector<Vertex> polytope{
-        simplex_.pointStack.begin(),
-        simplex_.pointStack.end()};
+    Polytope polytope{simplex_};
+
 
     while (true)
     {
-        // TODO: Degenerate edges (duplicate points) will divide by zero when trying to normalize
+        Polytope::Edge best = polytope.getEdge(0);
 
-        auto previous = std::prev(polytope.end());
-        auto current  = polytope.begin();
-
-        Vec2  edgeNormal       = normalized(perp(*current - *previous));
-        float shortestDistance = std::abs(dot(edgeNormal, *current));
-        auto  insertionPos     = current;
-
-        previous = current++;
-        for (; current != polytope.end(); ++current)
+        for (std::size_t i = 1; i < polytope.vertices.size(); ++i)
         {
-            Vec2  normal   = normalized(perp(*current - *previous));
-            float distance = std::abs(dot(normal, *current));
-
-            if (distance < shortestDistance)
-            {
-                edgeNormal       = normal;
-                shortestDistance = distance;
-                insertionPos     = current;
-            }
-
-            previous = current;
+            Polytope::Edge e = polytope.getEdge(i);
+            if (e.distanceToOrigin() < best.distanceToOrigin())
+                best = e;
         }
 
-        Vertex next = furthestVertexInDirection(edgeNormal);
-        if (std::abs(dot(edgeNormal, next)) > shortestDistance)
-            polytope.insert(insertionPos, next);
-        else
+        Vertex next = furthestVertexInDirection(best.normal);
+
+        if (!polytope.addVertex(best, next))
             return LineBarycentric{
-                *std::prev(
-                    insertionPos == polytope.begin() ? polytope.end() : insertionPos
-                ),
-                *insertionPos,
+                *best.from,
+                *best.to,
                 Vec2{0, 0}
-            }.closestPoint;
+            }
+                .closestPoint;
     }
 }
 
