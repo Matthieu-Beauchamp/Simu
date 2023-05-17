@@ -80,7 +80,7 @@ public:
         msg_ = ss.str();
     }
 
-    char const* what() const override { return msg_.c_str(); }
+    char const* what() const noexcept override { return msg_.c_str(); }
 
 private:
 
