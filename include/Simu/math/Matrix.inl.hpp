@@ -131,7 +131,8 @@ Matrix<T, m, n>::Matrix(const Matrix<U, m, n>& other)
 
 
 template <class T, Uint32 m, Uint32 n>
-Matrix<T, m, n>::Matrix(const MatrixData<T, m, n>& data) : MatrixData<T, m, n>{data}
+Matrix<T, m, n>::Matrix(const MatrixData<T, m, n>& data)
+    : MatrixData<T, m, n>{data}
 {
 }
 
@@ -327,15 +328,27 @@ Promoted<T, U> dot(const Vector<T, dim>& lhs, const Vector<U, dim>& rhs)
 }
 
 template <class T, Uint32 dim>
+T normSquared(const Vector<T, dim>& v)
+{
+    return dot(v, v);
+}
+
+template <class T, Uint32 dim>
 T norm(const Vector<T, dim>& v)
 {
-    return std::sqrt(dot(v, v));
+    return std::sqrt(normSquared(v));
 }
 
 template <class T, Uint32 dim>
 Vector<T, dim> normalized(const Vector<T, dim>& v)
 {
     return v / norm(v);
+}
+
+template <class T>
+Vector<T, 2> perp(const Vector<T, 2>& v, bool clockwise)
+{
+    return clockwise ? -perp(v, false) : Vector<T, 2>{-v[1], v[0]};
 }
 
 template <class T, class U>

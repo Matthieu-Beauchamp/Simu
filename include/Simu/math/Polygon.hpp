@@ -25,51 +25,52 @@
 #pragma once
 
 #include "Simu/config.hpp"
-#include <cmath>
+
+#include <algorithm>
+
+#include "Simu/config.hpp"
+#include "Simu/math/Matrix.hpp"
+#include "Simu/math/Geometry.hpp"
 
 namespace simu
 {
 
-
 ////////////////////////////////////////////////////////////
-/// \ingroup math
-/// \brief Interval or range of values
-///
-/// The min and max of the interval are always included.
-/// if min > max, then the interval is degenerate and contains nothing.
-/// if min == max, the interval contains a single value.
-///
+/// \ingroup Geometry
+/// \brief A polygon has at least 3 vertices in a positive Orientation
+/// 
+/// Polygons are allowed to be concave and have holes as long as they do not 
+///     self-intersect, in which case behavior is undefined.
+/// 
+/// The vertices are reordered to be positively oriented.
+/// The GeometricProperties are modified to reflect this change.
+/// 
+/// Polygons are not allowed to modify their vertices after construction.
+/// 
+/// \warning no special measures are taken if properties indicate that the geometry isDegenerate.
 ////////////////////////////////////////////////////////////
-template <class T>
-class Interval
+class Polygon
 {
 public:
 
-    Interval(T min, T max) : min_{min}, max_{max} {}
+    Polygon(const std::initializer_list<Vertex>& vertices);
 
-    ////////////////////////////////////////////////////////////
-    /// Returns bool for most types.
-    /// Returns a ComparisonMatrix if T is a Matrix type.
-    ////////////////////////////////////////////////////////////
-    auto contains(T value) const { return min_ <= value && value <= max_; }
+    template <VertexIterator2D It>
+    Polygon(It begin, It end);
 
+    Vec2 furthestVertexInDirection(const Vec2& direction) const;
+
+    GeometricProperties properties() const { return properties_; }
+
+    Vertices::const_iterator begin() const { return vertices_.begin(); }
+    Vertices::const_iterator end() const { return vertices_.end(); }
 
 private:
 
-    T min_;
-    T max_;
+    GeometricProperties properties_;
+    Vertices            vertices_;
 };
 
-////////////////////////////////////////////////////////////
-/// \relates Interval
-/// \brief defines an interval for the approximation: value +/- epsilon
-///
-////////////////////////////////////////////////////////////
-template <class T>
-Interval<T> approx(T value, T epsilon)
-{
-    epsilon = std::abs(epsilon);
-    return Interval<T>{value - epsilon, value + epsilon};
-}
-
 } // namespace simu
+
+#include "Simu/math/Polygon.inl.hpp"

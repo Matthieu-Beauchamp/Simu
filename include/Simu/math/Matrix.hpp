@@ -34,6 +34,12 @@ namespace simu
 {
 
 ////////////////////////////////////////////////////////////
+/// \ingroup math
+/// \defgroup LinearAlgebra
+////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////
+/// \ingroup LinearAlgebra
 /// \brief Matrix data, stored row-major
 ///
 /// Two methods for random access are provided,
@@ -81,6 +87,7 @@ template <class, Uint32, Uint32>
 struct Matrix;
 
 ////////////////////////////////////////////////////////////
+/// \ingroup LinearAlgebra
 /// \brief Vector class
 ///
 /// Vectors are always column vectors,
@@ -109,6 +116,13 @@ struct SpecialConstructors<T, dim, 1, true>
     static Vector<T, dim> w();
 };
 
+////////////////////////////////////////////////////////////
+/// \ingroup LinearAlgebra
+/// \brief Matrix class for small matrices
+/// 
+/// Most operations are provided as global functions
+/// \see operations
+////////////////////////////////////////////////////////////
 template <class T, Uint32 m, Uint32 n>
 struct Matrix : public MatrixData<T, m, n>, public SpecialConstructors<T, m, n>
 {
@@ -145,6 +159,11 @@ struct Matrix : public MatrixData<T, m, n>, public SpecialConstructors<T, m, n>
     Matrix& operator/=(U scalar);
 };
 
+////////////////////////////////////////////////////////////
+/// \ingroup LinearAlgebra
+/// \defgroup operations
+/// \{
+////////////////////////////////////////////////////////////
 
 template <class T, class U>
 using Promoted = typename std::common_type<T, U>::type;
@@ -190,10 +209,22 @@ template<class T, class U>
 Promoted<T, U> cross(const Vector<T, 2>& lhs, const Vector<U, 2>& rhs);
 
 template <class T, Uint32 dim>
+T normSquared(const Vector<T, dim>& v);
+
+template <class T, Uint32 dim>
 T norm(const Vector<T, dim>& v);
 
 template <class T, Uint32 dim>
 Vector<T, dim> normalized(const Vector<T, dim>& v);
+
+
+////////////////////////////////////////////////////////////
+/// \brief rotates v by 90 degrees
+////////////////////////////////////////////////////////////
+template<class T>
+Vector<T, 2> perp(const Vector<T, 2>& v, bool clockwise = false);
+
+/// \}
 
 
 ////////////////////////////////////////////////////////////
@@ -219,6 +250,12 @@ typedef Matrix<Int32, 4, 4> Mat4i;
 
 ////////////////////////////////////////////////////////////
 // Comparison facilities
+////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////
+/// \ingroup LinearAlgebra
+/// \defgroup comparison
+/// \{
 ////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////
@@ -285,6 +322,8 @@ operator||(const ComparisonMatrix<m, n>& lhs, const ComparisonMatrix<m, n>& rhs)
 template <Uint32 m, Uint32 n>
 ComparisonMatrix<m, n> operator!(const ComparisonMatrix<m, n>& unary);
 
+/// \}
+
 } // namespace simu
 
 
@@ -294,6 +333,11 @@ ComparisonMatrix<m, n> operator!(const ComparisonMatrix<m, n>& unary);
 
 namespace std
 {
+
+////////////////////////////////////////////////////////////
+/// \ingroup operations  
+/// \{
+////////////////////////////////////////////////////////////
 
 template <class T, class U, simu::Uint32 m, simu::Uint32 n>
 struct common_type<simu::Matrix<T, m, n>, simu::Matrix<U, m, n>>
@@ -307,6 +351,9 @@ simu::Matrix<T, m, n> abs(const simu::Matrix<T, m, n>& mat);
 template <class T, simu::Uint32 m, simu::Uint32 n>
 simu::Matrix<T, m, n> round(const simu::Matrix<T, m, n>& mat);
 
+/// \}
+
 } // namespace std
+
 
 #include "Simu/math/Matrix.inl.hpp"

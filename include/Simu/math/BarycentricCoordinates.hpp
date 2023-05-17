@@ -24,52 +24,65 @@
 
 #pragma once
 
-#include "Simu/config.hpp"
-#include <cmath>
+#include "Simu/math/Matrix.hpp"
 
 namespace simu
 {
 
+////////////////////////////////////////////////////////////
+/// \defgroup BarycentricCoordinates
+/// \ingroup Geometry
+/// 
+/// \brief Barycentric coordinates allows finding the closest point on a 
+///     line or triangle from a point Q.
+/// 
+/// For an intuitive explanation, see Erin Catto's GDC conference,
+/// slides available at https://box2d.org/files/ErinCatto_GJK_GDC2010.pdf
+///
+/// \{
+////////////////////////////////////////////////////////////
+
 
 ////////////////////////////////////////////////////////////
-/// \ingroup math
-/// \brief Interval or range of values
+/// \brief Barycentric coordinates of Q for the line A -> B.
 ///
-/// The min and max of the interval are always included.
-/// if min > max, then the interval is degenerate and contains nothing.
-/// if min == max, the interval contains a single value.
+/// closestPoint is the point on A->B closest to Q
 ///
+/// \warning coordinates are not normalized, they are such that u+v = ||AB||^2
 ////////////////////////////////////////////////////////////
-template <class T>
-class Interval
+struct LineBarycentric
 {
-public:
+    LineBarycentric(Vec2 A, Vec2 B, Vec2 Q);
 
-    Interval(T min, T max) : min_{min}, max_{max} {}
-
-    ////////////////////////////////////////////////////////////
-    /// Returns bool for most types.
-    /// Returns a ComparisonMatrix if T is a Matrix type.
-    ////////////////////////////////////////////////////////////
-    auto contains(T value) const { return min_ <= value && value <= max_; }
-
-
-private:
-
-    T min_;
-    T max_;
+    Vec2  closestPoint;
+    float u;
+    float v;
 };
 
 ////////////////////////////////////////////////////////////
-/// \relates Interval
-/// \brief defines an interval for the approximation: value +/- epsilon
+/// \brief Barycentric coordinates of Q for the triangle ABC.
 ///
+/// ABC can be given in any winding order.
+///
+/// closestPoint will be on vertices or edges if Q is outside ABC, 
+///     else closestPoint = Q.
+///
+/// \warning coordinates are not normalized, they are such that u+v+w = abs(area(ABC))
 ////////////////////////////////////////////////////////////
-template <class T>
-Interval<T> approx(T value, T epsilon)
+struct TriangleBarycentric
 {
-    epsilon = std::abs(epsilon);
-    return Interval<T>{value - epsilon, value + epsilon};
-}
+    TriangleBarycentric(Vec2 A, Vec2 B, Vec2 C, Vec2 Q);
+
+    LineBarycentric AB;
+    LineBarycentric BC;
+    LineBarycentric CA;
+
+    Vec2  closestPoint;
+    float u;
+    float v;
+    float w;
+};
+
+/// \}
 
 } // namespace simu

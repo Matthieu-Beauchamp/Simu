@@ -24,52 +24,18 @@
 
 #pragma once
 
-#include "Simu/config.hpp"
-#include <cmath>
-
-namespace simu
-{
-
-
 ////////////////////////////////////////////////////////////
-/// \ingroup math
-/// \brief Interval or range of values
-///
-/// The min and max of the interval are always included.
-/// if min > max, then the interval is degenerate and contains nothing.
-/// if min == max, the interval contains a single value.
-///
+/// \defgroup math
+/// 
+/// \brief Math classes and related algorithms for Simu.
+/// 
 ////////////////////////////////////////////////////////////
-template <class T>
-class Interval
-{
-public:
 
-    Interval(T min, T max) : min_{min}, max_{max} {}
+#include "math/Matrix.hpp"
 
-    ////////////////////////////////////////////////////////////
-    /// Returns bool for most types.
-    /// Returns a ComparisonMatrix if T is a Matrix type.
-    ////////////////////////////////////////////////////////////
-    auto contains(T value) const { return min_ <= value && value <= max_; }
+#include "math/Interval.hpp"
 
-
-private:
-
-    T min_;
-    T max_;
-};
-
-////////////////////////////////////////////////////////////
-/// \relates Interval
-/// \brief defines an interval for the approximation: value +/- epsilon
-///
-////////////////////////////////////////////////////////////
-template <class T>
-Interval<T> approx(T value, T epsilon)
-{
-    epsilon = std::abs(epsilon);
-    return Interval<T>{value - epsilon, value + epsilon};
-}
-
-} // namespace simu
+#include "math/Geometry.hpp"
+#include "math/BarycentricCoordinates.hpp"
+#include "math/Polygon.hpp"
+#include "math/Gjk.hpp"

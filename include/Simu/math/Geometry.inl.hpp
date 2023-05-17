@@ -24,13 +24,46 @@
 
 #pragma once
 
-#include "Simu/config.hpp"
+#include "Simu/math/Geometry.hpp"
 
 namespace simu
 {
 
-Uint32 testCoverage(Uint32 x);
+template <Geometry T>
+GeometricProperties::GeometricProperties(const T& geometry) noexcept
+{
+    // These formulas can be derived from the definition with a double integral 
+    //  and using Green's theorem reducing to an integral over the contour (edges) 
+    //  and evaluating to a sum.
 
-void unused();
+    Vertex previous = *std::prev(geometry.end());
+    for (const Vertex& vertex : geometry)
+    {
+        float vertexCross = cross(previous, vertex);
+        area += vertexCross;
 
-} // namepace simu 
+        centroid += (previous + vertex) * vertexCross;
+
+        momentOfArea += vertexCross
+                        * (dot(previous, previous) + dot(previous, vertex)
+                           + dot(vertex, vertex));
+
+        previous = vertex;
+    }
+
+    if (area == 0.f)
+    {
+        isDegenerate = true;
+    }
+    else
+    {
+        area /= 2;
+        centroid /= 6 * area;
+        momentOfArea /= 12;
+        momentOfArea -= area * normSquared(centroid);
+        momentOfArea = std::abs(momentOfArea);
+    }
+}
+
+
+} // namespace simu
