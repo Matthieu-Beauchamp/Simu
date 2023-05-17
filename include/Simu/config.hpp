@@ -27,8 +27,11 @@
 #include <cstdint>
 
 #include <exception>
-#include <source_location>
-#include <sstream>
+#if __has_include(<source_location>)
+#    include <source_location>
+#    include <sstream>
+#    define SIMU_HAS_SOURCE_LOCATION
+#endif
 
 ////////////////////////////////////////////////////////////
 /// \brief Define DLL export/import macro
@@ -67,6 +70,7 @@ class Exception : public std::exception
 {
 public:
 
+#ifdef SIMU_HAS_SOURCE_LOCATION
     Exception(
         const char*          msg,
         std::source_location loc = std::source_location::current()
@@ -79,6 +83,9 @@ public:
            << msg;
         msg_ = ss.str();
     }
+#else
+    Exception(const char* msg) : std::exception{}, msg_{msg} {}
+#endif
 
     char const* what() const noexcept override { return msg_.c_str(); }
 
