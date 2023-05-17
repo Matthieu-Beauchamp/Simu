@@ -27,7 +27,7 @@
 namespace simu
 {
 
-Orientation orientation(Vec2 v0, Vec2 v1, Vec2 v2, float epsilon)
+Orientation orientation(Vertex v0, Vertex v1, Vertex v2, float epsilon)
 {
     float c = cross(v1 - v0, v2 - v1);
 

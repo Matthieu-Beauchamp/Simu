@@ -22,16 +22,22 @@
 //
 ////////////////////////////////////////////////////////////
 
-#include "Simu/math/GeometricProperties.hpp"
-#include "Simu/math/Polygon.hpp"
+#pragma once
+
+#include "Simu/math/Geometry.hpp"
 
 namespace simu
 {
 
-GeometricProperties::GeometricProperties(const Polygon& polygon)
+template <Geometry T>
+GeometricProperties::GeometricProperties(const T& geometry) noexcept
 {
-    Vertex previous = *std::prev(polygon.end());
-    for (const Vertex& vertex : polygon)
+    // These formulas can be derived from the definition with a double integral 
+    //  and using Green's theorem reducing to an integral over the contour (edges) 
+    //  and evaluating to a sum.
+
+    Vertex previous = *std::prev(geometry.end());
+    for (const Vertex& vertex : geometry)
     {
         float vertexCross = cross(previous, vertex);
         area += vertexCross;
@@ -52,9 +58,10 @@ GeometricProperties::GeometricProperties(const Polygon& polygon)
     else
     {
         area /= 2;
-        centroid /= 6 * std::abs(area);
+        centroid /= 6 * area;
         momentOfArea /= 12;
-        momentOfArea -= std::abs(area) * normSquared(centroid);
+        momentOfArea -= area * normSquared(centroid);
+        momentOfArea = std::abs(momentOfArea);
     }
 }
 

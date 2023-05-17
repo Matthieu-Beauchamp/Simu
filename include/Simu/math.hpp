@@ -24,26 +24,18 @@
 
 #pragma once
 
-#include "Simu/config.hpp"
-#include "Simu/math/Matrix.hpp"
+////////////////////////////////////////////////////////////
+/// \defgroup math
+/// 
+/// \brief Math classes and related algorithms for Simu.
+/// 
+////////////////////////////////////////////////////////////
 
+#include "math/Matrix.hpp"
 
-namespace simu
-{
+#include "math/Interval.hpp"
 
-class Polygon;
-
-struct GeometricProperties
-{
-    GeometricProperties() = default;
-
-    GeometricProperties(const Polygon& geometry);
-
-    Vec2  centroid{};
-    float area         = 0.f;
-    float momentOfArea = 0.f;
-    bool  isDegenerate = false;
-};
-
-
-} // namespace simu
+#include "math/Geometry.hpp"
+#include "math/BarycentricCoordinates.hpp"
+#include "math/Polygon.hpp"
+#include "math/Gjk.hpp"

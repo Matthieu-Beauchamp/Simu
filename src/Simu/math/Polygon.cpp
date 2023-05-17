@@ -22,30 +22,31 @@
 //
 ////////////////////////////////////////////////////////////
 
-#pragma once
-
 #include "Simu/math/Polygon.hpp"
 
 namespace simu
 {
 
-template <VertexIterator2D It>
-Polygon::Polygon(It begin, It end)
+Polygon::Polygon(const std::initializer_list<Vertex>& vertices)
+    : Polygon(vertices.begin(), vertices.end())
 {
-    SIMU_ASSERT(
-        std::distance(begin, end) >= 3,
-        "Convex Geometry must have at least 3 vertices"
-    );
-
-    while (begin != end)
-        vertices_.emplace_back(*begin++);
-
-    properties_ = GeometricProperties{*this};
-    if (properties().area < 0)
-    {
-        std::reverse(vertices_.begin(), vertices_.end());
-        properties_.area *= -1;
-    }
 }
 
-} // namespace simu
+Vec2 Polygon::furthestVertexInDirection(const Vec2& direction) const
+{
+    Vec2  furthest = vertices_[0];
+    float maxDist  = dot(furthest, direction);
+    for (const Vertex& v : vertices_)
+    {
+        float dist = dot(v, direction);
+        if (dist > maxDist)
+        {
+            maxDist  = dist;
+            furthest = v;
+        }
+    }
+
+    return furthest;
+}
+
+} // namepace simu 

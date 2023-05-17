@@ -24,12 +24,46 @@
 
 #pragma once
 
+#include <concepts>
+#include <vector>
+
 #include "Simu/math/Matrix.hpp"
 #include "Simu/math/Interval.hpp"
 
 namespace simu
 {
 
+////////////////////////////////////////////////////////////
+/// \defgroup Geometry
+/// \ingroup math
+///
+/// \{
+////////////////////////////////////////////////////////////
+
+// clang-format off
+template <class T, Uint32 dim>
+concept VertexIterator = requires(T it) {
+    { *it } -> std::convertible_to<Vector<float, dim>>;
+} && std::forward_iterator<T>;
+
+template <class T>
+concept VertexIterator2D = VertexIterator<T, 2>;
+
+typedef Vec2                Vertex;
+typedef std::vector<Vertex> Vertices;
+
+template<class T>
+concept Geometry = requires(T geo){
+    { geo.begin() } -> VertexIterator2D;
+    { geo.end() }   -> VertexIterator2D;
+};
+// clang-format on
+
+
+////////////////////////////////////////////////////////////
+/// \brief Orientation or winding order of a chain of vertices
+///
+////////////////////////////////////////////////////////////
 enum class Orientation
 {
     positive,
@@ -37,6 +71,48 @@ enum class Orientation
     negative
 };
 
-Orientation orientation(Vec2 v0, Vec2 v1, Vec2 v2, float epsilon = simu::EPSILON);
+////////////////////////////////////////////////////////////
+/// \brief Find the Orientation of 3 vertices
+/// 
+/// epsilon is used to approximate collinearity
+////////////////////////////////////////////////////////////
+Orientation
+orientation(Vertex v0, Vertex v1, Vertex v2, float epsilon = simu::EPSILON);
+
+
+////////////////////////////////////////////////////////////
+/// \brief Compute properties of some non self-intersecting Geometry.
+/// 
+/// Convex, concave and geometry containing holes are all valid input.
+/// The hole(s) should be of opposite Orientation and attached to a vertex 
+///     of the outer (solid) perimeter.
+/// 
+/// if area == 0, then the geometry isDegenerate (collinear) and the 
+///     properties are undefined but no exception is raised
+/// 
+/// If vertices are negatively oriented, then the area is negative.
+/// Centroid and momentOfArea are unaffected.
+/// 
+/// Assuming constant density p, then
+///     mass    = p * |area|
+///     inertia = p * momentOfArea
+/// 
+////////////////////////////////////////////////////////////
+struct GeometricProperties
+{
+    GeometricProperties() = default;
+
+    template<Geometry T>
+    GeometricProperties(const T& geometry) noexcept;
+
+    Vec2  centroid{};
+    float area         = 0.f;
+    float momentOfArea = 0.f;
+    bool  isDegenerate = false;
+};
+
+/// \}
 
 } // namespace simu
+
+#include "Simu/math/Geometry.inl.hpp"

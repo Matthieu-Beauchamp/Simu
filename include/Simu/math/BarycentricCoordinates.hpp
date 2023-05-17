@@ -22,17 +22,26 @@
 //
 ////////////////////////////////////////////////////////////
 
-////////////////////////////////////////////////////////////
-/// See https://box2d.org/files/ErinCatto_GJK_GDC2010.pdf
-///
-////////////////////////////////////////////////////////////
-
 #pragma once
 
 #include "Simu/math/Matrix.hpp"
 
 namespace simu
 {
+
+////////////////////////////////////////////////////////////
+/// \defgroup BarycentricCoordinates
+/// \ingroup Geometry
+/// 
+/// \brief Barycentric coordinates allows finding the closest point on a 
+///     line or triangle from a point Q.
+/// 
+/// For an intuitive explanation, see Erin Catto's GDC conference,
+/// slides available at https://box2d.org/files/ErinCatto_GJK_GDC2010.pdf
+///
+/// \{
+////////////////////////////////////////////////////////////
+
 
 ////////////////////////////////////////////////////////////
 /// \brief Barycentric coordinates of Q for the line A -> B.
@@ -58,7 +67,7 @@ struct LineBarycentric
 /// closestPoint will be on vertices or edges if Q is outside ABC, 
 ///     else closestPoint = Q.
 ///
-/// \warning coordinates are not normalized, they are such that u+v = abs(area(ABC))
+/// \warning coordinates are not normalized, they are such that u+v+w = abs(area(ABC))
 ////////////////////////////////////////////////////////////
 struct TriangleBarycentric
 {
@@ -74,5 +83,6 @@ struct TriangleBarycentric
     float w;
 };
 
+/// \}
 
 } // namespace simu

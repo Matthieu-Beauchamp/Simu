@@ -31,12 +31,8 @@
 namespace simu
 {
 
-template <class T>
-concept Collidable = requires(T collidable) {
-    {
-        collidable.furthestVertexInDirection(Vec2{})
-    } -> std::convertible_to<Vec2>;
-};
+namespace priv
+{
 
 struct Simplex
 {
@@ -81,6 +77,29 @@ struct Polytope
     Vertices vertices{};
 };
 
+} // namespace priv
+
+
+template <class T>
+concept Collidable = requires(T collidable) {
+    {
+        collidable.furthestVertexInDirection(Vec2{})
+    } -> std::convertible_to<Vec2>;
+};
+
+////////////////////////////////////////////////////////////
+/// \ingroup Geometry
+/// \brief Determines if two collidable are in collision as well as the 
+///     separation/penetration vector between them
+/// 
+/// The boolean GJK algorithm is used upon construction and results are saved. 
+/// If areColliding(), then calling penetration() uses the EPA algorithm (results are not saved)
+/// 
+/// If the the underlying Geometry of the Collidables is concave or has holes, 
+///     only their convex hulls are considered.
+/// 
+/// \warning changing first or second between construction and calls to any method is undefined.
+////////////////////////////////////////////////////////////
 template <Collidable T = simu::Polygon>
 class Gjk
 {
@@ -125,7 +144,7 @@ private:
     const T& first_;
     const T& second_;
 
-    Simplex simplex_;
+    priv::Simplex simplex_;
 
     bool done_         = false;
     bool areColliding_ = false;

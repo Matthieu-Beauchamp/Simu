@@ -24,28 +24,3 @@
 
 #pragma once
 
-#include "Simu/math/Polygon.hpp"
-
-namespace simu
-{
-
-template <VertexIterator2D It>
-Polygon::Polygon(It begin, It end)
-{
-    SIMU_ASSERT(
-        std::distance(begin, end) >= 3,
-        "Convex Geometry must have at least 3 vertices"
-    );
-
-    while (begin != end)
-        vertices_.emplace_back(*begin++);
-
-    properties_ = GeometricProperties{*this};
-    if (properties().area < 0)
-    {
-        std::reverse(vertices_.begin(), vertices_.end());
-        properties_.area *= -1;
-    }
-}
-
-} // namespace simu

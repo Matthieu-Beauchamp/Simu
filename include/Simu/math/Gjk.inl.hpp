@@ -30,6 +30,9 @@
 namespace simu
 {
 
+namespace priv
+{
+
 void Simplex::pushPoint(Vertex v)
 {
     if (keepBottomPoint_)
@@ -159,6 +162,9 @@ typename Polytope::Edge Polytope::getEdge(std::size_t index)
     return edge;
 }
 
+} // namespace priv
+
+
 template <Collidable T>
 Gjk<T>::Gjk(const T& first, const T& second) : first_{first}, second_{second}
 {
@@ -212,16 +218,16 @@ Vec2 Gjk<T>::penetration()
     if (!areColliding())
         return Vec2{};
 
-    Polytope polytope{simplex_};
+    priv::Polytope polytope{simplex_};
 
 
     while (true)
     {
-        Polytope::Edge best = polytope.getEdge(0);
+        priv::Polytope::Edge best = polytope.getEdge(0);
 
         for (std::size_t i = 1; i < polytope.vertices.size(); ++i)
         {
-            Polytope::Edge e = polytope.getEdge(i);
+            priv::Polytope::Edge e = polytope.getEdge(i);
             if (e.distanceToOrigin() < best.distanceToOrigin())
                 best = e;
         }

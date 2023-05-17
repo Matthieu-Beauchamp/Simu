@@ -26,96 +26,39 @@
 
 #include "Simu/config.hpp"
 
-#include <concepts>
-#include <vector>
 #include <algorithm>
 
 #include "Simu/config.hpp"
 #include "Simu/math/Matrix.hpp"
-#include "Simu/math/GeometricProperties.hpp"
 #include "Simu/math/Geometry.hpp"
 
 namespace simu
 {
 
-template <class T, Uint32 dim>
-concept VertexIterator = requires(T it) {
-    {
-        *it
-    } -> std::convertible_to<Vector<float, dim>>;
-    {
-        ++it
-    };
-};
-
-template <class T>
-concept VertexIterator2D = VertexIterator<T, 2>;
-
-
-typedef Vec2                Vertex;
-typedef std::vector<Vertex> Vertices;
-
-typedef std::pair<Vertex, Vertex> Edge;
-
-
+////////////////////////////////////////////////////////////
+/// \ingroup Geometry
+/// \brief A polygon has at least 3 vertices in a positive Orientation
+/// 
+/// Polygons are allowed to be concave and have holes as long as they do not 
+///     self-intersect, in which case behavior is undefined.
+/// 
+/// The vertices are reordered to be positively oriented.
+/// The GeometricProperties are modified to reflect this change.
+/// 
+/// Polygons are not allowed to modify their vertices after construction.
+/// 
+/// \warning no special measures are taken if properties indicate that the geometry isDegenerate.
+////////////////////////////////////////////////////////////
 class Polygon
 {
 public:
 
-    Polygon(const std::initializer_list<Vertex>& vertices)
-        : Polygon(vertices.begin(), vertices.end())
-    {
-    }
+    Polygon(const std::initializer_list<Vertex>& vertices);
 
     template <VertexIterator2D It>
-    Polygon(It begin, It end)
-    {
-        SIMU_ASSERT(
-            std::distance(begin, end) >= 3,
-            "Convex Geometry must have at least 3 vertices"
-        );
+    Polygon(It begin, It end);
 
-        while (begin != end)
-            vertices_.emplace_back(*begin++);
-
-        properties_ = GeometricProperties{*this};
-        if (properties().area < 0)
-        {
-            std::reverse(vertices_.begin(), vertices_.end());
-            properties_.area *= -1;
-        }
-    }
-
-    Vec2 furthestVertexInDirection(const Vec2& direction) const
-    {
-        Vec2  furthest = vertices_[0];
-        float maxDist  = dot(furthest, direction);
-        for (const Vertex& v : vertices_)
-        {
-            float dist = dot(v, direction);
-            if (dist > maxDist)
-            {
-                maxDist  = dist;
-                furthest = v;
-            }
-        }
-
-        return furthest;
-    }
-
-    bool contains(const Vec2& point)
-    {
-        Vertex previous = *std::prev(end());
-        for (const Vertex& vertex : *this)
-        {
-            if (orientation(previous, vertex, point) == Orientation::negative)
-                return false;
-
-            previous = vertex;
-        }
-
-        return true;
-    }
+    Vec2 furthestVertexInDirection(const Vec2& direction) const;
 
     GeometricProperties properties() const { return properties_; }
 

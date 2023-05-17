@@ -30,12 +30,15 @@
 namespace simu
 {
 
+
 ////////////////////////////////////////////////////////////
+/// \ingroup math
 /// \brief Interval or range of values
 ///
 /// The min and max of the interval are always included.
 /// if min > max, then the interval is degenerate and contains nothing.
 /// if min == max, the interval contains a single value.
+///
 ////////////////////////////////////////////////////////////
 template <class T>
 class Interval
@@ -58,6 +61,7 @@ private:
 };
 
 ////////////////////////////////////////////////////////////
+/// \relates Interval
 /// \brief defines an interval for the approximation: value +/- epsilon
 ///
 ////////////////////////////////////////////////////////////
@@ -67,6 +71,5 @@ Interval<T> approx(T value, T epsilon)
     epsilon = std::abs(epsilon);
     return Interval<T>{value - epsilon, value + epsilon};
 }
-
 
 } // namespace simu
