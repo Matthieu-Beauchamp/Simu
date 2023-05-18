@@ -524,4 +524,32 @@ simu::Matrix<T, m, n> round(const simu::Matrix<T, m, n>& mat)
     return res;
 }
 
+template <class T, simu::Uint32 m, simu::Uint32 n>
+simu::Matrix<T, m, n>
+min(const simu::Matrix<T, m, n>& lhs, const simu::Matrix<T, m, n>& rhs)
+{
+    simu::Matrix<T, m, n> res;
+    for (simu::Uint32 i = 0; i < lhs.size(); ++i)
+    {
+        res[i] = std::min(lhs[i], rhs[i]);
+    }
+
+    return res;
+}
+
+template <class T, simu::Uint32 m, simu::Uint32 n>
+simu::Matrix<T, m, n>
+max(const simu::Matrix<T, m, n>& lhs, const simu::Matrix<T, m, n>& rhs)
+{
+    simu::Matrix<T, m, n> res;
+    for (simu::Uint32 i = 0; i < lhs.size(); ++i)
+    {
+        res[i] = std::max(lhs[i], rhs[i]);
+    }
+
+    return res;
+}
+
+
+
 } // namespace std

@@ -53,6 +53,11 @@ public:
     ////////////////////////////////////////////////////////////
     auto contains(T value) const { return min_ <= value && value <= max_; }
 
+    auto overlaps(const Interval& other) const
+    {
+        return contains(other.min_) || contains(other.max_)
+               || other.contains(min_) || other.contains(max_);
+    }
 
 private:
 

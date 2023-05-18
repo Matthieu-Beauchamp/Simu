@@ -119,7 +119,7 @@ struct SpecialConstructors<T, dim, 1, true>
 ////////////////////////////////////////////////////////////
 /// \ingroup LinearAlgebra
 /// \brief Matrix class for small matrices
-/// 
+///
 /// Most operations are provided as global functions
 /// \see operations
 ////////////////////////////////////////////////////////////
@@ -202,10 +202,11 @@ Matrix<T, n, m> transpose(const Matrix<T, m, n>& original);
 template <class T, class U, Uint32 dim>
 Promoted<T, U> dot(const Vector<T, dim>& lhs, const Vector<U, dim>& rhs);
 
-template<class T, class U>
-Vector<Promoted<T, U>, 3> cross(const Vector<T, 3>& lhs, const Vector<U, 3>& rhs);
+template <class T, class U>
+Vector<Promoted<T, U>, 3>
+cross(const Vector<T, 3>& lhs, const Vector<U, 3>& rhs);
 
-template<class T, class U>
+template <class T, class U>
 Promoted<T, U> cross(const Vector<T, 2>& lhs, const Vector<U, 2>& rhs);
 
 template <class T, Uint32 dim>
@@ -221,7 +222,7 @@ Vector<T, dim> normalized(const Vector<T, dim>& v);
 ////////////////////////////////////////////////////////////
 /// \brief rotates v by 90 degrees
 ////////////////////////////////////////////////////////////
-template<class T>
+template <class T>
 Vector<T, 2> perp(const Vector<T, 2>& v, bool clockwise = false);
 
 /// \}
@@ -335,7 +336,7 @@ namespace std
 {
 
 ////////////////////////////////////////////////////////////
-/// \ingroup operations  
+/// \ingroup operations
 /// \{
 ////////////////////////////////////////////////////////////
 
@@ -350,6 +351,14 @@ simu::Matrix<T, m, n> abs(const simu::Matrix<T, m, n>& mat);
 
 template <class T, simu::Uint32 m, simu::Uint32 n>
 simu::Matrix<T, m, n> round(const simu::Matrix<T, m, n>& mat);
+
+template <class T, simu::Uint32 m, simu::Uint32 n>
+simu::Matrix<T, m, n>
+min(const simu::Matrix<T, m, n>& lhs, const simu::Matrix<T, m, n>& rhs);
+
+template <class T, simu::Uint32 m, simu::Uint32 n>
+simu::Matrix<T, m, n>
+max(const simu::Matrix<T, m, n>& lhs, const simu::Matrix<T, m, n>& rhs);
 
 /// \}
 
