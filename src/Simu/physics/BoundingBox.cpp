@@ -22,14 +22,22 @@
 //
 ////////////////////////////////////////////////////////////
 
-#include "Simu/physics/physics.hpp"
+#include "Simu/physics/BoundingBox.hpp"
 
 namespace simu
 {
 
 
+BoundingBox::BoundingBox(Vec2 min, Vec2 max) : min_{min}, max_{max} {}
 
+bool BoundingBox::overlaps(const BoundingBox& other) const
+{
+    return all(Interval{min_, max_}.overlaps(Interval{other.min_, other.max_}));
+}
 
+BoundingBox BoundingBox::combined(const BoundingBox& other) const
+{
+    return BoundingBox{std::min(min_, other.min_), std::max(max_, other.max_)};
+}
 
-
-} // namepace simu 
+} // namespace simu
