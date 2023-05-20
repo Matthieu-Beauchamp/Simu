@@ -34,5 +34,5 @@ In both cases, the following libraries can be linked against:
 - `simu-graphics` (implies `simu-physics`)
 
 Your target should have the proper include directories simply by linking to Simu's
-libraries. Includes use the following pattern: `#include "Simu/math/maths.hpp"`
+libraries. Includes use the following pattern: `#include "Simu/math.hpp"`
 and only the main library headers should be included.
