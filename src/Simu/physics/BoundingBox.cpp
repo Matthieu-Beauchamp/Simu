@@ -32,11 +32,20 @@ BoundingBox::BoundingBox(Vec2 min, Vec2 max) : min_{min}, max_{max} {}
 
 bool BoundingBox::overlaps(const BoundingBox& other) const
 {
-    return all(Interval{min_, max_}.overlaps(Interval{other.min_, other.max_}));
+    if (isValid() && other.isValid())
+        return all(Interval{min_, max_}.overlaps(Interval{other.min_, other.max_}));
+
+    return false;
 }
 
 BoundingBox BoundingBox::combined(const BoundingBox& other) const
 {
+    if (!isValid())
+        return other;
+
+    if (!other.isValid())
+        return *this;
+
     return BoundingBox{std::min(min_, other.min_), std::max(max_, other.max_)};
 }
 

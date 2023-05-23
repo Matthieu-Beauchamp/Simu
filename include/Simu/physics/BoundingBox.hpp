@@ -35,6 +35,8 @@ class BoundingBox
 {
 public:
 
+    BoundingBox() : BoundingBox(Vec2{1, 0}, Vec2{0, 0}) {}
+
     BoundingBox(Vec2 min, Vec2 max);
 
     template <VertexIterator2D It>
@@ -43,6 +45,8 @@ public:
     template <Geometry T>
     BoundingBox(const T& geoemtry);
 
+    bool isValid() const { return all(max() >= min()); }
+
     Vec2 min() const { return min_; }
     Vec2 max() const { return max_; }
 
@@ -50,6 +54,18 @@ public:
 
     BoundingBox combined(const BoundingBox& other) const;
 
+    bool operator==(const BoundingBox& other) const
+    {
+        if (!isValid() && !other.isValid())
+            return true;
+
+        return all(min() == other.min() && max() == other.max());
+    }
+
+    bool operator!=(const BoundingBox& other) const
+    {
+        return !(*this == other);
+    }
 
 private:
 

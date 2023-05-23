@@ -23,6 +23,22 @@ void testNoOverlap(const BoundingBox& lhs, const BoundingBox& rhs)
 
 TEST_CASE("Bounding Box")
 {
+    SECTION("BoundingBox validity")
+    {
+        // empty bounds
+        REQUIRE_FALSE(BoundingBox{}.isValid());
+
+        // single point
+        REQUIRE(BoundingBox{Vec2{}, Vec2{}}.isValid());
+
+        // normal bounds
+        REQUIRE(BoundingBox{
+            Vec2{0, 0},
+            Vec2{1, 1}
+        }
+                    .isValid());
+    }
+
     SECTION("Basic")
     {
         BoundingBox a{
@@ -87,6 +103,20 @@ TEST_CASE("Bounding Box")
         testNoOverlap(a, translated(a, Vec2{1.1, -1.1}));
     }
 
+    SECTION("Overlap edge cases"){
+        BoundingBox empty{};
+        BoundingBox origin{Vec2{}, Vec2{}};
+        BoundingBox box{
+            Vec2{0, 0},
+            Vec2{1, 1}
+        };
+
+        testNoOverlap(empty, origin);
+        testNoOverlap(empty, box);
+
+        testOverlap(origin, box);
+    }
+
     SECTION("From geometry and point boxes")
     {
         Vertices vertices{
@@ -105,5 +135,23 @@ TEST_CASE("Bounding Box")
         {
             testOverlap(box, BoundingBox{v, v});
         }
+    }
+
+    SECTION("Combinations")
+    {
+        BoundingBox empty{Vec2{1, 0}, Vec2{}};
+        BoundingBox emptyDifferent{Vec2{1, 1}, Vec2{}};
+        BoundingBox origin{Vec2{}, Vec2{}};
+        BoundingBox box{
+            Vec2{1, 1},
+            Vec2{2, 2}
+        };
+
+        REQUIRE(empty.combined(emptyDifferent) == empty);
+        REQUIRE(empty.combined(emptyDifferent) == emptyDifferent);
+        REQUIRE(empty.combined(origin) == origin);
+        REQUIRE(empty.combined(box) == box);
+
+        REQUIRE(origin.combined(box) == BoundingBox{Vec2{}, Vec2{2, 2}});
     }
 }
