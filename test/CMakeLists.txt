@@ -7,4 +7,5 @@ target_sources(simu-test PUBLIC
     BarycentricCoordinates.cpp
 
     BoundingBox.cpp
+    RTree.cpp
 )

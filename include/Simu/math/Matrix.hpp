@@ -218,6 +218,10 @@ T norm(const Vector<T, dim>& v);
 template <class T, Uint32 dim>
 Vector<T, dim> normalized(const Vector<T, dim>& v);
 
+template <class T, class U, Uint32 dim>
+Vector<Promoted<T, U>, dim>
+projection(const Vector<T, dim>& ofThis, const Vector<U, dim>& onThat);
+
 
 ////////////////////////////////////////////////////////////
 /// \brief rotates v by 90 degrees

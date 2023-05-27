@@ -366,6 +366,13 @@ Promoted<T, U> cross(const Vector<T, 2>& lhs, const Vector<U, 2>& rhs)
     return lhs[0] * rhs[1] - lhs[1] * rhs[0];
 }
 
+template <class T, class U, Uint32 dim>
+Vector<Promoted<T, U>, dim>
+projection(const Vector<T, dim>& ofThis, const Vector<U, dim>& onThat)
+{
+    return onThat * dot(ofThis, onThat) / normSquared(onThat);
+}
+
 
 ////////////////////////////////////////////////////////////
 // Comparison facilities
@@ -549,7 +556,6 @@ max(const simu::Matrix<T, m, n>& lhs, const simu::Matrix<T, m, n>& rhs)
 
     return res;
 }
-
 
 
 } // namespace std
