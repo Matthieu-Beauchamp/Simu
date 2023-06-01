@@ -155,16 +155,19 @@ template <class U>
 Matrix<T, m, n>
 Matrix<T, m, n>::fromRows(const std::initializer_list<Vector<U, n>>& rows)
 {
+    return fromRows(Vector<Vector<U, n>, m>{rows});
+}
+
+template <class T, Uint32 m, Uint32 n>
+template <class U>
+Matrix<T, m, n> Matrix<T, m, n>::fromRows(const Vector<Vector<U, n>, m>& rows)
+{
     Matrix mat{};
-    Uint32 rowIndex = 0;
+
+    auto it = mat.begin();
     for (const auto& row : rows)
-    {
-        for (Uint32 col = 0; col < n; ++col)
-        {
-            mat(rowIndex, col) = row[col];
-        }
-        rowIndex++;
-    }
+        for (const auto& val : row)
+            *it++ = val;
 
     return mat;
 }
@@ -178,6 +181,13 @@ Matrix<T, m, n>::fromCols(const std::initializer_list<Vector<U, m>>& cols)
 }
 
 template <class T, Uint32 m, Uint32 n>
+template <class U>
+Matrix<T, m, n> Matrix<T, m, n>::fromCols(const Vector<Vector<U, m>, n>& cols)
+{
+    return transpose(Matrix<T, n, m>::fromRows(cols));
+}
+
+template <class T, Uint32 m, Uint32 n>
 Matrix<T, m, n> Matrix<T, m, n>::filled(T val)
 {
     Matrix<T, m, n> mat{};
@@ -185,6 +195,25 @@ Matrix<T, m, n> Matrix<T, m, n>::filled(T val)
         elem = val;
 
     return mat;
+}
+
+template <class T, Uint32 m, Uint32 n>
+Vector<Vector<T, n>, m> Matrix<T, m, n>::asRows() const
+{
+    Vector<Vector<T, n>, m> rows{};
+
+    auto it = this->begin();
+    for (Vector<T, n>& row : rows)
+        for (T& val : row)
+            val = *it++;
+
+    return rows;
+}
+
+template <class T, Uint32 m, Uint32 n>
+Vector<Vector<T, m>, n> Matrix<T, m, n>::asCols() const
+{
+    return transpose(*this).asRows();
 }
 
 
@@ -310,6 +339,69 @@ Matrix<T, n, m> transpose(const Matrix<T, m, n>& original)
     }
 
     return res;
+}
+
+
+template <class T, class U, Uint32 n>
+Vector<Promoted<T, U>, n> solve(const Matrix<T, n, n>& A, const Vector<U, n>& b)
+{
+    return Solver{A}.solve(b);
+}
+
+template <class T, Uint32 n>
+Solver<T, n>::Solver(const Matrix<T, n, n>& A) : R{}
+{
+    // modified Gram-Schmidt for QR decomposition
+    // https://www.math.uci.edu/~ttrogdon/105A/html/Lecture23.html
+
+    auto Q = A.asCols();
+
+    for (Uint32 col = 0; col < n; ++col)
+    {
+        R(col, col) = norm(Q[col]);
+        Q[col] /= R(col, col);
+
+        for (Uint32 nextCol = col + 1; nextCol < n; ++nextCol)
+        {
+            R(col, nextCol) = dot(Q[col], Q[nextCol]);
+            Q[nextCol] -= R(col, nextCol) * Q[col];
+        }
+    }
+
+    QT = transpose(Matrix<T, n, n>::fromCols(Q));
+}
+
+template <class T, Uint32 n>
+template <class U>
+Vector<Promoted<T, U>, n> Solver<T, n>::solve(const Vector<U, n>& b)
+{
+    Vector<Promoted<T, U>, n> c = QT * b;
+    Vector<Promoted<T, U>, n> x{};
+
+    for (Uint32 row = n; row > 0; --row)
+    {
+        for (Uint32 col = row + 1; col < n; ++col)
+        {
+            c[row - 1] -= R(row - 1, col) * x[col];
+        }
+
+        x[row - 1] = c[row - 1] / R(row - 1, row - 1);
+    }
+
+    return x;
+}
+
+
+template <class T, Uint32 n>
+Matrix<T, n, n> invert(const Matrix<T, n, n>& mat)
+{
+    Solver<T, n> solver{mat};
+
+    auto inverse = Matrix<T, n, n>::identity().asCols();
+    for (auto& col : inverse)
+        col = solver.solve(col);
+
+    return Matrix<T, n, n>::fromCols(inverse);
 }
 
 

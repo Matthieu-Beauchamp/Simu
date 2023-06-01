@@ -124,6 +124,24 @@ TEST_CASE("Matrix")
                         .contains(rot * Vec2::i())));
     }
 
+    SECTION("Solver")
+    {
+        REQUIRE(all(solve(Mat3::identity(), Vec3::i()) == Vec3::i()));
+
+        float theta = std::numbers::pi / 4;
+        Mat2  rot{
+            std::cos(theta),
+            -std::sin(theta),
+            std::sin(theta),
+            std::cos(theta)};
+
+        REQUIRE(all(approx(invert(rot) * rot, Mat2::filled(EPSILON))
+                        .contains(Mat2::identity())));
+
+        REQUIRE(all(approx(solve(rot * rot, Vec2::j()), Vec2::filled(EPSILON))
+                        .contains(Vec2::i())));
+    }
+
     SECTION("Vector operations")
     {
         REQUIRE(all(cross(Vec3::i(), Vec3::j()) == Vec3::k()));

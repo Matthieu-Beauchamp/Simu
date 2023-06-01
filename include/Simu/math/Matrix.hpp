@@ -135,13 +135,25 @@ struct Matrix : public MatrixData<T, m, n>, public SpecialConstructors<T, m, n>
 
     explicit Matrix(const std::initializer_list<T>& init);
 
+    static Matrix filled(T val);
+
     template <class U>
     static Matrix fromRows(const std::initializer_list<Vector<U, n>>& rows);
 
     template <class U>
+    static Matrix fromRows(const Vector<Vector<U, n>, m>& rows);
+
+    template <class U>
     static Matrix fromCols(const std::initializer_list<Vector<U, m>>& cols);
 
-    static Matrix filled(T val);
+    template <class U>
+    static Matrix fromCols(const Vector<Vector<U, m>, n>& cols);
+
+
+    Vector<Vector<T, n>, m> asRows() const;
+
+    Vector<Vector<T, m>, n> asCols() const;
+
 
     Matrix operator+() const;
     Matrix operator-() const;
@@ -193,6 +205,29 @@ operator*(const Matrix<T, mLeft, nLeft>& lhs, const Matrix<U, nLeft, nRight>& rh
 
 template <class T, Uint32 m, Uint32 n>
 Matrix<T, n, m> transpose(const Matrix<T, m, n>& original);
+
+
+////////////////////////////////////////////////////////////
+/// \brief Return x such that Ax = b
+///
+////////////////////////////////////////////////////////////
+template <class T, class U, Uint32 n>
+Vector<Promoted<T, U>, n> solve(const Matrix<T, n, n>& A, const Vector<U, n>& b);
+
+template <class T, Uint32 n>
+struct Solver
+{
+    Solver(const Matrix<T, n, n>& A);
+
+    template <class U>
+    Vector<Promoted<T, U>, n> solve(const Vector<U, n>& b);
+
+    Matrix<T, n, n> QT;
+    Matrix<T, n, n> R;
+};
+
+template <class T, Uint32 n>
+Matrix<T, n, n> invert(const Matrix<T, n, n>& mat);
 
 
 ////////////////////////////////////////////////////////////
