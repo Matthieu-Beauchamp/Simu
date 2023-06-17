@@ -22,19 +22,50 @@
 //
 ////////////////////////////////////////////////////////////
 
-#include "Simu/math/Polygon.hpp"
+#pragma once
+
+#include "Simu/config.hpp"
 
 namespace simu
 {
 
-Polygon::Polygon(const std::initializer_list<Vertex>& vertices)
-    : Polygon(vertices.begin(), vertices.end())
+// inspired from https://docs.unity3d.com/Manual/class-PhysicMaterial.html
+struct CombinableProperty
 {
-}
+    enum Mode
+    {
+        average  = 0,
+        minimum  = 1,
+        multiply = 2,
+        maximum  = 3
+    };
 
-Vec2 Polygon::furthestVertexInDirection(const Vec2& direction) const
-{
-    return simu::furthestVertexInDirection(*this, direction);
-}
+    explicit CombinableProperty(float value, Mode mode = average)
+        : mode{mode}, value{value}
+    {
+    }
 
-} // namepace simu 
+    CombinableProperty(CombinableProperty first, CombinableProperty second)
+        : mode{static_cast<Mode>(std::max(first.mode, second.mode))},
+          value{combine(mode, first.value, second.value)}
+    {
+    }
+
+    static float combine(Mode mode, float first, float second)
+    {
+        switch (mode)
+        {
+            case average: return (first + second) / 2;
+            case minimum: return std::min(first, second);
+            case multiply: return first * second;
+            case maximum: return std::max(first, second);
+            default: return 0.f;
+        }
+    }
+
+    Mode  mode;
+    float value;
+};
+
+
+} // namespace simu

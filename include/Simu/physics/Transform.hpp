@@ -22,19 +22,54 @@
 //
 ////////////////////////////////////////////////////////////
 
-#include "Simu/math/Polygon.hpp"
+#pragma once
+
+#include "Simu/config.hpp"
+#include "Simu/math/Matrix.hpp"
 
 namespace simu
 {
 
-Polygon::Polygon(const std::initializer_list<Vertex>& vertices)
-    : Polygon(vertices.begin(), vertices.end())
+class Transform
 {
+public:
+
+    Transform() = delete;
+
+    static Mat3 identity() { return Mat3::identity(); }
+
+    // clang-format off
+    static Mat3 rotation(float theta) 
+    { 
+        return Mat3{
+            std::cos(theta), -std::sin(theta), 0,
+            std::sin(theta),  std::cos(theta), 0,
+            0,                0,               1
+        }; 
+    }
+
+    static Mat3 translation(Vec2 offset) 
+    { 
+        return Mat3{
+            1, 0, offset[0],
+            0, 1, offset[1],
+            0, 0, 1,
+        }; 
+    }
+    // clang-format on
+
+    static Mat3 transform(float theta, Vec2 offset)
+    {
+        return translation(offset) * rotation(theta);
+    }
+};
+
+template <class T, class U>
+Vector<Promoted<T, U>, 2>
+operator*(const Matrix<T, 3, 3>& transform, const Vector<U, 2>& vec)
+{
+    Vector<Promoted<T, U>, 3> res = transform * Vector<U, 3>{vec[0], vec[1], 1};
+    return Vector<Promoted<T, U>, 2>{res[0], res[1]};
 }
 
-Vec2 Polygon::furthestVertexInDirection(const Vec2& direction) const
-{
-    return simu::furthestVertexInDirection(*this, direction);
-}
-
-} // namepace simu 
+} // namespace simu

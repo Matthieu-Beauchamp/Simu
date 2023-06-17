@@ -22,19 +22,12 @@
 //
 ////////////////////////////////////////////////////////////
 
-#include "Simu/math/Polygon.hpp"
+#include "Simu/math/Random.hpp"
 
 namespace simu
 {
 
-Polygon::Polygon(const std::initializer_list<Vertex>& vertices)
-    : Polygon(vertices.begin(), vertices.end())
-{
-}
+std::mt19937_64 Random::engine_{std::random_device{}()};
 
-Vec2 Polygon::furthestVertexInDirection(const Vec2& direction) const
-{
-    return simu::furthestVertexInDirection(*this, direction);
-}
 
-} // namepace simu 
+} // namespace simu

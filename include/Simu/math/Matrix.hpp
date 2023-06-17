@@ -64,7 +64,7 @@ struct MatrixData
     template <class U>
     explicit MatrixData(const MatrixData<U, mRows_, nCols_>& other);
 
-    Uint32 size() const { return mRows * nCols; }
+    constexpr static Uint32 size() { return mRows * nCols; }
 
     T&       operator()(Uint32 row, Uint32 col);
     const T& operator()(Uint32 row, Uint32 col) const;
@@ -96,19 +96,20 @@ struct Matrix;
 template <class T, Uint32 dim>
 using Vector = Matrix<T, dim, 1>;
 
-template <class T, Uint32 m, Uint32 n, bool isVector = (n == 1)>
+template <class T, Uint32 m, Uint32 n, bool isSquare = (m == n)>
 struct SpecialConstructors
 {
 };
 
 template <class T, Uint32 dim>
-struct SpecialConstructors<T, dim, dim, false>
+struct SpecialConstructors<T, dim, dim, true>
 {
     static Matrix<T, dim, dim> identity();
+    static Matrix<T, dim, dim> diagonal(const Vector<T, dim>& elements);
 };
 
 template <class T, Uint32 dim>
-struct SpecialConstructors<T, dim, 1, true>
+struct SpecialConstructors<T, dim, 1, false>
 {
     static Vector<T, dim> i();
     static Vector<T, dim> j();

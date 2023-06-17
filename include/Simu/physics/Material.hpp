@@ -22,19 +22,22 @@
 //
 ////////////////////////////////////////////////////////////
 
-#include "Simu/math/Polygon.hpp"
+#pragma once
+
+#include "Simu/config.hpp"
+#include "Simu/physics/CombinableProperty.hpp"
 
 namespace simu
 {
 
-Polygon::Polygon(const std::initializer_list<Vertex>& vertices)
-    : Polygon(vertices.begin(), vertices.end())
+struct Material
 {
-}
+    float density = 1.f;
+    CombinableProperty bounciness{0.f, CombinableProperty::average};
 
-Vec2 Polygon::furthestVertexInDirection(const Vec2& direction) const
-{
-    return simu::furthestVertexInDirection(*this, direction);
-}
+    // TODO: Dynamic vs static. Requires additionnal work in Constraints.
+    CombinableProperty friction{0.f, CombinableProperty::average};
+};
 
-} // namepace simu 
+
+} // namespace simu

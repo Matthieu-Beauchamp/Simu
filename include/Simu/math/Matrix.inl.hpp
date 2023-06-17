@@ -71,7 +71,7 @@ const T& MatrixData<T, m, n>::operator[](Uint32 index) const
 ////////////////////////////////////////////////////////////
 
 template <class T, Uint32 dim>
-Matrix<T, dim, dim> SpecialConstructors<T, dim, dim, false>::identity()
+Matrix<T, dim, dim> SpecialConstructors<T, dim, dim, true>::identity()
 {
     Matrix<T, dim, dim> ident{};
     for (Uint32 i = 0; i < dim; ++i)
@@ -80,42 +80,52 @@ Matrix<T, dim, dim> SpecialConstructors<T, dim, dim, false>::identity()
     return ident;
 }
 
+template <class T, Uint32 dim>
+Matrix<T, dim, dim>
+SpecialConstructors<T, dim, dim, true>::diagonal(const Vector<T, dim>& elements)
+{
+    Matrix<T, dim, dim> diag{};
+    for (Uint32 i = 0; i < dim; ++i)
+        diag(i, i) = elements[i];
+
+    return diag;
+}
 
 template <class T, Uint32 dim>
-Vector<T, dim> SpecialConstructors<T, dim, 1, true>::i()
+Vector<T, dim> SpecialConstructors<T, dim, 1, false>::i()
 {
     Vector<T, dim> vec{};
-    if (0 < dim)
+    if constexpr (0 < dim)
         vec[0] = 1;
 
     return vec;
 }
 
 template <class T, Uint32 dim>
-Vector<T, dim> SpecialConstructors<T, dim, 1, true>::j()
+Vector<T, dim> SpecialConstructors<T, dim, 1, false>::j()
 {
     Vector<T, dim> vec{};
-    if (1 < dim)
+    if constexpr (1 < dim)
         vec[1] = 1;
 
     return vec;
 }
 
 template <class T, Uint32 dim>
-Vector<T, dim> SpecialConstructors<T, dim, 1, true>::k()
+Vector<T, dim> SpecialConstructors<T, dim, 1, false>::k()
 {
     Vector<T, dim> vec{};
-    if (2 < dim)
+    if constexpr (2 < dim)
         vec[2] = 1;
 
     return vec;
 }
 
 template <class T, Uint32 dim>
-Vector<T, dim> SpecialConstructors<T, dim, 1, true>::w()
+Vector<T, dim> SpecialConstructors<T, dim, 1, false>::w()
 {
     Vector<T, dim> vec{};
-    if (3 < dim)
+    if constexpr (3 < dim)
         vec[3] = 1;
 
     return vec;
@@ -648,6 +658,5 @@ max(const simu::Matrix<T, m, n>& lhs, const simu::Matrix<T, m, n>& rhs)
 
     return res;
 }
-
 
 } // namespace std

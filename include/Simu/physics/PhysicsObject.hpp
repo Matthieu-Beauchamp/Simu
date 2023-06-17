@@ -22,19 +22,29 @@
 //
 ////////////////////////////////////////////////////////////
 
-#include "Simu/math/Polygon.hpp"
+#pragma once
+
+#include "Simu/config.hpp"
 
 namespace simu
 {
 
-Polygon::Polygon(const std::initializer_list<Vertex>& vertices)
-    : Polygon(vertices.begin(), vertices.end())
+class PhysicsObject
 {
-}
+public:
 
-Vec2 Polygon::furthestVertexInDirection(const Vec2& direction) const
-{
-    return simu::furthestVertexInDirection(*this, direction);
-}
+    virtual ~PhysicsObject() = default;
 
-} // namepace simu 
+    bool isDead() const { return killed_ || shouldDie(); }
+    void kill() { killed_ = true; }
+
+protected:
+
+    virtual bool shouldDie() const { return false; }
+
+private:
+
+    bool killed_ = false;
+};
+
+} // namespace simu

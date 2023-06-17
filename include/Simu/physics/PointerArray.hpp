@@ -22,19 +22,38 @@
 //
 ////////////////////////////////////////////////////////////
 
-#include "Simu/math/Polygon.hpp"
+#pragma once
+
+#include "Simu/config.hpp"
 
 namespace simu
 {
 
-Polygon::Polygon(const std::initializer_list<Vertex>& vertices)
-    : Polygon(vertices.begin(), vertices.end())
+template <class T, Uint32 n, bool isConst>
+class PointerArray
+    : public std::array<std::conditional_t<isConst, const T*, T*>, n>
 {
-}
+    typedef std::conditional_t<isConst, const T*, T*> value_type;
 
-Vec2 Polygon::furthestVertexInDirection(const Vec2& direction) const
-{
-    return simu::furthestVertexInDirection(*this, direction);
-}
+public:
 
-} // namepace simu 
+    PointerArray(const std::initializer_list<value_type>& values)
+    {
+        Uint32 i = 0;
+        for (value_type v : values)
+        {
+            if (i < n)
+                (*this)[i++] = v;
+        }
+    }
+
+    template <bool otherIsConst>
+        requires(isConst || !otherIsConst)
+    PointerArray(const PointerArray<T, n, otherIsConst>& other)
+    {
+        for (Uint32 i = 0; i < n; ++i)
+            (*this)[i] = other[i];
+    }
+};
+
+} // namespace simu

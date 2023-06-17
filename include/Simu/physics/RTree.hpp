@@ -33,6 +33,11 @@
 namespace simu
 {
 
+// TODO: Cache friendliness, use a block allocator, or:
+//  store nodes in a vector,
+//  iterators have reference to tree and an index,
+//  nodes use indices instead of pointers.
+
 template <class T, class Allocator = std::allocator<T>>
 class RTree
 {
@@ -86,13 +91,25 @@ public:
 
     iterator insert(BoundingBox bounds, const_reference val)
     {
-        return insert(makeLeaf(bounds, val));
+        return emplace(bounds, val);
+    }
+
+    template <class... Args>
+    iterator emplace(BoundingBox bounds, Args&&... args)
+    {
+        return insert(makeLeaf(bounds, std::forward<Args>(args)...));
     }
 
     iterator erase(iterator it)
     {
         iterator tmp = it++;
         erase(tmp.node);
+        return it;
+    }
+
+    iterator update(iterator it, BoundingBox newBounds)
+    {
+        update(it.node, newBounds);
         return it;
     }
 
@@ -131,10 +148,11 @@ private:
         return node;
     }
 
-    Node* makeLeaf(const BoundingBox& bounds, const value_type& value)
+    template <class... Args>
+    Node* makeLeaf(const BoundingBox& bounds, Args&&... args)
     {
         pointer data = AllocTraits::allocate(alloc_, 1);
-        AllocTraits::construct(alloc_, data, value);
+        AllocTraits::construct(alloc_, data, std::forward<Args>(args)...);
 
         Node* node = makeNode(bounds);
         node->data = data;
@@ -196,6 +214,9 @@ private:
 
     void refit(Node* node)
     {
+        // TODO: Benchmark and profile, we may not need to check rotations
+        //  for all nodes whose bounds have changed.
+        // Only check rotations on parent/grand parent of added leaf
         while (node != nullptr)
         {
             BoundingBox newBounds
@@ -251,12 +272,6 @@ private:
 
         Vec2 stretch = bounds.max() - bounds.min();
         return stretch[0] * stretch[1];
-    }
-
-    float areaDiff(Node* current, Node* toAdd)
-    {
-        return area(bounds(current).combined(bounds(toAdd)))
-               - area(bounds(current));
     }
 
     BoundingBox bounds(Node* node)
@@ -319,7 +334,7 @@ private:
         return iterator{node};
     }
 
-    void erase(Node* node)
+    Node* extract(Node* node)
     {
         Node* sibling = node->sibling();
 
@@ -329,7 +344,6 @@ private:
             {
                 node->handle() = nullptr;
                 refit(node->parent);
-                deleteNode(node);
             }
             else
             {
@@ -341,18 +355,22 @@ private:
                 sibling->left  = nullptr;
                 sibling->right = nullptr;
                 deleteNode(sibling);
-                deleteNode(node);
             }
         }
         else
         {
             sibling->handle() = nullptr;
             node->parent->replaceBy(sibling);
-
             refit(node->parent->parent);
+
+            node->handle() = nullptr;
             deleteNode(node->parent);
         }
+
+        return node;
     }
+
+    void erase(Node* node) { deleteNode(extract(node)); }
 
     Uint32 depth(const Node* subRoot) const
     {
@@ -388,6 +406,13 @@ private:
                 forEachIn(box, func, node->right);
             }
         }
+    }
+
+    void update(Node* node, BoundingBox newBounds)
+    {
+        extract(node);
+        node->bounds = newBounds;
+        insert(node);
     }
 };
 

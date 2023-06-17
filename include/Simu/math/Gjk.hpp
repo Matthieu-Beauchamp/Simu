@@ -79,17 +79,6 @@ struct Polytope
 
 } // namespace priv
 
-////////////////////////////////////////////////////////////
-/// \ingroup Geometry
-/// \brief Any type that can return the furthest vertex in a given direction
-/// 
-////////////////////////////////////////////////////////////
-template <class T>
-concept Collidable = requires(T collidable) {
-    {
-        collidable.furthestVertexInDirection(Vertex{})
-    } -> std::convertible_to<Vertex>;
-};
 
 ////////////////////////////////////////////////////////////
 /// \ingroup Geometry
@@ -104,7 +93,7 @@ concept Collidable = requires(T collidable) {
 /// 
 /// \warning changing first or second between construction and calls to any method is undefined.
 ////////////////////////////////////////////////////////////
-template <Collidable T = simu::Polygon>
+template <Geometry T = simu::Polygon>
 class Gjk
 {
 public:
@@ -136,10 +125,10 @@ public:
     ///
     /// In order to make first and second only touch, both are equivalent:
     ///     - translate first by -penetration()
-    ///     - translate seccond by penetration()
+    ///     - translate second by penetration()
     ///
     ////////////////////////////////////////////////////////////
-    Vec2 penetration();
+    Vec2 penetration() const;
 
 private:
 

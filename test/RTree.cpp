@@ -15,6 +15,16 @@ void testEmpty(const RTree<T>& t)
     REQUIRE(t.bounds() == BoundingBox{});
 }
 
+struct TestType
+{
+    bool hit = false;
+};
+
+typedef RTree<TestType> TestTree;
+
+
+void hit(TestTree::iterator it) { it->hit = true; }
+
 TEST_CASE("R-Tree")
 {
     SECTION("Empty tree")
@@ -43,11 +53,6 @@ TEST_CASE("R-Tree")
 
     SECTION("Insertion")
     {
-        struct TestType
-        {
-            bool hit = false;
-        };
-
         RTree<TestType*> t{};
 
         // must be a power of 2 for depth checks
@@ -114,12 +119,7 @@ TEST_CASE("R-Tree")
 
     SECTION("Box queries")
     {
-        struct TestType
-        {
-            bool hit = false;
-        };
-
-        RTree<TestType> t{};
+        TestTree t{};
 
         // clang-format off
         auto topleft  = t.insert(BoundingBox{Vec2{-2,  1}, Vec2{-1,  2}}, {});
@@ -128,7 +128,6 @@ TEST_CASE("R-Tree")
         auto botright = t.insert(BoundingBox{Vec2{ 1, -2}, Vec2{ 2, -1}}, {});
         // clang-format on
 
-        auto hit = [](RTree<TestType>::iterator it) { it->hit = true; };
 
         auto testHits = [&](bool tl, bool tr, bool bl, bool br) {
             REQUIRE(topleft->hit == tl);
@@ -159,5 +158,31 @@ TEST_CASE("R-Tree")
 
         t.forEachIn(t.bounds(), hit);
         testHits(true, true, true, true);
+    }
+
+    SECTION("Update")
+    {
+        TestTree t{};
+
+        BoundingBox b{
+            Vec2{0, 0},
+            Vec2{1, 1}
+        };
+
+        // clang-format off
+        auto left   = t.insert(BoundingBox{Vec2{0, 0}, Vec2{1, 1}}, {});
+        auto center = t.insert(BoundingBox{Vec2{1.1, 1.1}, Vec2{1.9, 1.9}}, {});
+        auto right  = t.insert(BoundingBox{Vec2{2, 2}, Vec2{3, 3}}, {});
+        // clang-format on
+
+        REQUIRE(t.bounds() == BoundingBox{Vec2{0, 0}, Vec2{3, 3}});
+
+        t.update(left, center.bounds());
+        t.update(right, center.bounds());
+        REQUIRE(t.bounds() == center.bounds());
+        t.forEachIn(center.bounds(), hit);
+        REQUIRE(left->hit);
+        REQUIRE(center->hit);
+        REQUIRE(right->hit);
     }
 }

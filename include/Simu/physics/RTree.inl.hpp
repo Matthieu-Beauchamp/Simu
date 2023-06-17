@@ -147,8 +147,8 @@ public:
         return !(*this == other);
     }
 
-    it_reference operator*() { return *node->data; }
-    it_pointer   operator->() { return node->data; }
+    it_reference operator*() const { return *node->data; }
+    it_pointer   operator->() const { return node->data; }
 
 private:
 

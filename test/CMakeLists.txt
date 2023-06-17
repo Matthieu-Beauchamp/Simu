@@ -8,4 +8,6 @@ target_sources(simu-test PUBLIC
 
     BoundingBox.cpp
     RTree.cpp
+    Physics.cpp
+    ContactManifold.cpp
 )
