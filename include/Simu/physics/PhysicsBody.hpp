@@ -45,6 +45,8 @@ struct BodyDescriptor
     Vec2  position{};
     float orientation{};
 
+    float dominance = 1.f;
+
     void* userData = nullptr;
 };
 
@@ -70,8 +72,6 @@ class PhysicsWorld;
 
 class PhysicsBody : public PhysicsObject
 {
-    friend PhysicsWorld;
-
 public:
 
     PhysicsBody(const BodyDescriptor& descriptor)
@@ -84,6 +84,7 @@ public:
           collider_{
               descriptor.polygon,
               Transform::transform(orientation_, position_)},
+          dominance_{descriptor.dominance},
           userData_{descriptor.userData}
     {
     }
@@ -146,6 +147,9 @@ public:
 
     Material material() const { return material_; }
 
+    bool  isStructural() const { return dominance() == 0.f; }
+    float dominance() const { return dominance_; }
+
     PhysicsWorld* world() const { return world_; }
 
     void*       userData() { return userData_; }
@@ -172,6 +176,9 @@ private:
     MassProperties properties_;
     Collider       collider_;
 
+    float dominance_;
+
+    friend PhysicsWorld;
     PhysicsWorld* world_ = nullptr;
     void*         userData_;
 };

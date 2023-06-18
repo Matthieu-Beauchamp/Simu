@@ -110,6 +110,8 @@ public:
     {
         std::unique_ptr<T> body = makeObject<T>(std::forward<Args>(args)...);
 
+        body->world_ = this;
+
         BoundingBox bounds = body->collider().boundingBox();
         return static_cast<T*>(bodies_.emplace(bounds, std::move(body))->get());
     }

@@ -42,6 +42,9 @@ using VelocityVector = Vector<float, 3 * nBodies>;
 template <Uint32 nBodies>
 using MassMatrix = Matrix<float, 3 * nBodies, 3 * nBodies>;
 
+template <Uint32 nBodies>
+using Dominance = Vector<float, nBodies>;
+
 
 class ConstraintSolver
 {
@@ -63,16 +66,19 @@ public:
     }
 
     template <Uint32 nBodies>
-    static MassMatrix<nBodies> inverseMass(const ConstBodies<nBodies>& bodies)
+    static MassMatrix<nBodies>
+    inverseMass(const ConstBodies<nBodies>& bodies, const Dominance<nBodies>& dominance)
     {
         // TODO: Body dominance ratios
         Vector<float, 3 * nBodies> diagonal;
-        Uint32                     i = 0;
+
+        Uint32 i       = 0;
+        Uint32 nthBody = 0;
         for (const PhysicsBody* body : bodies)
         {
-            diagonal[i++] = 1 / body->properties().mass;
-            diagonal[i++] = 1 / body->properties().mass;
-            diagonal[i++] = 1 / body->properties().inertia;
+            diagonal[i++] = dominance[nthBody] / body->properties().mass;
+            diagonal[i++] = dominance[nthBody] / body->properties().mass;
+            diagonal[i++] = dominance[nthBody++] / body->properties().inertia;
         }
 
         return MassMatrix<nBodies>::diagonal(diagonal);
@@ -81,6 +87,7 @@ public:
     template <Uint32 nConstraints, Uint32 nBodies>
     static ConstraintValue<nConstraints> solveLambda(
         const ConstBodies<nBodies>&     bodies,
+        const Dominance<nBodies>&       dominance,
         ConstraintValue<nConstraints>   C,
         Jacobian<nConstraints, nBodies> J,
         float                           dt,
@@ -92,8 +99,8 @@ public:
     {
         typedef Matrix<float, nConstraints, nConstraints> MatType;
 
-        MatType K
-            = J * inverseMass(bodies) * transpose(J) + MatType::diagonal(gamma);
+        MatType K = J * inverseMass(bodies, dominance) * transpose(J)
+                    + MatType::diagonal(gamma);
 
         ConstraintValue<nConstraints> rhs
             = -(J * velocity(bodies) + bias + MatType::diagonal(beta) * C / dt
@@ -112,11 +119,15 @@ public:
     }
 
     template <Uint32 nBodies>
-    static void
-    apply(const Bodies<nBodies>& bodies, const VelocityVector<nBodies>& impulse)
+    static void apply(
+        const Bodies<nBodies>&         bodies,
+        const Dominance<nBodies>&      dominance,
+        const VelocityVector<nBodies>& impulse
+    )
     {
-        VelocityVector<nBodies> dv = inverseMass<nBodies>(bodies) * impulse;
-        Uint32                  i  = 0;
+        VelocityVector<nBodies> dv
+            = inverseMass<nBodies>(bodies, dominance) * impulse;
+        Uint32 i = 0;
         for (PhysicsBody* body : bodies)
         {
             body->velocity() += Vec2{dv[i], dv[i + 1]};
@@ -127,7 +138,4 @@ public:
 };
 
 
-
-
-
-} // namepace simu 
+} // namespace simu

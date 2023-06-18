@@ -24,6 +24,8 @@
 
 #pragma once
 
+#include <optional>
+
 #include "Simu/config.hpp"
 #include "Simu/math/BarycentricCoordinates.hpp"
 #include "Simu/math/Gjk.hpp"
@@ -57,12 +59,23 @@ public:
     typedef F::Value Value;
 
     ConstraintImplementation(
-        const Bodies<F::nBodies>& bodies,
-        const F&                  f,
-        bool                      disableContacts
+        const Bodies<F::nBodies>&                bodies,
+        const F&                                 f,
+        bool                                     disableContacts,
+        std::optional<Vector<float, F::nBodies>> dominanceRatios = std::nullopt
     )
         : f{f}, bodies_{bodies}, disableContacts_{disableContacts}
     {
+        if (dominanceRatios.has_value())
+        {
+            dominances_ = dominanceRatios.value();
+        }
+        else
+        {
+            Uint32 i = 0;
+            for (auto body : bodies)
+                dominances_[i++] = body->dominance();
+        }
     }
 
     void onConstruction(PhysicsWorld& world) override;
@@ -105,6 +118,7 @@ public:
     {
         Value dLambda = ConstraintSolver::solveLambda<F::dimension, F::nBodies>(
             bodies_,
+            dominances_,
             eval_,
             jacobian_,
             dt,
@@ -123,7 +137,8 @@ public:
                 jacobian_,
                 lambda_ - oldLambda
             );
-        ConstraintSolver::apply(bodies_, impulse);
+
+        ConstraintSolver::apply(bodies_, dominances_, impulse);
     }
 
     void commit() override
@@ -142,7 +157,8 @@ private:
     F::Value    bias_{};
     F::Value    lambda_{};
 
-    bool disableContacts_;
+    Vector<float, F::nBodies> dominances_;
+    bool                      disableContacts_;
 };
 
 
@@ -168,8 +184,11 @@ public:
         }
     };
 
-    RotationConstraint(const Bodies<2>& bodies, Descriptor descr = Descriptor{}, bool disableContacts = true) 
-        : Base{bodies, F{descr, bodies}, disableContacts}
+    RotationConstraint(const Bodies<2>& bodies, 
+        Descriptor descr = Descriptor{}, 
+        bool disableContacts = true, 
+        std::optional<Vec2> dominanceRatios = std::nullopt) 
+        : Base{bodies, F{descr, bodies}, disableContacts, dominanceRatios}
     {
     }
 };
@@ -192,8 +211,8 @@ public:
     HingeConstraint(
         const Bodies<2>& bodies,
         Vec2             worldSpaceSharedPoint,
-        Descriptor    descr = Descriptor{}, bool disableContacts = true
-    ) : Base{bodies, F{descr, bodies, worldSpaceSharedPoint}, disableContacts}
+        Descriptor    descr = Descriptor{}, bool disableContacts = true, std::optional<Vec2> dominanceRatios = std::nullopt
+    ) : Base{bodies, F{descr, bodies, worldSpaceSharedPoint}, disableContacts, dominanceRatios}
     {
     }
 };
@@ -229,11 +248,16 @@ public:
     };
 
     WeldConstraint(
-        const Bodies<2>& bodies,
-        Descriptor       descr           = Descriptor{},
-        bool             disableContacts = true
+        const Bodies<2>&    bodies,
+        Descriptor          descr           = Descriptor{},
+        bool                disableContacts = true,
+        std::optional<Vec2> dominanceRatios = std::nullopt
     )
-        : Base{bodies, makeWeldFunction(bodies, descr), disableContacts}
+        : Base{
+            bodies,
+            makeWeldFunction(bodies, descr),
+            disableContacts,
+            dominanceRatios}
     {
     }
 
@@ -282,7 +306,8 @@ public:
         : Base{
             bodies,
             F{bodies, maxAngularVelocity, maxTorque},
-            false
+            false,
+            Vector<float, 1>{1.f}
     }
     {
     }
@@ -307,7 +332,9 @@ public:
         : Base{
             bodies,
             F{bodies, maxVelocity, maxForce},
-            false
+            false,
+            Vector<float, 1>{1.f}
+
     }
     {
     }
@@ -330,7 +357,7 @@ public:
     typedef ContactManifold<Collider> Manifold;
 
     SingleContactConstraint(const Bodies<2>& bodies, const Manifold& manifold)
-        : Base{bodies, makeFunction(bodies, manifold), false}
+        : Base{bodies, makeFunction(bodies, manifold), false, std::nullopt}
     {
     }
 
@@ -356,7 +383,7 @@ public:
     typedef ContactManifold<Collider> Manifold;
 
     DoubleContactConstraint(const Bodies<2>& bodies, const Manifold& manifold)
-        : Base{bodies, makeFunction(bodies, manifold), false}
+        : Base{bodies, makeFunction(bodies, manifold), false, std::nullopt}
     {
     }
 

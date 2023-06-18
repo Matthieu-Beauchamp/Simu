@@ -236,7 +236,8 @@ TEST_CASE("Physics")
                         .contains(right->angularVelocity()));
         }
 
-        SECTION("Hinge Constraint is free to rotate, also tests disabling collisison")
+        SECTION("Hinge Constraint is free to rotate, also tests disabling "
+                "collisison")
         {
             PhysicsWorld world{};
 
@@ -464,7 +465,7 @@ TEST_CASE("Physics")
             body2->velocity() = Vec2{-0.5f, 0};
 
             world.step(1.f);
-            world.step(1.f); // touching at x=0
+            world.step(1.f);   // touching at x=0
             world.step(0.01f); // collision
             world.step(0.01f);
 
@@ -473,7 +474,7 @@ TEST_CASE("Physics")
             REQUIRE(all(approx(body2->velocity(), Vec2::filled(simu::EPSILON))
                             .contains(Vec2{})));
         }
-        
+
         SECTION("Full collision restitution")
         {
             PhysicsWorld world{};
@@ -490,7 +491,7 @@ TEST_CASE("Physics")
             body2->velocity() = Vec2{-0.5f, 0};
 
             world.step(1.f);
-            world.step(1.f); // touching at x=0
+            world.step(1.f);   // touching at x=0
             world.step(0.01f); // collision
             world.step(0.01f);
 
@@ -499,6 +500,64 @@ TEST_CASE("Physics")
             REQUIRE(all(approx(body2->velocity(), Vec2::filled(simu::EPSILON))
                             .contains(Vec2{0.5f, 0})));
         }
-        
+    }
+
+    SECTION("Body dominance")
+    {
+        SECTION("Collision with structural")
+        {
+            PhysicsWorld world{};
+
+            BodyDescriptor descr{squareDescriptor};
+            descr.material.bounciness.value = 1.f;
+
+            descr.position         = Vec2{-2, 0};
+            auto projectile        = world.makeBody(descr);
+            projectile->velocity() = Vec2{1.f, 0.f};
+            REQUIRE(!projectile->isStructural());
+
+            descr.position  = Vec2{0, 0};
+            descr.dominance = 0.f;
+            auto wall       = world.makeBody(descr);
+            REQUIRE(wall->isStructural());
+
+            world.step(1.1f); // collision
+            world.step(0.1f);
+
+            REQUIRE(all(wall->velocity() == Vec2{}));
+            REQUIRE(all(projectile->velocity() == Vec2{-1.f, 0.f}));
+        }
+
+        SECTION("Dominance for movement propagation")
+        {
+            PhysicsWorld world{};
+
+            BodyDescriptor descr{squareDescriptor};
+
+            auto driver   = world.makeBody(descr);
+            auto middle   = world.makeBody(descr);
+            auto follower = world.makeBody(descr);
+
+            world.makeConstraint<RotationConstraint>(
+                Bodies<2>{driver, middle},
+                RotationConstraint::Descriptor{},
+                true,
+                Vec2{0.f, 1.f}
+            );
+
+            world.makeConstraint<RotationConstraint>(
+                Bodies<2>{middle, follower},
+                RotationConstraint::Descriptor{},
+                true,
+                Vec2{0.f, 1.f}
+            );
+
+            driver->angularVelocity() = 1.f;
+            world.step(1.f);
+
+            REQUIRE(driver->angularVelocity() == 1.f);
+            REQUIRE(middle->angularVelocity() == 1.f);
+            REQUIRE(follower->angularVelocity() == 1.f);
+        }
     }
 }
