@@ -24,37 +24,35 @@
 
 #pragma once
 
-#include <array>
-#include "Simu/config.hpp"
+#include "Simu/physics/Constraint.hpp"
+#include "Simu/physics/PhysicsWorld.hpp"
 
 namespace simu
 {
 
-template <class T, Uint32 n, bool isConst>
-class PointerArray
-    : public std::array<std::conditional_t<isConst, const T*, T*>, n>
+template <ConstraintFunction F>
+void ConstraintImplementation<F>::onConstruction(PhysicsWorld& world)
 {
-    typedef std::conditional_t<isConst, const T*, T*> value_type;
-
-public:
-
-    PointerArray(const std::initializer_list<value_type>& values)
+    if (disableContacts_)
     {
-        Uint32 i = 0;
-        for (value_type v : values)
-        {
-            if (i < n)
-                (*this)[i++] = v;
-        }
-    }
-
-    template <bool otherIsConst>
-        requires(isConst || !otherIsConst)
-    PointerArray(const PointerArray<T, n, otherIsConst>& other)
-    {
-        for (Uint32 i = 0; i < n; ++i)
-            (*this)[i] = other[i];
+        for (auto first = bodies_.begin(); first != bodies_.end(); ++first)
+            for (auto second = std::next(first); second != bodies_.end();
+                 ++second)
+                world.declareContactConflict(Bodies<2>{*first, *second});
     }
 };
+
+template <ConstraintFunction F>
+void ConstraintImplementation<F>::onDestruction(PhysicsWorld& world)
+{
+    if (disableContacts_)
+    {
+        for (auto first = bodies_.begin(); first != bodies_.end(); ++first)
+            for (auto second = std::next(first); second != bodies_.end();
+                 ++second)
+                world.removeContactConflict(Bodies<2>{*first, *second});
+    }
+};
+
 
 } // namespace simu

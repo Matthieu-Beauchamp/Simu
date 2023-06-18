@@ -190,7 +190,6 @@ TEST_CASE("Physics")
             descr.position = Vec2{0.f, 0};
             auto right     = world.makeBody(descr);
 
-            // TODO: Eww
             auto c = world.makeConstraint<HingeConstraint>(
                 Bodies<2>{left, right},
                 Vec2{0.f, 0.5f}
@@ -237,7 +236,7 @@ TEST_CASE("Physics")
                         .contains(right->angularVelocity()));
         }
 
-        SECTION("Hinge Constraint is free to rotate")
+        SECTION("Hinge Constraint is free to rotate, also tests disabling collisison")
         {
             PhysicsWorld world{};
 
@@ -248,20 +247,25 @@ TEST_CASE("Physics")
             descr.position = left->properties().centroid;
             auto right     = world.makeBody(descr);
 
-            // TODO: needs to disable contacts
             auto c = world.makeConstraint<HingeConstraint>(
                 Bodies<2>{left, right},
-                left->properties().centroid
+                left->properties().centroid,
+                true
             );
 
             left->angularVelocity() = 1.f;
             world.step(1.f);
 
-            // TODO:
-            // REQUIRE(left->angularVelocity() == 1.f);
-            // REQUIRE(right->angularVelocity() == 0.f);
-            // REQUIRE(all(left->velocity() == Vec2{}));
-            // REQUIRE(all(right->velocity() == Vec2{}));
+            REQUIRE(left->angularVelocity() == 1.f);
+            REQUIRE(right->angularVelocity() == 0.f);
+            REQUIRE(all(left->velocity() == Vec2{}));
+            REQUIRE(all(right->velocity() == Vec2{}));
+
+            // remove constraint, bodies are now colliding
+            c->kill();
+            world.step(1.f);
+            REQUIRE(all(left->velocity() != Vec2{}));
+            REQUIRE(all(right->velocity() != Vec2{}));
         }
 
         SECTION("Weld constraint")
@@ -275,7 +279,6 @@ TEST_CASE("Physics")
             descr.position = Vec2{0.f, 0};
             auto right     = world.makeBody(descr);
 
-            // TODO: Eww
             auto c
                 = world.makeConstraint<WeldConstraint>(Bodies<2>{left, right});
 
@@ -313,7 +316,6 @@ TEST_CASE("Physics")
 
             constexpr float pi = std::numbers::pi_v<float>;
 
-            // TODO: Eww
             auto rot = world.makeConstraint<RotationMotorConstraint>(
                 Bodies<1>{body},
                 pi * 2, // maximum speed of 1 turn per second
@@ -497,5 +499,6 @@ TEST_CASE("Physics")
             REQUIRE(all(approx(body2->velocity(), Vec2::filled(simu::EPSILON))
                             .contains(Vec2{0.5f, 0})));
         }
+        
     }
 }

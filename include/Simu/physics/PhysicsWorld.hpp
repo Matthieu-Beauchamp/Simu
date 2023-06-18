@@ -28,6 +28,8 @@
 #include "Simu/config.hpp"
 #include "Simu/physics/RTree.hpp"
 #include "Simu/physics/PhysicsBody.hpp"
+#include "Simu/physics/ForceField.hpp"
+#include "Simu/physics/Range.hpp"
 
 namespace details
 {
@@ -61,25 +63,17 @@ inline std::size_t hash_val(const Types&... args)
     return seed;
 }
 
-struct pair_hash
-{
-    template <class T1, class T2>
-    std::size_t operator()(const std::pair<T1, T2>& p) const
-    {
-        return hash_val(p.first, p.second);
-    }
-};
-
 } // namespace details
 
 namespace std
 {
+
 template <>
-struct hash<pair<simu::PhysicsBody*, simu::PhysicsBody*>>
+struct hash<simu::Bodies<2>>
 {
-    size_t operator()(pair<simu::PhysicsBody*, simu::PhysicsBody*> bodies) const
+    size_t operator()(const simu::Bodies<2>& bodies) const
     {
-        return ::details::pair_hash{}(bodies);
+        return ::details::hash_val(bodies[0], bodies[1]);
     }
 };
 
@@ -88,17 +82,15 @@ struct hash<pair<simu::PhysicsBody*, simu::PhysicsBody*>>
 #include <list>
 #include <unordered_map>
 
-#include "Simu/physics/Constraint.hpp"
-#include "Simu/physics/ForceField.hpp"
-#include "Simu/physics/Range.hpp"
 
 namespace simu
 {
 
+class Constraint;
+
 class PhysicsWorld
 {
-    typedef RTree<std::unique_ptr<PhysicsBody>>   BodyTree;
-    typedef std::pair<PhysicsBody*, PhysicsBody*> BodyPair;
+    typedef RTree<std::unique_ptr<PhysicsBody>> BodyTree;
 
 public:
 
@@ -114,12 +106,12 @@ public:
     PhysicsWorld() = default;
 
     template <std::derived_from<PhysicsBody> T = PhysicsBody, class... Args>
-    BodyPtr makeBody(Args&&... args)
+    T* makeBody(Args&&... args)
     {
-        std::unique_ptr<T> body
-            = std::make_unique<T>(std::forward<Args>(args)...);
+        std::unique_ptr<T> body = makeObject<T>(std::forward<Args>(args)...);
+
         BoundingBox bounds = body->collider().boundingBox();
-        return bodies_.emplace(bounds, std::move(body))->get();
+        return static_cast<T*>(bodies_.emplace(bounds, std::move(body))->get());
     }
 
     template <std::derived_from<Constraint> T, class... Args>
@@ -127,7 +119,7 @@ public:
     {
         return static_cast<T*>(
             constraints_
-                .emplace_back(std::make_unique<T>(std::forward<Args>(args)...))
+                .emplace_back(makeObject<T>(std::forward<Args>(args)...))
                 .get()
         );
     }
@@ -136,20 +128,11 @@ public:
     T* makeForceField(Args&&... args)
     {
         return static_cast<T*>(
-            forces_
-                .emplace_back(std::make_unique<T>(std::forward<Args>(args)...))
-                .get()
+            forces_.emplace_back(makeObject<T>(std::forward<Args>(args)...)).get()
         );
     }
 
-    void step(float dt)
-    {
-        cleanup();
-        detectContacts();
-        applyForces(dt);
-        applyConstraints(dt);
-        updateBodies(dt);
-    }
+    void step(float dt);
 
 
     auto bodies()
@@ -160,6 +143,10 @@ public:
     {
         return makeRange(bodies_.begin(), bodies_.end(), BypassSmartPointer{});
     }
+
+    void declareContactConflict(const Bodies<2>& bodies);
+
+    void removeContactConflict(const Bodies<2>& bodies);
 
 private:
 
@@ -189,128 +176,24 @@ private:
         );
     }
 
-
-    void applyForces(float dt)
+    template <std::derived_from<PhysicsObject> T, class... Args>
+    std::unique_ptr<T> makeObject(Args&&... args)
     {
-        for (ForceField& force : forceFields())
-        {
-            auto applyForce = [=, &force](BodyTree::iterator body) {
-                force.apply(**body, dt);
-            };
-
-            if (force.domain().type == ForceField::DomainType::global)
-            {
-                for (PhysicsBody& body : bodies())
-                    force.apply(body, dt);
-            }
-            else
-            {
-                bodies_.forEachIn(force.domain().region, applyForce);
-            }
-        }
+        auto obj = std::make_unique<T>(std::forward<Args>(args)...);
+        obj->onConstruction(*this);
+        return obj;
     }
 
-    void detectContacts()
-    {
-        for (auto it = bodies_.begin(); it != bodies_.end(); ++it)
-        {
-            auto registerContact = [=](BodyTree::iterator other) {
-                if (it->get() != other->get())
-                {
-                    BodyPair bodies{it->get(), other->get()};
-                    auto     contact = inContacts(bodies);
-                    if (contact == contacts_.end())
-                    {
-                        auto constraint = makeConstraint<ContactConstraint>(
-                            Bodies<2>{bodies.first, bodies.second}
-                        );
 
-                        contacts_[bodies] = ContactStatus{0, constraint};
-                    }
-                }
-            };
+    void applyForces(float dt);
 
-            bodies_.forEachIn(it.bounds(), registerContact);
-        }
-    }
+    void detectContacts();
 
-    void cleanup()
-    {
-        for (auto& c : contacts_)
-        {
-            ConstraintPtr& contactConstraint = c.second.existingContact;
-            if (contactConstraint != nullptr && contactConstraint->isDead())
-                contactConstraint = nullptr;
-        }
+    void cleanup();
 
-        auto constraint = constraints_.begin();
-        while (constraint != constraints_.end())
-        {
-            if ((*constraint)->isDead())
-                constraint = constraints_.erase(constraint);
-            else
-                constraint++;
-        }
+    void applyConstraints(float dt);
 
-        // TODO: Removing constraints must update the contacts.conflictingConstraint 
-        //      count, those that hit 0 can be removed.
-
-        auto force = forces_.begin();
-        while (force != forces_.end())
-        {
-            if ((*force)->isDead())
-                force = forces_.erase(force);
-            else
-                force++;
-        }
-
-        // modification during iteration is undefined for RTree.
-        std::vector<BodyTree::iterator> deadBodies{};
-        for (auto body = bodies_.begin(); body != bodies_.end(); ++body)
-            if ((*body)->isDead())
-                deadBodies.emplace_back(body);
-
-        for (auto body : deadBodies)
-            bodies_.erase(body);
-    }
-
-    void applyConstraints(float dt)
-    {
-        std::vector<ConstraintPtr> actives{};
-        for (auto& constraint : constraints_)
-        {
-            if (constraint->isActive())
-                actives.emplace_back(constraint.get());
-        }
-
-        for (auto constraint : actives)
-            constraint->initSolve(dt);
-
-        // TODO: settings.maxIter
-        for (Uint32 iter = 0; iter < 10; ++iter)
-        {
-            for (auto constraint : actives)
-                constraint->solve(dt);
-        }
-
-        for (auto& constraint : actives)
-            constraint->commit();
-    }
-
-    void updateBodies(float dt)
-    {
-        std::vector<BodyTree::iterator> toUpdate{};
-        for (auto it = bodies_.begin(); it != bodies_.end(); ++it)
-        {
-            (*it)->step(dt);
-            toUpdate.emplace_back(it);
-        }
-
-        // TODO: batch updates of RTree ...
-        // TODO: Modifying the tree while iterating is undefined.
-        for (auto it : toUpdate)
-            bodies_.update(it, (*it)->collider().boundingBox());
-    }
+    void updateBodies(float dt);
 
     BodyTree                               bodies_{};
     std::list<std::unique_ptr<Constraint>> constraints_{};
@@ -319,24 +202,22 @@ private:
 
     struct ContactStatus
     {
-        Uint32        nConflictingConstraints = 0;
+        Int32         nConflictingConstraints = 0;
         ConstraintPtr existingContact         = nullptr;
     };
 
-    std::unordered_map<std::pair<BodyPtr, BodyPtr>, ContactStatus> contacts_;
-    std::unordered_map<std::pair<BodyPtr, BodyPtr>, ContactStatus>::iterator
-    inContacts(std::pair<BodyPtr, BodyPtr> bodies)
+    std::unordered_map<Bodies<2>, ContactStatus> contacts_;
+    std::unordered_map<Bodies<2>, ContactStatus>::iterator
+    inContacts(Bodies<2> bodies)
     {
         auto asIs = contacts_.find(bodies);
         return (asIs != contacts_.end())
                    ? asIs
-                   : contacts_.find(
-                       std::pair<BodyPtr, BodyPtr>{bodies.second, bodies.first}
-                   );
+                   : contacts_.find(Bodies<2>{bodies[1], bodies[0]});
     }
 
     // TODO:
-    ConstraintSolver solver_;
+    // ConstraintSolver solver_;
     // solver settings
 };
 

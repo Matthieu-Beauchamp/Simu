@@ -40,6 +40,10 @@ public:
 
 protected:
 
+    friend class PhysicsWorld;
+    virtual void onConstruction(PhysicsWorld& world){};
+    virtual void onDestruction(PhysicsWorld& world){};
+
     virtual bool shouldDie() const { return false; }
 
 private:
