@@ -32,37 +32,52 @@
 namespace simu
 {
 
-// TODO: In time, this can be made abstract to handle concave Polygon
-//      with convex decomposition
-
-// TODO: Currently the entire polygon is saved, we can save space by storing
-//      only the convex hull since other vertices will never be needed
-
-
+////////////////////////////////////////////////////////////
+/// \brief Represents geometry that moves
+///
+/// The Collider holds a local space Polygon and a set of transformed vertices
+///     that defines the geometry in world space.
+///
+/// The local space geometry does not need to have its centroid at origin,
+///     but care should be taken to apply the correct transformations
+///     (notably for rotating about the centroid).
+///
+////////////////////////////////////////////////////////////
 class Collider
 {
 public:
 
+    ////////////////////////////////////////////////////////////
+    /// Creates a Collider from a local space polygon and an initial transform.
+    ////////////////////////////////////////////////////////////
     Collider(const Polygon& polygon, Mat3 transform) : local_{polygon}
     {
-        // TODO: local_ should have its centroid at {0, 0}
         transformed_.resize(std::distance(local_.begin(), local_.end()));
         update(transform);
     }
 
+    ////////////////////////////////////////////////////////////
+    /// The world space bounding box of the Collider
+    ////////////////////////////////////////////////////////////
     BoundingBox boundingBox() const { return boundingBox_; }
 
+    ////////////////////////////////////////////////////////////
+    /// The local space polygon of the Collider
+    ////////////////////////////////////////////////////////////
     const Polygon& local() const { return local_; }
 
+    ////////////////////////////////////////////////////////////
+    /// Iterators for the transformed geometry (world space vertices)
+    ////////////////////////////////////////////////////////////
     Vertices::iterator       begin() { return transformed_.begin(); }
     Vertices::const_iterator begin() const { return transformed_.begin(); }
 
     Vertices::iterator       end() { return transformed_.end(); }
     Vertices::const_iterator end() const { return transformed_.end(); }
 
-private:
-
-    friend class PhysicsBody;
+    ////////////////////////////////////////////////////////////
+    /// Changes the transform of the Collider applied to the local space geometry
+    ////////////////////////////////////////////////////////////
     void update(const Mat3& transform)
     {
         auto it = transformed_.begin();
@@ -71,6 +86,8 @@ private:
 
         boundingBox_ = BoundingBox{transformed_};
     }
+
+private:
 
     Polygon local_;
 
