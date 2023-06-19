@@ -24,8 +24,6 @@
 
 #pragma once
 
-#include "Simu/config.hpp"
-
 #include <algorithm>
 
 #include "Simu/config.hpp"

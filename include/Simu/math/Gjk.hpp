@@ -54,25 +54,14 @@ private:
     mutable bool keepBottomPoint_ = false;
 };
 
+
 struct Polytope
 {
+    typedef typename Edges<Vertices>::Edge Edge;
+
     Polytope(const Simplex& simplex);
 
-    struct Edge
-    {
-        Vec2               normal; // not normalized, any orientation
-        Vertices::iterator from;
-        Vertices::iterator to;
-
-        float distanceToOrigin() const
-        {
-            return std::abs(dot(normalized(normal), *to));
-        }
-    };
-
     bool addVertex(const Edge& where, Vertex v);
-
-    Edge getEdge(std::size_t index); // index in [0, vertices.size()-1]
 
     Vertices vertices{};
 };
@@ -82,15 +71,15 @@ struct Polytope
 
 ////////////////////////////////////////////////////////////
 /// \ingroup Geometry
-/// \brief Determines if two collidable are in collision as well as the 
+/// \brief Determines if two collidable are in collision as well as the
 ///     separation/penetration vector between them
-/// 
-/// The boolean GJK algorithm is used upon construction and results are saved. 
+///
+/// The boolean GJK algorithm is used upon construction and results are saved.
 /// If areColliding(), then calling penetration() uses the EPA algorithm (results are not saved)
-/// 
-/// If the the underlying Geometry of the Collidables is concave or has holes, 
+///
+/// If the the underlying Geometry of the Collidables is concave or has holes,
 ///     only their convex hulls are considered.
-/// 
+///
 /// \warning changing first or second between construction and calls to any method is undefined.
 ////////////////////////////////////////////////////////////
 template <Geometry T = simu::Polygon>

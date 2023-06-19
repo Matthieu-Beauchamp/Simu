@@ -85,24 +85,23 @@ Vec2 Gjk<T>::penetration() const
 
     priv::Polytope polytope{simplex_};
 
-
     while (true)
     {
-        priv::Polytope::Edge best = polytope.getEdge(0);
+        auto edges = edgesOf(polytope.vertices);
+        auto best  = *edges.begin();
 
-        for (std::size_t i = 1; i < polytope.vertices.size(); ++i)
+        for (const auto& e : edges)
         {
-            priv::Polytope::Edge e = polytope.getEdge(i);
             if (e.distanceToOrigin() < best.distanceToOrigin())
                 best = e;
         }
 
-        Vertex next = furthestVertexInDirection(best.normal);
+        Vertex next = furthestVertexInDirection(best.normal());
 
         if (!polytope.addVertex(best, next))
             return LineBarycentric{
-                *best.from,
-                *best.to,
+                best.from(),
+                best.to(),
                 Vec2{0, 0}
             }
                 .closestPoint;

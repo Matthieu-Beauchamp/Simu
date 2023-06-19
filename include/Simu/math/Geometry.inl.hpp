@@ -25,6 +25,7 @@
 #pragma once
 
 #include "Simu/math/Geometry.hpp"
+#include "Simu/math/Edges.hpp"
 
 namespace simu
 {
@@ -32,23 +33,20 @@ namespace simu
 template <Geometry T>
 GeometricProperties::GeometricProperties(const T& geometry) noexcept
 {
-    // These formulas can be derived from the definition with a double integral 
-    //  and using Green's theorem reducing to an integral over the contour (edges) 
-    //  and evaluating to a sum.
+    // These formulas can be derived from the definition with a double integral
+    //  and using Green's theorem reducing to an integral over the contour
+    //  (edges) and evaluating to a sum.
 
-    Vertex previous = *std::prev(geometry.end());
-    for (const Vertex& vertex : geometry)
+    for (const auto& edge : edgesOf(geometry))
     {
-        float vertexCross = cross(previous, vertex);
+        float vertexCross = cross(edge.from(), edge.to());
         area += vertexCross;
 
-        centroid += (previous + vertex) * vertexCross;
+        centroid += (edge.from() + edge.to()) * vertexCross;
 
         momentOfArea += vertexCross
-                        * (dot(previous, previous) + dot(previous, vertex)
-                           + dot(vertex, vertex));
-
-        previous = vertex;
+                        * (normSquared(edge.from()) + dot(edge.from(), edge.to())
+                           + normSquared(edge.to()));
     }
 
     if (area == 0.f)

@@ -26,6 +26,7 @@
 
 #include "Simu/config.hpp"
 #include "Simu/physics/PhysicsBody.hpp"
+#include "Simu/physics/ContactManifold.hpp"
 #include "Simu/physics/ConstraintSolver.hpp"
 
 namespace simu
@@ -615,7 +616,7 @@ public:
         // TODO: The manifold should compute this on his own
         auto refEdge = manifold.contactEdges[reference_];
         Vec2 worldSpaceRefContact
-            = LineBarycentric{*refEdge.from, *refEdge.to, manifold.contacts[contactIndex]}
+            = LineBarycentric{refEdge.from(), refEdge.to(), manifold.contacts[contactIndex]}
                   .closestPoint;
 
         localSpaceContacts_[reference_]
@@ -728,7 +729,7 @@ public:
         // TODO: The manifold should compute this on his own
         auto refEdge = manifold.contactEdges[manifold.referenceIndex()];
         Vec2 worldSpaceRefContact
-            = LineBarycentric{*refEdge.from, *refEdge.to, manifold.contacts[0]}
+            = LineBarycentric{refEdge.from(), refEdge.to(), manifold.contacts[0]}
                   .closestPoint;
 
         localSpaceContacts_[1]

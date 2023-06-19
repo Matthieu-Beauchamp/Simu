@@ -123,7 +123,11 @@ Polytope::Polytope(const Simplex& simplex)
     {
         vertices.emplace_back(second);
         if (orientation(first, second, third) != Orientation::collinear)
+        {
             vertices.emplace_back(third);
+            if (orientation(first, second, third, 0.f) == Orientation::negative)
+                std::reverse(vertices.begin(), vertices.end());
+        }
     }
     else if (any(third != first))
     {
@@ -133,30 +137,16 @@ Polytope::Polytope(const Simplex& simplex)
 
 bool Polytope::addVertex(const Edge& where, Vertex v)
 {
-    bool areCollinear
-        = orientation(*where.from, *where.to, v, 0.f) == Orientation::collinear;
+    // TODO: There is a case where the polytope may become concave, 
+    //  this needs to be handled, must first find a test where this happens.
 
-    bool isFurther = std::abs(dot(where.normal, v))
-                     > std::abs(dot(where.normal, *where.to));
-
-    if (!areCollinear && isFurther)
+    if (where.isOutside(v))
     {
-        vertices.insert(where.to, v);
+        vertices.insert(where.toIt(), v);
         return true;
     }
 
     return false;
-}
-
-typename Polytope::Edge Polytope::getEdge(std::size_t index)
-{
-    Edge edge;
-    edge.to = vertices.begin() + index;
-    edge.from
-        = std::prev(edge.to == vertices.begin() ? vertices.end() : edge.to);
-
-    edge.normal = perp(*edge.to - *edge.from);
-    return edge;
 }
 
 } // namespace priv
