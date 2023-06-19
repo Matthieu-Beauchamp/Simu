@@ -96,7 +96,7 @@ public:
         return f.isActive(eval_);
     }
 
-    void initSolve(float dt) override
+    void initSolve(float /* dt */) override
     {
         // TODO: Apply guess based on previous lambda
         // if (warmStarting)

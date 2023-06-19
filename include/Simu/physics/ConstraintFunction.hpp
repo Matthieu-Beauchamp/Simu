@@ -667,7 +667,7 @@ public:
         return J;
     }
 
-    Value clampLambda(Value lambda, float dt) const
+    Value clampLambda(Value lambda, float /* dt */) const
     {
         return std::max(Value{0}, lambda);
     }
@@ -736,11 +736,11 @@ public:
             = bodies[1]->toLocalSpace() * worldSpaceRefContact;
     }
 
-    Value eval(CBodies bodies) const { return Value{}; }
+    Value eval(CBodies /* bodies */) const { return Value{}; }
 
-    bool isActive(Value evaluatedTo) const { return true; }
+    bool isActive(Value /* evaluatedTo */) const { return true; }
 
-    Value bias(CBodies bodies) const { return Value{}; }
+    Value bias(CBodies /* bodies */) const { return Value{}; }
 
     Jacobian jacobian(CBodies bodies) const
     {
@@ -754,7 +754,7 @@ public:
             -cross(contacts[1] - bodies[1]->properties().centroid, tangent_)};
     }
 
-    Value clampLambda(Value lambda, float dt) const
+    Value clampLambda(Value /* lambda */, float /* dt */) const
     {
         SIMU_ASSERT(
             false,
@@ -763,7 +763,7 @@ public:
     }
 
     Value
-    clampLambda(Value lambda, float dt, ConstraintValue<1> lambdaNormal) const
+    clampLambda(Value lambda, float /* dt */, ConstraintValue<1> lambdaNormal) const
     {
         float absBound = frictionCoefficient_ * std::abs(lambdaNormal[0]);
         return Value{clamp(lambda[0], -absBound, absBound)};
