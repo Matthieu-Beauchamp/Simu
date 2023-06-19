@@ -30,12 +30,38 @@
 namespace simu
 {
 
+////////////////////////////////////////////////////////////
+/// \brief Defines the material of a body
+///
+////////////////////////////////////////////////////////////
 struct Material
 {
+    ////////////////////////////////////////////////////////////
+    /// The weight per unit of area, must be greater than 0
+    ////////////////////////////////////////////////////////////
     float density = 1.f;
+
+    ////////////////////////////////////////////////////////////
+    /// How much the body will bounce when colliding with another.
+    ///
+    /// The value should be in [0, 1].
+    /// A value of 0 means the object does not bounce at all (all energy is lost)
+    /// A value of 1 means the object fully bounces (no energy is lost)
+    ///
+    /// This value is combined to obtain a coefficient of restitution:
+    /// https://en.wikipedia.org/wiki/Coefficient_of_restitution
+    ////////////////////////////////////////////////////////////
     CombinableProperty bounciness{0.f, CombinableProperty::average};
 
-    // TODO: Dynamic vs static. Requires additionnal work in Constraints.
+    ////////////////////////////////////////////////////////////
+    /// How much the body resists to sliding against another.
+    /// 
+    /// The value will typically be in [0, 1].
+    /// A value of 0 implies a very slippery object (ice)
+    ///
+    /// This value is combined to obtain a coefficient of friction:
+    /// https://simple.wikipedia.org/wiki/Coefficient_of_friction
+    ////////////////////////////////////////////////////////////
     CombinableProperty friction{0.f, CombinableProperty::average};
 };
 

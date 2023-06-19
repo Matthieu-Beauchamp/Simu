@@ -29,9 +29,25 @@
 namespace simu
 {
 
-// inspired from https://docs.unity3d.com/Manual/class-PhysicMaterial.html
+
+////////////////////////////////////////////////////////////
+/// \brief A property that can be combined according to some Mode
+///
+/// Some values are typically given for a system (collision restitution and friction coefficients),
+///     this class allows defining them per object and then combining them to
+///     obtain a value for the system.
+///
+/// Conception taken from https://docs.unity3d.com/Manual/class-PhysicMaterial.html
+///
+////////////////////////////////////////////////////////////
 struct CombinableProperty
 {
+    ////////////////////////////////////////////////////////////
+    /// \brief The Mode defines how the property is combined.
+    ///
+    /// When the Mode of two CombinableProperty is different, 
+    ///     the one with the highest value (priority) is taken.
+    ////////////////////////////////////////////////////////////
     enum Mode
     {
         average  = 0,

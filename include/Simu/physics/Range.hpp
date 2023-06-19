@@ -29,6 +29,8 @@
 namespace simu
 {
 
+// https://en.cppreference.com/w/cpp/ranges/transform_view/transform_view
+
 struct BasicDereference
 {
     template <class Iter>
