@@ -191,6 +191,7 @@ private:
 
     void detectContacts();
 
+    struct Cleaner;
     void cleanup();
 
     void applyConstraints(float dt);

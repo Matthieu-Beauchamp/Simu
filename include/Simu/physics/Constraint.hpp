@@ -81,9 +81,9 @@ public:
     void onConstruction(PhysicsWorld& world) override;
     void onDestruction(PhysicsWorld& world) override;
 
-    bool shouldDie() const override
+    bool shouldDie() override
     {
-        for (const PhysicsBody* body : bodies_)
+        for (PhysicsBody* body : bodies_)
             if (body->isDead())
                 return true;
 
@@ -334,7 +334,6 @@ public:
             F{bodies, maxVelocity, maxForce},
             false,
             Vector<float, 1>{1.f}
-
     }
     {
     }

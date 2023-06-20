@@ -102,50 +102,95 @@ void PhysicsWorld::detectContacts()
 }
 
 
+struct PhysicsWorld::Cleaner
+{
+    typedef std::unordered_map<Bodies<2>, PhysicsWorld::ContactStatus>::iterator
+        ContactIter;
+
+    template <class Container>
+    auto deadObjects(Container& container)
+    {
+        std::vector<typename Container::iterator> dead;
+        for (auto it = container.begin(); it != container.end(); ++it)
+            if (isDead(it))
+                dead.emplace_back(it);
+
+        return dead;
+    }
+
+    template <class DeadObjects>
+    void onDestruction(PhysicsWorld& world, const DeadObjects& deadObjects)
+    {
+        for (auto it : deadObjects)
+            notifyDestruction(it, world);
+    }
+
+    template <class Container, class DeadObjects>
+    void erase(Container& container, const DeadObjects& deadObjects)
+    {
+        for (auto it : deadObjects)
+            container.erase(it);
+    }
+
+
+private:
+
+    template <class Iter>
+    bool isDead(Iter it)
+    {
+        return access(it)->isDead();
+    }
+
+    template <class Iter>
+    void notifyDestruction(Iter it, PhysicsWorld& world)
+    {
+        return access(it)->onDestruction(world);
+    }
+
+    template <class Iter>
+    PhysicsObject* access(Iter it)
+    {
+        return it->get();
+    }
+};
+
+
+template <>
+PhysicsObject*
+PhysicsWorld::Cleaner::access<typename PhysicsWorld::Cleaner::ContactIter>(
+    ContactIter it
+)
+{
+    return it->second.existingContact;
+}
+
+template <>
+bool PhysicsWorld::Cleaner::isDead<typename PhysicsWorld::Cleaner::ContactIter>(
+    ContactIter it
+)
+{
+    return access(it) != nullptr && access(it)->isDead();
+}
+
+
 void PhysicsWorld::cleanup()
 {
-    for (auto c = contacts_.begin(); c != contacts_.end();)
-    {
-        ConstraintPtr contactConstraint = c->second.existingContact;
-        if (contactConstraint != nullptr && contactConstraint->isDead())
-            c = contacts_.erase(c);
-        else
-            ++c;
-    }
+    Cleaner cleaner{};
 
-    for (auto c = constraints_.begin(); c != constraints_.end();)
-    {
-        if ((*c)->isDead())
-        {
-            (*c)->onDestruction(*this);
-            c = constraints_.erase(c);
-        }
-        else
-            c++;
-    }
+    auto deadContacts    = cleaner.deadObjects(contacts_);
+    auto deadConstraints = cleaner.deadObjects(constraints_);
+    auto deadForces      = cleaner.deadObjects(forces_);
+    auto deadBodies      = cleaner.deadObjects(bodies_);
 
-    for (auto force = forces_.begin(); force != forces_.end();)
-    {
-        if ((*force)->isDead())
-        {
-            (*force)->onDestruction(*this);
-            force = forces_.erase(force);
-        }
-        else
-            force++;
-    }
+    cleaner.onDestruction(*this, deadContacts);
+    cleaner.onDestruction(*this, deadConstraints);
+    cleaner.onDestruction(*this, deadForces);
+    cleaner.onDestruction(*this, deadBodies);
 
-    // modification during iteration is undefined for RTree.
-    std::vector<BodyTree::iterator> deadBodies{};
-    for (auto body = bodies_.begin(); body != bodies_.end(); ++body)
-        if ((*body)->isDead())
-            deadBodies.emplace_back(body);
-
-    for (auto body : deadBodies)
-    {
-        (*body)->onDestruction(*this);
-        bodies_.erase(body);
-    }
+    cleaner.erase(contacts_, deadContacts);
+    cleaner.erase(constraints_, deadConstraints);
+    cleaner.erase(forces_, deadForces);
+    cleaner.erase(bodies_, deadBodies);
 }
 
 void PhysicsWorld::applyConstraints(float dt)

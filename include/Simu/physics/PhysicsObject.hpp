@@ -29,13 +29,35 @@
 namespace simu
 {
 
+////////////////////////////////////////////////////////////
+/// \brief Base class of physics objects
+///
+/// The lifetime of physics objects is managed by PhysicsWorld. 
+/// Instead of explicitly removing them from the world, objects must specify 
+/// themselves when they should be removed. 
+/// 
+/// Objects will be removed if they are killed with PhysicsObject::kill() 
+/// or when some condition is satisfied in the virtual PhysicsObject::shouldDie() method.
+///
+/// The actual removal will be done at the beginning of PhysicsWorld::step().
+/// Since some objects may want to remove themselves once some other object dies, 
+/// no object is truly removed until PhysicsObject::isDead() is called on all objects of the world. 
+/// This means that objects can query other objects in their shouldDie() method without worrying about accessing released memory.
+/// The shouldDie() method can also be used to update references to dying objects (which is why it is not const).
+/// 
+/// Some objects may want to spawn objects when they are created and kill them when they are destroyed, this can be done with
+/// PhysicsObject::onConstruction(world) and PhysicsObject::onDestruction(world). 
+/// Again, onDestruction will be called for all objects that will be destroyed before 
+/// any object is truly removed and their memory released.
+///
+////////////////////////////////////////////////////////////
 class PhysicsObject
 {
 public:
 
     virtual ~PhysicsObject() = default;
 
-    bool isDead() const { return killed_ || shouldDie(); }
+    bool isDead() { return killed_ || shouldDie(); }
     void kill() { killed_ = true; }
 
 protected:
@@ -44,7 +66,7 @@ protected:
     virtual void onConstruction(PhysicsWorld& /* world */){};
     virtual void onDestruction(PhysicsWorld& /* world */){};
 
-    virtual bool shouldDie() const { return false; }
+    virtual bool shouldDie() { return false; }
 
 private:
 
