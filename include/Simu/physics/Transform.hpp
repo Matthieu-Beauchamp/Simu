@@ -60,7 +60,13 @@ public:
 
     static Mat3 transform(float theta, Vec2 offset)
     {
-        return translation(offset) * rotation(theta);
+        return transformAround(theta, offset, Vec2{0, 0});
+    }
+
+    static Mat3 transformAround(float theta, Vec2 offset, Vec2 transformOrigin)
+    {
+        return translation(offset + transformOrigin) * rotation(theta)
+               * translation(-transformOrigin);
     }
 };
 

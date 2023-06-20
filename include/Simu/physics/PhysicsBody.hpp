@@ -125,15 +125,19 @@ public:
 
     Mat3 toWorldSpace() const
     {
-        Vec2 localCentroid = localProperties().centroid;
-        return Transform::transform(orientation_, position_ + localCentroid)
-               * Transform::translation(-localCentroid);
+        return Transform::transformAround(
+            orientation_,
+            position_,
+            localProperties().centroid
+        );
     }
     Mat3 toLocalSpace() const
     {
-        Vec2 localCentroid = localProperties().centroid;
-        return Transform::transform(-orientation_, localCentroid)
-               * Transform::translation(-(position_ + localCentroid));
+        return Transform::transformAround(
+            -orientation_,
+            -position_,
+            properties().centroid
+        );
     }
 
     MassProperties properties() const
