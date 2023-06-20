@@ -110,8 +110,6 @@ public:
     {
         std::unique_ptr<T> body = makeObject<T>(std::forward<Args>(args)...);
 
-        body->world_ = this;
-
         BoundingBox bounds = body->collider().boundingBox();
         return static_cast<T*>(bodies_.emplace(bounds, std::move(body))->get());
     }
@@ -146,8 +144,8 @@ public:
         return makeRange(bodies_.begin(), bodies_.end(), BypassSmartPointer{});
     }
 
+    // TODO: Contact conflicts needs testing
     void declareContactConflict(const Bodies<2>& bodies);
-
     void removeContactConflict(const Bodies<2>& bodies);
 
 private:

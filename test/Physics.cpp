@@ -17,12 +17,12 @@ const std::initializer_list<Vec2> square{
 
 const BodyDescriptor squareDescriptor{Polygon{square}};
 
+const float pi = std::numbers::pi_v<float>;
+
 TEST_CASE("Physics")
 {
     SECTION("Single body stepping")
     {
-        const float pi = std::numbers::pi_v<float>;
-
         const Vec2  p{1, 1};
         const Vec2  v{1, 1};
         const float theta = pi / 4;
@@ -559,5 +559,146 @@ TEST_CASE("Physics")
             REQUIRE(middle->angularVelocity() == 1.f);
             REQUIRE(follower->angularVelocity() == 1.f);
         }
+    }
+
+    SECTION("Motorcycle")
+    {
+        struct MotorCycle : public PhysicsBody
+        {
+            MotorCycle(Vec2 pos)
+                : PhysicsBody{
+                    BodyDescriptor{
+                                   Polygon{
+                            Vec2{-1.f, -0.5f},
+                            Vec2{1.f, -0.5f},
+                            Vec2{1.f, 0.5f},
+                            Vec2{-1.f, 0.5f}},
+                                   Material{},
+                                   pos}
+            }
+            {
+            }
+
+            void onConstruction(PhysicsWorld& world) override
+            {
+                BodyDescriptor wheelDescr = wheelDescriptor();
+                wheelDescr.position       = toWorldSpace() * Vec2{-1.f, -1.5f};
+                rearWheel                 = world.makeBody(wheelDescr);
+                wheelDescr.position       = toWorldSpace() * Vec2{1.f, -1.5f};
+                frontWheel                = world.makeBody(wheelDescr);
+
+                rearHinge = world.makeConstraint<HingeConstraint>(
+                    Bodies<2>{this, rearWheel},
+                    rearWheel->properties().centroid
+                );
+
+                frontHinge = world.makeConstraint<HingeConstraint>(
+                    Bodies<2>{this, frontWheel},
+                    frontWheel->properties().centroid
+                );
+
+                float totalMass
+                    = properties().mass + 2 * rearWheel->properties().mass;
+
+                motor = world.makeConstraint<RotationMotorConstraint>(
+                    Bodies<1>{rearWheel},
+                    2 * pi,
+                    (pi / 2) * totalMass / rearWheel->properties().mass
+                );
+            }
+
+            void onKill() override
+            {
+                // since this->shouldDie()
+                REQUIRE(rearHinge->shouldDie());
+                REQUIRE(frontHinge->shouldDie());
+
+                rearWheel->kill();
+                REQUIRE(motor->shouldDie());
+
+                frontWheel->kill();
+            }
+
+            static BodyDescriptor wheelDescriptor()
+            {
+                std::vector<Vec2> points;
+                Uint32            nPoints = 12;
+                for (Uint32 i = 0; i < nPoints; ++i)
+                {
+                    float theta = i * 2 * pi / nPoints;
+                    points.emplace_back(
+                        0.5f * Vec2{std::cos(theta), std::sin(theta)}
+                    );
+                }
+
+                Material material{};
+                material.friction.value = 1.f;
+
+                return BodyDescriptor{
+                    Polygon{points.begin(), points.end()},
+                    material
+                };
+            }
+
+            PhysicsBody*     rearWheel = nullptr;
+            HingeConstraint* rearHinge = nullptr;
+
+            PhysicsBody*     frontWheel = nullptr;
+            HingeConstraint* frontHinge = nullptr;
+
+            RotationMotorConstraint* motor = nullptr;
+        };
+
+        PhysicsWorld world{};
+        auto         motorcycle = world.makeBody<MotorCycle>(Vec2{0.f, 2.f});
+
+        REQUIRE(motorcycle->rearWheel != nullptr);
+        REQUIRE(motorcycle->rearHinge != nullptr);
+        REQUIRE(motorcycle->frontWheel != nullptr);
+        REQUIRE(motorcycle->frontHinge != nullptr);
+        REQUIRE(motorcycle->motor != nullptr);
+
+        BodyDescriptor groundDescr{
+            Polygon{
+                    Vec2{-5.f, -1.f},
+                    Vec2{5.f, -1.f},
+                    Vec2{5.f, 0.f},
+                    Vec2{-5.f, 0.f}}
+        };
+
+        groundDescr.dominance = 0.f;
+
+        auto ground  = world.makeBody(groundDescr);
+        auto gravity = world.makeForceField<Gravity>(Vec2{0, -10.f});
+
+        auto step = [&world]() { world.step(0.01f); };
+        step(); // hits ground
+        step();
+
+        REQUIRE(all(
+            approx(motorcycle->velocity(), Vec2::filled(0.01f)).contains(Vec2{})
+        ));
+
+        motorcycle->motor->direction(Vector<float, 1>{-1});
+        motorcycle->motor->throttle(1.f);
+
+        for (Uint32 i = 0; i < 25; ++i)
+            step();
+
+        REQUIRE(motorcycle->rearWheel->velocity()[0] > 0);
+        REQUIRE(motorcycle->frontWheel->velocity()[0] > 0);
+        REQUIRE(motorcycle->velocity()[0] > 0);
+
+        REQUIRE(motorcycle->rearWheel->angularVelocity() < 0);
+        REQUIRE(motorcycle->frontWheel->angularVelocity() < 0);
+        REQUIRE(motorcycle->angularVelocity() > 0);
+
+
+        motorcycle->kill();
+        ground->kill();
+        gravity->kill();
+        step();
+        REQUIRE(world.bodies().begin() == world.bodies().end());
+        // TODO: Some internals cannot be tested (no constraints, no contacts etc)
     }
 }

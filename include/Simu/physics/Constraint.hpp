@@ -301,11 +301,11 @@ public:
     RotationMotorConstraint(
         const Bodies<1>& bodies,
         float            maxAngularVelocity,
-        float            maxTorque
+        float            maxAccel
     )
         : Base{
             bodies,
-            F{bodies, maxAngularVelocity, maxTorque},
+            F{bodies, maxAngularVelocity, maxAccel},
             false,
             Vector<float, 1>{1.f}
     }
@@ -328,10 +328,10 @@ public:
     typedef TranslationMotorConstraintFunction F;
     typedef ConstraintImplementation<F>        Base;
 
-    TranslationMotorConstraint(const Bodies<1>& bodies, float maxVelocity, float maxForce)
+    TranslationMotorConstraint(const Bodies<1>& bodies, float maxVelocity, float maxAccel)
         : Base{
             bodies,
-            F{bodies, maxVelocity, maxForce},
+            F{bodies, maxVelocity, maxAccel},
             false,
             Vector<float, 1>{1.f}
     }
@@ -431,6 +431,15 @@ class ContactConstraint : public Constraint
 public:
 
     ContactConstraint(const Bodies<2>& bodies) : contact_{bodies} {}
+
+    bool shouldDie() override
+    {
+        for (PhysicsBody* body : contact_.bodies)
+            if (body->isDead())
+                return true;
+
+        return false;
+    }
 
     bool isActive() override
     {

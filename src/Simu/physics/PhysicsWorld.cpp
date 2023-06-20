@@ -41,9 +41,15 @@ void PhysicsWorld::declareContactConflict(const Bodies<2>& bodies)
 {
     auto contact = inContacts(bodies);
     if (contact == contacts_.end())
+    {
         contacts_[bodies] = ContactStatus{1, nullptr};
+    }
     else
+    {
         ++contact->second.nConflictingConstraints;
+        if (contact->second.existingContact != nullptr)
+            contact->second.existingContact->kill();
+    }
 }
 
 

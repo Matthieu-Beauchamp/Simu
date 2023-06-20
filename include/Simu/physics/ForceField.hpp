@@ -31,6 +31,8 @@
 namespace simu
 {
 
+// TODO: Must ensure proper behavior with structural bodies...
+
 class ForceField : public PhysicsObject
 {
 public:
@@ -105,6 +107,9 @@ public:
 
     void apply(PhysicsBody& body, float dt) const override
     {
+        if (body.isStructural())
+            return;
+            
         body.applyImpulse(acceleration_ * body.properties().mass, dt, Vec2{0, 0});
     }
 

@@ -46,8 +46,6 @@ struct BodyDescriptor
     float orientation{};
 
     float dominance = 1.f;
-
-    void* userData = nullptr;
 };
 
 struct MassProperties
@@ -84,8 +82,7 @@ public:
           collider_{
               descriptor.polygon,
               Transform::transform(orientation_, position_)},
-          dominance_{descriptor.dominance},
-          userData_{descriptor.userData}
+          dominance_{descriptor.dominance}
     {
     }
 
@@ -154,11 +151,6 @@ public:
     bool  isStructural() const { return dominance() == 0.f; }
     float dominance() const { return dominance_; }
 
-    PhysicsWorld* world() const { return world_; }
-
-    void*       userData() { return userData_; }
-    const void* userData() const { return userData_; }
-
     void step(float dt)
     {
         position_ += velocity_ * dt;
@@ -181,10 +173,6 @@ private:
     Collider       collider_;
 
     float dominance_;
-
-    friend PhysicsWorld;
-    PhysicsWorld* world_ = nullptr;
-    void*         userData_;
 };
 
 
