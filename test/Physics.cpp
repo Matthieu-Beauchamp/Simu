@@ -5,6 +5,7 @@
 #include "Simu/physics/PhysicsWorld.hpp"
 #include "Simu/physics/PhysicsBody.hpp"
 #include "Simu/physics/Constraint.hpp"
+#include "Simu/physics/Motors.hpp"
 
 using namespace simu;
 
@@ -317,16 +318,20 @@ TEST_CASE("Physics")
 
             constexpr float pi = std::numbers::pi_v<float>;
 
-            auto rot = world.makeConstraint<RotationMotorConstraint>(
+            auto rot = world.makeConstraint<RotationMotor>(
                 Bodies<1>{body},
-                pi * 2, // maximum speed of 1 turn per second
-                pi / 2  // maximum acceleration of 1/4 turn per second
+                RotationMotor::Specs::fromAccel(
+                    pi * 2, // maximum speed of 1 turn per second
+                    pi / 2  // maximum acceleration of 1/4 turn per second
+                )
             );
 
-            auto trans = world.makeConstraint<TranslationMotorConstraint>(
+            auto trans = world.makeConstraint<TranslationMotor>(
                 Bodies<1>{body},
-                1.f,  // maximum speed of 1 meter per second
-                0.25f // maximum acceleration of 1/4 meter per second
+                TranslationMotor::Specs::fromAccel(
+                    1.f,  // maximum speed of 1 meter per second
+                    0.25f // maximum acceleration of 1/4 meter per second
+                )
             );
 
             // motors do nothing until given a direction
@@ -364,10 +369,12 @@ TEST_CASE("Physics")
             descr.position = Vec2{0, 0};
             auto body      = world.makeBody(descr);
 
-            auto trans = world.makeConstraint<TranslationMotorConstraint>(
+            auto trans = world.makeConstraint<TranslationMotor>(
                 Bodies<1>{body},
-                1.f, // maximum speed of 1 meter per second
-                2.f  // maximum acceleration of 2 meters per second
+                TranslationMotor::Specs::fromAccel(
+                    1.f, // maximum speed of 1 meter per second
+                    2.f  // maximum acceleration of 2 meters per second
+                )
             );
 
             trans->throttle(2.f);
@@ -411,10 +418,14 @@ TEST_CASE("Physics")
 
             world.makeConstraint<WeldConstraint>(Bodies<2>{body1, body2});
 
-            auto trans = world.makeConstraint<TranslationMotorConstraint>(
+            auto trans = world.makeConstraint<TranslationMotor>(
                 Bodies<1>{body2},
-                2.f, // maximum speed of 1 meter per second
-                1.f  // maximum acceleration of 2 meters per second
+                TranslationMotor::Specs::fromAccel(
+                    2.f,  // maximum speed of 2 meter per second
+                    0.5f, // maximum acceleration of 0.5 meters per second
+                    body1->properties().mass
+                        + body2->properties().mass // total mass
+                )
             );
 
             trans->direction(Vec2{1, 0});
@@ -563,6 +574,8 @@ TEST_CASE("Physics")
 
     SECTION("Motorcycle")
     {
+        constexpr float wheelRadius = 0.5f;
+
         struct MotorCycle : public PhysicsBody
         {
             MotorCycle(Vec2 pos)
@@ -600,10 +613,13 @@ TEST_CASE("Physics")
                 float totalMass
                     = properties().mass + 2 * rearWheel->properties().mass;
 
-                motor = world.makeConstraint<RotationMotorConstraint>(
+                motor = world.makeConstraint<RotationMotor>(
                     Bodies<1>{rearWheel},
-                    2 * pi,
-                    (pi / 2) * totalMass / rearWheel->properties().mass
+                    RotationMotor::Specs::fromTargetForce(
+                        2 * pi,
+                        wheelRadius,
+                        1.f * totalMass
+                    )
                 );
             }
 
@@ -627,7 +643,7 @@ TEST_CASE("Physics")
                 {
                     float theta = i * 2 * pi / nPoints;
                     points.emplace_back(
-                        0.5f * Vec2{std::cos(theta), std::sin(theta)}
+                        wheelRadius* Vec2{std::cos(theta), std::sin(theta)}
                     );
                 }
 
@@ -646,7 +662,7 @@ TEST_CASE("Physics")
             PhysicsBody*     frontWheel = nullptr;
             HingeConstraint* frontHinge = nullptr;
 
-            RotationMotorConstraint* motor = nullptr;
+            RotationMotor* motor = nullptr;
         };
 
         PhysicsWorld world{};

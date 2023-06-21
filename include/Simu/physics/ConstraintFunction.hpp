@@ -477,115 +477,13 @@ private:
 // Motor Constraints
 ////////////////////////////////////////////////////////////
 
-template <Uint32 nBodies_, Uint32 dimension_>
-class MotorConstraintBase
-{
-public:
-
-    static constexpr Uint32 nBodies   = nBodies_;
-    static constexpr Uint32 dimension = dimension_;
-
-    typedef Vector<float, dimension>              Value;
-    typedef Matrix<float, dimension, 3 * nBodies> Jacobian;
-
-    typedef const ConstBodies<nBodies>& CBodies;
-
-    MotorConstraintBase(float maxVelocity, float maxForce)
-        : maxVelocity_{std::abs(maxVelocity)}, maxForce_{std::abs(maxForce)}
-    {
-    }
-
-    // no position restitution nor damping on motors
-    Value eval(CBodies) const { return Value{}; }
-    Value restitution() const { return Value{}; }
-    Value damping() const { return Value{}; }
-
-    bool isActive(Value) const { return true; }
-
-    Value bias(CBodies) const { return -maxVelocity_ * direction_; }
-
-    Value clampLambda(Value lambda, float dt) const
-    {
-        Value maxImpulse = direction_ * throttle_ * maxForce_ * dt;
-
-        Uint32 i = 0;
-        for (auto& l : lambda)
-        {
-            auto bound = maxImpulse[i++];
-            l = (bound < 0) ? clamp(l, bound, 0.f) : clamp(l, 0.f, bound);
-        }
-
-        return lambda;
-    }
-
-    float throttle() const { return throttle_; }
-    void  throttle(float throttle) { throttle_ = clamp(throttle, 0.f, 1.f); }
-
-    Value direction() const { return direction_; }
-    void  direction(Value direction)
-    {
-        if (normSquared(direction) == 0.f)
-            direction_ = direction;
-        else
-            direction_ = normalized(direction);
-    }
-
-private:
-
-    float throttle_ = 1.f;
-    Value direction_{};
-
-    float maxVelocity_;
-    float maxForce_;
-};
-
-
-class RotationMotorConstraintFunction : public MotorConstraintBase<1, 1>
-{
-public:
-
-    typedef MotorConstraintBase<1, 1> Base;
-
-    typedef const ConstBodies<nBodies>& CBodies;
-
-    RotationMotorConstraintFunction(
-        CBodies bodies,
-        float   maxAngularVelocity,
-        float   maxAccel
-    )
-        : Base{maxAngularVelocity, maxAccel * bodies[0]->properties().inertia}
-    {
-    }
-
-    Jacobian jacobian(CBodies) const { return Jacobian{0, 0, 1}; }
-};
-
-
-class TranslationMotorConstraintFunction : public MotorConstraintBase<1, 2>
-{
-public:
-
-    typedef MotorConstraintBase<1, 2>   Base;
-    typedef const ConstBodies<nBodies>& CBodies;
-
-    TranslationMotorConstraintFunction(CBodies bodies, float maxVelocity, float maxAccel)
-        : Base{maxVelocity, maxAccel * bodies[0]->properties().mass}
-    {
-    }
-
-    Jacobian jacobian(CBodies) const
-    {
-        // clang-format off
-        return Jacobian{1, 0, 0,
-                        0, 1, 0};
-        // clang-format on
-    }
-};
 
 ////////////////////////////////////////////////////////////
 // Contacts
 ////////////////////////////////////////////////////////////
 
+// TODO: Add a penetration tolerance CombinableProperty in Material, 
+//   use position correction when penetration is greater than tolerance.
 class NonPenetrationConstraintFunction
 {
 public:

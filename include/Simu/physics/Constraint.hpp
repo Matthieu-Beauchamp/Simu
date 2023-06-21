@@ -290,62 +290,6 @@ private:
 };
 
 
-class RotationMotorConstraint
-    : public ConstraintImplementation<RotationMotorConstraintFunction>
-{
-public:
-
-    typedef RotationMotorConstraintFunction F;
-    typedef ConstraintImplementation<F>     Base;
-
-    RotationMotorConstraint(
-        const Bodies<1>& bodies,
-        float            maxAngularVelocity,
-        float            maxAccel
-    )
-        : Base{
-            bodies,
-            F{bodies, maxAngularVelocity, maxAccel},
-            false,
-            Vector<float, 1>{1.f}
-    }
-    {
-    }
-
-    float throttle() const { return f.throttle(); }
-    void  throttle(float throttle) { f.throttle(throttle); }
-
-    Value direction() const { return f.direction(); }
-    void  direction(Value direction) { f.direction(direction); }
-};
-
-
-class TranslationMotorConstraint
-    : public ConstraintImplementation<TranslationMotorConstraintFunction>
-{
-public:
-
-    typedef TranslationMotorConstraintFunction F;
-    typedef ConstraintImplementation<F>        Base;
-
-    TranslationMotorConstraint(const Bodies<1>& bodies, float maxVelocity, float maxAccel)
-        : Base{
-            bodies,
-            F{bodies, maxVelocity, maxAccel},
-            false,
-            Vector<float, 1>{1.f}
-    }
-    {
-    }
-
-    float throttle() const { return f.throttle(); }
-    void  throttle(float throttle) { f.throttle(throttle); }
-
-    Value direction() const { return f.direction(); }
-    void  direction(Value direction) { f.direction(direction); }
-};
-
-
 class SingleContactConstraint
     : public ConstraintImplementation<SingleContactFunction>
 {
@@ -447,10 +391,10 @@ public:
         if (all(gjk.penetration() == Vec2{}))
             return false;
 
-        auto manifold = contact_.makeManifold(gjk);
-        makeContactConstraint(manifold);
+        auto manifold      = contact_.makeManifold(gjk);
+        contactConstraint_ = makeContactConstraint(manifold);
 
-        return contactConstraint_->isActive();
+        return contactConstraint_ != nullptr && contactConstraint_->isActive();
     }
 
     void initSolve(float dt) override { contactConstraint_->initSolve(dt); }
@@ -463,18 +407,23 @@ private:
     Contact                     contact_;
     std::unique_ptr<Constraint> contactConstraint_ = nullptr;
 
-    void makeContactConstraint(const ContactManifold<Collider>& manifold)
+    std::unique_ptr<Constraint>
+    makeContactConstraint(const ContactManifold<Collider>& manifold)
     {
-        if (manifold.nContacts == 1)
-            contactConstraint_ = std::make_unique<SingleContactConstraint>(
-                contact_.bodies,
-                manifold
-            );
-        else
-            contactConstraint_ = std::make_unique<DoubleContactConstraint>(
-                contact_.bodies,
-                manifold
-            );
+        switch (manifold.nContacts)
+        {
+            case 1:
+                return std::make_unique<SingleContactConstraint>(
+                    contact_.bodies,
+                    manifold
+                );
+            case 2:
+                return std::make_unique<DoubleContactConstraint>(
+                    contact_.bodies,
+                    manifold
+                );
+            default: return nullptr;
+        }
     }
 };
 

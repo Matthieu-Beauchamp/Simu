@@ -45,7 +45,7 @@ using MassMatrix = Matrix<float, 3 * nBodies, 3 * nBodies>;
 template <Uint32 nBodies>
 using Dominance = Vector<float, nBodies>;
 
-
+// TODO: Compute position correction impulses separately, 
 class ConstraintSolver
 {
 public:
