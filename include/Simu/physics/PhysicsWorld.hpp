@@ -29,7 +29,7 @@
 #include "Simu/physics/RTree.hpp"
 #include "Simu/physics/PhysicsBody.hpp"
 #include "Simu/physics/ForceField.hpp"
-#include "Simu/physics/Range.hpp"
+#include "Simu/physics/View.hpp"
 
 namespace details
 {
@@ -134,47 +134,22 @@ public:
 
     void step(float dt);
 
-
-    auto bodies()
-    {
-        return makeRange(bodies_.begin(), bodies_.end(), BypassSmartPointer{});
-    }
-    auto bodies() const
-    {
-        return makeRange(bodies_.begin(), bodies_.end(), BypassSmartPointer{});
-    }
-
     // TODO: Contact conflicts needs testing
     void declareContactConflict(const Bodies<2>& bodies);
     void removeContactConflict(const Bodies<2>& bodies);
 
+    // clang-format off
+    auto bodies() { return makeView(bodies_, BypassSmartPointer{}); }
+    auto bodies() const { return makeView(bodies_, BypassSmartPointer{}); }
+
+    auto forceFields() { return makeView(forces_, BypassSmartPointer{}); }
+    auto forceFields() const { return makeView(forces_, BypassSmartPointer{}); }
+
+    auto constraints() { return makeView(constraints_, BypassSmartPointer{}); }
+    auto constraints() const { return makeView(constraints_, BypassSmartPointer{}); }
+    // clang-format on
+
 private:
-
-    auto forceFields()
-    {
-        return makeRange(forces_.begin(), forces_.end(), BypassSmartPointer{});
-    }
-    auto forceFields() const
-    {
-        return makeRange(forces_.begin(), forces_.end(), BypassSmartPointer{});
-    }
-
-    auto constraints()
-    {
-        return makeRange(
-            constraints_.begin(),
-            constraints_.end(),
-            BypassSmartPointer{}
-        );
-    }
-    auto constraints() const
-    {
-        return makeRange(
-            constraints_.begin(),
-            constraints_.end(),
-            BypassSmartPointer{}
-        );
-    }
 
     template <std::derived_from<PhysicsObject> T, class... Args>
     std::unique_ptr<T> makeObject(Args&&... args)

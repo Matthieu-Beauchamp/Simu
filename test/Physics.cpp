@@ -698,7 +698,25 @@ TEST_CASE("Physics")
         ground->kill();
         gravity->kill();
         step();
-        REQUIRE(world.bodies().begin() == world.bodies().end());
-        // TODO: Some internals cannot be tested (no constraints, no contacts etc)
+        REQUIRE(world.bodies().empty());
+        REQUIRE(world.constraints().empty());
+        REQUIRE(world.forceFields().empty());
+    }
+
+    SECTION("Ranges types")
+    {
+        PhysicsWorld        world{};
+        const PhysicsWorld& cWorld = world;
+
+        // clang-format off
+        STATIC_REQUIRE(std::is_same_v<decltype(*world.bodies().begin()), PhysicsBody&>);
+        STATIC_REQUIRE(std::is_same_v<decltype(*cWorld.bodies().begin()), const PhysicsBody&>);
+
+        STATIC_REQUIRE(std::is_same_v<decltype(*world.constraints().begin()), Constraint&>);
+        STATIC_REQUIRE(std::is_same_v<decltype(*cWorld.constraints().begin()), const Constraint&>);
+
+        STATIC_REQUIRE(std::is_same_v<decltype(*world.forceFields().begin()), ForceField&>);
+        STATIC_REQUIRE(std::is_same_v<decltype(*cWorld.forceFields().begin()), const ForceField&>);
+        // clang-format on
     }
 }

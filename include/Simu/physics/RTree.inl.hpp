@@ -96,7 +96,13 @@ class RTree<T, Allocator>::Iterator
 
 public:
 
-    Iterator(NodePtr n) : node{n} {}
+    // TODO: Ensure we satisfy standard iterator requirements
+    typedef std::conditional_t<isConst, const value_type, value_type> value_type;
+    typedef std::ptrdiff_t difference_type;
+
+
+    // behavior is undefined if n is nullptr, but is required for the std::semi_regular concept
+    Iterator(NodePtr n = nullptr) : node{n} {}
 
     template <bool otherIsConst>
         requires(isConst || !otherIsConst)
