@@ -51,6 +51,10 @@ public:
     virtual void commit()            = 0;
 };
 
+// TODO: The caching is not very useful, storing the K^-1 matrix is more beneficial, 
+//  make the solver an owned object.
+// Add support for NGS stabilization (while keeping Baumgarde for springs?) 
+//
 template <ConstraintFunction F>
 class ConstraintImplementation : public Constraint
 {

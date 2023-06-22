@@ -32,11 +32,7 @@
 namespace simu
 {
 
-template <class T>
-T clamp(T val, T min, T max)
-{
-    return std::min(std::max(val, min), max);
-}
+
 
 template <class F>
 concept ConstraintFunction = requires(

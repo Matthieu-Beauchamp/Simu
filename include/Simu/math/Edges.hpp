@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include "Simu/utility/Algo.hpp"
 #include "Simu/math/Geometry.hpp"
 
 namespace simu
@@ -78,26 +79,13 @@ public:
             if (dot(direction(), other.normal()) == 0.f)
                 return from();
 
-            if (other.isInside(from()) && other.isInside(to()))
-            {
-                if (other.distanceToPoint(from()) < other.distanceToPoint(to()))
-                    return from();
-                else
-                    return to();
-            }
-
             Vec2 parametricCoefficients = solve(
                 Mat2::fromCols({direction(), other.direction()}),
                 other.from() - from()
             );
 
-            SIMU_ASSERT(
-                Interval<float>(0.f, 1.f).contains(parametricCoefficients[0]),
-                "Intersection is not within this edge, edges were assumed to "
-                "be intersecting"
-            );
-
-            return from() + parametricCoefficients[0] * direction();
+            float t = clamp(parametricCoefficients[0], 0.f, 1.f);
+            return from() + t * direction();
         }
 
         bool operator==(const Edge& other) const = default;

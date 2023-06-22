@@ -26,9 +26,6 @@
 
 #include <ranges>
 
-#include "Simu/config.hpp"
-
-
 namespace simu
 {
 

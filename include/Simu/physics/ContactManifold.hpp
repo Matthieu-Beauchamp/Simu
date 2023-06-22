@@ -26,7 +26,7 @@
 
 #include "Simu/config.hpp"
 #include "Simu/math/Geometry.hpp"
-#include "Simu/physics/PointerArray.hpp"
+#include "Simu/utility/PointerArray.hpp"
 
 namespace simu
 {

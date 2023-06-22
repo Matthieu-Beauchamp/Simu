@@ -28,12 +28,12 @@
 
 #include "Simu/config.hpp"
 #include "Simu/math/Matrix.hpp"
+#include "Simu/utility/PointerArray.hpp"
 
 #include "Simu/physics/PhysicsObject.hpp"
 #include "Simu/physics/Transform.hpp"
 #include "Simu/physics/Collider.hpp"
 #include "Simu/physics/Material.hpp"
-#include "Simu/physics/PointerArray.hpp"
 
 namespace simu
 {

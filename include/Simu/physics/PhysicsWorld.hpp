@@ -26,10 +26,11 @@
 
 
 #include "Simu/config.hpp"
+#include "Simu/utility/View.hpp"
+
 #include "Simu/physics/RTree.hpp"
 #include "Simu/physics/PhysicsBody.hpp"
 #include "Simu/physics/ForceField.hpp"
-#include "Simu/physics/View.hpp"
 
 namespace details
 {
