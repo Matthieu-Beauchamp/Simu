@@ -25,21 +25,20 @@
 #include "Simu/math/BarycentricCoordinates.hpp"
 #include "Simu/math/Geometry.hpp"
 
+#include "Simu/utility/Algo.hpp"
+
 namespace simu
 {
 
 LineBarycentric::LineBarycentric(Vec2 A, Vec2 B, Vec2 Q)
 {
-    Vec2 AB = B - A;
-    u       = dot((B - Q), AB);
-    v       = dot((Q - A), AB);
+    Vec2  AB     = B - A;
+    float norm   = normSquared(AB);
+    float t      = (norm == 0.f) ? 0.f : dot(Q - A, AB) / norm;
+    closestPoint = A + clamp(t, 0.f, 1.f) * AB;
 
-    if (u <= 0)
-        closestPoint = B;
-    else if (v <= 0)
-        closestPoint = A;
-    else
-        closestPoint = (u * A + v * B) / normSquared(AB);
+    v = t;
+    u = 1.f - t;
 }
 
 TriangleBarycentric::TriangleBarycentric(Vec2 A, Vec2 B, Vec2 C, Vec2 Q)

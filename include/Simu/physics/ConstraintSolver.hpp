@@ -161,7 +161,8 @@ public:
         Jacobian J = f.jacobian(bodies);
         solver_    = KSolver{J * invMass_ * transpose(J)};
 
-        Value posLambda          = solver_.solve(-f.eval(bodies));
+        Value error              = -f.eval(bodies);
+        Value posLambda          = solver_.solve(error);
         State positionCorrection = invMass_ * transpose(J) * posLambda;
 
         applyPositionCorrection(bodies, positionCorrection);
@@ -174,6 +175,7 @@ public:
         {
             body->position_ += Vec2{correction[i], correction[i + 1]};
             body->orientation_ += correction[i + 2];
+            body->collider_.update(body->toWorldSpace());
 
             i += 3;
         }

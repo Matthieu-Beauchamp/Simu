@@ -218,6 +218,9 @@ void PhysicsWorld::applyConstraints(float dt)
             constraint->solveVelocities(dt);
     }
 
+    for (PhysicsBody& body : bodies())
+        body.step(dt);
+
     // TODO: settings.maxPosIter
     for (Uint32 iter = 0; iter < 2; ++iter)
     {
@@ -232,7 +235,6 @@ void PhysicsWorld::updateBodies(float dt)
     std::vector<BodyTree::iterator> toUpdate{};
     for (auto it = bodies_.begin(); it != bodies_.end(); ++it)
     {
-        (*it)->step(dt);
         toUpdate.emplace_back(it);
     }
 
