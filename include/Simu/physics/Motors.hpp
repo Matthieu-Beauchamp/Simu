@@ -55,6 +55,7 @@ public:
     Value damping() const { return Value{}; }
 
     bool isActive(Value) const { return true; }
+    bool needsCorrection(Value) const { return false; }
 
     Value bias(CBodies) const { return -maxVelocity_ * direction_; }
 

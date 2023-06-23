@@ -60,7 +60,8 @@ concept ConstraintFunction = requires(
     { f.jacobian(bodies) } -> std::same_as<typename F::Jacobian>;
 
     { f.isActive(val) }        -> std::same_as<bool>;
-    // { f.needsCorrection(val) } -> std::same_as<bool>; // TODO:
+    { f.needsCorrection(val) } -> std::same_as<bool>;
+    
     { f.clampLambda(val, dt) } -> std::same_as<typename F::Value>;
 
     { f.restitution() } -> std::same_as<typename F::Value>;
@@ -156,13 +157,14 @@ public:
 
     void solvePosition(Bodies bodies, const F& f)
     {
-        // TODO: If (f.requiresCorrection()) ...
+        Value error = f.eval(bodies);
+        if (!f.needsCorrection(error))
+            return;
 
         Jacobian J = f.jacobian(bodies);
         solver_    = KSolver{J * invMass_ * transpose(J)};
 
-        Value error              = -f.eval(bodies);
-        Value posLambda          = solver_.solve(error);
+        Value posLambda          = solver_.solve(-error);
         State positionCorrection = invMass_ * transpose(J) * posLambda;
 
         applyPositionCorrection(bodies, positionCorrection);

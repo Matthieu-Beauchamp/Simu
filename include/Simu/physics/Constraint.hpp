@@ -358,8 +358,15 @@ public:
 
     bool isActive() override
     {
-        auto gjk = contact_.makeGjk();
-        if (all(gjk.penetration() == Vec2{}))
+        auto gjk     = contact_.makeGjk();
+        penetration_ = gjk.penetration();
+
+        float maxPen = CombinableProperty{
+            contact_.bodies[0]->material().penetration,
+            contact_.bodies[1]->material().penetration
+        }.value;
+
+        if (normSquared(penetration_) < maxPen * maxPen)
             return false;
 
         auto manifold      = contact_.makeManifold(gjk);
@@ -403,13 +410,14 @@ public:
             }
         }
     }
-    void solvePositions() override { contactConstraint_->solvePositions(); }
+    void solvePositions() override {if (isActive()) contactConstraint_->solvePositions(); }
 
 private:
 
     Contact                     contact_;
     std::unique_ptr<Constraint> contactConstraint_ = nullptr;
     Uint32                      nContacts          = 0;
+    Vec2                        penetration_;
 
     std::unique_ptr<Constraint>
     makeContactConstraint(const ContactManifold<Collider>& manifold)

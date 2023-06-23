@@ -129,6 +129,13 @@ public:
         return isActive.isActive;
     }
 
+    bool needsCorrection(const Value& evaluatedTo) const
+    {
+        NeedsCorrection needsCorrection{evaluatedTo};
+        details::forEach(constraints, needsCorrection);
+        return needsCorrection.needsCorrection;
+    }
+
     Value clampLambda(const Value& lambda, float dt) const
     {
         LambdaClamper l{lambda, dt};
@@ -245,6 +252,22 @@ private:
         bool                        isActive = false;
     };
 
+    struct NeedsCorrection
+    {
+        template <ConstraintFunction F>
+        void operator()(F f)
+        {
+            needsCorrection
+                = needsCorrection
+                  || f.needsCorrection(manip.extract<F::dimension>(i));
+            i += details::Dimension<F>::value;
+        }
+
+        MatrixRowManipulator<Value> manip;
+        Uint32                      i               = 0;
+        bool                        needsCorrection = false;
+    };
+
     struct JacobianBuilder
     {
         template <ConstraintFunction F>
@@ -346,7 +369,12 @@ public:
 
     using Base::Base;
 
-    bool  isActive(Base::Value) const { return true; }
+    bool isActive(Base::Value) const { return true; }
+    bool needsCorrection(Base::Value evaluatedTo) const
+    {
+        return any(std::abs(evaluatedTo) > Base::Value::filled(simu::EPSILON));
+    }
+
     Value bias(CBodies) const { return Value{}; }
     Value clampLambda(Value lambda, float) const { return lambda; }
 };
@@ -473,7 +501,9 @@ public:
           reference_{manifold.referenceIndex()},
           incident_{manifold.incidentIndex()},
           restitutionCoefficient_{CombinableProperty{bodies[0]->material().bounciness, 
-                                                     bodies[1]->material().bounciness}.value}
+                                                     bodies[1]->material().bounciness}.value},
+          maxPenetration_{CombinableProperty{bodies[0]->material().penetration, 
+                                             bodies[1]->material().penetration}.value}
     {
         localSpaceContacts_[incident_] = bodies[incident_]->toLocalSpace()
                                          * manifold.contacts[contactIndex];
@@ -495,10 +525,11 @@ public:
         return Value{dot(relPos, normal_)};
     }
 
-    bool isActive(Value evaluatedTo) const
+    bool isActive(Value evaluatedTo) const { return evaluatedTo[0] < 0.f; }
+
+    bool needsCorrection(Value evaluatedTo) const
     {
-        // TODO: Allow some slop, given in bodies' material
-        return evaluatedTo[0] < 0;
+        return evaluatedTo[0] < -maxPenetration_;
     }
 
     // TODO: Constraint implementation will need to recompute the bias...?
@@ -567,6 +598,7 @@ private:
     Uint32              incident_;
 
     float restitutionCoefficient_;
+    float maxPenetration_;
 
 public:
 
@@ -611,6 +643,7 @@ public:
     Value eval(CBodies /* bodies */) const { return Value{}; }
 
     bool isActive(Value /* evaluatedTo */) const { return true; }
+    bool needsCorrection(Value /* evaluatedTo */) const { return false; }
 
     Value bias(CBodies /* bodies */) const { return Value{}; }
 

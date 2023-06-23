@@ -644,7 +644,7 @@ TEST_CASE("Physics")
                     RotationMotor::Specs::fromTargetForce(
                         2 * pi,
                         wheelRadius,
-                        1.f * totalMass
+                        10.f * totalMass
                     )
                 );
             }
@@ -664,7 +664,7 @@ TEST_CASE("Physics")
             static BodyDescriptor wheelDescriptor()
             {
                 std::vector<Vec2> points;
-                Uint32            nPoints = 12;
+                Uint32            nPoints = 24;
                 for (Uint32 i = 0; i < nPoints; ++i)
                 {
                     float theta = i * 2 * pi / nPoints;
