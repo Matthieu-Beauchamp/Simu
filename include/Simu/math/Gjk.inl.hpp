@@ -43,13 +43,18 @@ Gjk<T>::Gjk(const T& first, const T& second) : first_{first}, second_{second}
             areColliding_ = false;
         }
 
-        simplex_.pushPoint(v);
+        bool isNewPoint = simplex_.pushPoint(v);
 
         if (simplex_.nIterations > 2)
         {
             if (all(simplex_.closestPoint(Vec2{0, 0}) == Vec2{0, 0}))
             {
                 areColliding_ = true;
+                done_         = true;
+            }
+            else if (!isNewPoint)
+            {
+                areColliding_ = false;
                 done_         = true;
             }
         }

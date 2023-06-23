@@ -219,11 +219,11 @@ void PhysicsWorld::applyConstraints(float dt)
     }
 
     // TODO: settings.maxPosIter
-    // for (Uint32 iter = 0; iter < 10; ++iter)
-    // {
-    //     for (auto constraint : actives)
-    //         constraint->solvePositions();
-    // }
+    for (Uint32 iter = 0; iter < 2; ++iter)
+    {
+        for (auto constraint : actives)
+            constraint->solvePositions();
+    }
 }
 
 

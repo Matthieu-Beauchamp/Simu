@@ -36,7 +36,7 @@ namespace priv
 
 struct Simplex
 {
-    void pushPoint(Vertex v);
+    bool pushPoint(Vertex v);
     Vec2 nextDirection() const;
 
     Vec2 closestPoint(Vec2 Q) const;

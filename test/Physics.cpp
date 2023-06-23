@@ -2,6 +2,8 @@
 
 #include "catch2/catch_test_macros.hpp"
 
+#include "Simu/utility/FloatingPointExceptions.hpp"
+
 #include "Simu/physics/PhysicsWorld.hpp"
 #include "Simu/physics/PhysicsBody.hpp"
 #include "Simu/physics/Constraint.hpp"

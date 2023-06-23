@@ -30,7 +30,7 @@ namespace simu
 namespace priv
 {
 
-void Simplex::pushPoint(Vertex v)
+bool Simplex::pushPoint(Vertex v)
 {
     if (keepBottomPoint_)
     {
@@ -49,6 +49,10 @@ void Simplex::pushPoint(Vertex v)
     normals[1] = perp(ac, k < 0);
 
     ++nIterations;
+    if (all(pointStack[0] == pointStack[1]))
+        return false;
+
+    return true;
 }
 
 Vec2 Simplex::nextDirection() const

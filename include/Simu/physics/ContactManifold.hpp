@@ -100,7 +100,11 @@ private:
 
         Vertex contact2 = contactEdges[inc].clipInside(nextOfRef);
         if (dot(contact2 - contactEdges[ref].from(), n) > 0.f)
+        {
             contacts[nContacts++] = contact2;
+            if (all(contacts[0] == contacts[1]))
+                --nContacts;
+        }
     }
 
     static std::array<Edge, 2>
@@ -116,21 +120,22 @@ private:
     {
         // TODO: Check for furthest vertex first, then check neighbor edges
 
-        auto  edges               = edgesOf(body);
-        auto  edge                = *edges.begin();
-        float parallelCoefficient = dot(edge.normalizedNormal(), direction);
+        Vec2 v = furthestVertexInDirection(body, direction);
 
-        for (const Edge& e : edges)
-        {
-            float c = dot(e.normalizedNormal(), direction);
-            if (c > parallelCoefficient)
-            {
-                parallelCoefficient = c;
-                edge                = e;
-            }
-        }
+        auto edges = edgesOf(body);
 
-        return edge;
+        auto previous
+            = std::find_if(edges.begin(), edges.end(), [=](Edges<T>::Edge e) {
+                  return all(e.to() == v);
+              });
+
+        auto next = edges.next(previous);
+
+        if (dot(next->normalizedNormal(), direction)
+            > dot(previous->normalizedNormal(), direction))
+            return *next;
+
+        return *previous;
     }
 };
 
