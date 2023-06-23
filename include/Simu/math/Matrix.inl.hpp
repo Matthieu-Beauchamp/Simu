@@ -383,7 +383,7 @@ Solver<T, n>::Solver(const Matrix<T, n, n>& A) : R{}
 
 template <class T, Uint32 n>
 template <class U>
-Vector<Promoted<T, U>, n> Solver<T, n>::solve(const Vector<U, n>& b)
+Vector<Promoted<T, U>, n> Solver<T, n>::solve(const Vector<U, n>& b) const
 {
     Vector<Promoted<T, U>, n> c = QT * b;
     Vector<Promoted<T, U>, n> x{};

@@ -28,12 +28,12 @@
 
 #include "Simu/config.hpp"
 #include "Simu/math/Matrix.hpp"
-#include "Simu/utility/PointerArray.hpp"
 
 #include "Simu/physics/PhysicsObject.hpp"
 #include "Simu/physics/Transform.hpp"
 #include "Simu/physics/Collider.hpp"
 #include "Simu/physics/Material.hpp"
+#include "Simu/physics/ConstraintSolver.hpp"
 
 namespace simu
 {
@@ -161,6 +161,9 @@ public:
 
 private:
 
+    template<ConstraintFunction F>
+    friend class ConstraintSolver;
+
     Vec2 position_;
     Vec2 velocity_{};
 
@@ -175,11 +178,5 @@ private:
     float dominance_;
 };
 
-
-template <Uint32 nBodies>
-using Bodies = PointerArray<PhysicsBody, nBodies, false>;
-
-template <Uint32 nBodies>
-using ConstBodies = PointerArray<PhysicsBody, nBodies, true>;
 
 } // namespace simu

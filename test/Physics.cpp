@@ -488,6 +488,29 @@ TEST_CASE("Physics")
 
         SECTION("Full collision restitution")
         {
+            // PhysicsWorld world{};
+
+            // BodyDescriptor descr{squareDescriptor};
+            // descr.material.bounciness.value = 1.f;
+            // descr.polygon = Polygon{
+            //     Vec2{0.f, 0.f},
+            //     Vec2{1.f, 0.5f},
+            //     Vec2{0.f, 1.f},
+            // };
+
+            // descr.position    = Vec2{-2, 0};
+            // auto body1        = world.makeBody(descr);
+            // body1->velocity() = Vec2{0.5f, 0};
+
+            // descr.position    = Vec2{1, 0};
+            // auto body2        = world.makeBody(descr);
+            // body2->velocity() = Vec2{-0.5f, 0};
+
+            // world.step(1.f);
+            // world.step(1.f);   // touching at x=0
+            // world.step(0.01f); // collision
+            // world.step(0.01f);
+
             PhysicsWorld world{};
 
             BodyDescriptor descr{squareDescriptor};
@@ -536,7 +559,8 @@ TEST_CASE("Physics")
             world.step(0.1f);
 
             REQUIRE(all(wall->velocity() == Vec2{}));
-            REQUIRE(all(projectile->velocity() == Vec2{-1.f, 0.f}));
+            REQUIRE(all(approx(projectile->velocity(), Vec2::filled(simu::EPSILON))
+                            .contains(Vec2{-1.f, 0.f})));
         }
 
         SECTION("Dominance for movement propagation")

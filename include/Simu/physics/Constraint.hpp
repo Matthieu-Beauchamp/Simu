@@ -45,41 +45,37 @@ public:
 
     ~Constraint() override = default;
 
-    virtual bool isActive()          = 0;
-    virtual void initSolve(float dt) = 0;
-    virtual void solve(float dt)     = 0;
-    virtual void commit()            = 0;
+    virtual bool isActive()                = 0;
+    virtual void initSolve(float dt)       = 0;
+    virtual void solveVelocities(float dt) = 0;
+    virtual void solvePositions()          = 0;
 };
 
-// TODO: The caching is not very useful, storing the K^-1 matrix is more beneficial, 
+// TODO: The caching is not very useful, storing the K^-1 matrix is more beneficial,
 //  make the solver an owned object.
-// Add support for NGS stabilization (while keeping Baumgarde for springs?) 
+// Add support for NGS stabilization (while keeping Baumgarde for springs?)
 //
 template <ConstraintFunction F>
 class ConstraintImplementation : public Constraint
 {
 public:
 
-    typedef F::Value Value;
+    typedef F::Value                   Value;
+    typedef ConstraintSolver<F>        Solver;
+    typedef typename Solver::Dominance Dominance;
 
     ConstraintImplementation(
-        const Bodies<F::nBodies>&                bodies,
-        const F&                                 f,
-        bool                                     disableContacts,
-        std::optional<Vector<float, F::nBodies>> dominanceRatios = std::nullopt
+        const Bodies<F::nBodies>& bodies,
+        const F&                  f,
+        bool                      disableContacts,
+        std::optional<Dominance>  dominanceRatios = std::nullopt
     )
-        : f{f}, bodies_{bodies}, disableContacts_{disableContacts}
+        : f{f},
+          bodies_{bodies},
+          dominances_{dominance(bodies_, dominanceRatios)},
+          solver{bodies_, f, dominances_},
+          disableContacts_{disableContacts}
     {
-        if (dominanceRatios.has_value())
-        {
-            dominances_ = dominanceRatios.value();
-        }
-        else
-        {
-            Uint32 i = 0;
-            for (auto body : bodies)
-                dominances_[i++] = body->dominance();
-        }
     }
 
     void onConstruction(PhysicsWorld& world) override;
@@ -94,75 +90,46 @@ public:
         return false;
     }
 
-    bool isActive() override
+    bool isActive() override { return f.isActive(f.eval(bodies_)); }
+
+    void initSolve(float /* dt */) override { solver.initSolve(bodies_, f); }
+
+    void solveVelocities(float dt) override
     {
-        eval_ = f.eval(bodies_);
-        return f.isActive(eval_);
+        solver.solveVelocity(bodies_, f, dt);
     }
 
-    void initSolve(float /* dt */) override
-    {
-        // TODO: Apply guess based on previous lambda
-        // if (warmStarting)
-        //      solver.applyImpulse(oldJacobian, oldLambda*dt/oldDt)
-        //
-        // ConstraintSolver::apply(
-        //     bodies_,
-        //     ConstraintSolver::impulse<F::dimension, F::nBodies>(jacobian_, lambda_)
-        // );
-        //
-        // Careful! motor constraints should not apply twice!
-
-        jacobian_ = f.jacobian(bodies_);
-        bias_     = f.bias(bodies_);
-        lambda_   = Value{};
-    }
-
-    void solve(float dt) override
-    {
-        Value dLambda = ConstraintSolver::solveLambda<F::dimension, F::nBodies>(
-            bodies_,
-            dominances_,
-            eval_,
-            jacobian_,
-            dt,
-            bias_, // TODO: This may need recomputing (depends on velocity?)
-            f.restitution(),
-            f.damping(),
-            lambda_
-        );
-
-        Value oldLambda = lambda_;
-        lambda_ += dLambda;
-        lambda_ = f.clampLambda(lambda_, dt);
-
-        VelocityVector<F::nBodies> impulse
-            = ConstraintSolver::impulse<F::dimension, F::nBodies>(
-                jacobian_,
-                lambda_ - oldLambda
-            );
-
-        ConstraintSolver::apply(bodies_, dominances_, impulse);
-    }
-
-    void commit() override
-    {
-        // TODO: Do position correction with split impulses here?
-    }
+    void solvePositions() override { solver.solvePosition(bodies_, f); }
 
     F f;
 
 private:
 
+    static Dominance dominance(
+        const Bodies<F::nBodies>& bodies,
+        std::optional<Dominance>  dominanceRatios
+    )
+    {
+        if (dominanceRatios.has_value())
+            return dominanceRatios.value();
+
+        Dominance d{};
+        Uint32    i = 0;
+        for (auto body : bodies)
+            d[i++] = body->dominance();
+
+        return d;
+    }
+
     Bodies<F::nBodies> bodies_;
+    Dominance          dominances_;
 
-    F::Jacobian jacobian_{};
-    F::Value    eval_{};
-    F::Value    bias_{};
-    F::Value    lambda_{};
+    bool disableContacts_;
 
-    Vector<float, F::nBodies> dominances_;
-    bool                      disableContacts_;
+public:
+
+    // Care with initialization order
+    Solver solver;
 };
 
 
@@ -402,18 +369,52 @@ public:
     }
 
     void initSolve(float dt) override { contactConstraint_->initSolve(dt); }
-    void solve(float dt) override { contactConstraint_->solve(dt); }
-    void commit() override { contactConstraint_->commit(); }
+    void solveVelocities(float dt) override
+    {
+        contactConstraint_->solveVelocities(dt);
+        switch (nContacts)
+        {
+            case 1:
+            {
+                auto c = static_cast<SingleContactConstraint*>(
+                    contactConstraint_.get()
+                );
+                std::get<0>(c->f.constraints).accumulatedDv
+                    = c->solver.getInverseMass()
+                      * c->solver.getJacobian().asRows()[0]
+                      * c->solver.getLambda()[0];
+                break;
+            }
+            case 2:
+            {
+                auto c = static_cast<DoubleContactConstraint*>(
+                    contactConstraint_.get()
+                );
+                auto accumulatedDv
+                    = c->solver.getInverseMass()
+                      * Matrix<float, 6, 2>::fromCols(
+                          {c->solver.getJacobian().asRows()[0],
+                           c->solver.getJacobian().asRows()[1]}
+                      )
+                      * Vec2{c->solver.getLambda()[0], c->solver.getLambda()[1]};
+                std::get<0>(c->f.constraints).accumulatedDv = accumulatedDv;
+                std::get<1>(c->f.constraints).accumulatedDv = accumulatedDv;
+                break;
+            }
+        }
+    }
+    void solvePositions() override { contactConstraint_->solvePositions(); }
 
 private:
 
-
     Contact                     contact_;
     std::unique_ptr<Constraint> contactConstraint_ = nullptr;
+    Uint32                      nContacts          = 0;
 
     std::unique_ptr<Constraint>
     makeContactConstraint(const ContactManifold<Collider>& manifold)
     {
+        nContacts = manifold.nContacts;
         switch (manifold.nContacts)
         {
             case 1:

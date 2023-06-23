@@ -33,35 +33,6 @@ namespace simu
 {
 
 
-
-template <class F>
-concept ConstraintFunction = requires(
-    F                       f,
-    typename F::Value       val,
-    ConstBodies<F::nBodies> bodies,
-    float                   dt
-) {
-    // clang-format off
-    typename F::Value;
-    std::is_same_v<typename F::Value, Vector<float, F::dimension>>; 
-    
-    typename F::Jacobian;
-    std::is_same_v<typename F::Jacobian, Matrix<float, F::dimension, 3*F::nBodies>>; 
-
-    { f.eval(bodies) } -> std::same_as<typename F::Value>;
-
-    { f.bias(bodies) } -> std::same_as<typename F::Value>;
-    { f.jacobian(bodies) } -> std::same_as<typename F::Jacobian>;
-
-    { f.isActive(val) }        -> std::same_as<bool>;
-    { f.clampLambda(val, dt) } -> std::same_as<typename F::Value>;
-
-    { f.restitution() } -> std::same_as<typename F::Value>;
-    { f.damping() }     -> std::same_as<typename F::Value>;
-    // clang-format on
-};
-
-
 namespace details
 {
 
@@ -478,7 +449,7 @@ private:
 // Contacts
 ////////////////////////////////////////////////////////////
 
-// TODO: Add a penetration tolerance CombinableProperty in Material, 
+// TODO: Add a penetration tolerance CombinableProperty in Material,
 //   use position correction when penetration is greater than tolerance.
 class NonPenetrationConstraintFunction
 {
@@ -530,13 +501,16 @@ public:
         return evaluatedTo[0] < 0;
     }
 
-    // TODO: Constraint implementation will need to recompute the bias...
+    // TODO: Constraint implementation will need to recompute the bias...?
     Value bias(CBodies bodies) const
     {
         // TODO: Restitution coefficients will be held in the bodies' material,
         //      may not need to save this as member.
-        return restitutionCoefficient_ * jacobian(bodies)
-               * ConstraintSolver::velocity(bodies);
+
+        auto penetratingVelocity
+            = ConstraintSolver<NonPenetrationConstraintFunction>::velocity(bodies)
+              - accumulatedDv;
+        return restitutionCoefficient_ * jacobian(bodies) * penetratingVelocity;
     }
 
     Jacobian jacobian(CBodies bodies) const
@@ -593,6 +567,10 @@ private:
     Uint32              incident_;
 
     float restitutionCoefficient_;
+
+public:
+
+    Vector<float, 6> accumulatedDv{};
 };
 
 
@@ -657,20 +635,15 @@ public:
     }
 
     Value
-    clampLambda(Value lambda, float /* dt */, ConstraintValue<1> lambdaNormal) const
+    clampLambda(Value lambda, float /* dt */, Vector<float, 1> lambdaNormal) const
     {
         float absBound = frictionCoefficient_ * std::abs(lambdaNormal[0]);
         return Value{clamp(lambda[0], -absBound, absBound)};
     }
 
-    Value
-    clampLambda(Value lambda, float dt, ConstraintValue<2> lambdaNormal) const
+    Value clampLambda(Value lambda, float dt, Vec2 lambdaNormal) const
     {
-        return clampLambda(
-            lambda,
-            dt,
-            ConstraintValue<1>{lambdaNormal[0] + lambdaNormal[1]}
-        );
+        return clampLambda(lambda, dt, Value{lambdaNormal[0] + lambdaNormal[1]});
     }
 
 

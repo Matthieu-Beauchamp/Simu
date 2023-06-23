@@ -25,36 +25,168 @@
 #pragma once
 
 #include "Simu/config.hpp"
-#include "Simu/physics/PhysicsBody.hpp"
+
+#include "Simu/utility/PointerArray.hpp"
 
 namespace simu
 {
 
-template <Uint32 nConstraints>
-using ConstraintValue = Vector<float, nConstraints>;
-
-template <Uint32 nConstraints, Uint32 nBodies>
-using Jacobian = Matrix<float, nConstraints, 3 * nBodies>;
+class PhysicsBody;
 
 template <Uint32 nBodies>
-using VelocityVector = Vector<float, 3 * nBodies>;
+using Bodies = PointerArray<PhysicsBody, nBodies, false>;
 
 template <Uint32 nBodies>
-using MassMatrix = Matrix<float, 3 * nBodies, 3 * nBodies>;
+using ConstBodies = PointerArray<PhysicsBody, nBodies, true>;
 
-template <Uint32 nBodies>
-using Dominance = Vector<float, nBodies>;
 
-// TODO: Compute position correction impulses separately, 
+template <class F>
+concept ConstraintFunction = requires(
+    F                       f,
+    typename F::Value       val,
+    ConstBodies<F::nBodies> bodies,
+    float                   dt
+) {
+    // clang-format off
+    typename F::Value;
+    std::is_same_v<typename F::Value, Vector<float, F::dimension>>; 
+    
+    typename F::Jacobian;
+    std::is_same_v<typename F::Jacobian, Matrix<float, F::dimension, 3*F::nBodies>>; 
+
+    { f.eval(bodies) } -> std::same_as<typename F::Value>;
+
+    { f.bias(bodies) } -> std::same_as<typename F::Value>;
+    { f.jacobian(bodies) } -> std::same_as<typename F::Jacobian>;
+
+    { f.isActive(val) }        -> std::same_as<bool>;
+    // { f.needsCorrection(val) } -> std::same_as<bool>; // TODO:
+    { f.clampLambda(val, dt) } -> std::same_as<typename F::Value>;
+
+    { f.restitution() } -> std::same_as<typename F::Value>;
+    { f.damping() }     -> std::same_as<typename F::Value>;
+    // clang-format on
+};
+
+
+template <ConstraintFunction F>
 class ConstraintSolver
 {
 public:
 
-    template <Uint32 nBodies>
-    static VelocityVector<nBodies> velocity(const ConstBodies<nBodies>& bodies)
+    static constexpr Uint32 nBodies   = F::nBodies;
+    static constexpr Uint32 dimension = F::dimension;
+
+    typedef const ConstBodies<nBodies>& CBodies;
+    typedef const Bodies<nBodies>&      Bodies;
+
+    typedef F::Value    Value;
+    typedef F::Jacobian Jacobian;
+
+    typedef Vector<float, 3 * nBodies> State;
+    typedef State                      Velocity;
+    typedef State                      Impulse;
+
+    typedef Matrix<float, 3 * nBodies, 3 * nBodies> MassMatrix;
+    typedef Vector<float, nBodies>                  Dominance;
+
+    typedef Matrix<float, dimension, dimension> KMatrix;
+    typedef Solver<float, dimension>            KSolver;
+
+
+    ConstraintSolver(CBodies bodies, const F& f, const Dominance& dominance)
+        : invMass_{inverseMass(bodies, dominance)},
+          solver_{makeSolver(computeK(bodies, f))}
     {
-        VelocityVector<nBodies> v{};
-        Uint32                  i = 0;
+    }
+
+    void initSolve(CBodies bodies, const F& f)
+    {
+        // TODO: Apply guess based on previous lambda
+        // if (warmStarting)
+        //      solver.applyImpulse(oldJacobian, oldLambda*dt/oldDt)
+        //
+        // ConstraintSolver::apply(
+        //     bodies_,
+        //     ConstraintSolver::impulse<F::dimension, F::nBodies>(jacobian_, lambda_)
+        // );
+        //
+        // Careful! motor constraints should not apply twice!
+
+        solver_ = makeSolver(computeK(bodies, f));
+        lambda_ = Value{};
+        J_      = f.jacobian(bodies);
+        // bias_   = f.bias(bodies);
+        // C_      = f.eval(bodies);
+    }
+
+    KMatrix computeK(CBodies bodies, const F& f) const
+    {
+        // TODO: Position correction should not use the damping
+        Jacobian J = f.jacobian(bodies);
+        return J * invMass_ * transpose(J) + KMatrix::diagonal(f.damping());
+    }
+
+    void solveVelocity(Bodies bodies, const F& f, float dt)
+    {
+        Value rhs
+            = -(J_ * velocity(bodies) + f.bias(bodies)
+                + KMatrix::diagonal(f.restitution()) * f.eval(bodies) / dt
+                + KMatrix::diagonal(f.damping()) * lambda_);
+
+        Value dLambda   = solver_.solve(rhs);
+        Value oldLambda = lambda_;
+        lambda_ += dLambda;
+        lambda_ = f.clampLambda(lambda_, dt);
+
+        applyImpulse(bodies, impulse(f.jacobian(bodies), lambda_ - oldLambda));
+    }
+
+    void applyImpulse(Bodies bodies, const Impulse& impulse) const
+    {
+        Velocity dv = invMass_ * impulse;
+        Uint32   i  = 0;
+        for (PhysicsBody* body : bodies)
+        {
+            body->velocity() += Vec2{dv[i], dv[i + 1]};
+            body->angularVelocity() += dv[i + 2];
+            i += 3;
+        }
+    }
+
+    void solvePosition(Bodies bodies, const F& f)
+    {
+        // TODO: If (f.requiresCorrection()) ...
+
+        Jacobian J = f.jacobian(bodies);
+        solver_    = KSolver{J * invMass_ * transpose(J)};
+
+        Value posLambda          = solver_.solve(-f.eval(bodies));
+        State positionCorrection = invMass_ * transpose(J) * posLambda;
+
+        applyPositionCorrection(bodies, positionCorrection);
+    }
+
+    void applyPositionCorrection(Bodies bodies, const State& correction) const
+    {
+        Uint32 i = 0;
+        for (PhysicsBody* body : bodies)
+        {
+            body->position_ += Vec2{correction[i], correction[i + 1]};
+            body->orientation_ += correction[i + 2];
+
+            i += 3;
+        }
+    }
+
+    ////////////////////////////////////////////////////////////
+    // Static methods
+    ////////////////////////////////////////////////////////////
+
+    static Velocity velocity(CBodies bodies)
+    {
+        Velocity v{};
+        Uint32   i = 0;
         for (const PhysicsBody* body : bodies)
         {
             v[i++] = body->velocity()[0];
@@ -65,11 +197,8 @@ public:
         return v;
     }
 
-    template <Uint32 nBodies>
-    static MassMatrix<nBodies>
-    inverseMass(const ConstBodies<nBodies>& bodies, const Dominance<nBodies>& dominance)
+    static MassMatrix inverseMass(CBodies bodies, const Dominance& dominance)
     {
-        // TODO: Body dominance ratios
         Vector<float, 3 * nBodies> diagonal;
 
         Uint32 i       = 0;
@@ -81,60 +210,33 @@ public:
             diagonal[i++] = dominance[nthBody++] / body->properties().inertia;
         }
 
-        return MassMatrix<nBodies>::diagonal(diagonal);
+        return MassMatrix::diagonal(diagonal);
     }
 
-    template <Uint32 nConstraints, Uint32 nBodies>
-    static ConstraintValue<nConstraints> solveLambda(
-        const ConstBodies<nBodies>&     bodies,
-        const Dominance<nBodies>&       dominance,
-        ConstraintValue<nConstraints>   C,
-        Jacobian<nConstraints, nBodies> J,
-        float                           dt,
-        ConstraintValue<nConstraints>   bias,
-        ConstraintValue<nConstraints>   beta,
-        ConstraintValue<nConstraints>   gamma,
-        ConstraintValue<nConstraints>   oldLambda
-    )
-    {
-        typedef Matrix<float, nConstraints, nConstraints> MatType;
-
-        MatType K = J * inverseMass(bodies, dominance) * transpose(J)
-                    + MatType::diagonal(gamma);
-
-        ConstraintValue<nConstraints> rhs
-            = -(J * velocity(bodies) + bias + MatType::diagonal(beta) * C / dt
-                + MatType::diagonal(gamma) * oldLambda);
-
-        return solve(K, rhs);
-    }
-
-    template <Uint32 nConstraints, Uint32 nBodies>
-    static VelocityVector<nBodies> impulse(
-        const Jacobian<nConstraints, nBodies>& J,
-        const ConstraintValue<nConstraints>&   lambda
-    )
+    static Impulse impulse(const Jacobian& J, const Value& lambda)
     {
         return transpose(J) * lambda;
     }
 
-    template <Uint32 nBodies>
-    static void apply(
-        const Bodies<nBodies>&         bodies,
-        const Dominance<nBodies>&      dominance,
-        const VelocityVector<nBodies>& impulse
-    )
-    {
-        VelocityVector<nBodies> dv
-            = inverseMass<nBodies>(bodies, dominance) * impulse;
-        Uint32 i = 0;
-        for (PhysicsBody* body : bodies)
-        {
-            body->velocity() += Vec2{dv[i], dv[i + 1]};
-            body->angularVelocity() += dv[i + 2];
-            i += 3;
-        }
-    }
+    static KSolver makeSolver(const KMatrix& K) { return Solver{K}; }
+
+    ////////////////////////////////////////////////////////////
+    // Unusual
+    ////////////////////////////////////////////////////////////
+
+    MassMatrix getInverseMass() const { return invMass_; }
+    Jacobian   getJacobian() const { return J_; }
+    Value      getLambda() const { return lambda_; }
+
+private:
+
+    MassMatrix invMass_;
+    KSolver    solver_;
+
+    Value    lambda_{};
+    Jacobian J_;
+    Value    bias_;
+    Value    C_;
 };
 
 

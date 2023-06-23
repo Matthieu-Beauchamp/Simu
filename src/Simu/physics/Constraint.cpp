@@ -31,27 +31,27 @@ template <>
 SingleContactFunction::Value
 SingleContactFunction::clampLambda(const Value& lambda, float dt) const
 {
-    ConstraintValue<1> lambdaNormal
-        = std::get<0>(constraints).clampLambda(ConstraintValue<1>{lambda[0]}, dt);
+    Vector<float, 1> lambdaNormal
+        = std::get<0>(constraints).clampLambda(Vector<float, 1>{lambda[0]}, dt);
     return Value{
         lambdaNormal[0],
         std::get<1>(constraints)
-            .clampLambda(ConstraintValue<1>{lambda[1]}, dt, lambdaNormal)[0]};
+            .clampLambda(Vector<float, 1>{lambda[1]}, dt, lambdaNormal)[0]};
 }
 
 template <>
 DoubleContactFunction::Value
 DoubleContactFunction::clampLambda(const Value& lambda, float dt) const
 {
-    ConstraintValue<2> lambdaNormal{
-        std::get<0>(constraints).clampLambda(ConstraintValue<1>{lambda[0]}, dt)[0],
-        std::get<1>(constraints).clampLambda(ConstraintValue<1>{lambda[1]}, dt)[0]};
+    Vec2 lambdaNormal{
+        std::get<0>(constraints).clampLambda(Vector<float, 1>{lambda[0]}, dt)[0],
+        std::get<1>(constraints).clampLambda(Vector<float, 1>{lambda[1]}, dt)[0]};
 
     return Value{
         lambdaNormal[0],
         lambdaNormal[1],
         std::get<2>(constraints)
-            .clampLambda(ConstraintValue<1>{lambda[2]}, dt, lambdaNormal)[0]};
+            .clampLambda(Vector<float, 1>{lambda[2]}, dt, lambdaNormal)[0]};
 }
 
-} // namepace simu 
+} // namespace simu

@@ -215,11 +215,15 @@ void PhysicsWorld::applyConstraints(float dt)
     for (Uint32 iter = 0; iter < 10; ++iter)
     {
         for (auto constraint : actives)
-            constraint->solve(dt);
+            constraint->solveVelocities(dt);
     }
 
-    for (auto& constraint : actives)
-        constraint->commit();
+    // TODO: settings.maxPosIter
+    // for (Uint32 iter = 0; iter < 10; ++iter)
+    // {
+    //     for (auto constraint : actives)
+    //         constraint->solvePositions();
+    // }
 }
 
 
