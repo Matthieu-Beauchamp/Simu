@@ -359,7 +359,7 @@ Vector<Promoted<T, U>, n> solve(const Matrix<T, n, n>& A, const Vector<U, n>& b)
 }
 
 template <class T, Uint32 n>
-Solver<T, n>::Solver(const Matrix<T, n, n>& A) : R{}
+Solver<T, n>::Solver(const Matrix<T, n, n>& A) : R_{}
 {
     // modified Gram-Schmidt for QR decomposition
     // https://www.math.uci.edu/~ttrogdon/105A/html/Lecture23.html
@@ -368,34 +368,44 @@ Solver<T, n>::Solver(const Matrix<T, n, n>& A) : R{}
 
     for (Uint32 col = 0; col < n; ++col)
     {
-        R(col, col) = norm(Q[col]);
-        Q[col] /= R(col, col);
+        R_(col, col) = norm(Q[col]);
+
+        isValid_ = isValid_ && R_(col, col) != 0.f;
+        if (!isValid_)
+            return;
+
+        Q[col] /= R_(col, col);
 
         for (Uint32 nextCol = col + 1; nextCol < n; ++nextCol)
         {
-            R(col, nextCol) = dot(Q[col], Q[nextCol]);
-            Q[nextCol] -= R(col, nextCol) * Q[col];
+            R_(col, nextCol) = dot(Q[col], Q[nextCol]);
+            Q[nextCol] -= R_(col, nextCol) * Q[col];
         }
     }
 
-    QT = transpose(Matrix<T, n, n>::fromCols(Q));
+    QT_ = transpose(Matrix<T, n, n>::fromCols(Q));
 }
 
 template <class T, Uint32 n>
 template <class U>
 Vector<Promoted<T, U>, n> Solver<T, n>::solve(const Vector<U, n>& b) const
 {
-    Vector<Promoted<T, U>, n> c = QT * b;
+    SIMU_ASSERT(
+        isValid_,
+        "Solver invalid, ensure the original matrix has full rank"
+    );
+
+    Vector<Promoted<T, U>, n> c = QT_ * b;
     Vector<Promoted<T, U>, n> x{};
 
     for (Uint32 row = n; row > 0; --row)
     {
         for (Uint32 col = row + 1; col < n; ++col)
         {
-            c[row - 1] -= R(row - 1, col) * x[col];
+            c[row - 1] -= R_(row - 1, col) * x[col];
         }
 
-        x[row - 1] = c[row - 1] / R(row - 1, row - 1);
+        x[row - 1] = c[row - 1] / R_(row - 1, row - 1);
     }
 
     return x;

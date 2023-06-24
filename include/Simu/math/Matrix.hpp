@@ -216,15 +216,22 @@ template <class T, class U, Uint32 n>
 Vector<Promoted<T, U>, n> solve(const Matrix<T, n, n>& A, const Vector<U, n>& b);
 
 template <class T, Uint32 n>
-struct Solver
+class Solver
 {
+public:
+
     Solver(const Matrix<T, n, n>& A);
 
     template <class U>
     Vector<Promoted<T, U>, n> solve(const Vector<U, n>& b) const;
 
-    Matrix<T, n, n> QT;
-    Matrix<T, n, n> R;
+    bool isValid() const { return isValid_; }
+
+private:
+
+    Matrix<T, n, n> QT_;
+    Matrix<T, n, n> R_;
+    bool            isValid_ = true;
 };
 
 template <class T, Uint32 n>
