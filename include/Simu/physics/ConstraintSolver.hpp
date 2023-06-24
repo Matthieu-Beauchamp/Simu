@@ -43,7 +43,7 @@ using ConstBodies = PointerArray<PhysicsBody, nBodies, true>;
 template <class F>
 concept ConstraintFunction = requires(
     F                       f,
-    typename F::Value       val,
+    typename F::Value       lambda,
     ConstBodies<F::nBodies> bodies,
     float                   dt
 ) {
@@ -55,17 +55,12 @@ concept ConstraintFunction = requires(
     std::is_same_v<typename F::Jacobian, Matrix<float, F::dimension, 3*F::nBodies>>; 
 
     { f.eval(bodies) } -> std::same_as<typename F::Value>;
-
     { f.bias(bodies) } -> std::same_as<typename F::Value>;
+
     { f.jacobian(bodies) } -> std::same_as<typename F::Jacobian>;
-
-    { f.isActive(val) }        -> std::same_as<bool>;
-    { f.needsCorrection(val) } -> std::same_as<bool>;
     
-    { f.clampLambda(val, dt) } -> std::same_as<typename F::Value>;
-
-    { f.restitution() } -> std::same_as<typename F::Value>;
-    { f.damping() }     -> std::same_as<typename F::Value>;
+    { f.clampLambda(lambda, dt) } -> std::same_as<typename F::Value>;
+    { f.clampPositionLambda(lambda) } -> std::same_as<typename F::Value>;
     // clang-format on
 };
 
@@ -96,9 +91,9 @@ public:
 
 
     ConstraintSolver(CBodies bodies, const F& f, const Dominance& dominance)
-        : invMass_{inverseMass(bodies, dominance)},
-          solver_{makeSolver(computeK(bodies, f))}
+        : invMass_{inverseMass(bodies, dominance)}, solver_{KMatrix{}}
     {
+        initSolve(bodies, f);
     }
 
     void initSolve(CBodies bodies, const F& f)
@@ -114,26 +109,18 @@ public:
         //
         // Careful! motor constraints should not apply twice!
 
-        solver_ = makeSolver(computeK(bodies, f));
         lambda_ = Value{};
         J_      = f.jacobian(bodies);
-        // bias_   = f.bias(bodies);
-        // C_      = f.eval(bodies);
-    }
-
-    KMatrix computeK(CBodies bodies, const F& f) const
-    {
-        // TODO: Position correction should not use the damping
-        Jacobian J = f.jacobian(bodies);
-        return J * invMass_ * transpose(J) + KMatrix::diagonal(f.damping());
+        solver_ = J_ * invMass_ * transpose(J_) + KMatrix::diagonal(damping());
+        SIMU_ASSERT(solver_.isValid(), "Constraint cannot be solved");
     }
 
     void solveVelocity(Bodies bodies, const F& f, float dt)
     {
         Value rhs
             = -(J_ * velocity(bodies) + f.bias(bodies)
-                + KMatrix::diagonal(f.restitution()) * f.eval(bodies) / dt
-                + KMatrix::diagonal(f.damping()) * lambda_);
+                + KMatrix::diagonal(restitution()) * f.eval(bodies) / dt
+                + KMatrix::diagonal(damping()) * lambda_);
 
         Value dLambda   = solver_.solve(rhs);
         Value oldLambda = lambda_;
@@ -158,13 +145,11 @@ public:
     void solvePosition(Bodies bodies, const F& f)
     {
         Value error = f.eval(bodies);
-        if (!f.needsCorrection(error))
-            return;
 
         Jacobian J = f.jacobian(bodies);
         solver_    = KSolver{J * invMass_ * transpose(J)};
 
-        Value posLambda          = solver_.solve(-error);
+        Value posLambda          = f.clampPositionLambda(solver_.solve(-error));
         State positionCorrection = invMass_ * transpose(J) * posLambda;
 
         applyPositionCorrection(bodies, positionCorrection);
@@ -182,6 +167,13 @@ public:
             i += 3;
         }
     }
+
+    Value&       restitution() { return restitution_; }
+    const Value& restitution() const { return restitution_; }
+
+    Value&       damping() { return damping_; }
+    const Value& damping() const { return damping_; }
+
 
     ////////////////////////////////////////////////////////////
     // Static methods
@@ -230,7 +222,7 @@ public:
 
     MassMatrix getInverseMass() const { return invMass_; }
     Jacobian   getJacobian() const { return J_; }
-    Value      getLambda() const { return lambda_; }
+    Value      getAccumulatedLambda() const { return lambda_; }
 
 private:
 
@@ -238,9 +230,10 @@ private:
     KSolver    solver_;
 
     Value    lambda_{};
-    Jacobian J_;
-    Value    bias_;
-    Value    C_;
+    Jacobian J_{};
+
+    Value restitution_{};
+    Value damping_{};
 };
 
 

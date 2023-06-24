@@ -49,14 +49,7 @@ public:
     {
     }
 
-    // no position restitution nor damping on motors
     Value eval(CBodies) const { return Value{}; }
-    Value restitution() const { return Value{}; }
-    Value damping() const { return Value{}; }
-
-    bool isActive(Value) const { return true; }
-    bool needsCorrection(Value) const { return false; }
-
     Value bias(CBodies) const { return -maxVelocity_ * direction_; }
 
     Value clampLambda(Value lambda, float dt) const
@@ -72,6 +65,8 @@ public:
 
         return lambda;
     }
+
+    Value clampPositionLambda(Value /* lambda */) const { return Value{}; }
 
     float throttle() const { return throttle_; }
     void  throttle(float throttle) { throttle_ = clamp(throttle, 0.f, 1.f); }

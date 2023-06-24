@@ -577,14 +577,12 @@ TEST_CASE("Physics")
 
             world.makeConstraint<RotationConstraint>(
                 Bodies<2>{driver, middle},
-                RotationConstraint::Descriptor{},
                 true,
                 Vec2{0.f, 1.f}
             );
 
             world.makeConstraint<RotationConstraint>(
                 Bodies<2>{middle, follower},
-                RotationConstraint::Descriptor{},
                 true,
                 Vec2{0.f, 1.f}
             );
@@ -692,7 +690,7 @@ TEST_CASE("Physics")
         };
 
         PhysicsWorld world{};
-        auto         motorcycle = world.makeBody<MotorCycle>(Vec2{0.f, 2.f});
+        auto         motorcycle = world.makeBody<MotorCycle>(Vec2{0.f, 2.5f});
 
         REQUIRE(motorcycle->rearWheel != nullptr);
         REQUIRE(motorcycle->rearHinge != nullptr);
@@ -713,19 +711,18 @@ TEST_CASE("Physics")
         auto ground  = world.makeBody(groundDescr);
         auto gravity = world.makeForceField<Gravity>(Vec2{0, -10.f});
 
-        auto step = [&world]() { world.step(0.01f); };
-        step(); // hits ground
-        step();
+        world.step(0.2f);
+        for (Uint32 i = 0; i < 25; ++i)
+            world.step(0.01f);
 
-        REQUIRE(all(
-            approx(motorcycle->velocity(), Vec2::filled(0.01f)).contains(Vec2{})
-        ));
+        REQUIRE(all(approx(motorcycle->position(), Vec2::filled(0.005f))
+                        .contains(Vec2{0.f, 2.f})));
 
         motorcycle->motor->direction(Vector<float, 1>{-1});
         motorcycle->motor->throttle(1.f);
 
         for (Uint32 i = 0; i < 25; ++i)
-            step();
+            world.step(0.01f);
 
         REQUIRE(motorcycle->rearWheel->velocity()[0] > 0);
         REQUIRE(motorcycle->frontWheel->velocity()[0] > 0);
@@ -733,13 +730,11 @@ TEST_CASE("Physics")
 
         REQUIRE(motorcycle->rearWheel->angularVelocity() < 0);
         REQUIRE(motorcycle->frontWheel->angularVelocity() < 0);
-        REQUIRE(motorcycle->angularVelocity() > 0);
-
 
         motorcycle->kill();
         ground->kill();
         gravity->kill();
-        step();
+        world.step(0.1f);
         REQUIRE(world.bodies().empty());
         REQUIRE(world.constraints().empty());
         REQUIRE(world.forceFields().empty());

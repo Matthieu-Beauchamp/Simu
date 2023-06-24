@@ -72,8 +72,7 @@ public:
     )
         : f{f},
           bodies_{bodies},
-          dominances_{dominance(bodies_, dominanceRatios)},
-          solver{bodies_, f, dominances_},
+          solver{bodies, f, dominance(bodies, dominanceRatios)},
           disableContacts_{disableContacts}
     {
     }
@@ -90,7 +89,7 @@ public:
         return false;
     }
 
-    bool isActive() override { return f.isActive(f.eval(bodies_)); }
+    bool isActive() override { return true; }
 
     void initSolve(float /* dt */) override { solver.initSolve(bodies_, f); }
 
@@ -101,7 +100,12 @@ public:
 
     void solvePositions() override { solver.solvePosition(bodies_, f); }
 
-    F f;
+    // TODO: Setters for restitution/damping, stored in solver.
+
+protected:
+
+    F      f;
+    Solver solver;
 
 private:
 
@@ -125,11 +129,6 @@ private:
     Dominance          dominances_;
 
     bool disableContacts_;
-
-public:
-
-    // Care with initialization order
-    Solver solver;
 };
 
 
@@ -145,21 +144,12 @@ public:
     typedef ConstraintImplementation<RotationConstraintFunction> Base;
     typedef RotationConstraintFunction                           F;
 
-    struct Descriptor : public F::Descriptor
-    {
-        Descriptor(float restitution = 0.2f, float damping = 0.f)
-            : F::Descriptor{
-                Vector<float, 1>{restitution},
-                Vector<float, 1>{damping}}
-        {
-        }
-    };
-
-    RotationConstraint(const Bodies<2>& bodies, 
-        Descriptor descr = Descriptor{}, 
-        bool disableContacts = true, 
-        std::optional<Vec2> dominanceRatios = std::nullopt) 
-        : Base{bodies, F{descr, bodies}, disableContacts, dominanceRatios}
+    RotationConstraint(
+        const Bodies<2>&    bodies,
+        bool                disableContacts = true,
+        std::optional<Vec2> dominanceRatios = std::nullopt
+    )
+        : Base{bodies, F{bodies}, disableContacts, dominanceRatios}
     {
     }
 };
@@ -171,19 +161,18 @@ public:
     typedef ConstraintImplementation<HingeConstraintFunction> Base;
     typedef HingeConstraintFunction                           F;
 
-    struct Descriptor : public F::Descriptor
-    {
-        Descriptor(float restitution = 0.2f, float damping = 0.f)
-            : F::Descriptor{Vec2::filled(restitution), Vec2::filled(damping)}
-        {
-        }
-    };
-
     HingeConstraint(
-        const Bodies<2>& bodies,
-        Vec2             worldSpaceSharedPoint,
-        Descriptor    descr = Descriptor{}, bool disableContacts = true, std::optional<Vec2> dominanceRatios = std::nullopt
-    ) : Base{bodies, F{descr, bodies, worldSpaceSharedPoint}, disableContacts, dominanceRatios}
+        const Bodies<2>&    bodies,
+        Vec2                worldSpaceSharedPoint,
+        bool                disableContacts = true,
+        std::optional<Vec2> dominanceRatios = std::nullopt
+    )
+        : Base{
+            bodies,
+            F{bodies, worldSpaceSharedPoint},
+            disableContacts,
+            dominanceRatios
+    }
     {
     }
 };
@@ -202,33 +191,13 @@ public:
 
     typedef ConstraintImplementation<F> Base;
 
-    struct Descriptor : public HingeF::Descriptor, RotF::Descriptor
-    {
-        Descriptor(
-            float restitution        = 0.2f,
-            float angularRestitution = 0.2f,
-            float damping            = 0.f,
-            float angularDamping     = 0.f
-        )
-            : HingeF::Descriptor{Vec2::filled(restitution), Vec2::filled(damping)},
-              RotF::Descriptor{
-                  Vector<float, 1>{angularRestitution},
-                  Vector<float, 1>{angularDamping}}
-        {
-        }
-    };
 
     WeldConstraint(
         const Bodies<2>&    bodies,
-        Descriptor          descr           = Descriptor{},
         bool                disableContacts = true,
         std::optional<Vec2> dominanceRatios = std::nullopt
     )
-        : Base{
-            bodies,
-            makeWeldFunction(bodies, descr),
-            disableContacts,
-            dominanceRatios}
+        : Base{bodies, makeWeldFunction(bodies), disableContacts, dominanceRatios}
     {
     }
 
@@ -241,22 +210,12 @@ private:
                / 2;
     }
 
-    static HingeF makeHingeFunction(const Bodies<2>& bodies, Descriptor descr)
+    static F makeWeldFunction(const Bodies<2>& bodies)
     {
-        return HingeF{
-            static_cast<HingeF::Descriptor>(descr),
-            bodies,
-            centroidMidPoint(bodies)};
-    }
-
-    static RotF makeRotFunction(const Bodies<2>& bodies, Descriptor descr)
-    {
-        return RotF{static_cast<RotF::Descriptor>(descr), bodies};
-    }
-
-    static F makeWeldFunction(const Bodies<2>& bodies, Descriptor descr)
-    {
-        return F{makeHingeFunction(bodies, descr), makeRotFunction(bodies, descr)};
+        return F{
+            HingeF{bodies, centroidMidPoint(bodies)},
+            RotF{bodies}
+        };
     }
 };
 
@@ -273,6 +232,14 @@ public:
     SingleContactConstraint(const Bodies<2>& bodies, const Manifold& manifold)
         : Base{bodies, makeFunction(bodies, manifold), false, std::nullopt}
     {
+    }
+
+    void solveVelocities(float dt) override
+    {
+        Base::solveVelocities(dt);
+        std::get<0>(f.constraints).accumulatedDv
+            = solver.getInverseMass() * solver.getJacobian().asRows()[0]
+              * solver.getAccumulatedLambda()[0];
     }
 
 private:
@@ -299,6 +266,21 @@ public:
     DoubleContactConstraint(const Bodies<2>& bodies, const Manifold& manifold)
         : Base{bodies, makeFunction(bodies, manifold), false, std::nullopt}
     {
+    }
+
+    void solveVelocities(float dt) override
+    {
+        Base::solveVelocities(dt);
+        auto accumulatedDv
+            = solver.getInverseMass()
+              * Matrix<float, 6, 2>::fromCols(
+                  {solver.getJacobian().asRows()[0],
+                   solver.getJacobian().asRows()[1]}
+              )
+              * Vec2{solver.getAccumulatedLambda()[0], solver.getAccumulatedLambda()[1]};
+
+        std::get<0>(f.constraints).accumulatedDv = accumulatedDv;
+        std::get<1>(f.constraints).accumulatedDv = accumulatedDv;
     }
 
 private:
@@ -376,53 +358,27 @@ public:
     }
 
     void initSolve(float dt) override { contactConstraint_->initSolve(dt); }
+    
     void solveVelocities(float dt) override
     {
         contactConstraint_->solveVelocities(dt);
-        switch (nContacts)
-        {
-            case 1:
-            {
-                auto c = static_cast<SingleContactConstraint*>(
-                    contactConstraint_.get()
-                );
-                std::get<0>(c->f.constraints).accumulatedDv
-                    = c->solver.getInverseMass()
-                      * c->solver.getJacobian().asRows()[0]
-                      * c->solver.getLambda()[0];
-                break;
-            }
-            case 2:
-            {
-                auto c = static_cast<DoubleContactConstraint*>(
-                    contactConstraint_.get()
-                );
-                auto accumulatedDv
-                    = c->solver.getInverseMass()
-                      * Matrix<float, 6, 2>::fromCols(
-                          {c->solver.getJacobian().asRows()[0],
-                           c->solver.getJacobian().asRows()[1]}
-                      )
-                      * Vec2{c->solver.getLambda()[0], c->solver.getLambda()[1]};
-                std::get<0>(c->f.constraints).accumulatedDv = accumulatedDv;
-                std::get<1>(c->f.constraints).accumulatedDv = accumulatedDv;
-                break;
-            }
-        }
     }
-    void solvePositions() override {if (isActive()) contactConstraint_->solvePositions(); }
+
+    void solvePositions() override
+    {
+        if (isActive())
+            contactConstraint_->solvePositions();
+    }
 
 private:
 
     Contact                     contact_;
     std::unique_ptr<Constraint> contactConstraint_ = nullptr;
-    Uint32                      nContacts          = 0;
     Vec2                        penetration_;
 
     std::unique_ptr<Constraint>
     makeContactConstraint(const ContactManifold<Collider>& manifold)
     {
-        nContacts = manifold.nContacts;
         switch (manifold.nContacts)
         {
             case 1:

@@ -122,23 +122,16 @@ public:
         return static_cast<Jacobian>(j.manip);
     }
 
-    bool isActive(const Value& evaluatedTo) const
-    {
-        IsActive isActive{evaluatedTo};
-        details::forEach(constraints, isActive);
-        return isActive.isActive;
-    }
-
-    bool needsCorrection(const Value& evaluatedTo) const
-    {
-        NeedsCorrection needsCorrection{evaluatedTo};
-        details::forEach(constraints, needsCorrection);
-        return needsCorrection.needsCorrection;
-    }
-
     Value clampLambda(const Value& lambda, float dt) const
     {
         LambdaClamper l{lambda, dt};
+        details::forEach(constraints, l);
+        return static_cast<Value>(l.manip);
+    }
+
+    Value clampPositionLambda(const Value& lambda) const
+    {
+        PosLambdaClamper l{lambda};
         details::forEach(constraints, l);
         return static_cast<Value>(l.manip);
     }
@@ -148,20 +141,6 @@ public:
         Bias b{bodies};
         details::forEach(constraints, b);
         return static_cast<Value>(b.manip);
-    }
-
-    Value restitution() const
-    {
-        Restitution r{};
-        details::forEach(constraints, r);
-        return static_cast<Value>(r.manip);
-    }
-
-    Value damping() const
-    {
-        Damping d{};
-        details::forEach(constraints, d);
-        return static_cast<Value>(d.manip);
     }
 
     std::tuple<Fs...> constraints;
@@ -238,34 +217,18 @@ private:
         Uint32                      i = 0;
     };
 
-    struct IsActive
+    struct PosLambdaClamper
     {
         template <ConstraintFunction F>
         void operator()(F f)
         {
-            isActive = isActive || f.isActive(manip.extract<F::dimension>(i));
-            i += details::Dimension<F>::value;
+            constexpr Uint32 offset = details::Dimension<F>::value;
+            manip.assign(i, f.clampPositionLambda(manip.extract<offset>(i)));
+            i += offset;
         }
 
         MatrixRowManipulator<Value> manip;
-        Uint32                      i        = 0;
-        bool                        isActive = false;
-    };
-
-    struct NeedsCorrection
-    {
-        template <ConstraintFunction F>
-        void operator()(F f)
-        {
-            needsCorrection
-                = needsCorrection
-                  || f.needsCorrection(manip.extract<F::dimension>(i));
-            i += details::Dimension<F>::value;
-        }
-
-        MatrixRowManipulator<Value> manip;
-        Uint32                      i               = 0;
-        bool                        needsCorrection = false;
+        Uint32                      i = 0;
     };
 
     struct JacobianBuilder
@@ -295,37 +258,11 @@ private:
         MatrixRowManipulator<Value> manip;
         Uint32                      i = 0;
     };
-
-    struct Restitution
-    {
-        template <ConstraintFunction F>
-        void operator()(F f)
-        {
-            manip.assign(i, f.restitution());
-            i += details::Dimension<F>::value;
-        }
-
-        MatrixRowManipulator<Value> manip;
-        Uint32                      i = 0;
-    };
-
-    struct Damping
-    {
-        template <ConstraintFunction F>
-        void operator()(F f)
-        {
-            manip.assign(i, f.damping());
-            i += details::Dimension<F>::value;
-        }
-
-        MatrixRowManipulator<Value> manip;
-        Uint32                      i = 0;
-    };
 };
 
 
 template <Uint32 nBodies_, Uint32 dimension_>
-class ConstraintBase
+class EqualityConstraintFunctionBase
 {
 public:
 
@@ -335,50 +272,43 @@ public:
     typedef Vector<float, dimension>              Value;
     typedef Matrix<float, dimension, 3 * nBodies> Jacobian;
 
-    struct Descriptor
+    typedef const ConstBodies<nBodies>& CBodies;
+
+    EqualityConstraintFunctionBase() = default;
+
+    Value clampLambda(Value lambda, float /* dt */) const { return lambda; }
+    Value clampPositionLambda(Value lambda) const { return lambda; }
+};
+
+template <Uint32 nBodies_, Uint32 dimension_>
+class InequalityConstraintFunctionBase
+{
+public:
+
+    static constexpr Uint32 nBodies   = nBodies_;
+    static constexpr Uint32 dimension = dimension_;
+
+    typedef Vector<float, dimension>              Value;
+    typedef Matrix<float, dimension, 3 * nBodies> Jacobian;
+
+    typedef const ConstBodies<nBodies>& CBodies;
+
+    InequalityConstraintFunctionBase() = default;
+
+    Value clampLambda(Value lambda, float /* dt */) const
     {
-        Value restitution = Value::filled(0.2f);
-        Value damping     = Value::filled(0.f);
-    };
+        return std::max(lambda, Value::filled(0.f));
+    }
 
-    ConstraintBase(const Descriptor& descriptor) : descriptor_{descriptor} {}
-
-    Value restitution() const { return descriptor_.restitution; }
-    Value damping() const { return descriptor_.damping; }
-
-private:
-
-    Descriptor descriptor_;
+    Value clampPositionLambda(Value lambda) const
+    {
+        return std::max(lambda, Value::filled(0.f));
+    }
 };
 
 ////////////////////////////////////////////////////////////
 // Predefined constraint functions
 ////////////////////////////////////////////////////////////
-
-// TODO: Equality, Motor and inequality constraint Base
-
-template <Uint32 nBodies, Uint32 dimension>
-class EqualityConstraintFunctionBase : public ConstraintBase<nBodies, dimension>
-{
-public:
-
-    typedef ConstraintBase<nBodies, dimension> Base;
-    typedef typename Base::Value               Value;
-
-    typedef const ConstBodies<nBodies>& CBodies;
-
-    using Base::Base;
-
-    bool isActive(Base::Value) const { return true; }
-    bool needsCorrection(Base::Value evaluatedTo) const
-    {
-        return any(std::abs(evaluatedTo) > Base::Value::filled(simu::EPSILON));
-    }
-
-    Value bias(CBodies) const { return Value{}; }
-    Value clampLambda(Value lambda, float) const { return lambda; }
-};
-
 
 class RotationConstraintFunction : public EqualityConstraintFunctionBase<2, 1>
 {
@@ -386,10 +316,9 @@ public:
 
     typedef EqualityConstraintFunctionBase<2, 1> Base;
 
-    typedef const ConstBodies<nBodies>& CBodies;
 
-    RotationConstraintFunction(Descriptor descr, const ConstBodies<nBodies>& bodies)
-        : Base{descr}, initialAngle_{angleDiff(bodies)}
+    RotationConstraintFunction(CBodies bodies)
+        : Base{}, initialAngle_{angleDiff(bodies)}
     {
     }
 
@@ -397,6 +326,8 @@ public:
     {
         return angleDiff(bodies) - initialAngle_;
     }
+
+    Value bias(CBodies /* bodies */) const { return Value{}; }
 
     Jacobian jacobian(CBodies) const { return Jacobian{0, 0, -1, 0, 0, 1}; }
 
@@ -417,14 +348,8 @@ public:
 
     typedef EqualityConstraintFunctionBase<2, 2> Base;
 
-    typedef const ConstBodies<nBodies>& CBodies;
-
-    HingeConstraintFunction(
-        Descriptor                  descr,
-        const ConstBodies<nBodies>& bodies,
-        Vec2                        worldSpaceSharedPoint
-    )
-        : Base{descr},
+    HingeConstraintFunction(CBodies bodies, Vec2 worldSpaceSharedPoint)
+        : Base{},
           localSpaceSharedPoint_{
               bodies[0]->toLocalSpace() * worldSpaceSharedPoint,
               bodies[1]->toLocalSpace() * worldSpaceSharedPoint}
@@ -436,6 +361,8 @@ public:
         return bodies[1]->toWorldSpace() * localSpaceSharedPoint_[1]
                - bodies[0]->toWorldSpace() * localSpaceSharedPoint_[0];
     }
+
+    Value bias(CBodies /* bodies */) const { return Value{}; }
 
     Jacobian jacobian(CBodies bodies) const
     {
@@ -469,41 +396,31 @@ private:
 
 
 ////////////////////////////////////////////////////////////
-// Motor Constraints
-////////////////////////////////////////////////////////////
-
-
-////////////////////////////////////////////////////////////
 // Contacts
 ////////////////////////////////////////////////////////////
 
 // TODO: Add a penetration tolerance CombinableProperty in Material,
 //   use position correction when penetration is greater than tolerance.
 class NonPenetrationConstraintFunction
+    : public InequalityConstraintFunctionBase<2, 1>
 {
 public:
 
-    static constexpr Uint32 nBodies   = 2;
-    static constexpr Uint32 dimension = 1;
+    typedef InequalityConstraintFunctionBase<2, 1> Base;
 
-    typedef Vector<float, dimension>              Value;
-    typedef Matrix<float, dimension, 3 * nBodies> Jacobian;
-
-    typedef const ConstBodies<nBodies>& CBodies;
-    typedef ContactManifold<Collider>   Manifold;
+    typedef ContactManifold<Collider> Manifold;
 
     NonPenetrationConstraintFunction(
         CBodies         bodies,
         const Manifold& manifold,
         Uint32          contactIndex
     )
-        : normal_{normalized(manifold.contactNormal)},
+        : Base{}, 
+          normal_{normalized(manifold.contactNormal)},
           reference_{manifold.referenceIndex()},
           incident_{manifold.incidentIndex()},
           restitutionCoefficient_{CombinableProperty{bodies[0]->material().bounciness, 
-                                                     bodies[1]->material().bounciness}.value},
-          maxPenetration_{CombinableProperty{bodies[0]->material().penetration, 
-                                             bodies[1]->material().penetration}.value}
+                                                     bodies[1]->material().bounciness}.value}
     {
         localSpaceContacts_[incident_] = bodies[incident_]->toLocalSpace()
                                          * manifold.contacts[contactIndex];
@@ -523,13 +440,6 @@ public:
         auto contacts = worldSpaceContacts(bodies);
         Vec2 relPos   = contacts[incident_] - contacts[reference_];
         return Value{dot(relPos, normal_)};
-    }
-
-    bool isActive(Value evaluatedTo) const { return evaluatedTo[0] < 0.f; }
-
-    bool needsCorrection(Value evaluatedTo) const
-    {
-        return evaluatedTo[0] < -maxPenetration_;
     }
 
     // TODO: Constraint implementation will need to recompute the bias...?
@@ -565,22 +475,6 @@ public:
 
         return J;
     }
-
-    Value clampLambda(Value lambda, float /* dt */) const
-    {
-        return std::max(Value{0}, lambda);
-    }
-
-    Value restitution() const
-    {
-        return Value{0.f}; // TODO: just use constraint base
-    }
-
-    Value damping() const
-    {
-        return Value{0.f}; // TODO:
-    }
-
 
 private:
 
@@ -641,10 +535,6 @@ public:
     }
 
     Value eval(CBodies /* bodies */) const { return Value{}; }
-
-    bool isActive(Value /* evaluatedTo */) const { return true; }
-    bool needsCorrection(Value /* evaluatedTo */) const { return false; }
-
     Value bias(CBodies /* bodies */) const { return Value{}; }
 
     Jacobian jacobian(CBodies bodies) const
@@ -679,17 +569,7 @@ public:
         return clampLambda(lambda, dt, Value{lambdaNormal[0] + lambdaNormal[1]});
     }
 
-
-    Value restitution() const
-    {
-        return Value{0.f}; // TODO: just use constraint base
-    }
-
-    Value damping() const
-    {
-        return Value{0.f}; // TODO:
-    }
-
+    Value clampPositionLambda(Value /* lambda */) const { return Value{}; }
 
 private:
 
