@@ -26,6 +26,7 @@
 
 #include "Simu/config.hpp"
 #include "Simu/math/Geometry.hpp"
+#include "Simu/math/BarycentricCoordinates.hpp"
 #include "Simu/utility/PointerArray.hpp"
 
 namespace simu
@@ -39,8 +40,8 @@ public:
 
     typedef typename typename Edges<T>::Edge Edge;
 
-    std::array<Vertex, 2> contacts; // are on the incident face
-    Uint32                nContacts = 0;
+    std::array<std::array<Vertex, 2>, 2> contacts;
+    Uint32                            nContacts = 0;
 
     Vec2 contactNormal; // points outwards of the reference body
 
@@ -96,14 +97,21 @@ private:
 
         Vertex contact1 = contactEdges[inc].clipInside(previousOfRef);
         if (dot(contact1 - contactEdges[ref].from(), n) > 0.f)
-            contacts[nContacts++] = contact1;
+            contacts[inc][nContacts++] = contact1;
 
         Vertex contact2 = contactEdges[inc].clipInside(nextOfRef);
         if (dot(contact2 - contactEdges[ref].from(), n) > 0.f)
         {
-            contacts[nContacts++] = contact2;
-            if (all(contacts[0] == contacts[1]))
+            contacts[inc][nContacts++] = contact2;
+            if (all(contacts[inc][0] == contacts[inc][1]))
                 --nContacts;
+        }
+
+        for (Uint32 i = 0; i < nContacts; ++i)
+        {
+            contacts[ref][i]
+                = LineBarycentric{contactEdges[ref].from(), contactEdges[ref].to(), contacts[inc][i]}
+                      .closestPoint;
         }
     }
 

@@ -415,65 +415,50 @@ public:
         Uint32          contactIndex
     )
         : Base{}, 
-          normal_{normalized(manifold.contactNormal)},
-          reference_{manifold.referenceIndex()},
-          incident_{manifold.incidentIndex()},
+          normal_{(manifold.incidentIndex() == 0 ? 1.f:-1.f) * normalized(manifold.contactNormal)},
           restitutionCoefficient_{CombinableProperty{bodies[0]->material().bounciness, 
                                                      bodies[1]->material().bounciness}.value}
     {
-        localSpaceContacts_[incident_] = bodies[incident_]->toLocalSpace()
-                                         * manifold.contacts[contactIndex];
+        localSpaceContacts_[0]
+            = bodies[0]->toLocalSpace() * manifold.contacts[0][contactIndex];
 
-        // TODO: The manifold should compute this on his own
-        auto refEdge = manifold.contactEdges[reference_];
-        Vec2 worldSpaceRefContact
-            = LineBarycentric{refEdge.from(), refEdge.to(), manifold.contacts[contactIndex]}
-                  .closestPoint;
-
-        localSpaceContacts_[reference_]
-            = bodies[reference_]->toLocalSpace() * worldSpaceRefContact;
+        localSpaceContacts_[1]
+            = bodies[1]->toLocalSpace() * manifold.contacts[1][contactIndex];
     }
 
     Value eval(CBodies bodies) const
     {
         auto contacts = worldSpaceContacts(bodies);
-        Vec2 relPos   = contacts[incident_] - contacts[reference_];
+        Vec2 relPos   = contacts[0] - contacts[1];
         return Value{dot(relPos, normal_)};
     }
 
-    // TODO: Constraint implementation will need to recompute the bias...?
     Value bias(CBodies bodies) const
     {
-        // TODO: Restitution coefficients will be held in the bodies' material,
-        //      may not need to save this as member.
+        auto penetratingRelVelocity
+            = jacobian(bodies)
+              * ConstraintSolver<NonPenetrationConstraintFunction>::velocity(bodies
+              );
 
-        auto penetratingVelocity
-            = ConstraintSolver<NonPenetrationConstraintFunction>::velocity(bodies)
-              - accumulatedDv;
-        return restitutionCoefficient_ * jacobian(bodies) * penetratingVelocity;
+        return restitutionCoefficient_
+               * (penetratingRelVelocity - accumulatedRelVel);
     }
 
     Jacobian jacobian(CBodies bodies) const
     {
-        auto     contacts = worldSpaceContacts(bodies);
-        Jacobian J;
+        auto contacts = worldSpaceContacts(bodies);
 
-        J[3 * incident_]     = normal_[0];
-        J[3 * incident_ + 1] = normal_[1];
-        J[3 * incident_ + 2] = cross(
-            contacts[incident_] - bodies[incident_]->properties().centroid,
-            normal_
-        );
+        Jacobian J{
+            normal_[0],
+            normal_[1],
+            cross(contacts[0] - bodies[0]->properties().centroid, normal_),
+            -normal_[0],
+            -normal_[1],
+            -cross(contacts[1] - bodies[1]->properties().centroid, normal_)};
 
-        J[3 * reference_]     = -normal_[0];
-        J[3 * reference_ + 1] = -normal_[1];
-        J[3 * reference_ + 2]
-            = cross(normal_, contacts[incident_] - contacts[reference_])
-              - cross(
-                  contacts[reference_]
-                      - bodies[reference_]->properties().centroid,
-                  normal_
-              );
+
+        // This must be added to J[3*reference_ +2] for the complete equation
+        //  cross(normal_, contacts[incident_] - contacts[reference_])
 
         return J;
     }
@@ -490,14 +475,12 @@ private:
     // TODO: Careful that these are updated between timesteps
     std::array<Vec2, 2> localSpaceContacts_;
     Vec2                normal_;
-    Uint32              reference_;
-    Uint32              incident_;
 
     float restitutionCoefficient_;
 
 public:
 
-    Vector<float, 6> accumulatedDv{};
+    Value accumulatedRelVel{};
 };
 
 
@@ -523,16 +506,10 @@ public:
                                                   bodies[1]->material().friction}.value}
     {
         localSpaceContacts_[0]
-            = bodies[0]->toLocalSpace() * manifold.contacts[0];
-
-        // TODO: The manifold should compute this on his own
-        auto refEdge = manifold.contactEdges[manifold.referenceIndex()];
-        Vec2 worldSpaceRefContact
-            = LineBarycentric{refEdge.from(), refEdge.to(), manifold.contacts[0]}
-                  .closestPoint;
+            = bodies[0]->toLocalSpace() * manifold.contacts[0][0];
 
         localSpaceContacts_[1]
-            = bodies[1]->toLocalSpace() * worldSpaceRefContact;
+            = bodies[1]->toLocalSpace() * manifold.contacts[1][0];
     }
 
     Value eval(CBodies /* bodies */) const { return Value{}; }

@@ -237,8 +237,9 @@ public:
     void solveVelocities(float dt) override
     {
         Base::solveVelocities(dt);
-        std::get<0>(f.constraints).accumulatedDv
-            = solver.getInverseMass() * solver.getJacobian().asRows()[0]
+        auto J = solver.getJacobian().asRows()[0];
+        std::get<0>(f.constraints).accumulatedRelVel
+            = transpose(J) * solver.getInverseMass() * J
               * solver.getAccumulatedLambda()[0];
     }
 
@@ -271,16 +272,16 @@ public:
     void solveVelocities(float dt) override
     {
         Base::solveVelocities(dt);
-        auto accumulatedDv
-            = solver.getInverseMass()
-              * Matrix<float, 6, 2>::fromCols(
-                  {solver.getJacobian().asRows()[0],
-                   solver.getJacobian().asRows()[1]}
-              )
-              * Vec2{solver.getAccumulatedLambda()[0], solver.getAccumulatedLambda()[1]};
+        auto J = Matrix<float, 6, 2>::fromCols(
+            {solver.getJacobian().asRows()[0], solver.getJacobian().asRows()[1]}
+        );
+        auto accumulatedRelVel = transpose(J) * solver.getInverseMass()
+                             * J* Vec2{
+                                 solver.getAccumulatedLambda()[0],
+                                 solver.getAccumulatedLambda()[1]};
 
-        std::get<0>(f.constraints).accumulatedDv = accumulatedDv;
-        std::get<1>(f.constraints).accumulatedDv = accumulatedDv;
+        std::get<0>(f.constraints).accumulatedRelVel[0] = accumulatedRelVel[0];
+        std::get<1>(f.constraints).accumulatedRelVel[0] = accumulatedRelVel[1];
     }
 
 private:
@@ -310,6 +311,7 @@ struct Contact
     {
         return makeManifold(makeGjk());
     }
+
     ContactManifold<Collider> makeManifold(const Gjk<Collider>& gjk) const
     {
         return ContactManifold<Collider>{
@@ -358,7 +360,7 @@ public:
     }
 
     void initSolve(float dt) override { contactConstraint_->initSolve(dt); }
-    
+
     void solveVelocities(float dt) override
     {
         contactConstraint_->solveVelocities(dt);
