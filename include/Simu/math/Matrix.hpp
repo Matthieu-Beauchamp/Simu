@@ -225,6 +225,8 @@ public:
     template <class U>
     Vector<Promoted<T, U>, n> solve(const Vector<U, n>& b) const;
 
+    Matrix<T, n, n> original() const { return transpose(QT_) * R_; }
+
     bool isValid() const { return isValid_; }
 
 private:

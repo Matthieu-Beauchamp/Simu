@@ -142,6 +142,29 @@ TEST_CASE("Matrix")
                         .contains(Vec2::i())));
     }
 
+    SECTION("Solver (encountered issues)")
+    {
+        // clang-format off
+        Mat3 A{
+            2.5f,  -0.5f,  1.5f,
+            -0.5f, 2.5f,  -1.5f,
+            1.5f,  -1.5f,  2.5f,
+        };
+        // clang-format on
+
+        Vec3 b{0.2f, 0.2f, 0.f};
+
+        Solver<float, 3> solver{A};
+        Mat3             original = solver.original();
+        REQUIRE(all(approx(original, Mat3::filled(EPSILON)).contains(A)));
+
+        Vec3 x = solver.solve(b);
+
+        REQUIRE(
+            all(approx(x, Vec3::filled(EPSILON)).contains(Vec3{0.1f, 0.1f, 0.f}))
+        );
+    }
+
     SECTION("Vector operations")
     {
         REQUIRE(all(cross(Vec3::i(), Vec3::j()) == Vec3::k()));

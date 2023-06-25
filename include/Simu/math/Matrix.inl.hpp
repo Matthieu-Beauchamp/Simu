@@ -400,7 +400,7 @@ Vector<Promoted<T, U>, n> Solver<T, n>::solve(const Vector<U, n>& b) const
 
     for (Uint32 row = n; row > 0; --row)
     {
-        for (Uint32 col = row + 1; col < n; ++col)
+        for (Uint32 col = row; col < n; ++col)
         {
             c[row - 1] -= R_(row - 1, col) * x[col];
         }
