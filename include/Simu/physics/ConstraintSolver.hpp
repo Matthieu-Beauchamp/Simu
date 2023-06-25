@@ -111,7 +111,8 @@ public:
 
         lambda_ = Value{};
         J_      = f.jacobian(bodies);
-        solver_ = J_ * invMass_ * transpose(J_) + KMatrix::diagonal(damping());
+        auto K = J_ * invMass_ * transpose(J_) + KMatrix::diagonal(damping());
+        solver_ = Solver{K};
         SIMU_ASSERT(solver_.isValid(), "Constraint cannot be solved");
     }
 

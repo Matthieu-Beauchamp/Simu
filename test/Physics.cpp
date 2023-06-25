@@ -740,6 +740,41 @@ TEST_CASE("Physics")
         REQUIRE(world.forceFields().empty());
     }
 
+    SECTION("Box stack")
+    {
+        PhysicsWorld world{};
+        world.makeForceField<Gravity>(Vec2{0.f, -10.f});
+
+        auto makeBox = [&](Int32 index, float dominance = 1.f) -> PhysicsBody* {
+            BodyDescriptor descr{squareDescriptor};
+            descr.position[1]             = index;
+            descr.dominance               = dominance;
+            descr.material.friction.value = 0.5f;
+            return world.makeBody(descr);
+        };
+
+        PhysicsBody* floor = makeBox(-1, 0.f);
+
+        constexpr Int32                  nBoxes = 10;
+        std::array<PhysicsBody*, nBoxes> boxes{};
+
+        Int32 i = 0;
+        for (auto& box : boxes)
+            box = makeBox(i++);
+
+        for (Uint32 steps = 0; steps < 100; ++steps)
+        {
+            world.step(0.01f);
+        }
+
+        i = 0;
+        for (const PhysicsBody* box : boxes)
+        {
+            REQUIRE(all(approx(box->properties().centroid, Vec2::filled(0.01f))
+                            .contains(Vec2{0.5f, 0.5f + i++})));
+        }
+    }
+
     SECTION("Ranges types")
     {
         PhysicsWorld        world{};

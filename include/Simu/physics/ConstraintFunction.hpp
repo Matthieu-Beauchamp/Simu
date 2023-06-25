@@ -399,8 +399,7 @@ private:
 // Contacts
 ////////////////////////////////////////////////////////////
 
-// TODO: Add a penetration tolerance CombinableProperty in Material,
-//   use position correction when penetration is greater than tolerance.
+// TODO: Simply invert normal_ instead of storing incident and reference indices
 class NonPenetrationConstraintFunction
     : public InequalityConstraintFunctionBase<2, 1>
 {
@@ -468,10 +467,13 @@ public:
 
         J[3 * reference_]     = -normal_[0];
         J[3 * reference_ + 1] = -normal_[1];
-        J[3 * reference_ + 2] = -cross(
-            contacts[reference_] - bodies[reference_]->properties().centroid,
-            normal_
-        );
+        J[3 * reference_ + 2]
+            = cross(normal_, contacts[incident_] - contacts[reference_])
+              - cross(
+                  contacts[reference_]
+                      - bodies[reference_]->properties().centroid,
+                  normal_
+              );
 
         return J;
     }
@@ -492,7 +494,6 @@ private:
     Uint32              incident_;
 
     float restitutionCoefficient_;
-    float maxPenetration_;
 
 public:
 
