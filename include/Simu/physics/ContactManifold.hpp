@@ -41,7 +41,7 @@ public:
     typedef typename typename Edges<T>::Edge Edge;
 
     std::array<std::array<Vertex, 2>, 2> contacts;
-    Uint32                            nContacts = 0;
+    Uint32                               nContacts = 0;
 
     Vec2 contactNormal; // points outwards of the reference body
 
@@ -64,18 +64,21 @@ public:
     ContactManifold(const PointerArray<T, 2, true>& bodies, Vec2 mtv)
         : bodies{bodies}, contactEdges{computeContactEdges(bodies, mtv)}
     {
-        float e1Coeff = dot(contactEdges[0].normalizedNormal(), mtv);
-        float e2Coeff = dot(contactEdges[1].normalizedNormal(), -mtv);
+        Vec2 normal1 = contactEdges[0].normalizedNormal();
+        Vec2 normal2 = contactEdges[1].normalizedNormal();
+
+        float e1Coeff = dot(normal1, mtv);
+        float e2Coeff = dot(normal2, -mtv);
 
         if (e1Coeff > e2Coeff)
         {
             referenceIndex_ = 0;
-            contactNormal   = mtv;
+            contactNormal   = normal1;
         }
         else
         {
             referenceIndex_ = 1;
-            contactNormal   = -mtv;
+            contactNormal   = normal2;
         }
 
         computeContacts();

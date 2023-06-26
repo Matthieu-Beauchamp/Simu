@@ -399,7 +399,6 @@ private:
 // Contacts
 ////////////////////////////////////////////////////////////
 
-// TODO: Simply invert normal_ instead of storing incident and reference indices
 class NonPenetrationConstraintFunction
     : public InequalityConstraintFunctionBase<2, 1>
 {
@@ -426,11 +425,15 @@ public:
             = bodies[1]->toLocalSpace() * manifold.contacts[1][contactIndex];
     }
 
-    Value eval(CBodies bodies) const
+    Vec2 contactDistance(CBodies bodies) const
     {
         auto contacts = worldSpaceContacts(bodies);
-        Vec2 relPos   = contacts[0] - contacts[1];
-        return Value{dot(relPos, normal_)};
+        return contacts[0] - contacts[1];
+    }
+
+    Value eval(CBodies bodies) const
+    {
+        return Value{dot(contactDistance(bodies), normal_)};
     }
 
     Value bias(CBodies bodies) const

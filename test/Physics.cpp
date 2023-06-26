@@ -715,6 +715,53 @@ TEST_CASE("Physics")
         REQUIRE(world.forceFields().empty());
     }
 
+    SECTION("Contact constraint divergence issue")
+    {
+        PhysicsWorld world{};
+
+        BodyDescriptor groundDescr{
+            Polygon{
+                    Vec2{-5.f, -1.f},
+                    Vec2{5.f, -1.f},
+                    Vec2{5.f, 0.f},
+                    Vec2{-5.f, 0.f}}
+        };
+
+        groundDescr.dominance = 0.f;
+
+        auto ground  = world.makeBody(groundDescr);
+        auto gravity = world.makeForceField<Gravity>(Vec2{0, -10.f});
+
+        std::vector<Vec2> points;
+        Uint32            nPoints = 24;
+        for (Uint32 i = 0; i < nPoints; ++i)
+        {
+            float theta = i * 2 * pi / nPoints;
+            points.emplace_back(0.5f * Vec2{std::cos(theta), std::sin(theta)});
+        }
+
+        Material material{};
+        material.friction.value = 1.f;
+
+        BodyDescriptor wheelDescr{
+            Polygon{points.begin(), points.end()},
+            material,
+            Vec2{1.06283140f,    0.494556785f},
+            -0.132951573
+        };
+
+        auto wheel               = world.makeBody(wheelDescr);
+        wheel->velocity()        = Vec2{0.563797712f, -0.153355882f};
+        wheel->angularVelocity() = -1.12384140f;
+
+        world.step(0.01f);
+
+        // exact values are not important here, currently the velocity diverges to ~{0, 3}
+        REQUIRE(all(approx(wheel->velocity(), Vec2::filled(0.01f))
+                        .contains(Vec2{0.56f, 0.f})));
+    }
+
+
     SECTION("Box stack")
     {
         PhysicsWorld world{};
@@ -745,8 +792,16 @@ TEST_CASE("Physics")
         i = 0;
         for (const PhysicsBody* box : boxes)
         {
-            REQUIRE(all(approx(box->properties().centroid, Vec2::filled(0.01f))
-                            .contains(Vec2{0.5f, 0.5f + i++})));
+            float h = static_cast<float>(i++);
+
+            REQUIRE(approx(box->orientation(), simu::EPSILON).contains(0.f));
+            REQUIRE(approx(box->angularVelocity(), simu::EPSILON).contains(0.f));
+
+            REQUIRE(approx(box->position()[0], simu::EPSILON).contains(0.f));
+            REQUIRE(approx(box->position()[1], 0.001f).contains(h));
+
+            REQUIRE(approx(box->velocity()[0], simu::EPSILON).contains(0.f));
+            REQUIRE(approx(box->velocity()[1], 0.001f).contains(0.f));
         }
     }
 

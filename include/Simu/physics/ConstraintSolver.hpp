@@ -90,45 +90,36 @@ public:
     typedef Solver<float, dimension>            KSolver;
 
 
-    ConstraintSolver(CBodies bodies, const F& f, const Dominance& dominance)
+    ConstraintSolver(Bodies bodies, const F& f, const Dominance& dominance)
         : invMass_{inverseMass(bodies, dominance)}, solver_{KMatrix{}}
     {
-        initSolve(bodies, f);
+        initSolver(bodies, f);
     }
 
-    void initSolve(CBodies bodies, const F& f)
+    void initSolve(Bodies bodies, const F& f, float dt)
     {
-        // TODO: Apply guess based on previous lambda
-        // if (warmStarting)
-        //      solver.applyImpulse(oldJacobian, oldLambda*dt/oldDt)
-        //
-        // ConstraintSolver::apply(
-        //     bodies_,
-        //     ConstraintSolver::impulse<F::dimension, F::nBodies>(jacobian_, lambda_)
-        // );
-        //
-        // Careful! motor constraints should not apply twice!
+        initSolver(bodies, f);
 
-        lambda_ = Value{};
-        J_      = f.jacobian(bodies);
-        auto K = J_ * invMass_ * transpose(J_) + KMatrix::diagonal(damping());
-        solver_ = Solver{K};
-        SIMU_ASSERT(solver_.isValid(), "Constraint cannot be solved");
+        lambda_ = f.clampLambda(lambda_, dt);
+        applyImpulse(bodies, impulse(J_, lambda_));
     }
 
     void solveVelocity(Bodies bodies, const F& f, float dt)
     {
-        Value rhs
-            = -(J_ * velocity(bodies) + f.bias(bodies)
-                + KMatrix::diagonal(restitution()) * f.eval(bodies) / dt
-                + KMatrix::diagonal(damping()) * lambda_);
+        Value error = J_ * velocity(bodies);
+        Value bias  = f.bias(bodies);
+        Value baumgarteStabilization
+            = KMatrix::diagonal(restitution()) * f.eval(bodies) / dt;
+        Value previousDamping = KMatrix::diagonal(damping()) * lambda_;
+
+        Value rhs = -(error + bias + baumgarteStabilization + previousDamping);
 
         Value dLambda   = solver_.solve(rhs);
         Value oldLambda = lambda_;
         lambda_ += dLambda;
         lambda_ = f.clampLambda(lambda_, dt);
 
-        applyImpulse(bodies, impulse(f.jacobian(bodies), lambda_ - oldLambda));
+        applyImpulse(bodies, impulse(J_, lambda_ - oldLambda));
     }
 
     void applyImpulse(Bodies bodies, const Impulse& impulse) const
@@ -224,8 +215,17 @@ public:
     MassMatrix getInverseMass() const { return invMass_; }
     Jacobian   getJacobian() const { return J_; }
     Value      getAccumulatedLambda() const { return lambda_; }
+    void       setLambdaHint(Value lambda) { lambda_ = lambda; }
 
 private:
+
+    void initSolver(CBodies bodies, const F& f)
+    {
+        J_      = f.jacobian(bodies);
+        auto K  = J_ * invMass_ * transpose(J_) + KMatrix::diagonal(damping());
+        solver_ = Solver{K};
+        SIMU_ASSERT(solver_.isValid(), "Constraint cannot be solved");
+    }
 
     MassMatrix invMass_;
     KSolver    solver_;

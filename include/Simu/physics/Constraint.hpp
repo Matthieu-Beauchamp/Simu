@@ -55,8 +55,8 @@ public:
 //  make the solver an owned object.
 // Add support for NGS stabilization (while keeping Baumgarde for springs?)
 //
-template <ConstraintFunction F>
-class ConstraintImplementation : public Constraint
+template <ConstraintFunction F, class Base = Constraint>
+class ConstraintImplementation : public Base
 {
 public:
 
@@ -91,7 +91,7 @@ public:
 
     bool isActive() override { return true; }
 
-    void initSolve(float /* dt */) override { solver.initSolve(bodies_, f); }
+    void initSolve(float dt) override { solver.initSolve(bodies_, f, dt); }
 
     void solveVelocities(float dt) override
     {
@@ -220,18 +220,38 @@ private:
 };
 
 
-class SingleContactConstraint
-    : public ConstraintImplementation<SingleContactFunction>
+class ContactConstraintI : public Constraint
 {
 public:
 
-    typedef ConstraintImplementation<SingleContactFunction> Base;
+    typedef ContactManifold<Collider> Manifold;
+    typedef const ConstBodies<2>&     CBodies;
+
+    virtual bool isContactValid(CBodies bodies, float maxPen) const = 0;
+
+    virtual void update(CBodies bodies, const Manifold& manifold) = 0;
+    virtual Vec2 lambdaHint() const                               = 0;
+
+    virtual Uint32 nContacts() const = 0;
+};
+
+class SingleContactConstraint
+    : public ConstraintImplementation<SingleContactFunction, ContactConstraintI>
+{
+public:
+
+    typedef ConstraintImplementation<SingleContactFunction, ContactConstraintI> Base;
 
     typedef ContactManifold<Collider> Manifold;
 
-    SingleContactConstraint(const Bodies<2>& bodies, const Manifold& manifold)
+    SingleContactConstraint(
+        const Bodies<2>& bodies,
+        const Manifold&  manifold,
+        Vec2             lambdaHint
+    )
         : Base{bodies, makeFunction(bodies, manifold), false, std::nullopt}
     {
+        solver.setLambdaHint(lambdaHint);
     }
 
     void solveVelocities(float dt) override
@@ -242,6 +262,21 @@ public:
             = transpose(J) * solver.getInverseMass() * J
               * solver.getAccumulatedLambda()[0];
     }
+
+    bool isContactValid(CBodies bodies, float maxPen) const override
+    {
+        return normSquared(std::get<0>(f.constraints).contactDistance(bodies))
+               < maxPen * maxPen;
+    }
+
+    void update(CBodies bodies, const Manifold& manifold) override
+    {
+        f = makeFunction(bodies, manifold);
+    }
+
+    Vec2 lambdaHint() const override { return solver.getAccumulatedLambda(); }
+
+    Uint32 nContacts() const override { return 1; }
 
 private:
 
@@ -256,17 +291,24 @@ private:
 };
 
 class DoubleContactConstraint
-    : public ConstraintImplementation<DoubleContactFunction>
+    : public ConstraintImplementation<DoubleContactFunction, ContactConstraintI>
 {
 public:
 
-    typedef ConstraintImplementation<DoubleContactFunction> Base;
+    typedef ConstraintImplementation<DoubleContactFunction, ContactConstraintI> Base;
 
     typedef ContactManifold<Collider> Manifold;
 
-    DoubleContactConstraint(const Bodies<2>& bodies, const Manifold& manifold)
+    DoubleContactConstraint(
+        const Bodies<2>& bodies,
+        const Manifold&  manifold,
+        Vec2             lambdaHint
+    )
         : Base{bodies, makeFunction(bodies, manifold), false, std::nullopt}
     {
+        solver.setLambdaHint(
+            Vec3{lambdaHint[0] / 2, lambdaHint[0] / 2, lambdaHint[1]}
+        );
     }
 
     void solveVelocities(float dt) override
@@ -276,13 +318,38 @@ public:
             {solver.getJacobian().asRows()[0], solver.getJacobian().asRows()[1]}
         );
         auto accumulatedRelVel = transpose(J) * solver.getInverseMass()
-                             * J* Vec2{
-                                 solver.getAccumulatedLambda()[0],
-                                 solver.getAccumulatedLambda()[1]};
+                                 * J* Vec2{
+                                     solver.getAccumulatedLambda()[0],
+                                     solver.getAccumulatedLambda()[1]};
 
         std::get<0>(f.constraints).accumulatedRelVel[0] = accumulatedRelVel[0];
         std::get<1>(f.constraints).accumulatedRelVel[0] = accumulatedRelVel[1];
     }
+
+    bool isContactValid(CBodies bodies, float maxPen) const override
+    {
+        bool firstIsValid
+            = normSquared(std::get<0>(f.constraints).contactDistance(bodies))
+              < maxPen * maxPen;
+        bool secondIsValid
+            = normSquared(std::get<1>(f.constraints).contactDistance(bodies))
+              < maxPen * maxPen;
+        return firstIsValid && secondIsValid;
+    }
+
+
+    void update(CBodies bodies, const Manifold& manifold) override
+    {
+        f = makeFunction(bodies, manifold);
+    }
+
+    Vec2 lambdaHint() const override
+    {
+        Vec3 lambda = solver.getAccumulatedLambda();
+        return Vec2{lambda[0] + lambda[1], lambda[2]};
+    }
+
+    Uint32 nContacts() const override { return 2; }
 
 private:
 
@@ -342,19 +409,7 @@ public:
 
     bool isActive() override
     {
-        auto gjk     = contact_.makeGjk();
-        penetration_ = gjk.penetration();
-
-        float maxPen = CombinableProperty{
-            contact_.bodies[0]->material().penetration,
-            contact_.bodies[1]->material().penetration
-        }.value;
-
-        if (normSquared(penetration_) < maxPen * maxPen)
-            return false;
-
-        auto manifold      = contact_.makeManifold(gjk);
-        contactConstraint_ = makeContactConstraint(manifold);
+        updateContact();
 
         return contactConstraint_ != nullptr && contactConstraint_->isActive();
     }
@@ -374,24 +429,65 @@ public:
 
 private:
 
-    Contact                     contact_;
-    std::unique_ptr<Constraint> contactConstraint_ = nullptr;
-    Vec2                        penetration_;
+    Contact                             contact_;
+    std::unique_ptr<ContactConstraintI> contactConstraint_ = nullptr;
 
-    std::unique_ptr<Constraint>
-    makeContactConstraint(const ContactManifold<Collider>& manifold)
+    void updateContact()
+    {
+        auto gjk         = contact_.makeGjk();
+        Vec2 penetration = gjk.penetration();
+
+        float maxPen = CombinableProperty{
+            contact_.bodies[0]->material().penetration,
+            contact_.bodies[1]->material().penetration
+        }.value;
+
+        bool hasNoConstraint = (contactConstraint_ == nullptr);
+
+        bool canComputeNewManifold = normSquared(penetration) >= maxPen * maxPen;
+        if (!canComputeNewManifold)
+        {
+            if (!hasNoConstraint
+                && !contactConstraint_->isContactValid(contact_.bodies, maxPen))
+                contactConstraint_ = nullptr;
+
+            return;
+        }
+
+        auto manifold = contact_.makeManifold(gjk);
+
+        if (hasNoConstraint
+            || (manifold.nContacts != contactConstraint_->nContacts()))
+        {
+            contactConstraint_ = makeContactConstraint(
+                manifold,
+                hasNoConstraint ? Vec2{} : contactConstraint_->lambdaHint()
+            );
+        }
+        else
+        {
+            contactConstraint_->update(contact_.bodies, manifold);
+        }
+    }
+
+    std::unique_ptr<ContactConstraintI> makeContactConstraint(
+        const ContactManifold<Collider>& manifold,
+        Vec2                             lambdaHint = Vec2{}
+    )
     {
         switch (manifold.nContacts)
         {
             case 1:
                 return std::make_unique<SingleContactConstraint>(
                     contact_.bodies,
-                    manifold
+                    manifold,
+                    lambdaHint
                 );
             case 2:
                 return std::make_unique<DoubleContactConstraint>(
                     contact_.bodies,
-                    manifold
+                    manifold,
+                    lambdaHint
                 );
             default: return nullptr;
         }
