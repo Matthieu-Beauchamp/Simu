@@ -25,7 +25,7 @@
 #pragma once
 
 #include "Simu/config.hpp"
-
+#include "Simu/math/Matrix.hpp"
 #include "Simu/utility/PointerArray.hpp"
 
 namespace simu
@@ -65,10 +65,12 @@ concept ConstraintFunction = requires(
 };
 
 
-template <ConstraintFunction F>
-class ConstraintSolver
+template <ConstraintFunction F_>
+class ConstraintSolverBase
 {
 public:
+
+    typedef F_ F;
 
     static constexpr Uint32 nBodies   = F::nBodies;
     static constexpr Uint32 dimension = F::dimension;
@@ -87,39 +89,41 @@ public:
     typedef Vector<float, nBodies>                  Dominance;
 
     typedef Matrix<float, dimension, dimension> KMatrix;
-    typedef Solver<float, dimension>            KSolver;
 
 
-    ConstraintSolver(Bodies bodies, const F& f, const Dominance& dominance)
-        : invMass_{inverseMass(bodies, dominance)}, solver_{KMatrix{}}
+    ConstraintSolverBase(Bodies bodies, const F& f, const Dominance& dominance)
+        : invMass_{inverseMass(bodies, dominance)}
     {
-        initSolver(bodies, f);
     }
 
-    void initSolve(Bodies bodies, const F& f, float dt)
-    {
-        initSolver(bodies, f);
+    Value&       restitution() { return restitution_; }
+    const Value& restitution() const { return restitution_; }
 
-        lambda_ = f.clampLambda(lambda_, dt);
-        applyImpulse(bodies, impulse(J_, lambda_));
+    Value&       damping() { return damping_; }
+    const Value& damping() const { return damping_; }
+
+    KMatrix computeEffectiveMass(CBodies bodies, const F& f, bool addDamping)
+    {
+        J_                    = f.jacobian(bodies);
+        KMatrix effectiveMass = J_ * invMass_ * transpose(J_);
+
+        if (addDamping)
+            effectiveMass += KMatrix::diagonal(damping());
+
+        return effectiveMass;
     }
 
-    void solveVelocity(Bodies bodies, const F& f, float dt)
+    Value computeRhs(CBodies bodies, const F& f, float dt, bool addDamping) const
     {
         Value error = J_ * velocity(bodies);
         Value bias  = f.bias(bodies);
         Value baumgarteStabilization
             = KMatrix::diagonal(restitution()) * f.eval(bodies) / dt;
-        Value previousDamping = KMatrix::diagonal(damping()) * lambda_;
 
-        Value rhs = -(error + bias + baumgarteStabilization + previousDamping);
+        Value previousDamping
+            = addDamping ? KMatrix::diagonal(damping()) * lambda_ : Value{};
 
-        Value dLambda   = solver_.solve(rhs);
-        Value oldLambda = lambda_;
-        lambda_ += dLambda;
-        lambda_ = f.clampLambda(lambda_, dt);
-
-        applyImpulse(bodies, impulse(J_, lambda_ - oldLambda));
+        return -(error + bias + baumgarteStabilization + previousDamping);
     }
 
     void applyImpulse(Bodies bodies, const Impulse& impulse) const
@@ -134,17 +138,13 @@ public:
         }
     }
 
-    void solvePosition(Bodies bodies, const F& f)
+    void updateLambda(Bodies bodies, const F& f, float dt, Value dLambda)
     {
-        Value error = f.eval(bodies);
+        Value oldLambda = lambda_;
+        lambda_ += dLambda;
+        lambda_ = f.clampLambda(lambda_, dt);
 
-        Jacobian J = f.jacobian(bodies);
-        solver_    = KSolver{J * invMass_ * transpose(J)};
-
-        Value posLambda          = f.clampPositionLambda(solver_.solve(-error));
-        State positionCorrection = invMass_ * transpose(J) * posLambda;
-
-        applyPositionCorrection(bodies, positionCorrection);
+        applyImpulse(bodies, impulse(J_, lambda_ - oldLambda));
     }
 
     void applyPositionCorrection(Bodies bodies, const State& correction) const
@@ -159,17 +159,6 @@ public:
             i += 3;
         }
     }
-
-    Value&       restitution() { return restitution_; }
-    const Value& restitution() const { return restitution_; }
-
-    Value&       damping() { return damping_; }
-    const Value& damping() const { return damping_; }
-
-
-    ////////////////////////////////////////////////////////////
-    // Static methods
-    ////////////////////////////////////////////////////////////
 
     static Velocity velocity(CBodies bodies)
     {
@@ -206,12 +195,6 @@ public:
         return transpose(J) * lambda;
     }
 
-    static KSolver makeSolver(const KMatrix& K) { return Solver{K}; }
-
-    ////////////////////////////////////////////////////////////
-    // Unusual
-    ////////////////////////////////////////////////////////////
-
     MassMatrix getInverseMass() const { return invMass_; }
     Jacobian   getJacobian() const { return J_; }
     Value      getAccumulatedLambda() const { return lambda_; }
@@ -219,16 +202,7 @@ public:
 
 private:
 
-    void initSolver(CBodies bodies, const F& f)
-    {
-        J_      = f.jacobian(bodies);
-        auto K  = J_ * invMass_ * transpose(J_) + KMatrix::diagonal(damping());
-        solver_ = Solver{K};
-        SIMU_ASSERT(solver_.isValid(), "Constraint cannot be solved");
-    }
-
     MassMatrix invMass_;
-    KSolver    solver_;
 
     Value    lambda_{};
     Jacobian J_{};
@@ -237,5 +211,181 @@ private:
     Value damping_{};
 };
 
+template <class S>
+concept ConstraintSolver = requires(
+    S                  s,
+    typename S::Bodies bodies,
+    typename S::F      f,
+    float              dt
+) {
+    // clang-format off
+    typename S::F;
+    ConstraintFunction<typename S::F>;
+
+    std::derived_from<S, ConstraintSolverBase<typename S::F>>;
+
+    std::constructible_from<S, 
+        typename S::Bodies, 
+        typename S::F, 
+        typename S::Dominance
+    >;
+
+    { s.initSolve(bodies, f, dt) };
+    { s.solveVelocity(bodies, f, dt) };
+    { s.solvePosition(bodies, f) };
+
+    // clang-format on
+};
+
+
+template <ConstraintFunction F>
+class EqualitySolver : public ConstraintSolverBase<F>
+{
+public:
+
+    typedef ConstraintSolverBase<F> Base;
+
+    typedef typename Base::Value    Value;
+    typedef typename Base::Jacobian Jacobian;
+    typedef typename Base::State    State;
+
+    typedef typename Base::Bodies  Bodies;
+    typedef typename Base::CBodies CBodies;
+
+    typedef typename Base::Dominance       Dominance;
+    typedef typename Base::KMatrix         KMatrix;
+    typedef Solver<float, Base::dimension> KSolver;
+
+
+    EqualitySolver(Bodies bodies, const F& f, const Dominance& dominance)
+        : Base{bodies, f, dominance}, solver_{KMatrix{}}
+    {
+        initSolver(bodies, f);
+    }
+
+    void initSolve(Bodies bodies, const F& f, float dt)
+    {
+        initSolver(bodies, f);
+
+        Value lambda = this->getAccumulatedLambda();
+        this->setLambdaHint(Value::filled(0.f));
+
+        this->updateLambda(bodies, f, dt, lambda);
+    }
+
+    void solveVelocity(Bodies bodies, const F& f, float dt)
+    {
+        this->updateLambda(
+            bodies,
+            f,
+            dt,
+            solver_.solve(this->computeRhs(bodies, f, dt, true))
+        );
+    }
+
+    void solvePosition(Bodies bodies, const F& f)
+    {
+        Value error = f.eval(bodies);
+
+        Jacobian J = f.jacobian(bodies);
+        solver_    = KSolver{this->computeEffectiveMass(bodies, f, false)};
+
+        Value posLambda = f.clampPositionLambda(solver_.solve(-error));
+        State positionCorrection
+            = this->getInverseMass() * transpose(J) * posLambda;
+
+        this->applyPositionCorrection(bodies, positionCorrection);
+    }
+
+
+private:
+
+    void initSolver(CBodies bodies, const F& f)
+    {
+        solver_ = Solver{this->computeEffectiveMass(bodies, f, true)};
+        SIMU_ASSERT(solver_.isValid(), "Constraint cannot be solved");
+    }
+
+    KSolver solver_;
+};
+
+
+template <ConstraintFunction F>
+class InequalitySolver : public ConstraintSolverBase<F>
+{
+public:
+
+    typedef ConstraintSolverBase<F> Base;
+
+    typedef typename Base::Value    Value;
+    typedef typename Base::Jacobian Jacobian;
+    typedef typename Base::State    State;
+
+    typedef typename Base::Bodies  Bodies;
+    typedef typename Base::CBodies CBodies;
+
+    typedef typename Base::Dominance       Dominance;
+    typedef typename Base::KMatrix         KMatrix;
+    typedef Solver<float, Base::dimension> KSolver;
+
+
+    InequalitySolver(Bodies bodies, const F& f, const Dominance& dominance)
+        : Base{bodies, f, dominance}
+    {
+    }
+
+    void initSolve(Bodies bodies, const F& f, float dt)
+    {
+        initSolver(bodies, f);
+
+        Value lambda = this->getAccumulatedLambda();
+        this->setLambdaHint(Value::filled(0.f));
+
+        this->updateLambda(bodies, f, dt, lambda);
+    }
+
+    void solveVelocity(Bodies bodies, const F& f, float dt)
+    {
+        Value correctedError = this->computeEffectiveMass(bodies, f, false)
+                               * this->getAccumulatedLambda();
+
+        Value lambda = solveInequalities(
+            effectiveMass_,
+            this->computeRhs(bodies, f, dt, false) + correctedError,
+            [=, &f](Value lambda) { return f.clampLambda(lambda, dt); },
+            this->getAccumulatedLambda()
+        );
+
+        this->updateLambda(bodies, f, dt, lambda - this->getAccumulatedLambda());
+    }
+
+    void solvePosition(Bodies bodies, const F& f)
+    {
+        Value error = f.eval(bodies);
+
+        Jacobian J     = f.jacobian(bodies);
+        effectiveMass_ = J * this->getInverseMass() * transpose(J);
+
+        Value posLambda
+            = solveInequalities(effectiveMass_, -error, [&](Value lambda) {
+                  return f.clampPositionLambda(lambda);
+              });
+
+        State positionCorrection
+            = this->getInverseMass() * transpose(J) * posLambda;
+
+        this->applyPositionCorrection(bodies, positionCorrection);
+    }
+
+
+private:
+
+    void initSolver(CBodies bodies, const F& f)
+    {
+        effectiveMass_ = this->computeEffectiveMass(bodies, f, true);
+    }
+
+    KMatrix effectiveMass_;
+};
 
 } // namespace simu

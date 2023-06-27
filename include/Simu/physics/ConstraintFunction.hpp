@@ -440,7 +440,7 @@ public:
     {
         auto penetratingRelVelocity
             = jacobian(bodies)
-              * ConstraintSolver<NonPenetrationConstraintFunction>::velocity(bodies
+              * ConstraintSolverBase<NonPenetrationConstraintFunction>::velocity(bodies
               );
 
         return restitutionCoefficient_

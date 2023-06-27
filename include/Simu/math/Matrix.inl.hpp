@@ -425,6 +425,47 @@ Matrix<T, n, n> invert(const Matrix<T, n, n>& mat)
 }
 
 
+template <class T, class U, Uint32 n, std::invocable<Vector<Promoted<T, U>, n>> Proj>
+Vector<Promoted<T, U>, n> solveInequalities(
+    const Matrix<T, n, n>&    A,
+    Vector<U, n>              b,
+    Proj                      proj,
+    Vector<Promoted<T, U>, n> initialGuess,
+    float                     epsilon
+)
+{
+    b = -b; // Ax - b >= 0
+
+    Vector<Promoted<T, U>, n> x = initialGuess;
+
+    float eps = 1.f + epsilon;
+    while (eps > epsilon)
+    {
+        eps = 0.f;
+        for (Uint32 row = 0; row < n; ++row)
+        {
+            float delX = 0.f;
+
+            for (Uint32 col = 0; col < row; ++col)
+                delX += A(row, col) * x[col];
+
+            for (Uint32 col = row + 1; col < n; ++col)
+                delX += A(row, col) * x[col];
+
+            delX = -(delX + b[row]) / A(row, row);
+
+            Vector<Promoted<T, U>, n> newX{x};
+            newX[row] = delX;
+            delX      = proj(newX)[row];
+
+            eps    = std::max(eps, std::abs(delX - x[row]));
+            x[row] = delX;
+        }
+    }
+
+    return x;
+}
+
 ////////////////////////////////////////////////////////////
 // Vector operations
 ////////////////////////////////////////////////////////////

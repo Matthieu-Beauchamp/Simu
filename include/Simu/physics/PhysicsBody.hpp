@@ -162,7 +162,7 @@ public:
 private:
 
     template<ConstraintFunction F>
-    friend class ConstraintSolver;
+    friend class ConstraintSolverBase;
 
     Vec2 position_;
     Vec2 velocity_{};

@@ -241,6 +241,26 @@ Matrix<T, n, n> invert(const Matrix<T, n, n>& mat);
 
 
 ////////////////////////////////////////////////////////////
+/// \brief Return x such that Ax >= b with bounds on x
+///
+/// proj must project x onto its valid bounds (ie clamp its values).
+///
+/// when the absolute change of components of x drops below epsilon, iteration terminates.
+///
+/// Uses projected Gauss-Seidel to solve the MLCP,
+/// See A. Enzenhofer's master thesis (McGill): Numerical Solutions of MLCP
+////////////////////////////////////////////////////////////
+template <class T, class U, Uint32 n, std::invocable<Vector<Promoted<T, U>, n>> Proj>
+Vector<Promoted<T, U>, n> solveInequalities(
+    const Matrix<T, n, n>&    A,
+    Vector<U, n>              b,
+    Proj                      proj,
+    Vector<Promoted<T, U>, n> initialGuess = Vector<Promoted<T, U>, n>{},
+    float                     epsilon      = simu::EPSILON
+);
+
+
+////////////////////////////////////////////////////////////
 // Vector operations
 ////////////////////////////////////////////////////////////
 

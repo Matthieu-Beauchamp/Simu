@@ -38,6 +38,10 @@ bool Simplex::pushPoint(Vertex v)
         keepBottomPoint_ = false;
     }
 
+    bool isNewPoint = true;
+    for (Vec2 p : pointStack)
+        isNewPoint = isNewPoint && !all(p == v);
+
     pointStack[2] = pointStack[1];
     pointStack[1] = pointStack[0];
     pointStack[0] = v;
@@ -49,10 +53,8 @@ bool Simplex::pushPoint(Vertex v)
     normals[1] = perp(ac, k < 0);
 
     ++nIterations;
-    if (all(pointStack[0] == pointStack[1]))
-        return false;
 
-    return true;
+    return isNewPoint;
 }
 
 Vec2 Simplex::nextDirection() const
@@ -141,7 +143,7 @@ Polytope::Polytope(const Simplex& simplex)
 
 bool Polytope::addVertex(const Edge& where, Vertex v)
 {
-    // TODO: There is a case where the polytope may become concave, 
+    // TODO: There is a case where the polytope may become concave,
     //  this needs to be handled, must first find a test where this happens.
 
     if (where.isOutside(v))

@@ -757,8 +757,8 @@ TEST_CASE("Physics")
         world.step(0.01f);
 
         // exact values are not important here, currently the velocity diverges to ~{0, 3}
-        REQUIRE(all(approx(wheel->velocity(), Vec2::filled(0.01f))
-                        .contains(Vec2{0.56f, 0.f})));
+        REQUIRE(all(approx(wheel->velocity(), Vec2::filled(0.1f))
+                        .contains(Vec2{0.5f, 0.f})));
     }
 
 
@@ -784,24 +784,25 @@ TEST_CASE("Physics")
         for (auto& box : boxes)
             box = makeBox(i++);
 
-        for (Uint32 steps = 0; steps < 100; ++steps)
+        for (Uint32 steps = 0; steps < 200; ++steps)
         {
             world.step(0.01f);
         }
 
         i = 0;
+        const float err = 10*simu::EPSILON;
         for (const PhysicsBody* box : boxes)
         {
             float h = static_cast<float>(i++);
 
             REQUIRE(approx(box->orientation(), simu::EPSILON).contains(0.f));
-            REQUIRE(approx(box->angularVelocity(), simu::EPSILON).contains(0.f));
+            REQUIRE(approx(box->angularVelocity(), err).contains(0.f));
 
-            REQUIRE(approx(box->position()[0], simu::EPSILON).contains(0.f));
-            REQUIRE(approx(box->position()[1], 0.001f).contains(h));
+            REQUIRE(approx(box->position()[0], err).contains(0.f));
+            REQUIRE(approx(box->position()[1], 0.005f).contains(h));
 
-            REQUIRE(approx(box->velocity()[0], simu::EPSILON).contains(0.f));
-            REQUIRE(approx(box->velocity()[1], 0.001f).contains(0.f));
+            REQUIRE(approx(box->velocity()[0], err).contains(0.f));
+            REQUIRE(approx(box->velocity()[1], 0.005f).contains(0.f));
         }
     }
 

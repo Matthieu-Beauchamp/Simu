@@ -165,6 +165,80 @@ TEST_CASE("Matrix")
         );
     }
 
+    SECTION("Inequality Solver")
+    {
+        SECTION("Can solve equalities")
+        {
+            // clang-format off
+            Mat3 A{
+                2.5f,  -0.5f,  1.5f,
+                -0.5f, 2.5f,  -1.5f,
+                1.5f,  -1.5f,  2.5f,
+            };
+            // clang-format on
+
+            Vec3 b{0.2f, 0.2f, 0.f};
+
+            Vec3 x = solveInequalities(
+                A,
+                b,
+                [](Vec3 x) { return x; }
+            );
+
+            REQUIRE(all(approx(x, Vec3::filled(2 * simu::EPSILON))
+                            .contains(Vec3{0.1f, 0.1f, 0.f})));
+        }
+
+        SECTION("Can solve LCP")
+        {
+            // clang-format off
+            Mat2 A{
+                2, 1, 
+                1, 2    
+            };
+            // clang-format on
+
+            Vec2 b{5, 6};
+
+            Vec2 x = solveInequalities(
+                A,
+                b,
+                [](Vec2 x) { return std::max(x, Vec2::filled(0.f)); }
+            );
+
+            REQUIRE(all(x >= Vec2::filled(0.f)));
+
+            Vec2 res = A * x;
+            REQUIRE(all(res >= b));
+        }
+
+        SECTION("Can solve MLCP")
+        {
+            // clang-format off
+            Mat2 A{
+                2, 1, 
+                1, 2    
+            };
+            // clang-format on
+
+            Vec2 b{-5, -6};
+
+            Vec2 x = solveInequalities(
+                A,
+                b,
+                [](Vec2 x) {
+                    return Vec2{std::max(x[0], 1.f), std::min(x[1], -1.f)};
+                }
+            );
+
+            REQUIRE(x[0] >= 1.f);
+            REQUIRE(x[1] <= -1.f);
+
+            Vec2 res = A * x;
+            REQUIRE(all(res >= b));
+        }
+    }
+
     SECTION("Vector operations")
     {
         REQUIRE(all(cross(Vec3::i(), Vec3::j()) == Vec3::k()));

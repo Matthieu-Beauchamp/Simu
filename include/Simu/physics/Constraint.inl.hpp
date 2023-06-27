@@ -30,8 +30,8 @@
 namespace simu
 {
 
-template <ConstraintFunction F, class B>
-void ConstraintImplementation<F, B>::onConstruction(PhysicsWorld& world)
+template <ConstraintFunction F, ConstraintSolver S, class B>
+void ConstraintImplementation<F, S, B>::onConstruction(PhysicsWorld& world)
 {
     if (disableContacts_)
     {
@@ -42,8 +42,8 @@ void ConstraintImplementation<F, B>::onConstruction(PhysicsWorld& world)
     }
 };
 
-template <ConstraintFunction F, class B>
-void ConstraintImplementation<F, B>::onDestruction(PhysicsWorld& world)
+template <ConstraintFunction F, ConstraintSolver S, class B>
+void ConstraintImplementation<F, S, B>::onDestruction(PhysicsWorld& world)
 {
     if (disableContacts_)
     {

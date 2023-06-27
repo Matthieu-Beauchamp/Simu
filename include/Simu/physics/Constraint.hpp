@@ -55,13 +55,13 @@ public:
 //  make the solver an owned object.
 // Add support for NGS stabilization (while keeping Baumgarde for springs?)
 //
-template <ConstraintFunction F, class Base = Constraint>
+template <ConstraintFunction F, ConstraintSolver S = EqualitySolver<F>, class Base = Constraint>
 class ConstraintImplementation : public Base
 {
 public:
 
     typedef F::Value                   Value;
-    typedef ConstraintSolver<F>        Solver;
+    typedef S                          Solver;
     typedef typename Solver::Dominance Dominance;
 
     ConstraintImplementation(
@@ -104,8 +104,8 @@ public:
 
 protected:
 
-    F      f;
-    Solver solver;
+    F f;
+    S solver;
 
 private:
 
@@ -236,11 +236,11 @@ public:
 };
 
 class SingleContactConstraint
-    : public ConstraintImplementation<SingleContactFunction, ContactConstraintI>
+    : public ConstraintImplementation<SingleContactFunction, InequalitySolver<SingleContactFunction>, ContactConstraintI>
 {
 public:
 
-    typedef ConstraintImplementation<SingleContactFunction, ContactConstraintI> Base;
+    typedef ConstraintImplementation<SingleContactFunction, InequalitySolver<SingleContactFunction>, ContactConstraintI> Base;
 
     typedef ContactManifold<Collider> Manifold;
 
@@ -291,11 +291,11 @@ private:
 };
 
 class DoubleContactConstraint
-    : public ConstraintImplementation<DoubleContactFunction, ContactConstraintI>
+    : public ConstraintImplementation<DoubleContactFunction,InequalitySolver<DoubleContactFunction>,  ContactConstraintI>
 {
 public:
 
-    typedef ConstraintImplementation<DoubleContactFunction, ContactConstraintI> Base;
+    typedef ConstraintImplementation<DoubleContactFunction,InequalitySolver<DoubleContactFunction>,  ContactConstraintI> Base;
 
     typedef ContactManifold<Collider> Manifold;
 
