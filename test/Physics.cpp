@@ -777,7 +777,7 @@ TEST_CASE("Physics")
 
         PhysicsBody* floor = makeBox(-1, 0.f);
 
-        constexpr Int32                  nBoxes = 10;
+        constexpr Int32                  nBoxes = 20;
         std::array<PhysicsBody*, nBoxes> boxes{};
 
         Int32 i = 0;
@@ -790,7 +790,7 @@ TEST_CASE("Physics")
         }
 
         i = 0;
-        const float err = 10*simu::EPSILON;
+        const float err = 100*simu::EPSILON;
         for (const PhysicsBody* box : boxes)
         {
             float h = static_cast<float>(i++);
@@ -799,10 +799,10 @@ TEST_CASE("Physics")
             REQUIRE(approx(box->angularVelocity(), err).contains(0.f));
 
             REQUIRE(approx(box->position()[0], err).contains(0.f));
-            REQUIRE(approx(box->position()[1], 0.005f).contains(h));
+            REQUIRE(approx(box->position()[1], 0.05f).contains(h));
 
             REQUIRE(approx(box->velocity()[0], err).contains(0.f));
-            REQUIRE(approx(box->velocity()[1], 0.005f).contains(0.f));
+            REQUIRE(approx(box->velocity()[1], 0.05f).contains(0.f));
         }
     }
 

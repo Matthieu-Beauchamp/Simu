@@ -229,44 +229,49 @@ public:
 
     virtual bool isContactValid(CBodies bodies, float maxPen) const = 0;
 
-    virtual void update(CBodies bodies, const Manifold& manifold) = 0;
-    virtual Vec2 lambdaHint() const                               = 0;
+    virtual void  update(CBodies bodies, const Manifold& manifold) = 0;
+    virtual float lambdaHint() const                               = 0;
 
     virtual Uint32 nContacts() const = 0;
 };
 
-class SingleContactConstraint
-    : public ConstraintImplementation<SingleContactFunction, InequalitySolver<SingleContactFunction>, ContactConstraintI>
+class SingleContactConstraint : public ConstraintImplementation<
+                                    SingleContactFunction,
+                                    InequalitySolver<SingleContactFunction>,
+                                    ContactConstraintI>
 {
 public:
 
-    typedef ConstraintImplementation<SingleContactFunction, InequalitySolver<SingleContactFunction>, ContactConstraintI> Base;
+    typedef ConstraintImplementation<
+        SingleContactFunction,
+        InequalitySolver<SingleContactFunction>,
+        ContactConstraintI>
+        Base;
 
     typedef ContactManifold<Collider> Manifold;
 
     SingleContactConstraint(
         const Bodies<2>& bodies,
         const Manifold&  manifold,
-        Vec2             lambdaHint
+        float            lambdaHint
     )
         : Base{bodies, makeFunction(bodies, manifold), false, std::nullopt}
     {
-        solver.setLambdaHint(lambdaHint);
+        solver.setLambdaHint(Value{lambdaHint});
     }
 
     void solveVelocities(float dt) override
     {
         Base::solveVelocities(dt);
-        auto J = solver.getJacobian().asRows()[0];
-        std::get<0>(f.constraints).accumulatedRelVel
-            = transpose(J) * solver.getInverseMass() * J
-              * solver.getAccumulatedLambda()[0];
+
+        auto J              = solver.getJacobian();
+        f.accumulatedRelVel = J * solver.getInverseMass() * transpose(J)
+                              * solver.getAccumulatedLambda()[0];
     }
 
     bool isContactValid(CBodies bodies, float maxPen) const override
     {
-        return normSquared(std::get<0>(f.constraints).contactDistance(bodies))
-               < maxPen * maxPen;
+        return normSquared(f.contactDistance(bodies)) < maxPen * maxPen;
     }
 
     void update(CBodies bodies, const Manifold& manifold) override
@@ -274,7 +279,10 @@ public:
         f = makeFunction(bodies, manifold);
     }
 
-    Vec2 lambdaHint() const override { return solver.getAccumulatedLambda(); }
+    float lambdaHint() const override
+    {
+        return solver.getAccumulatedLambda()[0];
+    }
 
     Uint32 nContacts() const override { return 1; }
 
@@ -283,44 +291,42 @@ private:
     static SingleContactFunction
     makeFunction(const ConstBodies<2>& bodies, const Manifold& manifold)
     {
-        return SingleContactFunction{
-            NonPenetrationConstraintFunction{bodies, manifold, 0},
-            FrictionConstraintFunction{bodies, manifold}
-        };
+        return SingleContactFunction{bodies, manifold, 0};
     }
 };
 
-class DoubleContactConstraint
-    : public ConstraintImplementation<DoubleContactFunction,InequalitySolver<DoubleContactFunction>,  ContactConstraintI>
+class DoubleContactConstraint : public ConstraintImplementation<
+                                    DoubleContactFunction,
+                                    InequalitySolver<DoubleContactFunction>,
+                                    ContactConstraintI>
 {
 public:
 
-    typedef ConstraintImplementation<DoubleContactFunction,InequalitySolver<DoubleContactFunction>,  ContactConstraintI> Base;
+    typedef ConstraintImplementation<
+        DoubleContactFunction,
+        InequalitySolver<DoubleContactFunction>,
+        ContactConstraintI>
+        Base;
 
     typedef ContactManifold<Collider> Manifold;
 
     DoubleContactConstraint(
         const Bodies<2>& bodies,
         const Manifold&  manifold,
-        Vec2             lambdaHint
+        float             lambdaHint
     )
         : Base{bodies, makeFunction(bodies, manifold), false, std::nullopt}
     {
-        solver.setLambdaHint(
-            Vec3{lambdaHint[0] / 2, lambdaHint[0] / 2, lambdaHint[1]}
-        );
+        solver.setLambdaHint(Value{lambdaHint / 2, lambdaHint / 2});
     }
 
     void solveVelocities(float dt) override
     {
         Base::solveVelocities(dt);
-        auto J = Matrix<float, 6, 2>::fromCols(
-            {solver.getJacobian().asRows()[0], solver.getJacobian().asRows()[1]}
-        );
-        auto accumulatedRelVel = transpose(J) * solver.getInverseMass()
-                                 * J* Vec2{
-                                     solver.getAccumulatedLambda()[0],
-                                     solver.getAccumulatedLambda()[1]};
+        auto J = solver.getJacobian();
+
+        auto accumulatedRelVel = J * solver.getInverseMass() * transpose(J)
+                                 * solver.getAccumulatedLambda();
 
         std::get<0>(f.constraints).accumulatedRelVel[0] = accumulatedRelVel[0];
         std::get<1>(f.constraints).accumulatedRelVel[0] = accumulatedRelVel[1];
@@ -343,10 +349,10 @@ public:
         f = makeFunction(bodies, manifold);
     }
 
-    Vec2 lambdaHint() const override
+    float lambdaHint() const override
     {
-        Vec3 lambda = solver.getAccumulatedLambda();
-        return Vec2{lambda[0] + lambda[1], lambda[2]};
+        Vec2 lambda = solver.getAccumulatedLambda();
+        return lambda[0] + lambda[1];
     }
 
     Uint32 nContacts() const override { return 2; }
@@ -358,11 +364,47 @@ private:
     {
         return DoubleContactFunction{
             NonPenetrationConstraintFunction{bodies, manifold, 0},
-            NonPenetrationConstraintFunction{bodies, manifold, 1},
-            FrictionConstraintFunction{bodies, manifold}
+            NonPenetrationConstraintFunction{bodies, manifold, 1}
         };
     }
 };
+
+
+class FrictionConstraint
+    : public ConstraintImplementation<FrictionConstraintFunction>
+{
+public:
+
+    typedef ConstraintImplementation<FrictionConstraintFunction> Base;
+
+    typedef ContactManifold<Collider> Manifold;
+
+    FrictionConstraint(
+        const Bodies<2>& bodies,
+        const Manifold&  manifold
+    )
+        : Base{bodies, makeFunction(bodies, manifold), false, std::nullopt}
+    {
+    }
+
+    void update(const ConstBodies<2>& bodies, const Manifold& manifold)
+    {
+        float lambda = f.normalLambda;
+        f = makeFunction(bodies, manifold);
+        setNormalLambda(lambda);
+    }
+
+    void setNormalLambda(float lambda) { f.normalLambda = lambda; }
+
+private:
+
+    static FrictionConstraintFunction
+    makeFunction(const ConstBodies<2>& bodies, const Manifold& manifold)
+    {
+        return FrictionConstraintFunction{bodies, manifold};
+    }
+};
+
 
 struct Contact
 {
@@ -414,11 +456,17 @@ public:
         return contactConstraint_ != nullptr && contactConstraint_->isActive();
     }
 
-    void initSolve(float dt) override { contactConstraint_->initSolve(dt); }
+    void initSolve(float dt) override
+    {
+        frictionConstraint_->initSolve(dt);
+        contactConstraint_->initSolve(dt);
+    }
 
     void solveVelocities(float dt) override
     {
+        frictionConstraint_->solveVelocities(dt);
         contactConstraint_->solveVelocities(dt);
+        frictionConstraint_->setNormalLambda(contactConstraint_->lambdaHint());
     }
 
     void solvePositions() override
@@ -430,7 +478,8 @@ public:
 private:
 
     Contact                             contact_;
-    std::unique_ptr<ContactConstraintI> contactConstraint_ = nullptr;
+    std::unique_ptr<ContactConstraintI> contactConstraint_  = nullptr;
+    std::unique_ptr<FrictionConstraint> frictionConstraint_ = nullptr;
 
     void updateContact()
     {
@@ -449,7 +498,9 @@ private:
         {
             if (!hasNoConstraint
                 && !contactConstraint_->isContactValid(contact_.bodies, maxPen))
+            {
                 contactConstraint_ = nullptr;
+            }
 
             return;
         }
@@ -461,20 +512,26 @@ private:
         {
             contactConstraint_ = makeContactConstraint(
                 manifold,
-                hasNoConstraint ? Vec2{} : contactConstraint_->lambdaHint()
+                hasNoConstraint ? 0.f : contactConstraint_->lambdaHint()
             );
         }
         else
         {
             contactConstraint_->update(contact_.bodies, manifold);
         }
+
+        frictionConstraint_->update(contact_.bodies, manifold);
     }
 
     std::unique_ptr<ContactConstraintI> makeContactConstraint(
         const ContactManifold<Collider>& manifold,
-        Vec2                             lambdaHint = Vec2{}
+        float                            lambdaHint = 0.f
     )
     {
+        if (frictionConstraint_ == nullptr)
+            frictionConstraint_
+                = std::make_unique<FrictionConstraint>(contact_.bodies, manifold);
+
         switch (manifold.nContacts)
         {
             case 1:

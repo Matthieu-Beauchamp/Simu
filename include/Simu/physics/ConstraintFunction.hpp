@@ -440,7 +440,8 @@ public:
     {
         auto penetratingRelVelocity
             = jacobian(bodies)
-              * ConstraintSolverBase<NonPenetrationConstraintFunction>::velocity(bodies
+              * ConstraintSolverBase<NonPenetrationConstraintFunction>::velocity(
+                  bodies
               );
 
         return restitutionCoefficient_
@@ -530,27 +531,15 @@ public:
             -cross(contacts[1] - bodies[1]->properties().centroid, tangent_)};
     }
 
-    Value clampLambda(Value /* lambda */, float /* dt */) const
+    Value clampLambda(Value lambda, float /* dt */) const
     {
-        SIMU_ASSERT(
-            false,
-            "must be bounded by normal force. Call the other overloads"
-        );
-    }
-
-    Value
-    clampLambda(Value lambda, float /* dt */, Vector<float, 1> lambdaNormal) const
-    {
-        float absBound = frictionCoefficient_ * std::abs(lambdaNormal[0]);
+        float absBound = frictionCoefficient_ * std::abs(normalLambda);
         return Value{clamp(lambda[0], -absBound, absBound)};
     }
 
-    Value clampLambda(Value lambda, float dt, Vec2 lambdaNormal) const
-    {
-        return clampLambda(lambda, dt, Value{lambdaNormal[0] + lambdaNormal[1]});
-    }
-
     Value clampPositionLambda(Value /* lambda */) const { return Value{}; }
+
+    float normalLambda;
 
 private:
 
@@ -567,22 +556,10 @@ private:
     float frictionCoefficient_; // TODO: Dynamic vs static
 };
 
-using SingleContactFunction
-    = ConstraintFunctions<NonPenetrationConstraintFunction, FrictionConstraintFunction>;
+typedef NonPenetrationConstraintFunction SingleContactFunction;
 
-using DoubleContactFunction = ConstraintFunctions<
-    NonPenetrationConstraintFunction,
-    NonPenetrationConstraintFunction,
-    FrictionConstraintFunction>;
-
-template <>
-SingleContactFunction::Value
-SingleContactFunction::clampLambda(const Value& lambda, float dt) const;
-
-template <>
-DoubleContactFunction::Value
-DoubleContactFunction::clampLambda(const Value& lambda, float dt) const;
-
+typedef ConstraintFunctions<NonPenetrationConstraintFunction, NonPenetrationConstraintFunction>
+    DoubleContactFunction;
 
 } // namespace simu
 
