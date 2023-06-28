@@ -415,6 +415,7 @@ public:
     )
         : Base{}, 
           normal_{(manifold.incidentIndex() == 0 ? 1.f:-1.f) * normalized(manifold.contactNormal)},
+          reference_{manifold.referenceIndex()},
           restitutionCoefficient_{CombinableProperty{bodies[0]->material().bounciness, 
                                                      bodies[1]->material().bounciness}.value}
     {
@@ -460,9 +461,9 @@ public:
             -normal_[1],
             -cross(contacts[1] - bodies[1]->properties().centroid, normal_)};
 
-
-        // This must be added to J[3*reference_ +2] for the complete equation
-        //  cross(normal_, contacts[incident_] - contacts[reference_])
+        Uint32 incident = reference_ == 0 ? 1 : 0;
+        J[3 * reference_ + 2]
+            += cross(normal_, contacts[incident] - contacts[reference_]);
 
         return J;
     }
@@ -480,7 +481,8 @@ private:
     std::array<Vec2, 2> localSpaceContacts_;
     Vec2                normal_;
 
-    float restitutionCoefficient_;
+    Uint32 reference_;
+    float  restitutionCoefficient_;
 
 public:
 

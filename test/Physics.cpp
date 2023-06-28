@@ -764,12 +764,17 @@ TEST_CASE("Physics")
 
     SECTION("Box stack")
     {
+        // Increasing the number of steps always lead to the boxes falling,
+        //  currently there does not seem to be any strong errors only an accumulation of the imprecision.
+        // Sleeping could help solve this,
+        // Increasing the number of boxes also leads to an earlier collapse.
+
         PhysicsWorld world{};
         world.makeForceField<Gravity>(Vec2{0.f, -10.f});
 
         auto makeBox = [&](Int32 index, float dominance = 1.f) -> PhysicsBody* {
             BodyDescriptor descr{squareDescriptor};
-            descr.position[1]             = index - (index>= 0 ? index*0.001f : 0.f);
+            descr.position[1]             = index;
             descr.dominance               = dominance;
             descr.material.friction.value = 0.5f;
             return world.makeBody(descr);
@@ -784,7 +789,7 @@ TEST_CASE("Physics")
         for (auto& box : boxes)
             box = makeBox(i++);
 
-        for (Uint32 steps = 0; steps < 3000; ++steps)
+        for (Uint32 steps = 0; steps < 5000; ++steps)
         {
             world.step(0.01f);
         }
