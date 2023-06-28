@@ -237,14 +237,14 @@ public:
 
 class SingleContactConstraint : public ConstraintImplementation<
                                     SingleContactFunction,
-                                    InequalitySolver<SingleContactFunction>,
+                                    EqualitySolver<SingleContactFunction>,
                                     ContactConstraintI>
 {
 public:
 
     typedef ConstraintImplementation<
         SingleContactFunction,
-        InequalitySolver<SingleContactFunction>,
+        EqualitySolver<SingleContactFunction>,
         ContactConstraintI>
         Base;
 

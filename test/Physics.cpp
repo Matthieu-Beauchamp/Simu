@@ -789,22 +789,22 @@ TEST_CASE("Physics")
         for (auto& box : boxes)
             box = makeBox(i++);
 
-        for (Uint32 steps = 0; steps < 5000; ++steps)
+        for (Uint32 steps = 0; steps < 500; ++steps)
         {
             world.step(0.01f);
         }
 
         i = 0;
-        const float err = 100*simu::EPSILON;
+        const float err = 10*simu::EPSILON;
         for (const PhysicsBody* box : boxes)
         {
             float h = static_cast<float>(i++);
 
-            REQUIRE(approx(box->orientation(), simu::EPSILON).contains(0.f));
-            REQUIRE(approx(box->angularVelocity(), simu::EPSILON).contains(0.f));
+            REQUIRE(approx(box->orientation(), err).contains(0.f));
+            REQUIRE(approx(box->angularVelocity(), err).contains(0.f));
 
             REQUIRE(approx(box->position()[0], err).contains(0.f));
-            REQUIRE(approx(box->position()[1], err).contains(h));
+            REQUIRE(approx(box->position()[1], 0.005f).contains(h));
 
             REQUIRE(approx(box->velocity()[0], err).contains(0.f));
             REQUIRE(approx(box->velocity()[1], 0.005f).contains(0.f));

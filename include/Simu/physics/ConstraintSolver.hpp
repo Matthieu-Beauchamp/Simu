@@ -366,6 +366,15 @@ public:
         Jacobian J     = f.jacobian(bodies);
         effectiveMass_ = J * this->getInverseMass() * transpose(J);
 
+        // TODO: Inequality solver should be using:
+        // Value posLambda = solveInequalities(
+        //     effectiveMass_,
+        //     -error,
+        //     [&](Value lambda) { return f.clampPositionLambda(lambda); }
+        // );
+        //
+        // but it's too inaccurate for contacts
+
         Solver<float, F::dimension> s{effectiveMass_};
         if (!s.isValid())
             return; // Jacobians are parallel, TODO:

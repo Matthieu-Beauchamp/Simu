@@ -541,7 +541,7 @@ public:
 
     Value clampPositionLambda(Value /* lambda */) const { return Value{}; }
 
-    float normalLambda;
+    float normalLambda = 0.f;
 
 private:
 
