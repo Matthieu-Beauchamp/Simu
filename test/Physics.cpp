@@ -769,7 +769,7 @@ TEST_CASE("Physics")
 
         auto makeBox = [&](Int32 index, float dominance = 1.f) -> PhysicsBody* {
             BodyDescriptor descr{squareDescriptor};
-            descr.position[1]             = index;
+            descr.position[1]             = index - (index>= 0 ? index*0.001f : 0.f);
             descr.dominance               = dominance;
             descr.material.friction.value = 0.5f;
             return world.makeBody(descr);
@@ -777,14 +777,14 @@ TEST_CASE("Physics")
 
         PhysicsBody* floor = makeBox(-1, 0.f);
 
-        constexpr Int32                  nBoxes = 20;
+        constexpr Int32                  nBoxes = 10;
         std::array<PhysicsBody*, nBoxes> boxes{};
 
         Int32 i = 0;
         for (auto& box : boxes)
             box = makeBox(i++);
 
-        for (Uint32 steps = 0; steps < 200; ++steps)
+        for (Uint32 steps = 0; steps < 3000; ++steps)
         {
             world.step(0.01f);
         }
@@ -796,13 +796,13 @@ TEST_CASE("Physics")
             float h = static_cast<float>(i++);
 
             REQUIRE(approx(box->orientation(), simu::EPSILON).contains(0.f));
-            REQUIRE(approx(box->angularVelocity(), err).contains(0.f));
+            REQUIRE(approx(box->angularVelocity(), simu::EPSILON).contains(0.f));
 
             REQUIRE(approx(box->position()[0], err).contains(0.f));
-            REQUIRE(approx(box->position()[1], 0.05f).contains(h));
+            REQUIRE(approx(box->position()[1], err).contains(h));
 
             REQUIRE(approx(box->velocity()[0], err).contains(0.f));
-            REQUIRE(approx(box->velocity()[1], 0.05f).contains(0.f));
+            REQUIRE(approx(box->velocity()[1], 0.005f).contains(0.f));
         }
     }
 

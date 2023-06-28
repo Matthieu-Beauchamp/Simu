@@ -366,10 +366,12 @@ public:
         Jacobian J     = f.jacobian(bodies);
         effectiveMass_ = J * this->getInverseMass() * transpose(J);
 
-        Value posLambda
-            = solveInequalities(effectiveMass_, -error, [&](Value lambda) {
-                  return f.clampPositionLambda(lambda);
-              });
+        Solver<float, F::dimension> s{effectiveMass_};
+        if (!s.isValid())
+            return; // Jacobians are parallel, TODO:
+
+        Value posLambda = s.solve(-error);
+        posLambda       = f.clampPositionLambda(posLambda);
 
         State positionCorrection
             = this->getInverseMass() * transpose(J) * posLambda;
