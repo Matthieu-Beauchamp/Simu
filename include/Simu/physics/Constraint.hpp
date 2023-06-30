@@ -35,11 +35,12 @@
 #include "Simu/physics/ConstraintFunction.hpp"
 #include "Simu/physics/ConstraintSolver.hpp"
 
+#include "Simu/physics/Sleepable.hpp"
 
 namespace simu
 {
 
-class Constraint : public PhysicsObject
+class Constraint : public PhysicsObject, public Sleepable
 {
 public:
 
@@ -49,13 +50,26 @@ public:
     virtual void initSolve(float dt)       = 0;
     virtual void solveVelocities(float dt) = 0;
     virtual void solvePositions()          = 0;
+
+    typedef decltype(simu::makeView(
+        std::declval<PhysicsBody**>(),
+        std::declval<PhysicsBody**>()
+    )) BodyView;
+
+    // if a constraint has no bodies or changes its bodies during its lifetime,
+    //  then behavior is undefined.
+    virtual BodyView bodies() = 0;
 };
 
 // TODO: The caching is not very useful, storing the K^-1 matrix is more beneficial,
 //  make the solver an owned object.
 // Add support for NGS stabilization (while keeping Baumgarde for springs?)
 //
-template <ConstraintFunction F, ConstraintSolver S = EqualitySolver<F>, class Base = Constraint>
+// TODO: Split Solving method for velocity and positions
+template <
+    ConstraintFunction            F,
+    ConstraintSolver              S    = EqualitySolver<F>,
+    std::derived_from<Constraint> Base = Constraint>
 class ConstraintImplementation : public Base
 {
 public:
@@ -100,7 +114,10 @@ public:
 
     void solvePositions() override { solver.solvePosition(bodies_, f); }
 
-    // TODO: Setters for restitution/damping, stored in solver.
+    Base::BodyView bodies() override
+    {
+        return makeView(bodies_.data(), bodies_.data() + bodies_.size());
+    }
 
 protected:
 
@@ -313,7 +330,7 @@ public:
     DoubleContactConstraint(
         const Bodies<2>& bodies,
         const Manifold&  manifold,
-        float             lambdaHint
+        float            lambdaHint
     )
         : Base{bodies, makeFunction(bodies, manifold), false, std::nullopt}
     {
@@ -379,10 +396,7 @@ public:
 
     typedef ContactManifold<Collider> Manifold;
 
-    FrictionConstraint(
-        const Bodies<2>& bodies,
-        const Manifold&  manifold
-    )
+    FrictionConstraint(const Bodies<2>& bodies, const Manifold& manifold)
         : Base{bodies, makeFunction(bodies, manifold), false, std::nullopt}
     {
     }
@@ -390,7 +404,7 @@ public:
     void update(const ConstBodies<2>& bodies, const Manifold& manifold)
     {
         float lambda = f.normalLambda;
-        f = makeFunction(bodies, manifold);
+        f            = makeFunction(bodies, manifold);
         setNormalLambda(lambda);
     }
 
@@ -473,6 +487,14 @@ public:
     {
         if (isActive())
             contactConstraint_->solvePositions();
+    }
+
+    BodyView bodies() override
+    {
+        return makeView(
+            contact_.bodies.data(),
+            contact_.bodies.data() + contact_.bodies.size()
+        );
     }
 
 private:

@@ -24,34 +24,25 @@
 
 #pragma once
 
-#include "Simu/physics/Constraint.hpp"
-#include "Simu/physics/PhysicsWorld.hpp"
+#include "Simu/config.hpp"
 
 namespace simu
 {
 
-template <ConstraintFunction F, ConstraintSolver S, std::derived_from<Constraint> B>
-void ConstraintImplementation<F, S, B>::onConstruction(PhysicsWorld& world)
+class Sleepable
 {
-    if (disableContacts_)
-    {
-        for (auto first = bodies_.begin(); first != bodies_.end(); ++first)
-            for (auto second = std::next(first); second != bodies_.end();
-                 ++second)
-                world.declareContactConflict(Bodies<2>{*first, *second});
-    }
-};
+public:
 
-template <ConstraintFunction F, ConstraintSolver S, std::derived_from<Constraint> B>
-void ConstraintImplementation<F, S, B>::onDestruction(PhysicsWorld& world)
-{
-    if (disableContacts_)
-    {
-        for (auto first = bodies_.begin(); first != bodies_.end(); ++first)
-            for (auto second = std::next(first); second != bodies_.end();
-                 ++second)
-                world.removeContactConflict(Bodies<2>{*first, *second});
-    }
+    virtual ~Sleepable() = default;
+
+    virtual void sleep() { isAsleep_ = true; }
+    virtual void wake() { isAsleep_ = false; }
+
+    virtual bool isAsleep() const { return isAsleep_; }
+
+private:
+
+    bool isAsleep_ = false;
 };
 
 

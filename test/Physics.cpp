@@ -38,8 +38,8 @@ TEST_CASE("Physics")
         descr.orientation = theta;
         auto body         = world.makeBody(descr);
 
-        body->velocity()        = v;
-        body->angularVelocity() = w;
+        body->setVelocity(v);
+        body->setAngularVelocity(w);
 
         REQUIRE(all(body->position() == p));
         REQUIRE(all(body->velocity() == v));
@@ -176,7 +176,7 @@ TEST_CASE("Physics")
             REQUIRE(left->angularVelocity() == w / 2);
             REQUIRE(right->angularVelocity() == w / 2);
 
-            right->angularVelocity() -= w;
+            right->setAngularVelocity(right->angularVelocity() - w);
             world.step(1.f);
             REQUIRE(left->angularVelocity() == 0.f);
             REQUIRE(right->angularVelocity() == 0.f);
@@ -255,7 +255,7 @@ TEST_CASE("Physics")
                 true
             );
 
-            left->angularVelocity() = 1.f;
+            left->setAngularVelocity(1.f);
             world.step(1.f);
 
             REQUIRE(left->angularVelocity() == 1.f);
@@ -467,13 +467,13 @@ TEST_CASE("Physics")
             BodyDescriptor descr{squareDescriptor};
             descr.material.bounciness.value = 0.f;
 
-            descr.position    = Vec2{-2, 0};
-            auto body1        = world.makeBody(descr);
-            body1->velocity() = Vec2{0.5f, 0};
+            descr.position = Vec2{-2, 0};
+            auto body1     = world.makeBody(descr);
+            body1->setVelocity(Vec2{0.5f, 0});
 
-            descr.position    = Vec2{1, 0};
-            auto body2        = world.makeBody(descr);
-            body2->velocity() = Vec2{-0.5f, 0};
+            descr.position = Vec2{1, 0};
+            auto body2     = world.makeBody(descr);
+            body2->setVelocity(Vec2{-0.5f, 0});
 
             world.step(1.f);
             world.step(1.f);   // touching at x=0
@@ -493,13 +493,13 @@ TEST_CASE("Physics")
             BodyDescriptor descr{squareDescriptor};
             descr.material.bounciness.value = 1.f;
 
-            descr.position    = Vec2{-2, 0};
-            auto body1        = world.makeBody(descr);
-            body1->velocity() = Vec2{0.5f, 0};
+            descr.position = Vec2{-2, 0};
+            auto body1     = world.makeBody(descr);
+            body1->setVelocity(Vec2{0.5f, 0});
 
-            descr.position    = Vec2{1, 0};
-            auto body2        = world.makeBody(descr);
-            body2->velocity() = Vec2{-0.5f, 0};
+            descr.position = Vec2{1, 0};
+            auto body2     = world.makeBody(descr);
+            body2->setVelocity(Vec2{-0.5f, 0});
 
             world.step(1.f);
             world.step(1.f);   // touching at x=0
@@ -522,9 +522,9 @@ TEST_CASE("Physics")
             BodyDescriptor descr{squareDescriptor};
             descr.material.bounciness.value = 1.f;
 
-            descr.position         = Vec2{-2, 0};
-            auto projectile        = world.makeBody(descr);
-            projectile->velocity() = Vec2{1.f, 0.f};
+            descr.position  = Vec2{-2, 0};
+            auto projectile = world.makeBody(descr);
+            projectile->setVelocity(Vec2{1.f, 0.f});
             REQUIRE(!projectile->isStructural());
 
             descr.position  = Vec2{0, 0};
@@ -562,7 +562,7 @@ TEST_CASE("Physics")
                 Vec2{0.f, 1.f}
             );
 
-            driver->angularVelocity() = 1.f;
+            driver->setAngularVelocity(1.f);
             world.step(1.f);
 
             REQUIRE(driver->angularVelocity() == 1.f);
@@ -750,9 +750,9 @@ TEST_CASE("Physics")
             -0.132951573
         };
 
-        auto wheel               = world.makeBody(wheelDescr);
-        wheel->velocity()        = Vec2{0.563797712f, -0.153355882f};
-        wheel->angularVelocity() = -1.12384140f;
+        auto wheel = world.makeBody(wheelDescr);
+        wheel->setVelocity(Vec2{0.563797712f, -0.153355882f});
+        wheel->setAngularVelocity(-1.12384140f);
 
         world.step(0.01f);
 
@@ -794,8 +794,8 @@ TEST_CASE("Physics")
             world.step(0.01f);
         }
 
-        i = 0;
-        const float err = 10*simu::EPSILON;
+        i               = 0;
+        const float err = 10 * simu::EPSILON;
         for (const PhysicsBody* box : boxes)
         {
             float h = static_cast<float>(i++);

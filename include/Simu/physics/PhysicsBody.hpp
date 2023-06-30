@@ -35,6 +35,8 @@
 #include "Simu/physics/Material.hpp"
 #include "Simu/physics/ConstraintSolver.hpp"
 
+#include "Simu/physics/Sleepable.hpp"
+
 namespace simu
 {
 struct BodyDescriptor
@@ -68,7 +70,7 @@ struct MassProperties
 
 class PhysicsWorld;
 
-class PhysicsBody : public PhysicsObject
+class PhysicsBody : public PhysicsObject, public Sleepable
 {
 public:
 
@@ -109,10 +111,20 @@ public:
             += cross(whereFromCentroid, impulse) / properties_.inertia;
     }
 
-    Vec2&       velocity() { return velocity_; }
+    void setVelocity(Vec2 velocity)
+    {
+        velocity_ = velocity;
+        wake();
+    }
+
     const Vec2& velocity() const { return velocity_; }
 
-    float&       angularVelocity() { return angularVelocity_; }
+    void setAngularVelocity(float angularVelocity)
+    {
+        angularVelocity_ = angularVelocity;
+        wake();
+    }
+
     const float& angularVelocity() const { return angularVelocity_; }
 
     const Vec2& position() const { return position_; }
@@ -161,7 +173,7 @@ public:
 
 private:
 
-    template<ConstraintFunction F>
+    template <ConstraintFunction F>
     friend class ConstraintSolverBase;
 
     Vec2 position_;

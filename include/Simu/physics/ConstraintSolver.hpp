@@ -132,8 +132,8 @@ public:
         Uint32   i  = 0;
         for (PhysicsBody* body : bodies)
         {
-            body->velocity() += Vec2{dv[i], dv[i + 1]};
-            body->angularVelocity() += dv[i + 2];
+            body->setVelocity(body->velocity() + Vec2{dv[i], dv[i + 1]});
+            body->setAngularVelocity(body->angularVelocity() + dv[i + 2]);
             i += 3;
         }
     }
