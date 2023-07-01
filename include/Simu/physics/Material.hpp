@@ -68,7 +68,7 @@ struct Material
     /// How much penetration the body tolerates during collisions.
     ///
     ////////////////////////////////////////////////////////////
-    CombinableProperty penetration{simu::EPSILON, CombinableProperty::average};
+    CombinableProperty penetration{1e-3, CombinableProperty::average};
 };
 
 

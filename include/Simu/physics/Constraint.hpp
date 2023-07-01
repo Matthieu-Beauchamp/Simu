@@ -246,8 +246,12 @@ public:
 
     virtual bool isContactValid(CBodies bodies, float maxPen) const = 0;
 
-    virtual void  update(CBodies bodies, const Manifold& manifold) = 0;
-    virtual float lambdaHint() const                               = 0;
+    virtual void update(CBodies bodies, const Manifold& manifold) = 0;
+
+    virtual float lambdaHint() const = 0;
+
+    typedef Vector<float, 6> Impulse;
+    virtual Impulse          impulseHint() const = 0;
 
     virtual Uint32 nContacts() const = 0;
 };
@@ -268,13 +272,14 @@ public:
     typedef ContactManifold<Collider> Manifold;
 
     SingleContactConstraint(
-        const Bodies<2>& bodies,
-        const Manifold&  manifold,
-        float            lambdaHint
+        const Bodies<2>&        bodies,
+        const Manifold&         manifold,
+        const Vector<float, 6>& impulseHint
     )
         : Base{bodies, makeFunction(bodies, manifold), false, std::nullopt}
     {
-        solver.setLambdaHint(Value{lambdaHint});
+        auto J = f.jacobian(bodies);
+        solver.setLambdaHint(solve(J * transpose(J), J * impulseHint));
     }
 
     void solveVelocities(float dt) override
@@ -299,6 +304,11 @@ public:
     float lambdaHint() const override
     {
         return solver.getAccumulatedLambda()[0];
+    }
+
+    Vector<float, 6> impulseHint() const override
+    {
+        return transpose(solver.getJacobian()) * solver.getAccumulatedLambda();
     }
 
     Uint32 nContacts() const override { return 1; }
@@ -328,13 +338,14 @@ public:
     typedef ContactManifold<Collider> Manifold;
 
     DoubleContactConstraint(
-        const Bodies<2>& bodies,
-        const Manifold&  manifold,
-        float            lambdaHint
+        const Bodies<2>&       bodies,
+        const Manifold&        manifold,
+        const Vector<float, 6> impulseHint
     )
         : Base{bodies, makeFunction(bodies, manifold), false, std::nullopt}
     {
-        solver.setLambdaHint(Value{lambdaHint / 2, lambdaHint / 2});
+        auto J = f.jacobian(bodies);
+        solver.setLambdaHint(solve(J * transpose(J), J * impulseHint));
     }
 
     void solveVelocities(float dt) override
@@ -370,6 +381,11 @@ public:
     {
         Vec2 lambda = solver.getAccumulatedLambda();
         return lambda[0] + lambda[1];
+    }
+
+    Vector<float, 6> impulseHint() const override
+    {
+        return transpose(solver.getJacobian()) * solver.getAccumulatedLambda();
     }
 
     Uint32 nContacts() const override { return 2; }
@@ -534,7 +550,8 @@ private:
         {
             contactConstraint_ = makeContactConstraint(
                 manifold,
-                hasNoConstraint ? 0.f : contactConstraint_->lambdaHint()
+                hasNoConstraint ? Vector<float, 6>{}
+                                : contactConstraint_->impulseHint()
             );
         }
         else
@@ -547,7 +564,7 @@ private:
 
     std::unique_ptr<ContactConstraintI> makeContactConstraint(
         const ContactManifold<Collider>& manifold,
-        float                            lambdaHint = 0.f
+        const Vector<float, 6>&          impulseHint
     )
     {
         if (frictionConstraint_ == nullptr)
@@ -560,13 +577,13 @@ private:
                 return std::make_unique<SingleContactConstraint>(
                     contact_.bodies,
                     manifold,
-                    lambdaHint
+                    impulseHint
                 );
             case 2:
                 return std::make_unique<DoubleContactConstraint>(
                     contact_.bodies,
                     manifold,
-                    lambdaHint
+                    impulseHint
                 );
             default: return nullptr;
         }

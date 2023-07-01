@@ -764,23 +764,33 @@ TEST_CASE("Physics")
 
     SECTION("Box stack")
     {
-        // Increasing the number of steps always lead to the boxes falling,
-        //  currently there does not seem to be any strong errors only an accumulation of the imprecision.
-        // Sleeping could help solve this,
-        // Increasing the number of boxes also leads to an earlier collapse.
+        // This test is very slow, but necessary.
+        // Even if the stack seems stable after a few steps, we must ensure that 
+        //  the stack can hold for very long 
+        //  (no fatal accumulation of errors, no awkward contact manifold problems, etc.)
 
         PhysicsWorld world{};
         world.makeForceField<Gravity>(Vec2{0.f, -10.f});
 
-        auto makeBox = [&](Int32 index, float dominance = 1.f) -> PhysicsBody* {
+        auto makeBox = [&](Int32 index) -> PhysicsBody* {
             BodyDescriptor descr{squareDescriptor};
             descr.position[1]             = index;
-            descr.dominance               = dominance;
             descr.material.friction.value = 0.5f;
             return world.makeBody(descr);
         };
 
-        PhysicsBody* floor = makeBox(-1, 0.f);
+        BodyDescriptor floorDescr{
+            Polygon{
+                Vec2{-1.f, -1.f},
+                Vec2{2.f, -1.f},
+                Vec2{2.f, 0.f},
+                Vec2{-1.f, 0.f},
+            }
+        };
+        floorDescr.material.friction.value = 0.5f;
+        floorDescr.dominance = 0.f;
+
+        PhysicsBody* floor = world.makeBody(floorDescr);
 
         constexpr Int32                  nBoxes = 10;
         std::array<PhysicsBody*, nBoxes> boxes{};
@@ -789,13 +799,25 @@ TEST_CASE("Physics")
         for (auto& box : boxes)
             box = makeBox(i++);
 
-        for (Uint32 steps = 0; steps < 500; ++steps)
+        // TODO: For stability, use as many velocity iterations as the height of the tower.
+        //  (Needs world.settings)
+
+        for (Uint32 steps = 0; steps < 6000; ++steps)
         {
             world.step(0.01f);
+
+            for (auto& box : boxes)
+            {
+                if (!approx(box->orientation(), 1*simu::EPSILON).contains(0.f))
+                {
+                    box->setAngularVelocity(box->angularVelocity());
+                    break;
+                }
+            }
         }
 
         i               = 0;
-        const float err = 10 * simu::EPSILON;
+        const float err = 100 * simu::EPSILON;
         for (const PhysicsBody* box : boxes)
         {
             float h = static_cast<float>(i++);

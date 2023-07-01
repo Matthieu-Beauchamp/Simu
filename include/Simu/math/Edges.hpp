@@ -26,6 +26,7 @@
 
 #include "Simu/utility/Algo.hpp"
 #include "Simu/math/Geometry.hpp"
+#include "Simu/math/BarycentricCoordinates.hpp"
 
 namespace simu
 {
@@ -59,7 +60,7 @@ public:
 
         float distanceToPoint(Vec2 point) const
         {
-            return std::abs(dot(normalizedNormal(), to() - point));
+            return norm(LineBarycentric{from(), to(), point}.closestPoint - point);
         };
 
         float distanceToOrigin() const { return distanceToPoint(Vec2{}); };

@@ -99,14 +99,14 @@ private:
         Vec2 n = -contactNormal;
 
         Vertex contact1 = contactEdges[inc].clipInside(previousOfRef);
-        if (dot(contact1 - contactEdges[ref].from(), n) > 0.f)
+        if (dot(contact1 - contactEdges[ref].from(), n) >= 0.f)
             contacts[inc][nContacts++] = contact1;
 
         Vertex contact2 = contactEdges[inc].clipInside(nextOfRef);
-        if (dot(contact2 - contactEdges[ref].from(), n) > 0.f)
+        if (dot(contact2 - contactEdges[ref].from(), n) >= 0.f)
         {
             contacts[inc][nContacts++] = contact2;
-            if (all(contacts[inc][0] == contacts[inc][1]))
+            if (nContacts == 2 && all(contacts[inc][0] == contacts[inc][1]))
                 --nContacts;
         }
 

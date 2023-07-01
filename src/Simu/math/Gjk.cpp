@@ -125,10 +125,11 @@ Polytope::Polytope(const Simplex& simplex)
 
     vertices.emplace_back(first);
 
+    // TODO: If we cannot add the three vertices, then it is an error since we cannot garantee the ordering of vertices...
     if (any(second != first))
     {
         vertices.emplace_back(second);
-        if (orientation(first, second, third) != Orientation::collinear)
+        if (orientation(first, second, third, 0.f) != Orientation::collinear)
         {
             vertices.emplace_back(third);
             if (orientation(first, second, third, 0.f) == Orientation::negative)
