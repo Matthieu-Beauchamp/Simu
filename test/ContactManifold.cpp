@@ -212,4 +212,22 @@ TEST_CASE("Contact manifolds")
         REQUIRE(inContacts(manifold.contacts[1], Vertex{0.25f, 2.f}));
         REQUIRE(inContacts(manifold.contacts[1], Vertex{2.f, 2.f}));
     }
+
+    SECTION("Edge distance to origin"){
+        // hard to find a test that will encounter this situation,
+        //  but did happen in practice
+
+        Vertices v{
+            Vertex{-1, 1e-8},
+            Vertex{1e-6, 1e-8},
+            Vertex{1, 1e-8},
+        };
+
+        auto it = v.begin();
+
+        Edges<Vertices>::Edge e1{it, it+1};
+        Edges<Vertices>::Edge e2{it+1, it+2};
+    
+        REQUIRE(e1.distanceToOrigin() < e2.distanceToOrigin());
+    }
 }
