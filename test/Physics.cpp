@@ -799,7 +799,8 @@ TEST_CASE("Physics")
         for (auto& box : boxes)
             box = makeBox(i++);
 
-        // TODO: For stability, use as many velocity iterations as the height of the tower.
+        // TODO: For stability, use at least as many velocity iterations as the 
+        // height of the tower.
         //  (Needs world.settings)
 
         for (Uint32 steps = 0; steps < 6000; ++steps)

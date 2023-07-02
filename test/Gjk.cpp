@@ -296,8 +296,19 @@ TEST_CASE("Gjk")
             Vertex{0, 0},
             Vertex{0, 0}
         };
-        
+
         testSeparation(point, translated(point, Vec2{1, 0}), Vec2{1, 0});
         testPenetration(point, point, Vec2{0, 0});
+    }
+
+    SECTION("Almost collinear simplex to polytope")
+    {
+        priv::Simplex s{};
+        s.pushPoint(Vertex{-1.f, 1e-8f});
+        s.pushPoint(Vertex{1.f, -2e-8f});
+        s.pushPoint(Vertex{2.f, 1e-8f});
+    
+        priv::Polytope p{s};
+        REQUIRE(p.vertices.size() == 3);
     }
 }

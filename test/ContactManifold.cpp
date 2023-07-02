@@ -59,7 +59,9 @@ TEST_CASE("Contact manifolds")
             REQUIRE(all(approx(Vec2{0, 1}, Vec2::filled(simu::EPSILON))
                             .contains(normalized(manifold.contactNormal))));
             REQUIRE(manifold.nContacts == 1);
-            REQUIRE(all(manifold.contacts[manifold.incidentIndex()][0] == Vertex{1, 1.5f}));
+            REQUIRE(all(
+                manifold.contacts[manifold.incidentIndex()][0] == Vertex{1, 1.5f}
+            ));
         }
         {
             auto manifold = makeContactManifold(Polys{&top, &bottom});
@@ -70,7 +72,9 @@ TEST_CASE("Contact manifolds")
             REQUIRE(all(approx(Vec2{0, 1}, Vec2::filled(simu::EPSILON))
                             .contains(normalized(manifold.contactNormal))));
             REQUIRE(manifold.nContacts == 1);
-            REQUIRE(all(manifold.contacts[manifold.incidentIndex()][0] == Vertex{1, 1.5f}));
+            REQUIRE(all(
+                manifold.contacts[manifold.incidentIndex()][0] == Vertex{1, 1.5f}
+            ));
         }
     }
 
@@ -101,16 +105,28 @@ TEST_CASE("Contact manifolds")
                 REQUIRE(all(approx(Vec2{0, 1}, Vec2::filled(simu::EPSILON))
                                 .contains(normalized(manifold.contactNormal))));
 
-                REQUIRE(inContacts(manifold.contacts[manifold.incidentIndex()], Vertex{0, 1}));
-                REQUIRE(inContacts(manifold.contacts[manifold.incidentIndex()], Vertex{2, 1}));
+                REQUIRE(inContacts(
+                    manifold.contacts[manifold.incidentIndex()],
+                    Vertex{0, 1}
+                ));
+                REQUIRE(inContacts(
+                    manifold.contacts[manifold.incidentIndex()],
+                    Vertex{2, 1}
+                ));
             }
             else
             {
                 REQUIRE(all(approx(Vec2{0, -1}, Vec2::filled(simu::EPSILON))
                                 .contains(normalized(manifold.contactNormal))));
 
-                REQUIRE(inContacts(manifold.contacts[manifold.incidentIndex()], Vertex{0, 2}));
-                REQUIRE(inContacts(manifold.contacts[manifold.incidentIndex()], Vertex{2, 2}));
+                REQUIRE(inContacts(
+                    manifold.contacts[manifold.incidentIndex()],
+                    Vertex{0, 2}
+                ));
+                REQUIRE(inContacts(
+                    manifold.contacts[manifold.incidentIndex()],
+                    Vertex{2, 2}
+                ));
             }
         }
 
@@ -138,18 +154,62 @@ TEST_CASE("Contact manifolds")
                 REQUIRE(all(approx(Vec2{0, 1}, Vec2::filled(simu::EPSILON))
                                 .contains(normalized(manifold.contactNormal))));
 
-                REQUIRE(inContacts(manifold.contacts[manifold.incidentIndex()], Vertex{0.5f, 1.5f}));
-                REQUIRE(inContacts(manifold.contacts[manifold.incidentIndex()], Vertex{2.f, 1.5f})
-                ); // clipped
+                REQUIRE(inContacts(
+                    manifold.contacts[manifold.incidentIndex()],
+                    Vertex{0.5f, 1.5f}
+                ));
+                REQUIRE(inContacts(
+                    manifold.contacts[manifold.incidentIndex()],
+                    Vertex{2.f, 1.5f}
+                )); // clipped
             }
             else
             {
                 REQUIRE(all(approx(Vec2{0, -1}, Vec2::filled(simu::EPSILON))
                                 .contains(normalized(manifold.contactNormal))));
 
-                REQUIRE(inContacts(manifold.contacts[manifold.incidentIndex()], Vertex{0.5f, 2})); // clipped
-                REQUIRE(inContacts(manifold.contacts[manifold.incidentIndex()], Vertex{2, 2}));
+                REQUIRE(inContacts(
+                    manifold.contacts[manifold.incidentIndex()],
+                    Vertex{0.5f, 2}
+                )); // clipped
+                REQUIRE(inContacts(
+                    manifold.contacts[manifold.incidentIndex()],
+                    Vertex{2, 2}
+                ));
             }
         }
+    }
+
+    SECTION("Leaning inside")
+    {
+        Polygon bottom{
+            Vertex{0, 0},
+            Vertex{2, 0},
+            Vertex{2, 2},
+            Vertex{0, 2}
+        };
+
+        Polygon top{
+            Vertex{0.25f, 1.75f},
+            Vertex{2.f,   2.f  },
+            Vertex{1.75f, 3.f  },
+            Vertex{0.f,   2.75f},
+        };
+
+        auto manifold = makeContactManifold(Polys{&top, &bottom});
+
+        REQUIRE(manifold.referenceIndex() == 1);
+        REQUIRE(manifold.incidentIndex() == 0);
+
+        REQUIRE(all(approx(Vec2{0, 1}, Vec2::filled(simu::EPSILON))
+                        .contains(normalized(manifold.contactNormal))));
+
+        REQUIRE(manifold.nContacts == 2);
+
+        REQUIRE(inContacts(manifold.contacts[0], Vertex{0.25f, 1.75f}));
+        REQUIRE(inContacts(manifold.contacts[0], Vertex{2.f, 2.f}));
+
+        REQUIRE(inContacts(manifold.contacts[1], Vertex{0.25f, 2.f}));
+        REQUIRE(inContacts(manifold.contacts[1], Vertex{2.f, 2.f}));
     }
 }
