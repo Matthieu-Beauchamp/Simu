@@ -24,258 +24,127 @@
 
 #pragma once
 
-#include <vector>
+#include <set>
 
-#include "Simu/config.hpp"
-#include "Simu/physics/Constraint.hpp"
 #include "Simu/physics/PhysicsBody.hpp"
-
-#include "Simu/physics/Sleepable.hpp"
+#include "Simu/physics/Constraint.hpp"
 
 namespace simu
 {
 
-class Island : public Sleepable
+struct Island
 {
 public:
 
-    bool contains(PhysicsBody* body)
+    Island(PhysicsBody* root)
     {
-        std::find(bodies_.begin(), bodies_.end(), body) == bodies_.end();
+        addBody(root);
+        expand(root);
     }
 
-    bool contains(Constraint* constraint)
+    void expand(PhysicsBody* root)
     {
-        std::find(constraints_.begin(), constraints_.end(), constraint)
-            == constraints_.end();
+        if (isTrueStructural(root))
+            return;
+            
+        for (Constraint* constraint : root->constraints_)
+        {
+            if (constraints_.emplace(constraint).second)
+            {
+                for (PhysicsBody* body : constraint->bodies())
+                {
+                    if (!isTrueStructural(body))
+                    {
+                        addBody(body);
+                        expand(body);
+                    }
+                }
+            }
+        }
     }
 
+    bool isAwake() const { return isAwake_; }
     auto bodies() { return makeView(bodies_.begin(), bodies_.end()); }
-    auto bodies() const { return makeView(bodies_.begin(), bodies_.end()); }
-
     auto constraints()
     {
         return makeView(constraints_.begin(), constraints_.end());
     }
-    auto constraints() const
-    {
-        return makeView(constraints_.begin(), constraints_.end());
-    }
-
-
-    ////////////////////////////////////////////////////////////
-    // Sleeping
-    ////////////////////////////////////////////////////////////
-
-    bool canSleep(
-        float velocityTreshold = simu::EPSILON,
-        float angularTreshold  = simu::EPSILON
-    ) const
-    {
-        bool immobile = true;
-        for (const PhysicsBody* body : bodies_)
-        {
-            immobile
-                = immobile
-                  && (all(std::abs(body->velocity())
-                          <= Vec2::filled(velocityTreshold))
-                      && std::abs(body->angularVelocity()) <= angularTreshold);
-        }
-    }
-
-    void sleep() override
-    {
-        for (PhysicsBody* body : bodies_)
-            body->sleep();
-        for (Constraint* constraint : constraints_)
-            constraint->sleep();
-    }
-
-    void wake() override
-    {
-        for (PhysicsBody* body : bodies_)
-            body->wake();
-        for (Constraint* constraint : constraints_)
-            constraint->wake();
-    }
-
-    bool isAsleep() const override
-    {
-        for (PhysicsBody* body : bodies_)
-            if (!body->isAsleep())
-                return false;
-        for (Constraint* constraint : constraints_)
-            if (!constraint->isAsleep())
-                return false;
-
-        return true;
-    }
 
 private:
+    static bool isTrueStructural(PhysicsBody* body){
+        if (body->constraints_.empty())
+            return false;
 
-    friend class Islands;
+        bool isStructural = true;
+        for (Constraint* constraint : body->constraints_)
+            isStructural = isStructural && constraint->isBodyStructural(body);
 
-    Island(PhysicsBody* body) { bodies_.emplace_back(body); }
-
-    void mergeWith(Island& other)
-    {
-        bodies_.insert(bodies_.end(), other.bodies_.begin(), other.bodies_.end());
-        other.bodies_.clear();
-
-        constraints_.insert(
-            constraints_.end(),
-            other.constraints_.begin(),
-            other.constraints_.end()
-        );
-        other.constraints_.clear();
+        return isStructural;
     }
 
+    void addBody(PhysicsBody* body)
+    {
+        bodies_.emplace(body);
+        isAwake_ = isAwake_ || !body->isAsleep();
+    }
 
-    std::vector<Constraint*>  constraints_{};
-    std::vector<PhysicsBody*> bodies_{};
+    std::set<PhysicsBody*> bodies_;
+    std::set<Constraint*>  constraints_;
+    bool                   isAwake_ = false;
 };
 
+template <class T>
+concept BodyRange = std::ranges::range<T> && requires(T t) {
+    // clang-format off
+    { *t.begin() } -> std::convertible_to<PhysicsBody&>;
+    // clang-format on
+};
 
 class Islands
 {
 public:
 
-    auto all()
+    template <BodyRange T>
+    Islands(T&& bodies)
     {
-        return makeView(islands_.begin(), islands_.end(), BypassSmartPointer{});
-    }
+        std::vector<PhysicsBody*> bodiesToProcess;
+        for (PhysicsBody& body : bodies)
+            bodiesToProcess.emplace_back(&body);
 
-    auto all() const
-    {
-        return makeView(islands_.begin(), islands_.end(), BypassSmartPointer{});
-    }
+        auto removeBody = [&](PhysicsBody* body) {
+            bodiesToProcess.erase(
+                std::remove(bodiesToProcess.begin(), bodiesToProcess.end(), body),
+                bodiesToProcess.end()
+            );
+        };
 
-    void addBody(PhysicsBody* body)
-    {
-        islands_.emplace_back(std::make_unique<Island>(body));
-    }
-
-    // the bodies of the constraint must have been added previously
-    void addConstraint(Constraint* constraint)
-    {
-        auto bodies = constraint->bodies();
-
-        iterator island = islandOf(bodies.front());
-        for (PhysicsBody* body : bodies)
-            island = merge(island, islandOf(body));
-
-        (*island)->constraints_.emplace_back(constraint);
-    }
-
-    // if a body is removed, then all constraints on that body must be removed too.
-    void cleanup(
-        const std::vector<Constraint*>&  constraintsToRemove,
-        const std::vector<PhysicsBody*>& bodiesToRemove
-    )
-    {
-        // TODO: There may be an easy to split the connected components directly,
-        //  but since the constraints may have 1, 2, 3, ... bodies the graph representation is harder.
-
-        std::vector<iterator> affected{};
-        for (Constraint* constraint : constraintsToRemove)
+        while (!bodiesToProcess.empty())
         {
-            iterator island = islandOf(constraint);
-            if (std::find(affected.begin(), affected.end(), island)
-                == affected.end())
-                affected.emplace_back(island);
+            // TODO: Skip structural bodies, what if one is structural,
+            //  but never behaves like one according to constraints?
+
+            Island island{bodiesToProcess.back()};
+            for (PhysicsBody* body : island.bodies())
+                removeBody(body);
+
+            islands_.emplace_back(std::move(island));
         }
 
-        for (PhysicsBody* body : bodiesToRemove)
+        for (auto it = islands_.begin(); it != islands_.end();)
         {
-            iterator island = islandOf(body);
-            if (std::find(affected.begin(), affected.end(), island)
-                == affected.end())
-                affected.emplace_back(island);
+            if (it->constraints().empty())
+                it = islands_.erase(it);
+            else
+                ++it;
         }
-
-        std::vector<Constraint*>  keptConstraints;
-        std::vector<PhysicsBody*> keptBodies;
-
-        for (iterator island : affected)
-        {
-            for (PhysicsBody* body : (*island)->bodies())
-                if (std::find(bodiesToRemove.begin(), bodiesToRemove.end(), body)
-                    == bodiesToRemove.end())
-                    keptBodies.emplace_back(body);
-
-            for (Constraint* constraint : (*island)->constraints())
-                if (std::find(
-                        constraintsToRemove.begin(),
-                        constraintsToRemove.end(),
-                        constraint
-                    )
-                    == constraintsToRemove.end())
-                    keptConstraints.emplace_back(constraint);
-        }
-
-        for (iterator island : affected)
-            islands_.erase(island);
-
-        for (PhysicsBody* body : keptBodies)
-            addBody(body);
-
-        for (Constraint* constraint : keptConstraints)
-            addConstraint(constraint);
     }
+
+    auto islands() { return makeView(islands_.begin(), islands_.end()); }
 
 private:
 
-    typedef std::list<std::unique_ptr<Island>>::iterator       iterator;
-    typedef std::list<std::unique_ptr<Island>>::const_iterator const_iterator;
-
-    iterator islandOf(PhysicsBody* body)
-    {
-        iterator island = std::find_if(
-            islands_.begin(),
-            islands_.end(),
-            [=](const std::unique_ptr<Island>& island) {
-                return island->contains(body);
-            }
-        );
-
-        SIMU_ASSERT(
-            island != islands_.end(),
-            "The body is expected to have been added to the islands"
-        );
-
-        return island;
-    }
-
-    iterator islandOf(Constraint* constraint)
-    {
-        iterator island = std::find_if(
-            islands_.begin(),
-            islands_.end(),
-            [=](const std::unique_ptr<Island>& island) {
-                return island->contains(constraint);
-            }
-        );
-
-        SIMU_ASSERT(
-            island != islands_.end(),
-            "The constraint is expected to have been added to the islands"
-        );
-
-        return island;
-    }
-
-    iterator merge(iterator first, iterator second)
-    {
-        if (first != second)
-        {
-            (*first)->mergeWith(**second);
-            islands_.erase(second);
-        }
-
-        return first;
-    }
-
-    std::list<std::unique_ptr<Island>> islands_;
+    std::vector<Island> islands_;
 };
+
 
 } // namespace simu

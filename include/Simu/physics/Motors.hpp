@@ -201,10 +201,20 @@ public:
     }
 
     float throttle() const { return f.throttle(); }
-    void  throttle(float throttle) { f.throttle(throttle); }
+    void  throttle(float throttle)
+    {
+        f.throttle(throttle);
+        for (PhysicsBody* body : bodies())
+            body->wake();
+    }
 
     Value direction() const { return f.direction(); }
-    void  direction(Value direction) { f.direction(direction); }
+    void  direction(Value direction)
+    {
+        f.direction(direction);
+        for (PhysicsBody* body : bodies())
+            body->wake();
+    }
 };
 
 
@@ -270,10 +280,20 @@ public:
     }
 
     float throttle() const { return f.throttle(); }
-    void  throttle(float throttle) { f.throttle(throttle); }
+    void  throttle(float throttle)
+    {
+        f.throttle(throttle);
+        for (PhysicsBody* body : bodies())
+            body->wake();
+    }
 
     Value direction() const { return f.direction(); }
-    void  direction(Value direction) { f.direction(direction); }
+    void  direction(Value direction)
+    {
+        f.direction(direction);
+        for (PhysicsBody* body : bodies())
+            body->wake();
+    }
 };
 
 

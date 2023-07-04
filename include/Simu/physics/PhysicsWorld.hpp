@@ -88,6 +88,7 @@ namespace simu
 {
 
 class Constraint;
+struct Island;
 
 class PhysicsWorld
 {
@@ -118,24 +119,44 @@ public:
     template <std::derived_from<Constraint> T, class... Args>
     T* makeConstraint(Args&&... args)
     {
-        return static_cast<T*>(
+        T* c = static_cast<T*>(
             constraints_
                 .emplace_back(makeObject<T>(std::forward<Args>(args)...))
                 .get()
         );
+
+        for (PhysicsBody* body : c->bodies())
+        {
+            body->constraints_.emplace_back(c);
+            body->wake();
+        }
+
+        return c;
     }
 
     template <std::derived_from<ForceField> T, class... Args>
     T* makeForceField(Args&&... args)
     {
-        return static_cast<T*>(
+        T* f = static_cast<T*>(
             forces_.emplace_back(makeObject<T>(std::forward<Args>(args)...)).get()
         );
+
+        if (f->domain().type == ForceField::DomainType::global)
+            for (PhysicsBody& body : bodies())
+                body.wake();
+        else
+            bodies_.forEachIn(f->domain().region, [](BodyTree::iterator it) {
+                (*it)->wake();
+            });
+
+        return f;
     }
 
     void step(float dt);
 
     // TODO: Contact conflicts needs testing
+    // TODO: This is no longer needed since bodies knows their constraint
+    //  constraint should be queried to know wether or not they prevent contact between two of their bodies.
     void declareContactConflict(const Bodies<2>& bodies);
     void removeContactConflict(const Bodies<2>& bodies);
 
@@ -149,6 +170,31 @@ public:
     auto constraints() { return makeView(constraints_, BypassSmartPointer{}); }
     auto constraints() const { return makeView(constraints_, BypassSmartPointer{}); }
     // clang-format on
+
+    struct Settings
+    {
+        Uint32 nVelocityIterations = 10;
+        Uint32 nPositionIterations = 3;
+        // TODO: Epsilons, iterate until change < epsilon or iter >= maxIter.
+
+        bool enableWarmstarting = true;
+
+        bool  enableSleeping                = false;
+        float inactivitySleepDelay          = 1.f;
+        float velocitySleepThreshold        = 1e-3f;
+        float angularVelocitySleepThreshold = 1e-3f;
+    };
+
+    void updateSettings(const Settings& settings)
+    {
+        if (!settings.enableSleeping && settings_.enableSleeping)
+            for (PhysicsBody& body : bodies())
+                body.wake();
+
+        settings_ = settings;
+    }
+
+    const Settings& settings() const { return settings_; }
 
 private:
 
@@ -168,14 +214,15 @@ private:
     struct Cleaner;
     void cleanup();
 
-    void applyConstraints(float dt);
+    void applyVelocityConstraints(Island& island, float dt);
+    void integrateBodies(float dt);
+    void applyPositionConstraints(Island& island);
 
     void updateBodies(float dt);
 
     BodyTree                               bodies_{};
     std::list<std::unique_ptr<Constraint>> constraints_{};
     std::list<std::unique_ptr<ForceField>> forces_{};
-
 
     struct ContactStatus
     {
@@ -193,9 +240,7 @@ private:
                    : contacts_.find(Bodies<2>{bodies[1], bodies[0]});
     }
 
-    // TODO:
-    // ConstraintSolver solver_;
-    // solver settings
+    Settings settings_;
 };
 
 

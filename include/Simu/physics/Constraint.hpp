@@ -35,12 +35,12 @@
 #include "Simu/physics/ConstraintFunction.hpp"
 #include "Simu/physics/ConstraintSolver.hpp"
 
-#include "Simu/physics/Sleepable.hpp"
+#include "Simu/utility/View.hpp"
 
 namespace simu
 {
 
-class Constraint : public PhysicsObject, public Sleepable
+class Constraint : public PhysicsObject
 {
 public:
 
@@ -59,6 +59,9 @@ public:
     // if a constraint has no bodies or changes its bodies during its lifetime,
     //  then behavior is undefined.
     virtual BodyView bodies() = 0;
+    // TODO: Const version
+
+    virtual bool isBodyStructural(PhysicsBody* body) const = 0;
 };
 
 // TODO: The caching is not very useful, storing the K^-1 matrix is more beneficial,
@@ -84,11 +87,23 @@ public:
         bool                      disableContacts,
         std::optional<Dominance>  dominanceRatios = std::nullopt
     )
-        : f{f},
+        : Base{},
+          f{f},
           bodies_{bodies},
-          solver{bodies, f, dominance(bodies, dominanceRatios)},
+          dominances_{dominance(bodies, dominanceRatios)},
+          solver{bodies, f, dominances_},
           disableContacts_{disableContacts}
     {
+        Uint32 howManyStructural = 0;
+        for (PhysicsBody* body : this->bodies())
+            if (isBodyStructural(body))
+                ++howManyStructural;
+
+        SIMU_ASSERT(
+            howManyStructural <= 1,
+            "Cannot solve a constraint with multiple structural bodies. (also "
+            "breaks island creation..?)"
+        );
     }
 
     void onConstruction(PhysicsWorld& world) override;
@@ -119,6 +134,19 @@ public:
         return makeView(bodies_.data(), bodies_.data() + bodies_.size());
     }
 
+    bool isBodyStructural(PhysicsBody* body) const override
+    {
+        for (Uint32 i = 0; i < F::nBodies; ++i)
+            if (body == bodies_[i])
+                return dominances_[i] == 0.f;
+
+        SIMU_ASSERT(false, "Body is not part of this constraint.");
+    }
+
+private:
+
+    Dominance dominances_;
+
 protected:
 
     F f;
@@ -143,7 +171,6 @@ private:
     }
 
     Bodies<F::nBodies> bodies_;
-    Dominance          dominances_;
 
     bool disableContacts_;
 };
@@ -499,11 +526,7 @@ public:
         frictionConstraint_->setNormalLambda(contactConstraint_->lambdaHint());
     }
 
-    void solvePositions() override
-    {
-        if (isActive())
-            contactConstraint_->solvePositions();
-    }
+    void solvePositions() override { contactConstraint_->solvePositions(); }
 
     BodyView bodies() override
     {
@@ -512,6 +535,11 @@ public:
             contact_.bodies.data() + contact_.bodies.size()
         );
     }
+
+    bool isBodyStructural(PhysicsBody* body) const override
+    {
+        return body->isStructural();
+    };
 
 private:
 

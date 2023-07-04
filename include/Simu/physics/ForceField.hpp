@@ -107,9 +107,6 @@ public:
 
     void apply(PhysicsBody& body, float dt) const override
     {
-        if (body.isStructural())
-            return;
-            
         body.applyImpulse(acceleration_ * body.properties().mass, dt, Vec2{0, 0});
     }
 

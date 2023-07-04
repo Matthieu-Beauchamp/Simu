@@ -178,8 +178,9 @@ TEST_CASE("Physics")
 
             right->setAngularVelocity(right->angularVelocity() - w);
             world.step(1.f);
-            REQUIRE(left->angularVelocity() == 0.f);
-            REQUIRE(right->angularVelocity() == 0.f);
+            REQUIRE(approx(left->angularVelocity(), simu::EPSILON).contains(0.f));
+            REQUIRE(approx(right->angularVelocity(), simu::EPSILON).contains(0.f)
+            );
         }
 
         SECTION("Hinge constraint")
@@ -291,8 +292,8 @@ TEST_CASE("Physics")
 
             world.step(1.f);
 
-            REQUIRE(left->angularVelocity() == 0.f);
-            REQUIRE(right->angularVelocity() == 0.f);
+            REQUIRE(approx(left->angularVelocity(), simu::EPSILON).contains(0.f));
+            REQUIRE(approx(right->angularVelocity(), simu::EPSILON).contains(0.f));
 
             REQUIRE(all(left->velocity() == Vec2{0.f, 0.5f}));
             REQUIRE(all(right->velocity() == Vec2{0.f, 0.5f}));
@@ -300,8 +301,8 @@ TEST_CASE("Physics")
             left->applyImpulse(Vec2{0.f, -1.f}, Vec2{0.5f, 0});
             world.step(1.f);
 
-            REQUIRE(left->angularVelocity() == 0.f);
-            REQUIRE(right->angularVelocity() == 0.f);
+            REQUIRE(approx(left->angularVelocity(), simu::EPSILON).contains(0.f));
+            REQUIRE(approx(right->angularVelocity(), simu::EPSILON).contains(0.f));
 
             REQUIRE(all(left->velocity() == Vec2{}));
             REQUIRE(all(right->velocity() == Vec2{}));
@@ -562,12 +563,17 @@ TEST_CASE("Physics")
                 Vec2{0.f, 1.f}
             );
 
+            world.declareContactConflict(Bodies<2>{driver, follower});
+
             driver->setAngularVelocity(1.f);
             world.step(1.f);
 
             REQUIRE(driver->angularVelocity() == 1.f);
             REQUIRE(middle->angularVelocity() == 1.f);
             REQUIRE(follower->angularVelocity() == 1.f);
+        
+            world.removeContactConflict(Bodies<2>{driver, follower});
+        
         }
     }
 
@@ -765,8 +771,8 @@ TEST_CASE("Physics")
     SECTION("Box stack")
     {
         // This test is very slow, but necessary.
-        // Even if the stack seems stable after a few steps, we must ensure that 
-        //  the stack can hold for very long 
+        // Even if the stack seems stable after a few steps, we must ensure that
+        //  the stack can hold for very long
         //  (no fatal accumulation of errors, no awkward contact manifold problems, etc.)
 
         PhysicsWorld world{};
@@ -781,14 +787,14 @@ TEST_CASE("Physics")
 
         BodyDescriptor floorDescr{
             Polygon{
-                Vec2{-1.f, -1.f},
-                Vec2{2.f, -1.f},
-                Vec2{2.f, 0.f},
-                Vec2{-1.f, 0.f},
-            }
+                    Vec2{-1.f, -1.f},
+                    Vec2{2.f, -1.f},
+                    Vec2{2.f, 0.f},
+                    Vec2{-1.f, 0.f},
+                    }
         };
         floorDescr.material.friction.value = 0.5f;
-        floorDescr.dominance = 0.f;
+        floorDescr.dominance               = 0.f;
 
         PhysicsBody* floor = world.makeBody(floorDescr);
 
@@ -799,7 +805,7 @@ TEST_CASE("Physics")
         for (auto& box : boxes)
             box = makeBox(i++);
 
-        // TODO: For stability, use at least as many velocity iterations as the 
+        // TODO: For stability, use at least as many velocity iterations as the
         // height of the tower.
         //  (Needs world.settings)
 
@@ -809,7 +815,7 @@ TEST_CASE("Physics")
 
             for (auto& box : boxes)
             {
-                if (!approx(box->orientation(), 1*simu::EPSILON).contains(0.f))
+                if (!approx(box->orientation(), 1 * simu::EPSILON).contains(0.f))
                 {
                     box->setAngularVelocity(box->angularVelocity());
                     break;

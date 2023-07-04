@@ -35,10 +35,11 @@
 #include "Simu/physics/Material.hpp"
 #include "Simu/physics/ConstraintSolver.hpp"
 
-#include "Simu/physics/Sleepable.hpp"
-
 namespace simu
 {
+
+class Constraint;
+
 struct BodyDescriptor
 {
     Polygon  polygon;
@@ -70,7 +71,7 @@ struct MassProperties
 
 class PhysicsWorld;
 
-class PhysicsBody : public PhysicsObject, public Sleepable
+class PhysicsBody : public PhysicsObject
 {
 public:
 
@@ -87,9 +88,6 @@ public:
           dominance_{descriptor.dominance}
     {
     }
-
-
-    // TODO: virtual void onConstruction(PhysicsWorld& world);
 
     ~PhysicsBody() override = default;
 
@@ -171,10 +169,39 @@ public:
         collider_.update(toWorldSpace());
     }
 
+    bool isAsleep() const { return isAsleep_; }
+    void wake() { isAsleep_ = false; }
+
 private:
+
+    friend class PhysicsWorld;
+    friend struct Island;
 
     template <ConstraintFunction F>
     friend class ConstraintSolverBase;
+
+    bool isImmobile(float velocityTreshold, float angularVelocityTreshold) const
+    {
+        return normSquared(velocity()) < velocityTreshold * velocityTreshold
+               && angularVelocity() < angularVelocityTreshold;
+    }
+
+    void
+    updateTimeImmobile(float dt, float velocityTreshold, float angularVelocityTreshold)
+    {
+        if (isImmobile(velocityTreshold, angularVelocityTreshold))
+            timeImmobile_ += dt;
+        else
+            timeImmobile_ = 0.f;
+    }
+
+    bool canSleep(float minTimeImmobile) const
+    {
+        return timeImmobile_ >= minTimeImmobile;
+    }
+
+    void sleep() { isAsleep_ = true; }
+
 
     Vec2 position_;
     Vec2 velocity_{};
@@ -188,6 +215,13 @@ private:
     Collider       collider_;
 
     float dominance_;
+
+    bool  isAsleep_     = false;
+    float timeImmobile_ = 0.f;
+
+    // on one hand, bodies should not know about their constraints,
+    // on the other, putting an std::unordered_multimap<PhysicsBody*, Constraint*> in PhysicsWorld feels pretty ugly
+    std::vector<Constraint*> constraints_;
 };
 
 

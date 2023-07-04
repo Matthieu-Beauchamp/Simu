@@ -23,17 +23,60 @@
 ////////////////////////////////////////////////////////////
 
 #include "Simu/physics/PhysicsWorld.hpp"
+
 #include "Simu/physics/Constraint.hpp"
+#include "Simu/physics/Island.hpp"
 
 namespace simu
 {
 
 void PhysicsWorld::step(float dt)
 {
+    // TODO:
+    // - cleanup
+    // - detect contacts
+    //
+    // - create islands
+    // - for each island
+    //      - if any body is awake, wake everything
+    //
+    // - apply forcefields on awake bodies
+    //
+    // - for each island
+    //      - apply constraints until nIter or epsilonLambda
+    //
+    // - integrate bodies
+    //
+    // - for each island
+    //      - correct positions until nIter or epsilon
+    //
+    // - update body bounds on awake bodies.
+    //
+
+
     cleanup();
     detectContacts();
+
+    // TODO: with some additionnal management code,
+    //  islands can be made to persist between steps, possibly reducing computation.
+    Islands islands{bodies()};
+    for (Island& island : islands.islands())
+        if (island.isAwake())
+            for (PhysicsBody* body : island.bodies())
+                body->wake();
+
     applyForces(dt);
-    applyConstraints(dt);
+
+    for (Island& island : islands.islands())
+        if (!settings().enableSleeping || island.isAwake())
+            applyVelocityConstraints(island, dt);
+
+    integrateBodies(dt);
+
+    for (Island& island : islands.islands())
+        if (!settings().enableSleeping || island.isAwake())
+            applyPositionConstraints(island);
+
     updateBodies(dt);
 }
 
@@ -67,15 +110,29 @@ void PhysicsWorld::removeContactConflict(const Bodies<2>& bodies)
 
 void PhysicsWorld::applyForces(float dt)
 {
+    struct ApplyForce
+    {
+        void operator()(BodyTree::iterator body) const { (*this)(**body); }
+
+        void operator()(PhysicsBody& body) const
+        {
+            if (!body.isAsleep() && !body.isStructural())
+                force.apply(body, dt);
+        }
+
+        ForceField& force;
+        float       dt;
+    };
+
+
     for (ForceField& force : forceFields())
     {
-        auto applyForce
-            = [=, &force](BodyTree::iterator body) { force.apply(**body, dt); };
+        ApplyForce applyForce{force, dt};
 
         if (force.domain().type == ForceField::DomainType::global)
         {
             for (PhysicsBody& body : bodies())
-                force.apply(body, dt);
+                applyForce(body);
         }
         else
         {
@@ -188,6 +245,20 @@ void PhysicsWorld::cleanup()
     auto deadForces      = cleaner.deadObjects(forces_);
     auto deadBodies      = cleaner.deadObjects(bodies_);
 
+    for (auto c : deadConstraints)
+    {
+        for (PhysicsBody* body : (*c)->bodies())
+        {
+            body->constraints_.erase(std::find(
+                body->constraints_.begin(),
+                body->constraints_.end(),
+                c->get()
+            ));
+
+            body->wake();
+        }
+    }
+
     cleaner.onDestruction(*this, deadContacts);
     cleaner.onDestruction(*this, deadConstraints);
     cleaner.onDestruction(*this, deadForces);
@@ -199,43 +270,64 @@ void PhysicsWorld::cleanup()
     cleaner.erase(bodies_, deadBodies);
 }
 
-void PhysicsWorld::applyConstraints(float dt)
+void PhysicsWorld::applyVelocityConstraints(Island& island, float dt)
 {
     std::vector<ConstraintPtr> actives{};
-    for (auto& constraint : constraints_)
+    for (Constraint* constraint : island.constraints())
     {
         if (constraint->isActive())
-            actives.emplace_back(constraint.get());
+            actives.emplace_back(constraint);
     }
 
-    for (auto constraint : actives)
+    for (Constraint* constraint : actives)
         constraint->initSolve(dt);
 
-    // TODO: settings.maxIter
-    for (Uint32 iter = 0; iter < 10; ++iter)
+    for (Uint32 iter = 0; iter < settings_.nVelocityIterations; ++iter)
     {
-        for (auto constraint : actives)
+        for (Constraint* constraint : actives)
             constraint->solveVelocities(dt);
-    }
-
-    for (PhysicsBody& body : bodies())
-        body.step(dt);
-
-    // TODO: settings.maxPosIter
-    for (Uint32 iter = 0; iter < 2; ++iter)
-    {
-        for (auto constraint : actives)
-            constraint->solvePositions();
     }
 }
 
+void PhysicsWorld::integrateBodies(float dt)
+{
+    for (PhysicsBody& body : bodies())
+        if (!body.isAsleep())
+            body.step(dt);
+}
+
+void PhysicsWorld::applyPositionConstraints(Island& island)
+{
+    for (Uint32 iter = 0; iter < settings_.nPositionIterations; ++iter)
+    {
+        for (auto constraint : island.constraints())
+            if (constraint->isActive())
+                constraint->solvePositions();
+    }
+}
 
 void PhysicsWorld::updateBodies(float dt)
 {
+    if (settings_.enableSleeping)
+    {
+        for (PhysicsBody& body : bodies())
+        {
+            body.updateTimeImmobile(
+                dt,
+                settings_.velocitySleepThreshold,
+                settings_.angularVelocitySleepThreshold
+            );
+
+            if (body.canSleep(settings_.inactivitySleepDelay))
+                body.sleep();
+        }
+    }
+
     std::vector<BodyTree::iterator> toUpdate{};
     for (auto it = bodies_.begin(); it != bodies_.end(); ++it)
     {
-        toUpdate.emplace_back(it);
+        if (!(*it)->isAsleep())
+            toUpdate.emplace_back(it);
     }
 
     // TODO: batch updates of RTree ...
