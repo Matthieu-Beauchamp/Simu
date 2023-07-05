@@ -35,6 +35,8 @@
 #include "Simu/physics/Material.hpp"
 #include "Simu/physics/ConstraintSolver.hpp"
 
+#include "Simu/utility/View.hpp"
+
 namespace simu
 {
 
@@ -158,7 +160,9 @@ public:
 
     Material material() const { return material_; }
 
-    bool  isStructural() const { return dominance() == 0.f; }
+    bool isStructural() const { return dominance() == 0.f; }
+    bool interactsAsStructural() const; // true if is structural in all its constraints
+
     float dominance() const { return dominance_; }
 
     void step(float dt)
@@ -172,10 +176,19 @@ public:
     bool isAsleep() const { return isAsleep_; }
     void wake() { isAsleep_ = false; }
 
+    auto constraints()
+    {
+        return makeView(constraints_.begin(), constraints_.end());
+    }
+
+    auto constraints() const
+    {
+        return makeView(constraints_.begin(), constraints_.end());
+    }
+
 private:
 
     friend class PhysicsWorld;
-    friend struct Island;
 
     template <ConstraintFunction F>
     friend class ConstraintSolverBase;

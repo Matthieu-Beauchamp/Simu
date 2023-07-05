@@ -39,6 +39,21 @@ TEST_CASE("Island")
 {
     SECTION("Islands creation")
     {
+        SECTION("No island")
+        {
+            PhysicsWorld world;
+
+            for (Uint32 i = 1; i < 5; ++i)
+            {
+                BodyDescriptor descr{squareDescriptor};
+                descr.position[0] = 2 * i;
+                world.makeBody(descr);
+            }
+
+            Islands islands{world.bodies()};
+            REQUIRE(islands.islands().size() == 0);
+        }
+
         SECTION("Single island")
         {
             PhysicsWorld world;
@@ -60,11 +75,153 @@ TEST_CASE("Island")
             requireCoversAllConstraintsOnce(world.constraints(), islands);
         }
 
-        SECTION("Multiple islands") {}
+        SECTION("Multiple islands")
+        {
+            PhysicsWorld world;
+
+            auto makeBody = [&](Uint32 index) -> PhysicsBody* {
+                BodyDescriptor descr{squareDescriptor};
+                descr.position[0] = 2 * index;
+                return world.makeBody(descr);
+            };
+
+            world.makeConstraint<WeldConstraint>(
+                Bodies<2>{makeBody(0), makeBody(1)}
+            );
+
+            world.makeConstraint<WeldConstraint>(
+                Bodies<2>{makeBody(2), makeBody(3)}
+            );
+
+            Islands islands{world.bodies()};
+            REQUIRE(islands.islands().size() == 2);
+            requireCoversAllConstraintsOnce(world.constraints(), islands);
+        }
 
         SECTION("Structural seperates islands")
         {
-            // many edge cases to check here
+            SECTION("stacks on floor")
+            {
+                PhysicsWorld world;
+
+                auto makeStack = [&](Uint32 index, Uint32 height) {
+                    BodyDescriptor descr{squareDescriptor};
+                    for (Uint32 i = 0; i < height; ++i)
+                    {
+                        descr.position[0] = 2 * index;
+                        descr.position[1] = i;
+                        world.makeBody(descr);
+                    }
+                };
+
+                Uint32         nStacks     = 5;
+                Uint32         stackHeight = 5;
+                BodyDescriptor floorDescr{squareDescriptor};
+                floorDescr.dominance = 0.f;
+                floorDescr.polygon   = Polygon{
+                    Vec2{0.f,                 -1.f},
+                    Vec2{2.f * nStacks + 1.f, -1.f},
+                    Vec2{2.f * nStacks + 1.f, 0.f },
+                    Vec2{0.f,                 0.f }
+                };
+
+                world.makeBody(floorDescr);
+
+                for (Uint32 i = 0; i < nStacks; ++i)
+                    makeStack(i, stackHeight);
+
+                world.step(1.f); // makes contact constraints
+
+                Islands islands{world.bodies()};
+                REQUIRE(islands.islands().size() == nStacks);
+
+                auto c = world.constraints();
+                REQUIRE(
+                    std::distance(c.begin(), c.end()) == nStacks * stackHeight
+                );
+                requireCoversAllConstraintsOnce(world.constraints(), islands);
+            }
+
+            SECTION("Per constraint structural")
+            {
+                // A      D
+                //  \ C /
+                //  /   \ 
+                // B     E
+                //
+                // If C is structural in all constraints, we have 4 islands
+                // if it is not in at least one, then we have a single island
+                // no matter the structural property of A, B, D, E
+
+                PhysicsWorld   world{};
+                BodyDescriptor descr{squareDescriptor};
+
+                PhysicsBody* A = world.makeBody(descr);
+                descr.position[0] += 2;
+                PhysicsBody* B = world.makeBody(descr);
+                descr.position[0] += 2;
+                PhysicsBody* C = world.makeBody(descr);
+                descr.position[0] += 2;
+                PhysicsBody* D = world.makeBody(descr);
+                descr.position[0] += 2;
+                PhysicsBody* E = world.makeBody(descr);
+
+                ////////////////////////////////////////////////////////////
+                // C is never structural
+
+                // clang-format off
+                auto AC = world.makeConstraint<WeldConstraint>(Bodies<2>{A, C}, true, Vec2{0.f, 1.f});
+                auto BC = world.makeConstraint<WeldConstraint>(Bodies<2>{B, C}, true, Vec2{0.f, 1.f});
+                auto DC = world.makeConstraint<WeldConstraint>(Bodies<2>{D, C}, true, Vec2{0.f, 1.f});
+                auto EC = world.makeConstraint<WeldConstraint>(Bodies<2>{E, C}, true, Vec2{0.f, 1.f});
+                // clang-format on
+
+                Islands islands{world.bodies()};
+                REQUIRE(islands.islands().size() == 1);
+                requireCoversAllConstraintsOnce(world.constraints(), islands);
+
+                AC->kill();
+                BC->kill();
+                DC->kill();
+                EC->kill();
+                world.step(1.f); // cleanup
+
+
+                ////////////////////////////////////////////////////////////
+                // C sometimes interacts as structural
+
+                // clang-format off
+                AC = world.makeConstraint<WeldConstraint>(Bodies<2>{A, C}, true, Vec2{0.f, 1.f});
+                BC = world.makeConstraint<WeldConstraint>(Bodies<2>{B, C}, true, Vec2{1.f, 0.f});
+                DC = world.makeConstraint<WeldConstraint>(Bodies<2>{D, C}, true, Vec2{0.f, 1.f});
+                EC = world.makeConstraint<WeldConstraint>(Bodies<2>{E, C}, true, Vec2{1.f, 0.f});
+                // clang-format on
+
+                islands = Islands{world.bodies()};
+                REQUIRE(islands.islands().size() == 1);
+                requireCoversAllConstraintsOnce(world.constraints(), islands);
+
+                AC->kill();
+                BC->kill();
+                DC->kill();
+                EC->kill();
+                world.step(1.f); // cleanup
+
+
+                ////////////////////////////////////////////////////////////
+                // C always interacts as structural
+
+                // clang-format off
+                AC = world.makeConstraint<WeldConstraint>(Bodies<2>{A, C}, true, Vec2{1.f, 0.f});
+                BC = world.makeConstraint<WeldConstraint>(Bodies<2>{B, C}, true, Vec2{1.f, 0.f});
+                DC = world.makeConstraint<WeldConstraint>(Bodies<2>{D, C}, true, Vec2{1.f, 0.f});
+                EC = world.makeConstraint<WeldConstraint>(Bodies<2>{E, C}, true, Vec2{1.f, 0.f});
+                // clang-format on
+
+                islands = Islands{world.bodies()};
+                REQUIRE(islands.islands().size() == 4);
+                requireCoversAllConstraintsOnce(world.constraints(), islands);
+            }
         }
     }
 

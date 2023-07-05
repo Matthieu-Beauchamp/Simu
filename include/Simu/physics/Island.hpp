@@ -44,16 +44,16 @@ public:
 
     void expand(PhysicsBody* root)
     {
-        if (isTrueStructural(root))
+        if (root->interactsAsStructural())
             return;
-            
-        for (Constraint* constraint : root->constraints_)
+
+        for (Constraint* constraint : root->constraints())
         {
             if (constraints_.emplace(constraint).second)
             {
                 for (PhysicsBody* body : constraint->bodies())
                 {
-                    if (!isTrueStructural(body))
+                    if (!body->interactsAsStructural())
                     {
                         addBody(body);
                         expand(body);
@@ -71,16 +71,6 @@ public:
     }
 
 private:
-    static bool isTrueStructural(PhysicsBody* body){
-        if (body->constraints_.empty())
-            return false;
-
-        bool isStructural = true;
-        for (Constraint* constraint : body->constraints_)
-            isStructural = isStructural && constraint->isBodyStructural(body);
-
-        return isStructural;
-    }
 
     void addBody(PhysicsBody* body)
     {
@@ -120,22 +110,19 @@ public:
 
         while (!bodiesToProcess.empty())
         {
-            // TODO: Skip structural bodies, what if one is structural,
-            //  but never behaves like one according to constraints?
-
-            Island island{bodiesToProcess.back()};
-            for (PhysicsBody* body : island.bodies())
-                removeBody(body);
-
-            islands_.emplace_back(std::move(island));
-        }
-
-        for (auto it = islands_.begin(); it != islands_.end();)
-        {
-            if (it->constraints().empty())
-                it = islands_.erase(it);
+            if (bodiesToProcess.back()->constraints().empty()
+                || bodiesToProcess.back()->interactsAsStructural())
+            {
+                bodiesToProcess.pop_back();
+            }
             else
-                ++it;
+            {
+                Island island{bodiesToProcess.back()};
+                for (PhysicsBody* body : island.bodies())
+                    removeBody(body);
+
+                islands_.emplace_back(std::move(island));
+            }
         }
     }
 

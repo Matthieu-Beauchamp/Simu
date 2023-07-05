@@ -61,7 +61,7 @@ public:
     virtual BodyView bodies() = 0;
     // TODO: Const version
 
-    virtual bool isBodyStructural(PhysicsBody* body) const = 0;
+    virtual bool isBodyStructural(const PhysicsBody* body) const = 0;
 };
 
 // TODO: The caching is not very useful, storing the K^-1 matrix is more beneficial,
@@ -134,7 +134,7 @@ public:
         return makeView(bodies_.data(), bodies_.data() + bodies_.size());
     }
 
-    bool isBodyStructural(PhysicsBody* body) const override
+    bool isBodyStructural(const PhysicsBody* body) const override
     {
         for (Uint32 i = 0; i < F::nBodies; ++i)
             if (body == bodies_[i])
@@ -536,7 +536,7 @@ public:
         );
     }
 
-    bool isBodyStructural(PhysicsBody* body) const override
+    bool isBodyStructural(const PhysicsBody* body) const override
     {
         return body->isStructural();
     };
