@@ -30,41 +30,28 @@ namespace simu
 {
 
 ////////////////////////////////////////////////////////////
-/// \brief Returns the element as-is
-////////////////////////////////////////////////////////////
-struct Identity
-{
-    template <class Value>
-    Value& operator()(Value& v)
-    {
-        return v;
-    }
-
-    template <class Value>
-    const Value& operator()(const Value& v)
-    {
-        return v;
-    }
-};
-
-////////////////////////////////////////////////////////////
 /// \brief Dereferences the element one more time to hide the use of smart pointers
 ////////////////////////////////////////////////////////////
 struct BypassSmartPointer
 {
     template <class Value>
-    auto& operator()(Value& v)
+    auto& operator()(Value& v) const
     {
         return *v;
     }
 
     template <class Value>
-    const auto& operator()(const Value& v)
+    const auto& operator()(const Value& v) const
     {
         return *v;
     }
 };
 
+template <std::input_iterator Iter, class Sentinel>
+auto makeView(Iter begin, Sentinel end)
+{
+    return std::ranges::subrange<Iter, Sentinel>{begin, end};
+}
 
 ////////////////////////////////////////////////////////////
 /// \brief Creates a view of [begin, end) and applies Fn to every dereferenced element
@@ -72,8 +59,8 @@ struct BypassSmartPointer
 /// The original sequence is not modified.
 ///
 ////////////////////////////////////////////////////////////
-template <std::input_iterator Iter, class Sentinel, class Fn = Identity>
-auto makeView(Iter begin, Sentinel end, Fn deref = Fn{})
+template <std::input_iterator Iter, class Sentinel, class Fn>
+auto makeView(Iter begin, Sentinel end, Fn deref)
 {
     return std::ranges::subrange<Iter, Sentinel>{begin, end}
            | std::views::transform(deref);
@@ -85,10 +72,16 @@ auto makeView(Iter begin, Sentinel end, Fn deref = Fn{})
 /// The original range is not modified.
 ///
 ////////////////////////////////////////////////////////////
-template <std::ranges::range R, class Fn = Identity>
-auto makeView(R& range, Fn deref = Fn{})
+template <std::ranges::range R, class Fn>
+auto makeView(R& range, Fn deref)
 {
     return makeView(range.begin(), range.end(), deref);
+}
+
+template <std::ranges::range R>
+auto makeView(R& range)
+{
+    return makeView(range.begin(), range.end());
 }
 
 } // namespace simu

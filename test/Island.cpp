@@ -9,16 +9,19 @@
 
 using namespace simu;
 
-const std::initializer_list<Vec2> square{
-    Vec2{0, 0},
-    Vec2{1, 0},
-    Vec2{1, 1},
-    Vec2{0, 1},
-};
+BodyDescriptor getSquareDescriptor()
+{
+    return BodyDescriptor{
+        Polygon{
+                Vec2{0, 0},
+                Vec2{1, 0},
+                Vec2{1, 1},
+                Vec2{0, 1},
+                }
+    };
+}
 
-const BodyDescriptor squareDescriptor{Polygon{square}};
-
-const float pi = std::numbers::pi_v<float>;
+constexpr float pi = std::numbers::pi_v<float>;
 
 template <class ConstraintRange>
 void requireCoversAllConstraintsOnce(ConstraintRange allConstraints, Islands& islands)
@@ -45,7 +48,7 @@ TEST_CASE("Island")
 
             for (Uint32 i = 1; i < 5; ++i)
             {
-                BodyDescriptor descr{squareDescriptor};
+                BodyDescriptor descr{getSquareDescriptor()};
                 descr.position[0] = 2 * i;
                 world.makeBody(descr);
             }
@@ -58,10 +61,10 @@ TEST_CASE("Island")
         {
             PhysicsWorld world;
 
-            PhysicsBody* previous = world.makeBody(squareDescriptor);
+            PhysicsBody* previous = world.makeBody(getSquareDescriptor());
             for (Uint32 i = 1; i < 5; ++i)
             {
-                BodyDescriptor descr{squareDescriptor};
+                BodyDescriptor descr{getSquareDescriptor()};
                 descr.position[0]    = 2 * i;
                 PhysicsBody* current = world.makeBody(descr);
                 world.makeConstraint<WeldConstraint>(Bodies<2>{previous, current}
@@ -80,7 +83,7 @@ TEST_CASE("Island")
             PhysicsWorld world;
 
             auto makeBody = [&](Uint32 index) -> PhysicsBody* {
-                BodyDescriptor descr{squareDescriptor};
+                BodyDescriptor descr{getSquareDescriptor()};
                 descr.position[0] = 2 * index;
                 return world.makeBody(descr);
             };
@@ -105,7 +108,7 @@ TEST_CASE("Island")
                 PhysicsWorld world;
 
                 auto makeStack = [&](Uint32 index, Uint32 height) {
-                    BodyDescriptor descr{squareDescriptor};
+                    BodyDescriptor descr{getSquareDescriptor()};
                     for (Uint32 i = 0; i < height; ++i)
                     {
                         descr.position[0] = 2 * index;
@@ -116,7 +119,7 @@ TEST_CASE("Island")
 
                 Uint32         nStacks     = 5;
                 Uint32         stackHeight = 5;
-                BodyDescriptor floorDescr{squareDescriptor};
+                BodyDescriptor floorDescr{getSquareDescriptor()};
                 floorDescr.dominance = 0.f;
                 floorDescr.polygon   = Polygon{
                     Vec2{0.f,                 -1.f},
@@ -154,7 +157,7 @@ TEST_CASE("Island")
                 // no matter the structural property of A, B, D, E
 
                 PhysicsWorld   world{};
-                BodyDescriptor descr{squareDescriptor};
+                BodyDescriptor descr{getSquareDescriptor()};
 
                 PhysicsBody* A = world.makeBody(descr);
                 descr.position[0] += 2;

@@ -11,16 +11,19 @@
 
 using namespace simu;
 
-const std::initializer_list<Vec2> square{
-    Vec2{0, 0},
-    Vec2{1, 0},
-    Vec2{1, 1},
-    Vec2{0, 1},
-};
+BodyDescriptor squareDescriptor()
+{
+    return BodyDescriptor{
+        Polygon{
+                Vec2{0, 0},
+                Vec2{1, 0},
+                Vec2{1, 1},
+                Vec2{0, 1},
+                }
+    };
+}
 
-const BodyDescriptor squareDescriptor{Polygon{square}};
-
-const float pi = std::numbers::pi_v<float>;
+constexpr float pi = std::numbers::pi_v<float>;
 
 TEST_CASE("Physics")
 {
@@ -33,7 +36,7 @@ TEST_CASE("Physics")
 
         PhysicsWorld world{};
 
-        BodyDescriptor descr{squareDescriptor};
+        BodyDescriptor descr{squareDescriptor()};
         descr.position    = p;
         descr.orientation = theta;
         auto body         = world.makeBody(descr);
@@ -58,7 +61,7 @@ TEST_CASE("Physics")
         // The centroid is not necessarilly centered at {0, 0} in local space.
         REQUIRE(all(
             body->properties().centroid
-            == squareDescriptor.polygon.properties().centroid + body->position()
+            == squareDescriptor().polygon.properties().centroid + body->position()
         ));
     }
 
@@ -73,7 +76,7 @@ TEST_CASE("Physics")
         constexpr Uint32                   nBodies = 5;
         for (Uint32 i = 0; i < nBodies; ++i)
         {
-            BodyDescriptor descr{squareDescriptor};
+            BodyDescriptor descr{squareDescriptor()};
             descr.position = Vec2{static_cast<float>(i), initialHeight};
             bodies.emplace_back(world.makeBody(descr));
         }
@@ -97,7 +100,7 @@ TEST_CASE("Physics")
     {
         PhysicsWorld world{};
 
-        BodyDescriptor descr{squareDescriptor};
+        BodyDescriptor descr{squareDescriptor()};
 
         Vec2 leftPos{-10.f, 0.f};
         descr.position = leftPos;
@@ -154,7 +157,7 @@ TEST_CASE("Physics")
         {
             PhysicsWorld world{};
 
-            BodyDescriptor descr{squareDescriptor};
+            BodyDescriptor descr{squareDescriptor()};
             descr.position = Vec2{-10.f, 0};
             auto left      = world.makeBody(descr);
 
@@ -187,7 +190,7 @@ TEST_CASE("Physics")
         {
             PhysicsWorld world{};
 
-            BodyDescriptor descr{squareDescriptor};
+            BodyDescriptor descr{squareDescriptor()};
             descr.position = Vec2{-1.f, 0};
             auto left      = world.makeBody(descr);
 
@@ -243,7 +246,7 @@ TEST_CASE("Physics")
         {
             PhysicsWorld world{};
 
-            BodyDescriptor descr{squareDescriptor};
+            BodyDescriptor descr{squareDescriptor()};
             descr.position = Vec2{0, 0};
             auto left      = world.makeBody(descr);
 
@@ -275,7 +278,7 @@ TEST_CASE("Physics")
         {
             PhysicsWorld world{};
 
-            BodyDescriptor descr{squareDescriptor};
+            BodyDescriptor descr{squareDescriptor()};
             descr.position = Vec2{-1.f, 0};
             auto left      = world.makeBody(descr);
 
@@ -314,7 +317,7 @@ TEST_CASE("Physics")
         {
             PhysicsWorld world{};
 
-            BodyDescriptor descr{squareDescriptor};
+            BodyDescriptor descr{squareDescriptor()};
 
             descr.position = Vec2{0, 0};
             auto body      = world.makeBody(descr);
@@ -367,7 +370,7 @@ TEST_CASE("Physics")
         {
             PhysicsWorld world{};
 
-            BodyDescriptor descr{squareDescriptor};
+            BodyDescriptor descr{squareDescriptor()};
 
             descr.position = Vec2{0, 0};
             auto body      = world.makeBody(descr);
@@ -412,7 +415,7 @@ TEST_CASE("Physics")
         {
             PhysicsWorld world{};
 
-            BodyDescriptor descr{squareDescriptor};
+            BodyDescriptor descr{squareDescriptor()};
 
             descr.position = Vec2{0, 0};
             auto body1     = world.makeBody(descr);
@@ -467,7 +470,7 @@ TEST_CASE("Physics")
         {
             PhysicsWorld world{};
 
-            BodyDescriptor descr{squareDescriptor};
+            BodyDescriptor descr{squareDescriptor()};
             descr.material.bounciness.value = 0.f;
 
             descr.position = Vec2{-2, 0};
@@ -493,7 +496,7 @@ TEST_CASE("Physics")
         {
             PhysicsWorld world{};
 
-            BodyDescriptor descr{squareDescriptor};
+            BodyDescriptor descr{squareDescriptor()};
             descr.material.bounciness.value = 1.f;
 
             descr.position = Vec2{-2, 0};
@@ -522,7 +525,7 @@ TEST_CASE("Physics")
         {
             PhysicsWorld world{};
 
-            BodyDescriptor descr{squareDescriptor};
+            BodyDescriptor descr{squareDescriptor()};
             descr.material.bounciness.value = 1.f;
 
             descr.position  = Vec2{-2, 0};
@@ -547,7 +550,7 @@ TEST_CASE("Physics")
         {
             PhysicsWorld world{};
 
-            BodyDescriptor descr{squareDescriptor};
+            BodyDescriptor descr{squareDescriptor()};
 
             auto driver   = world.makeBody(descr);
             auto middle   = world.makeBody(descr);
@@ -784,7 +787,7 @@ TEST_CASE("Physics")
         world.makeForceField<Gravity>(Vec2{0.f, -10.f});
 
         auto makeBox = [&](Int32 index) -> PhysicsBody* {
-            BodyDescriptor descr{squareDescriptor};
+            BodyDescriptor descr{squareDescriptor()};
             descr.position[1]             = index;
             descr.material.friction.value = 0.5f;
             return world.makeBody(descr);
