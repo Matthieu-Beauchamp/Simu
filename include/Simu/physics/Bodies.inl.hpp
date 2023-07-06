@@ -53,9 +53,9 @@ Bodies<n>::Bodies(
     else
     {
         Dominance d{};
-        Uint32    i = 0;
+        Uint32    j = 0;
         for (PhysicsBody* body : *this)
-            d[i++] = body->dominance();
+            d[j++] = body->dominance();
 
         dominances_ = d;
     }
