@@ -216,14 +216,14 @@ public:
 
 class SingleContactConstraint : public ConstraintImplementation<
                                     SingleContactFunction,
-                                    EqualitySolver<SingleContactFunction>,
+                                    priv::ContactSolver<SingleContactFunction>,
                                     ContactConstraintI>
 {
 public:
 
     typedef ConstraintImplementation<
         SingleContactFunction,
-        EqualitySolver<SingleContactFunction>,
+        priv::ContactSolver<SingleContactFunction>,
         ContactConstraintI>
         Base;
 
@@ -238,15 +238,6 @@ public:
     {
         auto J = f.jacobian(bodies);
         solver.setLambdaHint(solve(J * transpose(J), J * impulseHint));
-    }
-
-    void solveVelocities(float dt) override
-    {
-        Base::solveVelocities(dt);
-
-        auto J              = solver.getJacobian();
-        f.accumulatedRelVel = J * getBodies().inverseMass() * transpose(J)
-                              * solver.getAccumulatedLambda()[0];
     }
 
     bool isContactValid(const Bodies<2>& bodies, float maxPen) const override
@@ -282,14 +273,14 @@ private:
 
 class DoubleContactConstraint : public ConstraintImplementation<
                                     DoubleContactFunction,
-                                    InequalitySolver<DoubleContactFunction>,
+                                    priv::ContactSolver<DoubleContactFunction>,
                                     ContactConstraintI>
 {
 public:
 
     typedef ConstraintImplementation<
         DoubleContactFunction,
-        InequalitySolver<DoubleContactFunction>,
+        priv::ContactSolver<DoubleContactFunction>,
         ContactConstraintI>
         Base;
 
@@ -304,18 +295,6 @@ public:
     {
         auto J = f.jacobian(bodies);
         solver.setLambdaHint(solve(J * transpose(J), J * impulseHint));
-    }
-
-    void solveVelocities(float dt) override
-    {
-        Base::solveVelocities(dt);
-        auto J = solver.getJacobian();
-
-        auto accumulatedRelVel = J * getBodies().inverseMass() * transpose(J)
-                                 * solver.getAccumulatedLambda();
-
-        std::get<0>(f.constraints).accumulatedRelVel[0] = accumulatedRelVel[0];
-        std::get<1>(f.constraints).accumulatedRelVel[0] = accumulatedRelVel[1];
     }
 
     bool isContactValid(const Bodies<2>& bodies, float maxPen) const override

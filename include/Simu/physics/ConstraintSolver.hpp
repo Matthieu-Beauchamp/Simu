@@ -224,8 +224,7 @@ public:
 
     void solveVelocity(Bodies<nBodies>& bodies, const F& f, float dt)
     {
-        Value correctedError = this->computeEffectiveMass(bodies, f, false)
-                               * this->getAccumulatedLambda();
+        Value correctedError = effectiveMass_ * this->getAccumulatedLambda();
 
         Value lambda = solveInequalities(
             effectiveMass_,
@@ -276,5 +275,111 @@ private:
 
     KMatrix effectiveMass_;
 };
+
+namespace priv
+{
+
+// Uses a special form for velocities:
+// K( (lambda + dLambda - (1+e)lambda) / (1+e) ) >= -Jv
+template <ConstraintFunction F>
+class ContactSolver : public ConstraintSolverBase<F>
+{
+public:
+
+    static_assert(
+        std::is_same_v<F, SingleContactFunction>
+            || std::is_same_v<F, DoubleContactFunction>,
+        "This is reserved for contact constraints."
+    );
+
+    typedef ConstraintSolverBase<F> Base;
+
+    static constexpr Uint32 nBodies   = F::nBodies;
+    static constexpr Uint32 dimension = F::dimension;
+
+    typedef typename Base::Value    Value;
+    typedef typename Base::Jacobian Jacobian;
+    typedef typename Base::State    State;
+
+    typedef typename Base::KMatrix         KMatrix;
+    typedef Solver<float, Base::dimension> KSolver;
+
+
+    ContactSolver(const Bodies<nBodies>& bodies, const F& f)
+        : Base{bodies, f},
+          restitutionCoefficient_{
+            CombinableProperty{bodies[0]->material().bounciness, bodies[1]->material().bounciness}
+          .value}
+    {
+    }
+
+    void initSolve(Bodies<nBodies>& bodies, const F& f, float dt)
+    {
+        initSolver(bodies, f);
+
+        Value lambda = this->getAccumulatedLambda();
+        this->setLambdaHint(Value::filled(0.f));
+
+        this->updateLambda(bodies, f, dt, lambda);
+    }
+
+    void solveVelocity(Bodies<nBodies>& bodies, const F& f, float dt)
+    {
+        auto error = this->computeRhs(bodies, f, dt, false);
+        auto initialGuess
+            = -(restitutionCoefficient_ / (1.f + restitutionCoefficient_))
+              * this->getAccumulatedLambda();
+
+        Value x = solveInequalities(
+            effectiveMass_,
+            error,
+            [this](Value lambda) { return this->clampLambda(lambda); },
+            initialGuess
+        );
+
+        Value dLambda = (1.f + restitutionCoefficient_) * x
+                        + restitutionCoefficient_ * this->getAccumulatedLambda();
+
+        this->updateLambda(bodies, f, dt, dLambda);
+    }
+
+    void solvePosition(Bodies<nBodies>& bodies, const F& f)
+    {
+        Value error = f.eval(bodies);
+
+        Jacobian J     = f.jacobian(bodies);
+        effectiveMass_ = J * bodies.inverseMass() * transpose(J);
+
+        Solver<float, F::dimension> s{effectiveMass_};
+        if (!s.isValid())
+            return; // Jacobians are parallel, TODO:
+
+        Value posLambda = s.solve(-error);
+        posLambda       = f.clampPositionLambda(posLambda);
+
+        State positionCorrection
+            = bodies.inverseMass() * transpose(J) * posLambda;
+
+        bodies.applyPositionCorrection(positionCorrection);
+    }
+
+
+private:
+
+    void initSolver(const Bodies<nBodies>& bodies, const F& f)
+    {
+        effectiveMass_ = this->computeEffectiveMass(bodies, f, true);
+    }
+
+    typename F::Value clampLambda(typename F::Value x)
+    {
+        return std::max(x, -this->getAccumulatedLambda());
+    }
+
+    float   restitutionCoefficient_;
+    KMatrix effectiveMass_;
+};
+
+} // namespace priv
 
 } // namespace simu

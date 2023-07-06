@@ -29,6 +29,13 @@
 namespace simu
 {
 
+
+// Maybe do a small custom implementation of a View since Clang 15 does not support
+//  them well yet (Should be fixed in Clang 16): 
+// https://github.com/llvm/llvm-project/issues/44178
+// https://github.com/llvm/llvm-project/issues/59697
+
+
 ////////////////////////////////////////////////////////////
 /// \brief Dereferences the element one more time to hide the use of smart pointers
 ////////////////////////////////////////////////////////////

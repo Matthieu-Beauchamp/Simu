@@ -402,7 +402,6 @@ class NonPenetrationConstraintFunction
 {
 public:
 
-    typedef InequalityConstraintFunctionBase<2, 1> Base;
 
     typedef ContactManifold<Collider> Manifold;
 
@@ -411,11 +410,8 @@ public:
         const Manifold& manifold,
         Uint32          contactIndex
     )
-        : Base{}, 
-          normal_{(manifold.incidentIndex() == 0 ? 1.f:-1.f) * normalized(manifold.contactNormal)},
-          reference_{manifold.referenceIndex()},
-          restitutionCoefficient_{CombinableProperty{bodies[0]->material().bounciness, 
-                                                     bodies[1]->material().bounciness}.value}
+        : normal_{(manifold.incidentIndex() == 0 ? 1.f:-1.f) * normalized(manifold.contactNormal)},
+          reference_{manifold.referenceIndex()}
     {
         localSpaceContacts_[0]
             = bodies[0]->toLocalSpace() * manifold.contacts[0][contactIndex];
@@ -435,17 +431,13 @@ public:
         return Value{dot(contactDistance(bodies), normal_)};
     }
 
-    Value bias(const Bodies<nBodies>& bodies) const
-    {
-        auto penetratingRelVelocity = jacobian(bodies) * bodies.velocity();
-
-        return restitutionCoefficient_
-               * (penetratingRelVelocity - accumulatedRelVel);
-    }
+    Value bias(const Bodies<nBodies>& /* bodies */) const { return Value{}; }
 
     Jacobian jacobian(const Bodies<nBodies>& bodies) const
     {
         auto contacts = worldSpaceContacts(bodies);
+
+        // TODO: Shouldnt the normal be put into world space..????
 
         Jacobian J{
             normal_[0],
@@ -476,11 +468,6 @@ private:
     Vec2                normal_;
 
     Uint32 reference_;
-    float  restitutionCoefficient_;
-
-public:
-
-    Value accumulatedRelVel{};
 };
 
 
