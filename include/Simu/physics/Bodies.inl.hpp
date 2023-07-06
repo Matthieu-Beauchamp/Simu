@@ -40,8 +40,8 @@ Bodies<n>::Bodies(
     Uint32 i = 0;
     for (auto body : bodies)
     {
-        if (i++ < n)
-            (*this)[i] = body;
+        if (i < n)
+            (*this)[i++] = body;
         else
             break;
     }
