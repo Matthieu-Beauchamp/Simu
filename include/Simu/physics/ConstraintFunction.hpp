@@ -413,6 +413,9 @@ public:
         : normal_{(manifold.incidentIndex() == 0 ? 1.f:-1.f) * normalized(manifold.contactNormal)},
           reference_{manifold.referenceIndex()}
     {
+        normal_
+            = Transform::rotation(-bodies[reference_]->orientation()) * normal_;
+
         localSpaceContacts_[0]
             = bodies[0]->toLocalSpace() * manifold.contacts[0][contactIndex];
 
@@ -437,19 +440,20 @@ public:
     {
         auto contacts = worldSpaceContacts(bodies);
 
-        // TODO: Shouldnt the normal be put into world space..????
+        Vec2 n
+            = Transform::rotation(bodies[reference_]->orientation()) * normal_;
 
         Jacobian J{
-            normal_[0],
-            normal_[1],
-            cross(contacts[0] - bodies[0]->properties().centroid, normal_),
-            -normal_[0],
-            -normal_[1],
-            -cross(contacts[1] - bodies[1]->properties().centroid, normal_)};
+            n[0],
+            n[1],
+            cross(contacts[0] - bodies[0]->properties().centroid, n),
+            -n[0],
+            -n[1],
+            -cross(contacts[1] - bodies[1]->properties().centroid, n)};
 
         Uint32 incident = reference_ == 0 ? 1 : 0;
         J[3 * reference_ + 2]
-            += cross(normal_, contacts[incident] - contacts[reference_]);
+            += cross(n, contacts[incident] - contacts[reference_]);
 
         return J;
     }
@@ -463,7 +467,6 @@ private:
             bodies[1]->toWorldSpace() * localSpaceContacts_[1]};
     }
 
-    // TODO: Careful that these are updated between timesteps
     std::array<Vec2, 2> localSpaceContacts_;
     Vec2                normal_;
 
@@ -489,8 +492,12 @@ public:
     )
         : tangent_{normalized(perp(manifold.contactNormal))},
           frictionCoefficient_{CombinableProperty{bodies[0]->material().friction, 
-                                                  bodies[1]->material().friction}.value}
+                                                  bodies[1]->material().friction}.value},
+                                                  reference_{manifold.referenceIndex()}
     {
+        tangent_ = Transform::rotation(-bodies[reference_]->orientation())
+                   * tangent_;
+
         localSpaceContacts_[0]
             = bodies[0]->toLocalSpace() * manifold.contacts[0][0];
 
@@ -504,13 +511,17 @@ public:
     Jacobian jacobian(const Bodies<nBodies>& bodies) const
     {
         auto contacts = worldSpaceContacts(bodies);
+
+        Vec2 t
+            = Transform::rotation(bodies[reference_]->orientation()) * tangent_;
+
         return Jacobian{
-            tangent_[0],
-            tangent_[1],
-            cross(contacts[0] - bodies[0]->properties().centroid, tangent_),
-            -tangent_[0],
-            -tangent_[1],
-            -cross(contacts[1] - bodies[1]->properties().centroid, tangent_)};
+            t[0],
+            t[1],
+            cross(contacts[0] - bodies[0]->properties().centroid, t),
+            -t[0],
+            -t[1],
+            -cross(contacts[1] - bodies[1]->properties().centroid, t)};
     }
 
     Value clampLambda(Value lambda, float /* dt */) const
@@ -535,7 +546,8 @@ private:
     std::array<Vec2, 2> localSpaceContacts_;
     Vec2                tangent_;
 
-    float frictionCoefficient_; // TODO: Dynamic vs static
+    float  frictionCoefficient_; // TODO: Dynamic vs static
+    Uint32 reference_;
 };
 
 typedef NonPenetrationConstraintFunction SingleContactFunction;
