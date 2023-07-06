@@ -24,12 +24,14 @@
 
 #pragma once
 
+#include <memory>
 
 #include "Simu/config.hpp"
 #include "Simu/utility/View.hpp"
 
 #include "Simu/physics/RTree.hpp"
 #include "Simu/physics/PhysicsBody.hpp"
+#include "Simu/physics/Bodies.hpp"
 #include "Simu/physics/ForceField.hpp"
 
 namespace details
@@ -107,7 +109,23 @@ public:
 
     PhysicsWorld() = default;
 
-    template <std::derived_from<PhysicsBody> T = PhysicsBody, class... Args>
+    // clang-format off
+    auto bodies() { return makeView(bodies_, BypassSmartPointer{}); }
+    auto bodies() const { return makeView(bodies_, BypassSmartPointer{}); }
+
+    auto forceFields() { return makeView(forces_, BypassSmartPointer{}); }
+    auto forceFields() const { return makeView(forces_, BypassSmartPointer{}); }
+
+    auto constraints() { return makeView(constraints_, BypassSmartPointer{}); }
+    auto constraints() const { return makeView(constraints_, BypassSmartPointer{}); }
+    // clang-format on
+
+    PhysicsBody* makeBody(const BodyDescriptor& descr)
+    {
+        return makeBody<PhysicsBody>(descr);
+    }
+
+    template <std::derived_from<PhysicsBody> T, class... Args>
     T* makeBody(Args&&... args)
     {
         std::unique_ptr<T> body = makeObject<T>(std::forward<Args>(args)...);
@@ -159,17 +177,6 @@ public:
     //  constraint should be queried to know wether or not they prevent contact between two of their bodies.
     void declareContactConflict(const Bodies<2>& bodies);
     void removeContactConflict(const Bodies<2>& bodies);
-
-    // clang-format off
-    auto bodies() { return makeView(bodies_, BypassSmartPointer{}); }
-    auto bodies() const { return makeView(bodies_, BypassSmartPointer{}); }
-
-    auto forceFields() { return makeView(forces_, BypassSmartPointer{}); }
-    auto forceFields() const { return makeView(forces_, BypassSmartPointer{}); }
-
-    auto constraints() { return makeView(constraints_, BypassSmartPointer{}); }
-    auto constraints() const { return makeView(constraints_, BypassSmartPointer{}); }
-    // clang-format on
 
     struct Settings
     {

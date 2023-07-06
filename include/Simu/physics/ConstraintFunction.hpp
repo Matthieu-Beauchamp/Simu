@@ -27,7 +27,8 @@
 #include "Simu/config.hpp"
 #include "Simu/physics/PhysicsBody.hpp"
 #include "Simu/physics/ContactManifold.hpp"
-#include "Simu/physics/ConstraintSolver.hpp"
+#include "Simu/physics/ConstraintInterfaces.hpp"
+#include "Simu/physics/Bodies.hpp"
 
 namespace simu
 {
@@ -37,7 +38,7 @@ namespace details
 {
 
 template <ConstraintFunction... Fs>
-struct Dimension : public std::integral_constant<Uint32, -1>
+struct Dimension : public std::integral_constant<Uint32, 0>
 {
 };
 
@@ -47,14 +48,8 @@ struct Dimension<F, Fs...>
 {
 };
 
-template <>
-struct Dimension<> : public std::integral_constant<Uint32, 0>
-{
-};
-
-
 template <ConstraintFunction... Fs>
-struct NBodies : public std::integral_constant<Uint32, -1>
+struct NBodies : public std::integral_constant<Uint32, 0>
 {
 };
 
@@ -93,6 +88,7 @@ constexpr void forEach(const Tuple& tuple, Func& func)
 
 } // namespace details
 
+
 template <ConstraintFunction... Fs>
 class ConstraintFunctions
 {
@@ -108,14 +104,14 @@ public:
     {
     }
 
-    Value eval(const ConstBodies<nBodies>& bodies) const
+    Value eval(const Bodies<nBodies>& bodies) const
     {
         Eval e{bodies};
         details::forEach(constraints, e);
         return static_cast<Value>(e.manip);
     }
 
-    Jacobian jacobian(const ConstBodies<nBodies>& bodies) const
+    Jacobian jacobian(const Bodies<nBodies>& bodies) const
     {
         JacobianBuilder j{bodies};
         details::forEach(constraints, j);
@@ -136,7 +132,7 @@ public:
         return static_cast<Value>(l.manip);
     }
 
-    Value bias(const ConstBodies<nBodies>& bodies) const
+    Value bias(const Bodies<nBodies>& bodies) const
     {
         Bias b{bodies};
         details::forEach(constraints, b);
@@ -197,8 +193,8 @@ private:
             i += details::Dimension<F>::value;
         }
 
-        ConstBodies<nBodies>        bodies;
-        MatrixRowManipulator<Value> manip;
+        const Bodies<nBodies>&      bodies;
+        MatrixRowManipulator<Value> manip{};
         Uint32                      i = 0;
     };
 
@@ -208,7 +204,7 @@ private:
         void operator()(F f)
         {
             constexpr Uint32 offset = details::Dimension<F>::value;
-            manip.assign(i, f.clampLambda(manip.extract<offset>(i), dt));
+            manip.assign(i, f.clampLambda(manip.template extract<offset>(i), dt));
             i += offset;
         }
 
@@ -223,7 +219,10 @@ private:
         void operator()(F f)
         {
             constexpr Uint32 offset = details::Dimension<F>::value;
-            manip.assign(i, f.clampPositionLambda(manip.extract<offset>(i)));
+            manip.assign(
+                i,
+                f.clampPositionLambda(manip.template extract<offset>(i))
+            );
             i += offset;
         }
 
@@ -240,8 +239,8 @@ private:
             i += details::Dimension<F>::value;
         }
 
-        ConstBodies<nBodies>           bodies;
-        MatrixRowManipulator<Jacobian> manip;
+        const Bodies<nBodies>&         bodies;
+        MatrixRowManipulator<Jacobian> manip{};
         Uint32                         i = 0;
     };
 
@@ -254,8 +253,8 @@ private:
             i += details::Dimension<F>::value;
         }
 
-        ConstBodies<nBodies>        bodies;
-        MatrixRowManipulator<Value> manip;
+        const Bodies<nBodies>&      bodies;
+        MatrixRowManipulator<Value> manip{};
         Uint32                      i = 0;
     };
 };
@@ -271,8 +270,6 @@ public:
 
     typedef Vector<float, dimension>              Value;
     typedef Matrix<float, dimension, 3 * nBodies> Jacobian;
-
-    typedef const ConstBodies<nBodies>& CBodies;
 
     EqualityConstraintFunctionBase() = default;
 
@@ -290,8 +287,6 @@ public:
 
     typedef Vector<float, dimension>              Value;
     typedef Matrix<float, dimension, 3 * nBodies> Jacobian;
-
-    typedef const ConstBodies<nBodies>& CBodies;
 
     InequalityConstraintFunctionBase() = default;
 
@@ -317,23 +312,26 @@ public:
     typedef EqualityConstraintFunctionBase<2, 1> Base;
 
 
-    RotationConstraintFunction(CBodies bodies)
+    RotationConstraintFunction(const Bodies<nBodies>& bodies)
         : Base{}, initialAngle_{angleDiff(bodies)}
     {
     }
 
-    Value eval(CBodies bodies) const
+    Value eval(const Bodies<nBodies>& bodies) const
     {
         return angleDiff(bodies) - initialAngle_;
     }
 
-    Value bias(CBodies /* bodies */) const { return Value{}; }
+    Value bias(const Bodies<nBodies>& /* bodies */) const { return Value{}; }
 
-    Jacobian jacobian(CBodies) const { return Jacobian{0, 0, -1, 0, 0, 1}; }
+    Jacobian jacobian(const Bodies<nBodies>& /* bodies */) const
+    {
+        return Jacobian{0, 0, -1, 0, 0, 1};
+    }
 
 private:
 
-    Value angleDiff(CBodies bodies) const
+    Value angleDiff(const Bodies<nBodies>& bodies) const
     {
         return Value{bodies[1]->orientation() - bodies[0]->orientation()};
     }
@@ -348,7 +346,7 @@ public:
 
     typedef EqualityConstraintFunctionBase<2, 2> Base;
 
-    HingeConstraintFunction(CBodies bodies, Vec2 worldSpaceSharedPoint)
+    HingeConstraintFunction(const Bodies<nBodies>& bodies, Vec2 worldSpaceSharedPoint)
         : Base{},
           localSpaceSharedPoint_{
               bodies[0]->toLocalSpace() * worldSpaceSharedPoint,
@@ -356,15 +354,15 @@ public:
     {
     }
 
-    Value eval(CBodies bodies) const
+    Value eval(const Bodies<nBodies>& bodies) const
     {
         return bodies[1]->toWorldSpace() * localSpaceSharedPoint_[1]
                - bodies[0]->toWorldSpace() * localSpaceSharedPoint_[0];
     }
 
-    Value bias(CBodies /* bodies */) const { return Value{}; }
+    Value bias(const Bodies<nBodies>& /* bodies */) const { return Value{}; }
 
-    Jacobian jacobian(CBodies bodies) const
+    Jacobian jacobian(const Bodies<nBodies>& bodies) const
     {
         std::array<Mat3, nBodies> toWorldSpace{
             bodies[0]->toWorldSpace(),
@@ -409,7 +407,7 @@ public:
     typedef ContactManifold<Collider> Manifold;
 
     NonPenetrationConstraintFunction(
-        CBodies         bodies,
+        const Bodies<nBodies>&         bodies,
         const Manifold& manifold,
         Uint32          contactIndex
     )
@@ -426,30 +424,26 @@ public:
             = bodies[1]->toLocalSpace() * manifold.contacts[1][contactIndex];
     }
 
-    Vec2 contactDistance(CBodies bodies) const
+    Vec2 contactDistance(const Bodies<nBodies>& bodies) const
     {
         auto contacts = worldSpaceContacts(bodies);
         return contacts[0] - contacts[1];
     }
 
-    Value eval(CBodies bodies) const
+    Value eval(const Bodies<nBodies>& bodies) const
     {
         return Value{dot(contactDistance(bodies), normal_)};
     }
 
-    Value bias(CBodies bodies) const
+    Value bias(const Bodies<nBodies>& bodies) const
     {
-        auto penetratingRelVelocity
-            = jacobian(bodies)
-              * ConstraintSolverBase<NonPenetrationConstraintFunction>::velocity(
-                  bodies
-              );
+        auto penetratingRelVelocity = jacobian(bodies) * bodies.velocity();
 
         return restitutionCoefficient_
                * (penetratingRelVelocity - accumulatedRelVel);
     }
 
-    Jacobian jacobian(CBodies bodies) const
+    Jacobian jacobian(const Bodies<nBodies>& bodies) const
     {
         auto contacts = worldSpaceContacts(bodies);
 
@@ -470,7 +464,7 @@ public:
 
 private:
 
-    std::array<Vec2, 2> worldSpaceContacts(CBodies bodies) const
+    std::array<Vec2, 2> worldSpaceContacts(const Bodies<nBodies>& bodies) const
     {
         return std::array<Vec2, 2>{
             bodies[0]->toWorldSpace() * localSpaceContacts_[0],
@@ -500,11 +494,10 @@ public:
     typedef Vector<float, dimension>              Value;
     typedef Matrix<float, dimension, 3 * nBodies> Jacobian;
 
-    typedef const ConstBodies<nBodies>& CBodies;
-    typedef ContactManifold<Collider>   Manifold;
+    typedef ContactManifold<Collider> Manifold;
 
     FrictionConstraintFunction(
-        CBodies         bodies,
+        const Bodies<nBodies>&         bodies,
         const Manifold& manifold
     )
         : tangent_{normalized(perp(manifold.contactNormal))},
@@ -518,10 +511,10 @@ public:
             = bodies[1]->toLocalSpace() * manifold.contacts[1][0];
     }
 
-    Value eval(CBodies /* bodies */) const { return Value{}; }
-    Value bias(CBodies /* bodies */) const { return Value{}; }
+    Value eval(const Bodies<nBodies>& /* bodies */) const { return Value{}; }
+    Value bias(const Bodies<nBodies>& /* bodies */) const { return Value{}; }
 
-    Jacobian jacobian(CBodies bodies) const
+    Jacobian jacobian(const Bodies<nBodies>& bodies) const
     {
         auto contacts = worldSpaceContacts(bodies);
         return Jacobian{
@@ -545,7 +538,7 @@ public:
 
 private:
 
-    std::array<Vec2, 2> worldSpaceContacts(CBodies bodies) const
+    std::array<Vec2, 2> worldSpaceContacts(const Bodies<nBodies>& bodies) const
     {
         return std::array<Vec2, 2>{
             bodies[0]->toWorldSpace() * localSpaceContacts_[0],

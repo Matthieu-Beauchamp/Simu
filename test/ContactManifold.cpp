@@ -9,10 +9,7 @@ template <Geometry T>
 ContactManifold<T> makeContactManifold(std::array<T*, 2> bodies)
 {
     Gjk<T> gjk{*bodies[0], *bodies[1]};
-    return ContactManifold<T>{
-        PointerArray<T, 2, true>{bodies[0], bodies[1]},
-        gjk.penetration()
-    };
+    return ContactManifold<T>{bodies[0], bodies[1], gjk.penetration()};
 }
 
 bool inContacts(auto contacts, Vertex v)
@@ -213,21 +210,22 @@ TEST_CASE("Contact manifolds")
         REQUIRE(inContacts(manifold.contacts[1], Vertex{2.f, 2.f}));
     }
 
-    SECTION("Edge distance to origin"){
+    SECTION("Edge distance to origin")
+    {
         // hard to find a test that will encounter this situation,
         //  but did happen in practice
 
         Vertices v{
-            Vertex{-1, 1e-8},
+            Vertex{-1,   1e-8},
             Vertex{1e-6, 1e-8},
-            Vertex{1, 1e-8},
+            Vertex{1,    1e-8},
         };
 
         auto it = v.begin();
 
-        Edges<Vertices>::Edge e1{it, it+1};
-        Edges<Vertices>::Edge e2{it+1, it+2};
-    
+        Edges<Vertices>::Edge e1{it, it + 1};
+        Edges<Vertices>::Edge e2{it + 1, it + 2};
+
         REQUIRE(e1.distanceToOrigin() < e2.distanceToOrigin());
     }
 }

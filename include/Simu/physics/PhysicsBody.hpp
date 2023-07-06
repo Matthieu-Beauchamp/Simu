@@ -33,7 +33,7 @@
 #include "Simu/physics/Transform.hpp"
 #include "Simu/physics/Collider.hpp"
 #include "Simu/physics/Material.hpp"
-#include "Simu/physics/ConstraintSolver.hpp"
+#include "Simu/physics/ConstraintInterfaces.hpp"
 
 #include "Simu/utility/View.hpp"
 
@@ -190,8 +190,8 @@ private:
 
     friend class PhysicsWorld;
 
-    template <ConstraintFunction F>
-    friend class ConstraintSolverBase;
+    template <Uint32 n>
+    friend class Bodies;
 
     bool isImmobile(float velocityTreshold, float angularVelocityTreshold) const
     {

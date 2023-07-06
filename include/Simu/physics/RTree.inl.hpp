@@ -88,8 +88,6 @@ class RTree<T, Allocator>::Iterator
 {
     typedef std::conditional_t<isConst, const Node*, Node*> NodePtr;
 
-    typedef std::conditional_t<isConst, const_pointer, pointer> it_pointer;
-    typedef std::conditional_t<isConst, const_reference, reference> it_reference;
 
     friend Iterator<!isConst>;
     friend RTree;
@@ -97,9 +95,14 @@ class RTree<T, Allocator>::Iterator
 public:
 
     // TODO: Ensure we satisfy standard iterator requirements
-    typedef std::conditional_t<isConst, const value_type, value_type> value_type;
     typedef std::ptrdiff_t difference_type;
+    typedef std::conditional_t<isConst, const RTree::value_type, RTree::value_type>
+        value_type;
 
+    typedef std::conditional_t<isConst, RTree::const_pointer, RTree::pointer>     pointer;
+    typedef std::conditional_t<isConst, RTree::const_reference, RTree::reference> reference;
+
+    typedef std::forward_iterator_tag iterator_category;
 
     // behavior is undefined if n is nullptr, but is required for the std::semi_regular concept
     Iterator(NodePtr n = nullptr) : node{n} {}
@@ -153,8 +156,8 @@ public:
         return !(*this == other);
     }
 
-    it_reference operator*() const { return *node->data; }
-    it_pointer   operator->() const { return node->data; }
+    reference operator*() const { return *node->data; }
+    pointer   operator->() const { return node->data; }
 
 private:
 

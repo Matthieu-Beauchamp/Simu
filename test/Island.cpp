@@ -170,10 +170,10 @@ TEST_CASE("Island")
                 // C is never structural
 
                 // clang-format off
-                auto AC = world.makeConstraint<WeldConstraint>(Bodies<2>{A, C}, true, Vec2{0.f, 1.f});
-                auto BC = world.makeConstraint<WeldConstraint>(Bodies<2>{B, C}, true, Vec2{0.f, 1.f});
-                auto DC = world.makeConstraint<WeldConstraint>(Bodies<2>{D, C}, true, Vec2{0.f, 1.f});
-                auto EC = world.makeConstraint<WeldConstraint>(Bodies<2>{E, C}, true, Vec2{0.f, 1.f});
+                auto AC = world.makeConstraint<WeldConstraint>(Bodies<2>{{A, C}, Vec2{0.f, 1.f}}, true);
+                auto BC = world.makeConstraint<WeldConstraint>(Bodies<2>{{B, C}, Vec2{0.f, 1.f}}, true);
+                auto DC = world.makeConstraint<WeldConstraint>(Bodies<2>{{D, C}, Vec2{0.f, 1.f}}, true);
+                auto EC = world.makeConstraint<WeldConstraint>(Bodies<2>{{E, C}, Vec2{0.f, 1.f}}, true);
                 // clang-format on
 
                 Islands islands{world.bodies()};
@@ -191,10 +191,10 @@ TEST_CASE("Island")
                 // C sometimes interacts as structural
 
                 // clang-format off
-                AC = world.makeConstraint<WeldConstraint>(Bodies<2>{A, C}, true, Vec2{0.f, 1.f});
-                BC = world.makeConstraint<WeldConstraint>(Bodies<2>{B, C}, true, Vec2{1.f, 0.f});
-                DC = world.makeConstraint<WeldConstraint>(Bodies<2>{D, C}, true, Vec2{0.f, 1.f});
-                EC = world.makeConstraint<WeldConstraint>(Bodies<2>{E, C}, true, Vec2{1.f, 0.f});
+                AC = world.makeConstraint<WeldConstraint>(Bodies<2>{{A, C}, Vec2{0.f, 1.f}}, true);
+                BC = world.makeConstraint<WeldConstraint>(Bodies<2>{{B, C}, Vec2{1.f, 0.f}}, true);
+                DC = world.makeConstraint<WeldConstraint>(Bodies<2>{{D, C}, Vec2{0.f, 1.f}}, true);
+                EC = world.makeConstraint<WeldConstraint>(Bodies<2>{{E, C}, Vec2{1.f, 0.f}}, true);
                 // clang-format on
 
                 islands = Islands{world.bodies()};
@@ -212,10 +212,10 @@ TEST_CASE("Island")
                 // C always interacts as structural
 
                 // clang-format off
-                AC = world.makeConstraint<WeldConstraint>(Bodies<2>{A, C}, true, Vec2{1.f, 0.f});
-                BC = world.makeConstraint<WeldConstraint>(Bodies<2>{B, C}, true, Vec2{1.f, 0.f});
-                DC = world.makeConstraint<WeldConstraint>(Bodies<2>{D, C}, true, Vec2{1.f, 0.f});
-                EC = world.makeConstraint<WeldConstraint>(Bodies<2>{E, C}, true, Vec2{1.f, 0.f});
+                AC = world.makeConstraint<WeldConstraint>(Bodies<2>{{A, C}, Vec2{1.f, 0.f}}, true);
+                BC = world.makeConstraint<WeldConstraint>(Bodies<2>{{B, C}, Vec2{1.f, 0.f}}, true);
+                DC = world.makeConstraint<WeldConstraint>(Bodies<2>{{D, C}, Vec2{1.f, 0.f}}, true);
+                EC = world.makeConstraint<WeldConstraint>(Bodies<2>{{E, C}, Vec2{1.f, 0.f}}, true);
                 // clang-format on
 
                 islands = Islands{world.bodies()};

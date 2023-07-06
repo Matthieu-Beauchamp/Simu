@@ -35,13 +35,13 @@ namespace simu
 struct Identity
 {
     template <class Value>
-    auto& operator()(Value& v)
+    Value& operator()(Value& v)
     {
         return v;
     }
 
     template <class Value>
-    const auto& operator()(const Value& v)
+    const Value& operator()(const Value& v)
     {
         return v;
     }
@@ -72,7 +72,7 @@ struct BypassSmartPointer
 /// The original sequence is not modified.
 ///
 ////////////////////////////////////////////////////////////
-template <class Iter, class Sentinel, class Fn = Identity>
+template <std::input_iterator Iter, class Sentinel, class Fn = Identity>
 auto makeView(Iter begin, Sentinel end, Fn deref = Fn{})
 {
     return std::ranges::subrange<Iter, Sentinel>{begin, end}

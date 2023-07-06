@@ -105,6 +105,12 @@ public:
     {
     public:
 
+        typedef const Edge              value_type;
+        typedef std::ptrdiff_t          difference_type;
+        typedef const Edge*             pointer;
+        typedef const Edge&             reference;
+        typedef std::input_iterator_tag iterator_category;
+
         Iterator(Edge e) : e_{e} {}
 
         Iterator& operator++()

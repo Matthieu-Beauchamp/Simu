@@ -146,7 +146,7 @@ void PhysicsWorld::detectContacts()
 {
     for (auto it = bodies_.begin(); it != bodies_.end(); ++it)
     {
-        auto registerContact = [=](BodyTree::iterator other) {
+        auto registerContact = [=, this](BodyTree::iterator other) {
             if (it->get() != other->get())
             {
                 Bodies<2> bodies{it->get(), other->get()};

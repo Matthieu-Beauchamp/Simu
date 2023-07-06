@@ -33,11 +33,14 @@ namespace simu
 // https://stackoverflow.com/a/4455194
 // https://stackoverflow.com/a/2769889
 
+#ifdef SIMU_WINDOWS
 
 void enableFpExceptions()
 {
     unsigned int fp_control_word;
     unsigned int new_fp_control_word;
+
+    
 
     _controlfp_s(&fp_control_word, 0, 0);
 
@@ -52,5 +55,7 @@ void enableFpExceptions()
 
     _controlfp_s(&fp_control_word, new_fp_control_word, _MCW_EM);
 }
+
+#endif
 
 } // namespace simu

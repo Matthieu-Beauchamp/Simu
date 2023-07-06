@@ -29,6 +29,8 @@
 namespace simu
 {
 
+class PhysicsWorld;
+
 ////////////////////////////////////////////////////////////
 /// \brief Base class of physics objects
 ///
@@ -66,7 +68,7 @@ public:
 
 protected:
 
-    friend class PhysicsWorld;
+    friend PhysicsWorld;
     virtual void onConstruction(PhysicsWorld& /* world */){};
     virtual void onDestruction(PhysicsWorld& /* world */){};
     virtual void onKill(){};

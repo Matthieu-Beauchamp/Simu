@@ -24,51 +24,19 @@
 
 #pragma once
 
-#include <optional>
+#include <memory>
 
-#include "Simu/config.hpp"
-#include "Simu/math/BarycentricCoordinates.hpp"
 #include "Simu/math/Gjk.hpp"
+#include "Simu/physics/ContactManifold.hpp"
 
 #include "Simu/physics/PhysicsBody.hpp"
-#include "Simu/physics/ContactManifold.hpp"
+
 #include "Simu/physics/ConstraintFunction.hpp"
 #include "Simu/physics/ConstraintSolver.hpp"
-
-#include "Simu/utility/View.hpp"
 
 namespace simu
 {
 
-class Constraint : public PhysicsObject
-{
-public:
-
-    ~Constraint() override = default;
-
-    virtual bool isActive()                = 0;
-    virtual void initSolve(float dt)       = 0;
-    virtual void solveVelocities(float dt) = 0;
-    virtual void solvePositions()          = 0;
-
-    typedef decltype(simu::makeView(
-        std::declval<PhysicsBody**>(),
-        std::declval<PhysicsBody**>()
-    )) BodyView;
-
-    // if a constraint has no bodies or changes its bodies during its lifetime,
-    //  then behavior is undefined.
-    virtual BodyView bodies() = 0;
-    // TODO: Const version
-
-    virtual bool isBodyStructural(const PhysicsBody* body) const = 0;
-};
-
-// TODO: The caching is not very useful, storing the K^-1 matrix is more beneficial,
-//  make the solver an owned object.
-// Add support for NGS stabilization (while keeping Baumgarde for springs?)
-//
-// TODO: Split Solving method for velocity and positions
 template <
     ConstraintFunction            F,
     ConstraintSolver              S    = EqualitySolver<F>,
@@ -77,21 +45,18 @@ class ConstraintImplementation : public Base
 {
 public:
 
-    typedef F::Value                   Value;
-    typedef S                          Solver;
-    typedef typename Solver::Dominance Dominance;
+    typedef typename F::Value Value;
+    typedef S                 Solver;
 
     ConstraintImplementation(
         const Bodies<F::nBodies>& bodies,
         const F&                  f,
-        bool                      disableContacts,
-        std::optional<Dominance>  dominanceRatios = std::nullopt
+        bool                      disableContacts
     )
         : Base{},
           f{f},
+          solver{bodies, f},
           bodies_{bodies},
-          dominances_{dominance(bodies, dominanceRatios)},
-          solver{bodies, f, dominances_},
           disableContacts_{disableContacts}
     {
         Uint32 howManyStructural = 0;
@@ -129,46 +94,23 @@ public:
 
     void solvePositions() override { solver.solvePosition(bodies_, f); }
 
-    Base::BodyView bodies() override
-    {
-        return makeView(bodies_.data(), bodies_.data() + bodies_.size());
-    }
+    BodiesView      bodies() override { return bodies_.view(); }
+    ConstBodiesView bodies() const override { return bodies_.view(); }
 
     bool isBodyStructural(const PhysicsBody* body) const override
     {
-        for (Uint32 i = 0; i < F::nBodies; ++i)
-            if (body == bodies_[i])
-                return dominances_[i] == 0.f;
-
-        SIMU_ASSERT(false, "Body is not part of this constraint.");
+        return bodies_.isBodyStructural(body);
     }
-
-private:
-
-    Dominance dominances_;
 
 protected:
 
     F f;
     S solver;
 
+    Bodies<F::nBodies>&       getBodies() { return bodies_; }
+    const Bodies<F::nBodies>& getBodies() const { return bodies_; }
+
 private:
-
-    static Dominance dominance(
-        const Bodies<F::nBodies>& bodies,
-        std::optional<Dominance>  dominanceRatios
-    )
-    {
-        if (dominanceRatios.has_value())
-            return dominanceRatios.value();
-
-        Dominance d{};
-        Uint32    i = 0;
-        for (auto body : bodies)
-            d[i++] = body->dominance();
-
-        return d;
-    }
 
     Bodies<F::nBodies> bodies_;
 
@@ -188,12 +130,8 @@ public:
     typedef ConstraintImplementation<RotationConstraintFunction> Base;
     typedef RotationConstraintFunction                           F;
 
-    RotationConstraint(
-        const Bodies<2>&    bodies,
-        bool                disableContacts = true,
-        std::optional<Vec2> dominanceRatios = std::nullopt
-    )
-        : Base{bodies, F{bodies}, disableContacts, dominanceRatios}
+    RotationConstraint(const Bodies<2>& bodies, bool disableContacts = true)
+        : Base{bodies, F{bodies}, disableContacts}
     {
     }
 };
@@ -206,16 +144,14 @@ public:
     typedef HingeConstraintFunction                           F;
 
     HingeConstraint(
-        const Bodies<2>&    bodies,
-        Vec2                worldSpaceSharedPoint,
-        bool                disableContacts = true,
-        std::optional<Vec2> dominanceRatios = std::nullopt
+        const Bodies<2>& bodies,
+        Vec2             worldSpaceSharedPoint,
+        bool             disableContacts = true
     )
         : Base{
             bodies,
             F{bodies, worldSpaceSharedPoint},
-            disableContacts,
-            dominanceRatios
+            disableContacts
     }
     {
     }
@@ -236,12 +172,8 @@ public:
     typedef ConstraintImplementation<F> Base;
 
 
-    WeldConstraint(
-        const Bodies<2>&    bodies,
-        bool                disableContacts = true,
-        std::optional<Vec2> dominanceRatios = std::nullopt
-    )
-        : Base{bodies, makeWeldFunction(bodies), disableContacts, dominanceRatios}
+    WeldConstraint(const Bodies<2>& bodies, bool disableContacts = true)
+        : Base{bodies, makeWeldFunction(bodies), disableContacts}
     {
     }
 
@@ -269,11 +201,10 @@ class ContactConstraintI : public Constraint
 public:
 
     typedef ContactManifold<Collider> Manifold;
-    typedef const ConstBodies<2>&     CBodies;
 
-    virtual bool isContactValid(CBodies bodies, float maxPen) const = 0;
+    virtual bool isContactValid(const Bodies<2>& bodies, float maxPen) const = 0;
 
-    virtual void update(CBodies bodies, const Manifold& manifold) = 0;
+    virtual void update(const Bodies<2>& bodies, const Manifold& manifold) = 0;
 
     virtual float lambdaHint() const = 0;
 
@@ -303,7 +234,7 @@ public:
         const Manifold&         manifold,
         const Vector<float, 6>& impulseHint
     )
-        : Base{bodies, makeFunction(bodies, manifold), false, std::nullopt}
+        : Base{bodies, makeFunction(bodies, manifold), false}
     {
         auto J = f.jacobian(bodies);
         solver.setLambdaHint(solve(J * transpose(J), J * impulseHint));
@@ -314,16 +245,16 @@ public:
         Base::solveVelocities(dt);
 
         auto J              = solver.getJacobian();
-        f.accumulatedRelVel = J * solver.getInverseMass() * transpose(J)
+        f.accumulatedRelVel = J * getBodies().inverseMass() * transpose(J)
                               * solver.getAccumulatedLambda()[0];
     }
 
-    bool isContactValid(CBodies bodies, float maxPen) const override
+    bool isContactValid(const Bodies<2>& bodies, float maxPen) const override
     {
         return normSquared(f.contactDistance(bodies)) < maxPen * maxPen;
     }
 
-    void update(CBodies bodies, const Manifold& manifold) override
+    void update(const Bodies<2>& bodies, const Manifold& manifold) override
     {
         f = makeFunction(bodies, manifold);
     }
@@ -343,7 +274,7 @@ public:
 private:
 
     static SingleContactFunction
-    makeFunction(const ConstBodies<2>& bodies, const Manifold& manifold)
+    makeFunction(const Bodies<2>& bodies, const Manifold& manifold)
     {
         return SingleContactFunction{bodies, manifold, 0};
     }
@@ -369,7 +300,7 @@ public:
         const Manifold&        manifold,
         const Vector<float, 6> impulseHint
     )
-        : Base{bodies, makeFunction(bodies, manifold), false, std::nullopt}
+        : Base{bodies, makeFunction(bodies, manifold), false}
     {
         auto J = f.jacobian(bodies);
         solver.setLambdaHint(solve(J * transpose(J), J * impulseHint));
@@ -380,14 +311,14 @@ public:
         Base::solveVelocities(dt);
         auto J = solver.getJacobian();
 
-        auto accumulatedRelVel = J * solver.getInverseMass() * transpose(J)
+        auto accumulatedRelVel = J * getBodies().inverseMass() * transpose(J)
                                  * solver.getAccumulatedLambda();
 
         std::get<0>(f.constraints).accumulatedRelVel[0] = accumulatedRelVel[0];
         std::get<1>(f.constraints).accumulatedRelVel[0] = accumulatedRelVel[1];
     }
 
-    bool isContactValid(CBodies bodies, float maxPen) const override
+    bool isContactValid(const Bodies<2>& bodies, float maxPen) const override
     {
         bool firstIsValid
             = normSquared(std::get<0>(f.constraints).contactDistance(bodies))
@@ -399,7 +330,7 @@ public:
     }
 
 
-    void update(CBodies bodies, const Manifold& manifold) override
+    void update(const Bodies<2>& bodies, const Manifold& manifold) override
     {
         f = makeFunction(bodies, manifold);
     }
@@ -420,7 +351,7 @@ public:
 private:
 
     static DoubleContactFunction
-    makeFunction(const ConstBodies<2>& bodies, const Manifold& manifold)
+    makeFunction(const Bodies<2>& bodies, const Manifold& manifold)
     {
         return DoubleContactFunction{
             NonPenetrationConstraintFunction{bodies, manifold, 0},
@@ -440,11 +371,11 @@ public:
     typedef ContactManifold<Collider> Manifold;
 
     FrictionConstraint(const Bodies<2>& bodies, const Manifold& manifold)
-        : Base{bodies, makeFunction(bodies, manifold), false, std::nullopt}
+        : Base{bodies, makeFunction(bodies, manifold), false}
     {
     }
 
-    void update(const ConstBodies<2>& bodies, const Manifold& manifold)
+    void update(const Bodies<2>& bodies, const Manifold& manifold)
     {
         float lambda = f.normalLambda;
         f            = makeFunction(bodies, manifold);
@@ -456,7 +387,7 @@ public:
 private:
 
     static FrictionConstraintFunction
-    makeFunction(const ConstBodies<2>& bodies, const Manifold& manifold)
+    makeFunction(const Bodies<2>& bodies, const Manifold& manifold)
     {
         return FrictionConstraintFunction{bodies, manifold};
     }
@@ -481,11 +412,9 @@ struct Contact
     ContactManifold<Collider> makeManifold(const Gjk<Collider>& gjk) const
     {
         return ContactManifold<Collider>{
-            PointerArray<Collider, 2, true>{
-                                            &bodies[0]->collider(),
-                                            &bodies[1]->collider()},
-            gjk.penetration()
-        };
+            &bodies[0]->collider(),
+            &bodies[1]->collider(),
+            gjk.penetration()};
     }
 
     Bodies<2> bodies;
@@ -528,13 +457,8 @@ public:
 
     void solvePositions() override { contactConstraint_->solvePositions(); }
 
-    BodyView bodies() override
-    {
-        return makeView(
-            contact_.bodies.data(),
-            contact_.bodies.data() + contact_.bodies.size()
-        );
-    }
+    BodiesView      bodies() override { return contact_.bodies.view(); }
+    ConstBodiesView bodies() const override { return contact_.bodies.view(); }
 
     bool isBodyStructural(const PhysicsBody* body) const override
     {

@@ -293,7 +293,8 @@ TEST_CASE("Physics")
             world.step(1.f);
 
             REQUIRE(approx(left->angularVelocity(), simu::EPSILON).contains(0.f));
-            REQUIRE(approx(right->angularVelocity(), simu::EPSILON).contains(0.f));
+            REQUIRE(approx(right->angularVelocity(), simu::EPSILON).contains(0.f)
+            );
 
             REQUIRE(all(left->velocity() == Vec2{0.f, 0.5f}));
             REQUIRE(all(right->velocity() == Vec2{0.f, 0.5f}));
@@ -302,7 +303,8 @@ TEST_CASE("Physics")
             world.step(1.f);
 
             REQUIRE(approx(left->angularVelocity(), simu::EPSILON).contains(0.f));
-            REQUIRE(approx(right->angularVelocity(), simu::EPSILON).contains(0.f));
+            REQUIRE(approx(right->angularVelocity(), simu::EPSILON).contains(0.f)
+            );
 
             REQUIRE(all(left->velocity() == Vec2{}));
             REQUIRE(all(right->velocity() == Vec2{}));
@@ -552,15 +554,19 @@ TEST_CASE("Physics")
             auto follower = world.makeBody(descr);
 
             world.makeConstraint<RotationConstraint>(
-                Bodies<2>{driver, middle},
-                true,
-                Vec2{0.f, 1.f}
+                Bodies<2>{
+                    {driver, middle},
+                    Vec2{0.f,    1.f   }
+            },
+                true
             );
 
             world.makeConstraint<RotationConstraint>(
-                Bodies<2>{middle, follower},
-                true,
-                Vec2{0.f, 1.f}
+                Bodies<2>{
+                    {middle, follower},
+                    Vec2{0.f,    1.f     }
+            },
+                true
             );
 
             world.declareContactConflict(Bodies<2>{driver, follower});
@@ -571,9 +577,8 @@ TEST_CASE("Physics")
             REQUIRE(driver->angularVelocity() == 1.f);
             REQUIRE(middle->angularVelocity() == 1.f);
             REQUIRE(follower->angularVelocity() == 1.f);
-        
+
             world.removeContactConflict(Bodies<2>{driver, follower});
-        
         }
     }
 

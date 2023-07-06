@@ -42,15 +42,16 @@ public:
     typedef Vector<float, dimension>              Value;
     typedef Matrix<float, dimension, 3 * nBodies> Jacobian;
 
-    typedef const ConstBodies<nBodies>& CBodies;
-
     MotorFunctionBase(float maxVelocity, float maxForce)
         : maxVelocity_{std::abs(maxVelocity)}, maxForce_{std::abs(maxForce)}
     {
     }
 
-    Value eval(CBodies) const { return Value{}; }
-    Value bias(CBodies) const { return -maxVelocity_ * direction_; }
+    Value eval(const Bodies<nBodies> /* bodies */) const { return Value{}; }
+    Value bias(const Bodies<nBodies> /* bodies */) const
+    {
+        return -maxVelocity_ * direction_;
+    }
 
     Value clampLambda(Value lambda, float dt) const
     {
@@ -94,15 +95,17 @@ class RotationMotorFunction : public MotorFunctionBase<1, 1>
 {
 public:
 
-    typedef MotorFunctionBase<1, 1>     Base;
-    typedef const ConstBodies<nBodies>& CBodies;
+    typedef MotorFunctionBase<1, 1> Base;
 
     RotationMotorFunction(float maxAngularVelocity, float maxTorque)
         : Base{maxAngularVelocity, maxTorque}
     {
     }
 
-    Jacobian jacobian(CBodies) const { return Jacobian{0, 0, 1}; }
+    Jacobian jacobian(const Bodies<1>& /* bodies */) const
+    {
+        return Jacobian{0, 0, 1};
+    }
 };
 
 
@@ -110,15 +113,14 @@ class TranslationMotorFunction : public MotorFunctionBase<1, 2>
 {
 public:
 
-    typedef MotorFunctionBase<1, 2>     Base;
-    typedef const ConstBodies<nBodies>& CBodies;
+    typedef MotorFunctionBase<1, 2> Base;
 
     TranslationMotorFunction(float maxVelocity, float maxForce)
         : Base{maxVelocity, maxForce}
     {
     }
 
-    Jacobian jacobian(CBodies) const
+    Jacobian jacobian(const Bodies<1>& /* bodies */) const
     {
         // clang-format off
         return Jacobian{1, 0, 0,
@@ -175,7 +177,7 @@ public:
         }
 
         float maxAngularVelocity() const { return maxAngularVelocity_; }
-        float maxTorque(ConstBodies<1> body) const
+        float maxTorque(const Bodies<1>& body) const
         {
             if (maxTorque_.has_value())
                 return maxTorque_.value();
@@ -194,8 +196,7 @@ public:
         : Base{
             bodies,
             F{specs.maxAngularVelocity(), specs.maxTorque(bodies)},
-            false,
-            Vector<float, 1>{1.f}
+            false
     }
     {
     }
@@ -254,7 +255,7 @@ public:
         }
 
         float maxVelocity() const { return maxVelocity_; }
-        float maxForce(ConstBodies<1> body) const
+        float maxForce(const Bodies<1>& body) const
         {
             if (maxForce_.has_value())
                 return maxForce_.value();
@@ -273,8 +274,7 @@ public:
         : Base{
             bodies,
             F{specs.maxVelocity(), specs.maxForce(bodies)},
-            false,
-            Vector<float, 1>{1.f}
+            false
     }
     {
     }
