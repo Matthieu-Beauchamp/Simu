@@ -69,10 +69,49 @@ public:
 protected:
 
     friend World;
+
+    ////////////////////////////////////////////////////////////
+    /// \brief Called when a World creates this object
+    /// 
+    /// Subclasses should always call Base::onConstruction
+    /// 
+    ////////////////////////////////////////////////////////////
     virtual void onConstruction(World& /* world */){};
+
+    ////////////////////////////////////////////////////////////
+    /// \brief Called when a World destroys this object
+    /// 
+    /// Subclasses should always call Base::onDestruction
+    ///  
+    /// \see onKill 
+    ////////////////////////////////////////////////////////////
     virtual void onDestruction(World& /* world */){};
+    
+    ////////////////////////////////////////////////////////////
+    /// \brief Called when this object is requested to die (by a call to kill()) 
+    /// 
+    /// Subclasses should always call Base::onKill
+    /// 
+    /// This is different from onDestruction since this object is not destroyed
+    /// immediately after this call. It will be destroyed the next time 
+    /// World::step is called on the World owning this object.
+    /// 
+    /// This method should be used to kill other objects linked to this one.
+    /// For example a composed Body may create other objects with onConstruction,
+    /// keep a reference to them and kill them when it is killed with onKill.
+    /// 
+    ////////////////////////////////////////////////////////////
     virtual void onKill(){};
 
+    ////////////////////////////////////////////////////////////
+    /// \brief Offers an alternative death condition than this->kill().
+    /// 
+    /// Subclasses should always consider if Base::shouldDie() is true.
+    /// 
+    /// Example: a Constraint that is broken if the force it applies exceeds 
+    ///     a treshold can implement this death condition in shouldDie.
+    /// 
+    ////////////////////////////////////////////////////////////
     virtual bool shouldDie() { return false; }
 
 private:

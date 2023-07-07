@@ -31,8 +31,6 @@
 namespace simu
 {
 
-// TODO: Must ensure proper behavior with structural bodies...
-
 class ForceField : public PhysicsObject
 {
 public:
@@ -88,7 +86,7 @@ public:
 
     void apply(Body& body, float dt) const override
     {
-        body.applyImpulse(force_, dt, Vec2{0, 0});
+        body.applyForce(force_, dt, Vec2{0, 0});
     }
 
 private:
@@ -107,7 +105,7 @@ public:
 
     void apply(Body& body, float dt) const override
     {
-        body.applyImpulse(acceleration_ * body.properties().mass, dt, Vec2{0, 0});
+        body.applyForce(acceleration_ * body.properties().mass, dt, Vec2{0, 0});
     }
 
 private:

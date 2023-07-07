@@ -38,6 +38,8 @@ namespace simu
 /// The Collider holds a local space Polygon and a set of transformed vertices
 ///     that defines the geometry in world space.
 ///
+/// All of its geometry is always positively oriented.
+///
 /// The local space geometry does not need to have its centroid at origin,
 ///     but care should be taken to apply the correct transformations
 ///     (notably for rotating about the centroid).

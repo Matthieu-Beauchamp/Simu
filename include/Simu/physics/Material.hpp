@@ -66,7 +66,14 @@ struct Material
 
     ////////////////////////////////////////////////////////////
     /// How much penetration the body tolerates during collisions.
-    ///
+    /// 
+    /// This value should be small enough that there is no visible overlapping,
+    ///     while being big enough relative to a Body's geometry to compute correct ContactManifolds.
+    /// 
+    /// It is also use to determine if a ContactManifold is still valid. 
+    ///     if the contact points between two bodies are closer than penetration,
+    ///     the contact is considered valid.
+    /// 
     ////////////////////////////////////////////////////////////
     CombinableProperty penetration{1e-3f, CombinableProperty::average};
 };
