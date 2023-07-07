@@ -166,6 +166,12 @@ auto makeView(R& range, Deref deref = Deref{})
     return makeView(range.begin(), range.end(), deref);
 }
 
+template <class Iter, class Deref = Identity>
+using ViewType = decltype(simu::makeView(
+    std::declval<Iter>(),
+    std::declval<Iter>(),
+    std::declval<Identity>()
+));
 
 } // namespace simu
 

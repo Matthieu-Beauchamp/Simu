@@ -24,18 +24,21 @@
 
 #pragma once
 
-#include "Simu/physics/PhysicsObject.hpp"
+#include "Simu/utility/View.hpp"
 #include "Simu/math/Matrix.hpp"
+
+#include "Simu/physics/PhysicsObject.hpp"
+
 
 namespace simu
 {
 
 class PhysicsBody;
 
-typedef std::ranges::subrange<PhysicsBody**>       BodiesView;
-typedef std::ranges::subrange<PhysicsBody const**> ConstBodiesView;
+typedef ViewType<PhysicsBody**>       BodiesView;
+typedef ViewType<PhysicsBody const**> ConstBodiesView;
 
-template<Uint32 n>
+template <Uint32 n>
 class Bodies;
 
 class Constraint : public PhysicsObject
@@ -83,17 +86,13 @@ concept ConstraintFunction = requires(
 };
 
 
-template<ConstraintFunction F>
+template <ConstraintFunction F>
 class ConstraintSolverBase;
 
 template <class S>
-concept ConstraintSolver = requires(
-    S                   s,
-    Bodies<S::nBodies>& bodies,
-    typename S::F       f,
-    float               dt
-) {
-    // clang-format off
+concept ConstraintSolver
+    = requires(S s, Bodies<S::nBodies>& bodies, typename S::F f, float dt) {
+          // clang-format off
     typename S::F;
     requires ConstraintFunction<typename S::F>;
 
@@ -107,8 +106,8 @@ concept ConstraintSolver = requires(
     { s.solveVelocity(bodies, f, dt) };
     { s.solvePosition(bodies, f) };
 
-    // clang-format on
-};
+          // clang-format on
+      };
 
 
 } // namespace simu

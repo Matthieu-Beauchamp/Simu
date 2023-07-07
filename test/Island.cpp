@@ -149,7 +149,7 @@ TEST_CASE("Island")
             {
                 // A      D
                 //  \ C /
-                //  /   \ 
+                //  /   \
                 // B     E
                 //
                 // If C is structural in all constraints, we have 4 islands

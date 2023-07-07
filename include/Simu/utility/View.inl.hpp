@@ -39,7 +39,7 @@ class View<Iter, Deref>::Iterator
 public:
 
     typedef std::remove_reference_t<DerefReturn>        value_type;
-    typedef std::iterator_traits<Iter>::difference_type difference_type;
+    typedef typename std::iterator_traits<Iter>::difference_type difference_type;
 
     typedef value_type& reference;
     typedef value_type* pointer;
