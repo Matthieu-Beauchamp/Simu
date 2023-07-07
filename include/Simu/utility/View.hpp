@@ -24,7 +24,6 @@
 
 #pragma once
 
-#include <ranges>
 
 namespace simu
 {
@@ -32,15 +31,13 @@ namespace simu
 namespace details
 {
 
-
-
 ////////////////////////////////////////////////////////////
 /// \brief Lightweight iterable sequence constructed from a pair of iterators
-/// 
-/// The Deref parameter can specialise how the iterator is dereferenced, 
+///
+/// The Deref parameter can specialise how the iterator is dereferenced,
 ///     but unlike std::views::transform, cannot create new objects.
 ///
-/// The typical use is to hide the usage of smart pointers, instead giving access only 
+/// The typical use is to hide the usage of smart pointers, instead giving access only
 ///     to raw references/pointers.
 ///
 /// This class covers the needs of Simu for views instead of using the standard library
@@ -146,6 +143,12 @@ auto makeView(R& range, Fn deref = Fn{})
     return makeView(range.begin(), range.end(), deref);
 }
 
+template <class Iter, class Deref = Identity>
+using ViewType = decltype(simu::makeView(
+    std::declval<Iter>(),
+    std::declval<Iter>(),
+    std::declval<Identity>()
+));
 
 } // namespace simu
 

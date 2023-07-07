@@ -51,10 +51,10 @@ TEST_CASE("Physics")
 
         float dt = 3.f;
         world.step(dt);
-        REQUIRE(all(body->position() == p + dt * v));
         REQUIRE(all(body->velocity() == v));
-        REQUIRE(body->orientation() == theta + dt * w);
+        REQUIRE(all(body->position() == p + dt * v));
         REQUIRE(body->angularVelocity() == w);
+        REQUIRE(body->orientation() == theta + dt * w);
 
         // rotation is done about the polygon's centroid.
         // body->position is the position of the origin of the body's local space, rotation not considered.
