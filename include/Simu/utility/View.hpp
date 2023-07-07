@@ -29,12 +29,79 @@
 namespace simu
 {
 
+namespace details
+{
 
-// Maybe do a small custom implementation of a View since Clang 15 does not support
-//  them well yet (Should be fixed in Clang 16): 
-// https://github.com/llvm/llvm-project/issues/44178
-// https://github.com/llvm/llvm-project/issues/59697
 
+
+////////////////////////////////////////////////////////////
+/// \brief Lightweight iterable sequence constructed from a pair of iterators
+/// 
+/// The Deref parameter can specialise how the iterator is dereferenced, 
+///     but unlike std::views::transform, cannot create new objects.
+///
+/// The typical use is to hide the usage of smart pointers, instead giving access only 
+///     to raw references/pointers.
+///
+/// This class covers the needs of Simu for views instead of using the standard library
+///     since Clang 15 does not support them well yet (Should be fixed in Clang 16):
+///     https://github.com/llvm/llvm-project/issues/44178
+///     https://github.com/llvm/llvm-project/issues/59697
+///
+///
+/// \see simu::makeView
+////////////////////////////////////////////////////////////
+template <std::forward_iterator Iter, std::invocable<decltype(*std::declval<Iter>())> Deref>
+class View
+{
+    typedef decltype(std::declval<Deref>()(
+        std::declval<typename std::iterator_traits<Iter>::reference>()
+    )) DerefReturn;
+
+    static_assert(
+        std::is_reference_v<DerefReturn>,
+        "Deref may not create new objets, only redirect on dereference"
+    );
+
+public:
+
+    View(Iter begin, Iter end, Deref deref = Deref{})
+        : begin_{begin}, end_{end}, deref_{deref}
+    {
+    }
+
+    class Iterator;
+
+    Iterator begin() const;
+    Iterator end() const;
+
+    bool        empty() const;
+    std::size_t size() const;
+
+private:
+
+    Iter  begin_;
+    Iter  end_;
+    Deref deref_;
+};
+
+} // namespace details
+
+
+struct Identity
+{
+    template <class Value>
+    auto& operator()(Value& v) const
+    {
+        return v;
+    }
+
+    template <class Value>
+    const auto& operator()(const Value& v) const
+    {
+        return v;
+    }
+};
 
 ////////////////////////////////////////////////////////////
 /// \brief Dereferences the element one more time to hide the use of smart pointers
@@ -54,41 +121,32 @@ struct BypassSmartPointer
     }
 };
 
-template <std::input_iterator Iter, class Sentinel>
-auto makeView(Iter begin, Sentinel end)
-{
-    return std::ranges::subrange<Iter, Sentinel>{begin, end};
-}
 
 ////////////////////////////////////////////////////////////
 /// \brief Creates a view of [begin, end) and applies Fn to every dereferenced element
 ///
-/// The original sequence is not modified.
-///
 ////////////////////////////////////////////////////////////
-template <std::input_iterator Iter, class Sentinel, class Fn>
-auto makeView(Iter begin, Sentinel end, Fn deref)
+template <std::forward_iterator Iter, class Fn = Identity>
+auto makeView(Iter begin, Iter end, Fn deref = Fn{})
 {
-    return std::ranges::subrange<Iter, Sentinel>{begin, end}
-           | std::views::transform(deref);
+    // TODO: If !Clang or Clang-version > 16
+    // return std::ranges::subrange<Iter, Sentinel>{begin, end}
+    //        | std::views::transform(deref);
+
+    return details::View<Iter, Fn>{begin, end, deref};
 }
 
 ////////////////////////////////////////////////////////////
 /// \brief Creates a view of the range and applies Fn to every dereferenced element
 ///
-/// The original range is not modified.
-///
 ////////////////////////////////////////////////////////////
-template <std::ranges::range R, class Fn>
-auto makeView(R& range, Fn deref)
+template <std::ranges::range R, class Fn = Identity>
+auto makeView(R& range, Fn deref = Fn{})
 {
     return makeView(range.begin(), range.end(), deref);
 }
 
-template <std::ranges::range R>
-auto makeView(R& range)
-{
-    return makeView(range.begin(), range.end());
-}
 
 } // namespace simu
+
+#include "Simu/utility/View.inl.hpp"

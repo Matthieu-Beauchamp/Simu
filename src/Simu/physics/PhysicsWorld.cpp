@@ -59,7 +59,7 @@ void PhysicsWorld::step(float dt)
 
     // TODO: with some additionnal management code,
     //  islands can be made to persist between steps, possibly reducing computation.
-    Islands islands{bodies()};
+    Islands islands(bodies());
     for (Island& island : islands.islands())
         if (island.isAwake())
             for (PhysicsBody* body : island.bodies())
