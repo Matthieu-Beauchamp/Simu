@@ -22,13 +22,13 @@
 //
 ////////////////////////////////////////////////////////////
 
-#include "Simu/physics/PhysicsBody.hpp"
+#include "Simu/physics/Body.hpp"
 #include "Simu/physics/Constraint.hpp"
 
 namespace simu
 {
 
-bool PhysicsBody::interactsAsStructural() const
+bool Body::interactsAsStructural() const
 {
     bool isStruct = true;
     for (Constraint* constraint : constraints_)

@@ -26,7 +26,7 @@
 
 #include "Simu/config.hpp"
 #include "Simu/physics/BoundingBox.hpp"
-#include "Simu/physics/PhysicsBody.hpp"
+#include "Simu/physics/Body.hpp"
 
 namespace simu
 {
@@ -70,7 +70,7 @@ public:
 
     Domain domain() const { return domain_; }
 
-    virtual void apply(PhysicsBody& body, float dt) const = 0;
+    virtual void apply(Body& body, float dt) const = 0;
 
 protected:
 
@@ -86,7 +86,7 @@ public:
     {
     }
 
-    void apply(PhysicsBody& body, float dt) const override
+    void apply(Body& body, float dt) const override
     {
         body.applyImpulse(force_, dt, Vec2{0, 0});
     }
@@ -105,7 +105,7 @@ public:
     {
     }
 
-    void apply(PhysicsBody& body, float dt) const override
+    void apply(Body& body, float dt) const override
     {
         body.applyImpulse(acceleration_ * body.properties().mass, dt, Vec2{0, 0});
     }

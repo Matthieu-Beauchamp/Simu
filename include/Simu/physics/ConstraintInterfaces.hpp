@@ -33,10 +33,10 @@
 namespace simu
 {
 
-class PhysicsBody;
+class Body;
 
-typedef ViewType<PhysicsBody**>       BodiesView;
-typedef ViewType<PhysicsBody const**> ConstBodiesView;
+typedef ViewType<Body**>       BodiesView;
+typedef ViewType<Body const**> ConstBodiesView;
 
 template <Uint32 n>
 class Bodies;
@@ -57,7 +57,7 @@ public:
     virtual BodiesView      bodies()       = 0;
     virtual ConstBodiesView bodies() const = 0;
 
-    virtual bool isBodyStructural(const PhysicsBody* body) const = 0;
+    virtual bool isBodyStructural(const Body* body) const = 0;
 };
 
 

@@ -29,7 +29,7 @@
 #include "Simu/math/Gjk.hpp"
 #include "Simu/physics/ContactManifold.hpp"
 
-#include "Simu/physics/PhysicsBody.hpp"
+#include "Simu/physics/Body.hpp"
 
 #include "Simu/physics/ConstraintFunction.hpp"
 #include "Simu/physics/ConstraintSolver.hpp"
@@ -60,7 +60,7 @@ public:
           disableContacts_{disableContacts}
     {
         Uint32 howManyStructural = 0;
-        for (PhysicsBody* body : this->bodies())
+        for (Body* body : this->bodies())
             if (isBodyStructural(body))
                 ++howManyStructural;
 
@@ -71,12 +71,12 @@ public:
         );
     }
 
-    void onConstruction(PhysicsWorld& world) override;
-    void onDestruction(PhysicsWorld& world) override;
+    void onConstruction(World& world) override;
+    void onDestruction(World& world) override;
 
     bool shouldDie() override
     {
-        for (PhysicsBody* body : bodies_)
+        for (Body* body : bodies_)
             if (body->isDead())
                 return true;
 
@@ -97,7 +97,7 @@ public:
     BodiesView      bodies() override { return bodies_.view(); }
     ConstBodiesView bodies() const override { return bodies_.view(); }
 
-    bool isBodyStructural(const PhysicsBody* body) const override
+    bool isBodyStructural(const Body* body) const override
     {
         return bodies_.isBodyStructural(body);
     }
@@ -407,7 +407,7 @@ public:
 
     bool shouldDie() override
     {
-        for (PhysicsBody* body : contact_.bodies)
+        for (Body* body : contact_.bodies)
             if (body->isDead())
                 return true;
 
@@ -439,7 +439,7 @@ public:
     BodiesView      bodies() override { return contact_.bodies.view(); }
     ConstBodiesView bodies() const override { return contact_.bodies.view(); }
 
-    bool isBodyStructural(const PhysicsBody* body) const override
+    bool isBodyStructural(const Body* body) const override
     {
         return body->isStructural();
     };

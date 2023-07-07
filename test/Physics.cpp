@@ -4,8 +4,8 @@
 
 #include "Simu/utility/FloatingPointExceptions.hpp"
 
-#include "Simu/physics/PhysicsWorld.hpp"
-#include "Simu/physics/PhysicsBody.hpp"
+#include "Simu/physics/World.hpp"
+#include "Simu/physics/Body.hpp"
 #include "Simu/physics/Constraint.hpp"
 #include "Simu/physics/Motors.hpp"
 
@@ -34,7 +34,7 @@ TEST_CASE("Physics")
         const float theta = pi / 4;
         const float w     = pi / 2;
 
-        PhysicsWorld world{};
+        World world{};
 
         BodyDescriptor descr{squareDescriptor()};
         descr.position    = p;
@@ -67,12 +67,12 @@ TEST_CASE("Physics")
 
     SECTION("Global force fields (gravity)")
     {
-        PhysicsWorld world{};
+        World world{};
 
         float initialHeight = 100.f;
 
 
-        std::vector<PhysicsWorld::BodyPtr> bodies;
+        std::vector<World::BodyPtr> bodies;
         constexpr Uint32                   nBodies = 5;
         for (Uint32 i = 0; i < nBodies; ++i)
         {
@@ -98,7 +98,7 @@ TEST_CASE("Physics")
 
     SECTION("Multiple force fields")
     {
-        PhysicsWorld world{};
+        World world{};
 
         BodyDescriptor descr{squareDescriptor()};
 
@@ -155,7 +155,7 @@ TEST_CASE("Physics")
     {
         SECTION("Rotation constraint")
         {
-            PhysicsWorld world{};
+            World world{};
 
             BodyDescriptor descr{squareDescriptor()};
             descr.position = Vec2{-10.f, 0};
@@ -188,7 +188,7 @@ TEST_CASE("Physics")
 
         SECTION("Hinge constraint")
         {
-            PhysicsWorld world{};
+            World world{};
 
             BodyDescriptor descr{squareDescriptor()};
             descr.position = Vec2{-1.f, 0};
@@ -244,7 +244,7 @@ TEST_CASE("Physics")
         SECTION("Hinge Constraint is free to rotate, also tests disabling "
                 "collisison")
         {
-            PhysicsWorld world{};
+            World world{};
 
             BodyDescriptor descr{squareDescriptor()};
             descr.position = Vec2{0, 0};
@@ -276,7 +276,7 @@ TEST_CASE("Physics")
 
         SECTION("Weld constraint")
         {
-            PhysicsWorld world{};
+            World world{};
 
             BodyDescriptor descr{squareDescriptor()};
             descr.position = Vec2{-1.f, 0};
@@ -315,7 +315,7 @@ TEST_CASE("Physics")
 
         SECTION("Motors")
         {
-            PhysicsWorld world{};
+            World world{};
 
             BodyDescriptor descr{squareDescriptor()};
 
@@ -368,7 +368,7 @@ TEST_CASE("Physics")
 
         SECTION("Motor throttling")
         {
-            PhysicsWorld world{};
+            World world{};
 
             BodyDescriptor descr{squareDescriptor()};
 
@@ -413,7 +413,7 @@ TEST_CASE("Physics")
 
         SECTION("Motor moving multiple bodies")
         {
-            PhysicsWorld world{};
+            World world{};
 
             BodyDescriptor descr{squareDescriptor()};
 
@@ -468,7 +468,7 @@ TEST_CASE("Physics")
     {
         SECTION("No collision restitution")
         {
-            PhysicsWorld world{};
+            World world{};
 
             BodyDescriptor descr{squareDescriptor()};
             descr.material.bounciness.value = 0.f;
@@ -494,7 +494,7 @@ TEST_CASE("Physics")
 
         SECTION("Full collision restitution")
         {
-            PhysicsWorld world{};
+            World world{};
 
             BodyDescriptor descr{squareDescriptor()};
             descr.material.bounciness.value = 1.f;
@@ -523,7 +523,7 @@ TEST_CASE("Physics")
     {
         SECTION("Collision with structural")
         {
-            PhysicsWorld world{};
+            World world{};
 
             BodyDescriptor descr{squareDescriptor()};
             descr.material.bounciness.value = 1.f;
@@ -548,7 +548,7 @@ TEST_CASE("Physics")
 
         SECTION("Dominance for movement propagation")
         {
-            PhysicsWorld world{};
+            World world{};
 
             BodyDescriptor descr{squareDescriptor()};
 
@@ -589,10 +589,10 @@ TEST_CASE("Physics")
     {
         constexpr float wheelRadius = 0.5f;
 
-        struct MotorCycle : public PhysicsBody
+        struct MotorCycle : public Body
         {
             MotorCycle(Vec2 pos)
-                : PhysicsBody{
+                : Body{
                     BodyDescriptor{
                                    Polygon{
                             Vec2{-1.f, -0.5f},
@@ -605,7 +605,7 @@ TEST_CASE("Physics")
             {
             }
 
-            void onConstruction(PhysicsWorld& world) override
+            void onConstruction(World& world) override
             {
                 BodyDescriptor wheelDescr = wheelDescriptor();
                 wheelDescr.position       = toWorldSpace() * Vec2{-1.f, -1.5f};
@@ -669,16 +669,16 @@ TEST_CASE("Physics")
                 };
             }
 
-            PhysicsBody*     rearWheel = nullptr;
+            Body*     rearWheel = nullptr;
             HingeConstraint* rearHinge = nullptr;
 
-            PhysicsBody*     frontWheel = nullptr;
+            Body*     frontWheel = nullptr;
             HingeConstraint* frontHinge = nullptr;
 
             RotationMotor* motor = nullptr;
         };
 
-        PhysicsWorld world{};
+        World world{};
         auto         motorcycle = world.makeBody<MotorCycle>(Vec2{0.f, 2.5f});
 
         REQUIRE(motorcycle->rearWheel != nullptr);
@@ -731,7 +731,7 @@ TEST_CASE("Physics")
 
     SECTION("Contact constraint divergence issue")
     {
-        PhysicsWorld world{};
+        World world{};
 
         BodyDescriptor groundDescr{
             Polygon{
@@ -783,10 +783,10 @@ TEST_CASE("Physics")
         //  the stack can hold for very long
         //  (no fatal accumulation of errors, no awkward contact manifold problems, etc.)
 
-        PhysicsWorld world{};
+        World world{};
         world.makeForceField<Gravity>(Vec2{0.f, -10.f});
 
-        auto makeBox = [&](Int32 index) -> PhysicsBody* {
+        auto makeBox = [&](Int32 index) -> Body* {
             BodyDescriptor descr{squareDescriptor()};
             descr.position[1]             = index;
             descr.material.friction.value = 0.5f;
@@ -804,10 +804,10 @@ TEST_CASE("Physics")
         floorDescr.material.friction.value = 0.5f;
         floorDescr.dominance               = 0.f;
 
-        PhysicsBody* floor = world.makeBody(floorDescr);
+        Body* floor = world.makeBody(floorDescr);
 
         constexpr Int32                  nBoxes = 10;
-        std::array<PhysicsBody*, nBoxes> boxes{};
+        std::array<Body*, nBoxes> boxes{};
 
         Int32 i = 0;
         for (auto& box : boxes)
@@ -833,7 +833,7 @@ TEST_CASE("Physics")
 
         i               = 0;
         const float err = 100 * simu::EPSILON;
-        for (const PhysicsBody* box : boxes)
+        for (const Body* box : boxes)
         {
             float h = static_cast<float>(i++);
 
@@ -850,12 +850,12 @@ TEST_CASE("Physics")
 
     SECTION("Ranges types")
     {
-        PhysicsWorld        world{};
-        const PhysicsWorld& cWorld = world;
+        World        world{};
+        const World& cWorld = world;
 
         // clang-format off
-        STATIC_REQUIRE(std::is_same_v<decltype(*world.bodies().begin()), PhysicsBody&>);
-        STATIC_REQUIRE(std::is_same_v<decltype(*cWorld.bodies().begin()), const PhysicsBody&>);
+        STATIC_REQUIRE(std::is_same_v<decltype(*world.bodies().begin()), Body&>);
+        STATIC_REQUIRE(std::is_same_v<decltype(*cWorld.bodies().begin()), const Body&>);
 
         STATIC_REQUIRE(std::is_same_v<decltype(*world.constraints().begin()), Constraint&>);
         STATIC_REQUIRE(std::is_same_v<decltype(*cWorld.constraints().begin()), const Constraint&>);

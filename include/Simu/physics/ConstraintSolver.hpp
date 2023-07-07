@@ -32,7 +32,7 @@
 namespace simu
 {
 
-class PhysicsBody;
+class Body;
 
 
 template <ConstraintFunction F_>

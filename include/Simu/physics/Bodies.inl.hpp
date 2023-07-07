@@ -25,14 +25,14 @@
 #pragma once
 
 #include "Simu/physics/Bodies.hpp"
-#include "Simu/physics/PhysicsBody.hpp"
+#include "Simu/physics/Body.hpp"
 
 namespace simu
 {
 
 template <Uint32 n>
 Bodies<n>::Bodies(
-    std::initializer_list<PhysicsBody*> bodies,
+    std::initializer_list<Body*> bodies,
     std::optional<Dominance>            dominances
 )
     : Base{}
@@ -54,7 +54,7 @@ Bodies<n>::Bodies(
     {
         Dominance d{};
         Uint32    j = 0;
-        for (PhysicsBody* body : *this)
+        for (Body* body : *this)
             d[j++] = body->dominance();
 
         dominances_ = d;
@@ -62,7 +62,7 @@ Bodies<n>::Bodies(
 }
 
 template <Uint32 n>
-bool Bodies<n>::isBodyStructural(const PhysicsBody* body) const
+bool Bodies<n>::isBodyStructural(const Body* body) const
 {
     for (Uint32 i = 0; i < n; ++i)
         if (body == (*this)[i])
@@ -77,7 +77,7 @@ void Bodies<n>::applyImpulse(const Impulse& impulse)
 {
     Velocity dv = inverseMass() * impulse;
     Uint32   i  = 0;
-    for (PhysicsBody* body : *this)
+    for (Body* body : *this)
     {
         body->setVelocity(body->velocity() + Vec2{dv[i], dv[i + 1]});
         body->setAngularVelocity(body->angularVelocity() + dv[i + 2]);
@@ -89,7 +89,7 @@ template <Uint32 n>
 void Bodies<n>::applyPositionCorrection(const State& correction)
 {
     Uint32 i = 0;
-    for (PhysicsBody* body : *this)
+    for (Body* body : *this)
     {
         body->position_ += Vec2{correction[i], correction[i + 1]};
         body->orientation_ += correction[i + 2];
@@ -103,7 +103,7 @@ typename Bodies<n>::Velocity Bodies<n>::velocity() const
 {
     Velocity v{};
     Uint32   i = 0;
-    for (const PhysicsBody* body : *this)
+    for (const Body* body : *this)
     {
         v[i++] = body->velocity()[0];
         v[i++] = body->velocity()[1];
@@ -120,7 +120,7 @@ typename Bodies<n>::Mass Bodies<n>::inverseMass() const
 
     Uint32 i       = 0;
     Uint32 nthBody = 0;
-    for (const PhysicsBody* body : *this)
+    for (const Body* body : *this)
     {
         diagonal[i++] = dominances_[nthBody] / body->properties().mass;
         diagonal[i++] = dominances_[nthBody] / body->properties().mass;

@@ -36,13 +36,13 @@
 namespace simu
 {
 
-// TODO: Ensure the array is immutable, 
+// TODO: Ensure the array is immutable,
 //  const applies to the stored bodies.
 
 template <Uint32 n>
-class Bodies : public std::array<PhysicsBody*, n>
+class Bodies : public std::array<Body*, n>
 {
-    typedef std::array<PhysicsBody*, n> Base;
+    typedef std::array<Body*, n> Base;
 
 public:
 
@@ -54,22 +54,23 @@ public:
     typedef Vector<float, n>            Dominance;
 
     Bodies(
-        std::initializer_list<PhysicsBody*> bodies,
+        std::initializer_list<Body*> bodies,
         std::optional<Dominance>            dominances = std::nullopt
     );
 
     BodiesView view()
     {
-        return BodiesView{this->data(), this->data() + this->size()};
+        return makeView(this->data(), this->data() + this->size());
     }
     ConstBodiesView view() const
     {
-        return ConstBodiesView{
-            const_cast<PhysicsBody const**>(this->data()),
-            const_cast<PhysicsBody const**>(this->data()) + this->size()};
+        return makeView(
+            const_cast<Body const**>(this->data()),
+            const_cast<Body const**>(this->data()) + this->size()
+        );
     }
 
-    bool isBodyStructural(const PhysicsBody* body) const;
+    bool isBodyStructural(const Body* body) const;
 
     void applyImpulse(const Impulse& impulse);
     void applyPositionCorrection(const State& correction);

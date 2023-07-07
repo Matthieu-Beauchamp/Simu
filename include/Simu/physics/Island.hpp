@@ -26,7 +26,7 @@
 
 #include <set>
 
-#include "Simu/physics/PhysicsBody.hpp"
+#include "Simu/physics/Body.hpp"
 #include "Simu/physics/Constraint.hpp"
 
 namespace simu
@@ -36,13 +36,13 @@ struct Island
 {
 public:
 
-    Island(PhysicsBody* root)
+    Island(Body* root)
     {
         addBody(root);
         expand(root);
     }
 
-    void expand(PhysicsBody* root)
+    void expand(Body* root)
     {
         if (root->interactsAsStructural())
             return;
@@ -51,7 +51,7 @@ public:
         {
             if (constraints_.emplace(constraint).second)
             {
-                for (PhysicsBody* body : constraint->bodies())
+                for (Body* body : constraint->bodies())
                 {
                     if (!body->interactsAsStructural())
                     {
@@ -72,13 +72,13 @@ public:
 
 private:
 
-    void addBody(PhysicsBody* body)
+    void addBody(Body* body)
     {
         bodies_.emplace(body);
         isAwake_ = isAwake_ || !body->isAsleep();
     }
 
-    std::set<PhysicsBody*> bodies_;
+    std::set<Body*> bodies_;
     std::set<Constraint*>  constraints_;
     bool                   isAwake_ = false;
 };
@@ -86,7 +86,7 @@ private:
 template <class T>
 concept BodyRange = std::ranges::range<T> && requires(T t) {
     // clang-format off
-    { *t.begin() } -> std::convertible_to<PhysicsBody&>;
+    { *t.begin() } -> std::convertible_to<Body&>;
     // clang-format on
 };
 
@@ -97,11 +97,11 @@ public:
     template <BodyRange T>
     Islands(T&& bodies)
     {
-        std::vector<PhysicsBody*> bodiesToProcess;
-        for (PhysicsBody& body : bodies)
+        std::vector<Body*> bodiesToProcess;
+        for (Body& body : bodies)
             bodiesToProcess.emplace_back(&body);
 
-        auto removeBody = [&](PhysicsBody* body) {
+        auto removeBody = [&](Body* body) {
             bodiesToProcess.erase(
                 std::remove(bodiesToProcess.begin(), bodiesToProcess.end(), body),
                 bodiesToProcess.end()
@@ -118,7 +118,7 @@ public:
             else
             {
                 Island island{bodiesToProcess.back()};
-                for (PhysicsBody* body : island.bodies())
+                for (Body* body : island.bodies())
                     removeBody(body);
 
                 islands_.emplace_back(std::move(island));

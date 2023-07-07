@@ -205,7 +205,7 @@ public:
     void  throttle(float throttle)
     {
         f.throttle(throttle);
-        for (PhysicsBody* body : bodies())
+        for (Body* body : bodies())
             body->wake();
     }
 
@@ -213,7 +213,7 @@ public:
     void  direction(Value direction)
     {
         f.direction(direction);
-        for (PhysicsBody* body : bodies())
+        for (Body* body : bodies())
             body->wake();
     }
 };
@@ -283,7 +283,7 @@ public:
     void  throttle(float throttle)
     {
         f.throttle(throttle);
-        for (PhysicsBody* body : bodies())
+        for (Body* body : bodies())
             body->wake();
     }
 
@@ -291,7 +291,7 @@ public:
     void  direction(Value direction)
     {
         f.direction(direction);
-        for (PhysicsBody* body : bodies())
+        for (Body* body : bodies())
             body->wake();
     }
 };

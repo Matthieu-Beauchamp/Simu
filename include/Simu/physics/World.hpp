@@ -30,7 +30,7 @@
 #include "Simu/utility/View.hpp"
 
 #include "Simu/physics/RTree.hpp"
-#include "Simu/physics/PhysicsBody.hpp"
+#include "Simu/physics/Body.hpp"
 #include "Simu/physics/Bodies.hpp"
 #include "Simu/physics/ForceField.hpp"
 
@@ -92,14 +92,14 @@ namespace simu
 class Constraint;
 struct Island;
 
-class PhysicsWorld
+class World
 {
-    typedef RTree<std::unique_ptr<PhysicsBody>> BodyTree;
+    typedef RTree<std::unique_ptr<Body>> BodyTree;
 
 public:
 
-    typedef PhysicsBody*       BodyPtr;
-    typedef const PhysicsBody* ConstBodyPtr;
+    typedef Body*       BodyPtr;
+    typedef const Body* ConstBodyPtr;
 
     typedef Constraint*       ConstraintPtr;
     typedef const Constraint* ConstConstraintPtr;
@@ -107,7 +107,7 @@ public:
     typedef ForceField*       ForceFieldPtr;
     typedef const ForceField* ConstForceFieldPtr;
 
-    PhysicsWorld() = default;
+    World() = default;
 
     // clang-format off
     auto bodies() { return makeView(bodies_, DoubleDereference{}); }
@@ -120,12 +120,12 @@ public:
     auto constraints() const { return makeView(constraints_, DoubleDereference{}); }
     // clang-format on
 
-    PhysicsBody* makeBody(const BodyDescriptor& descr)
+    Body* makeBody(const BodyDescriptor& descr)
     {
-        return makeBody<PhysicsBody>(descr);
+        return makeBody<Body>(descr);
     }
 
-    template <std::derived_from<PhysicsBody> T, class... Args>
+    template <std::derived_from<Body> T, class... Args>
     T* makeBody(Args&&... args)
     {
         std::unique_ptr<T> body = makeObject<T>(std::forward<Args>(args)...);
@@ -143,7 +143,7 @@ public:
                 .get()
         );
 
-        for (PhysicsBody* body : c->bodies())
+        for (Body* body : c->bodies())
         {
             body->constraints_.emplace_back(c);
             body->wake();
@@ -160,7 +160,7 @@ public:
         );
 
         if (f->domain().type == ForceField::DomainType::global)
-            for (PhysicsBody& body : bodies())
+            for (Body& body : bodies())
                 body.wake();
         else
             bodies_.forEachIn(f->domain().region, [](BodyTree::iterator it) {
@@ -195,7 +195,7 @@ public:
     void updateSettings(const Settings& settings)
     {
         if (!settings.enableSleeping && settings_.enableSleeping)
-            for (PhysicsBody& body : bodies())
+            for (Body& body : bodies())
                 body.wake();
 
         settings_ = settings;

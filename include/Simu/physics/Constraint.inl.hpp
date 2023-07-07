@@ -25,13 +25,13 @@
 #pragma once
 
 #include "Simu/physics/Constraint.hpp"
-#include "Simu/physics/PhysicsWorld.hpp"
+#include "Simu/physics/World.hpp"
 
 namespace simu
 {
 
 template <ConstraintFunction F, ConstraintSolver S, std::derived_from<Constraint> B>
-void ConstraintImplementation<F, S, B>::onConstruction(PhysicsWorld& world)
+void ConstraintImplementation<F, S, B>::onConstruction(World& world)
 {
     if (disableContacts_)
     {
@@ -43,7 +43,7 @@ void ConstraintImplementation<F, S, B>::onConstruction(PhysicsWorld& world)
 };
 
 template <ConstraintFunction F, ConstraintSolver S, std::derived_from<Constraint> B>
-void ConstraintImplementation<F, S, B>::onDestruction(PhysicsWorld& world)
+void ConstraintImplementation<F, S, B>::onDestruction(World& world)
 {
     if (disableContacts_)
     {

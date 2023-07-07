@@ -2,8 +2,8 @@
 
 #include "catch2/catch_test_macros.hpp"
 
-#include "Simu/physics/PhysicsWorld.hpp"
-#include "Simu/physics/PhysicsBody.hpp"
+#include "Simu/physics/World.hpp"
+#include "Simu/physics/Body.hpp"
 #include "Simu/physics/Constraint.hpp"
 #include "Simu/physics/Island.hpp"
 
@@ -44,7 +44,7 @@ TEST_CASE("Island")
     {
         SECTION("No island")
         {
-            PhysicsWorld world;
+            World world;
 
             for (Uint32 i = 1; i < 5; ++i)
             {
@@ -59,14 +59,14 @@ TEST_CASE("Island")
 
         SECTION("Single island")
         {
-            PhysicsWorld world;
+            World world;
 
-            PhysicsBody* previous = world.makeBody(getSquareDescriptor());
+            Body* previous = world.makeBody(getSquareDescriptor());
             for (Uint32 i = 1; i < 5; ++i)
             {
                 BodyDescriptor descr{getSquareDescriptor()};
                 descr.position[0]    = 2 * i;
-                PhysicsBody* current = world.makeBody(descr);
+                Body* current = world.makeBody(descr);
                 world.makeConstraint<WeldConstraint>(Bodies<2>{previous, current}
                 );
 
@@ -80,9 +80,9 @@ TEST_CASE("Island")
 
         SECTION("Multiple islands")
         {
-            PhysicsWorld world;
+            World world;
 
-            auto makeBody = [&](Uint32 index) -> PhysicsBody* {
+            auto makeBody = [&](Uint32 index) -> Body* {
                 BodyDescriptor descr{getSquareDescriptor()};
                 descr.position[0] = 2 * index;
                 return world.makeBody(descr);
@@ -105,7 +105,7 @@ TEST_CASE("Island")
         {
             SECTION("stacks on floor")
             {
-                PhysicsWorld world;
+                World world;
 
                 auto makeStack = [&](Uint32 index, Uint32 height) {
                     BodyDescriptor descr{getSquareDescriptor()};
@@ -156,18 +156,18 @@ TEST_CASE("Island")
                 // if it is not in at least one, then we have a single island
                 // no matter the structural property of A, B, D, E
 
-                PhysicsWorld   world{};
+                World   world{};
                 BodyDescriptor descr{getSquareDescriptor()};
 
-                PhysicsBody* A = world.makeBody(descr);
+                Body* A = world.makeBody(descr);
                 descr.position[0] += 2;
-                PhysicsBody* B = world.makeBody(descr);
+                Body* B = world.makeBody(descr);
                 descr.position[0] += 2;
-                PhysicsBody* C = world.makeBody(descr);
+                Body* C = world.makeBody(descr);
                 descr.position[0] += 2;
-                PhysicsBody* D = world.makeBody(descr);
+                Body* D = world.makeBody(descr);
                 descr.position[0] += 2;
-                PhysicsBody* E = world.makeBody(descr);
+                Body* E = world.makeBody(descr);
 
                 ////////////////////////////////////////////////////////////
                 // C is never structural

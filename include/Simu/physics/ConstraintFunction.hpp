@@ -25,10 +25,10 @@
 #pragma once
 
 #include "Simu/config.hpp"
-#include "Simu/physics/PhysicsBody.hpp"
+#include "Simu/physics/Body.hpp"
+#include "Simu/physics/Bodies.hpp"
 #include "Simu/physics/ContactManifold.hpp"
 #include "Simu/physics/ConstraintInterfaces.hpp"
-#include "Simu/physics/Bodies.hpp"
 
 namespace simu
 {

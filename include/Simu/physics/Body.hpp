@@ -71,13 +71,13 @@ struct MassProperties
 };
 
 
-class PhysicsWorld;
+class World;
 
-class PhysicsBody : public PhysicsObject
+class Body : public PhysicsObject
 {
 public:
 
-    PhysicsBody(const BodyDescriptor& descriptor)
+    Body(const BodyDescriptor& descriptor)
         : position_{descriptor.position},
           orientation_{descriptor.orientation},
           material_{descriptor.material},
@@ -91,13 +91,13 @@ public:
     {
     }
 
-    ~PhysicsBody() override = default;
+    ~Body() override = default;
 
-    PhysicsBody(const PhysicsBody& other)            = default;
-    PhysicsBody& operator=(const PhysicsBody& other) = default;
+    Body(const Body& other)            = default;
+    Body& operator=(const Body& other) = default;
 
-    PhysicsBody(PhysicsBody&& other)            = default;
-    PhysicsBody& operator=(PhysicsBody&& other) = default;
+    Body(Body&& other)            = default;
+    Body& operator=(Body&& other) = default;
 
     void applyImpulse(Vec2 force, float dt, Vec2 whereFromCentroid = Vec2{0, 0})
     {
@@ -188,7 +188,7 @@ public:
 
 private:
 
-    friend class PhysicsWorld;
+    friend class World;
 
     template <Uint32 n>
     friend class Bodies;
@@ -233,7 +233,7 @@ private:
     float timeImmobile_ = 0.f;
 
     // on one hand, bodies should not know about their constraints,
-    // on the other, putting an std::unordered_multimap<PhysicsBody*, Constraint*> in PhysicsWorld feels pretty ugly
+    // on the other, putting an std::unordered_multimap<PhysicsBody*, Constraint*> in World feels pretty ugly
     std::vector<Constraint*> constraints_;
 };
 

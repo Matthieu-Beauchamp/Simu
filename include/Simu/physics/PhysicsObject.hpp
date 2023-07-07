@@ -29,19 +29,19 @@
 namespace simu
 {
 
-class PhysicsWorld;
+class World;
 
 ////////////////////////////////////////////////////////////
 /// \brief Base class of physics objects
 ///
-/// The lifetime of physics objects is managed by PhysicsWorld.
+/// The lifetime of physics objects is managed by World.
 /// Instead of explicitly removing them from the world, objects must specify
 /// themselves when they should be removed.
 ///
 /// Objects will be removed if they are killed with PhysicsObject::kill()
 /// or when some condition is satisfied in the virtual PhysicsObject::shouldDie() method.
 ///
-/// The actual removal will be done at the beginning of PhysicsWorld::step().
+/// The actual removal will be done at the beginning of World::step().
 /// Since some objects may want to remove themselves once some other object dies,
 /// no object is truly removed until PhysicsObject::isDead() is called on all objects of the world.
 /// This means that objects can query other objects in their shouldDie() method without worrying about accessing released memory.
@@ -68,9 +68,9 @@ public:
 
 protected:
 
-    friend PhysicsWorld;
-    virtual void onConstruction(PhysicsWorld& /* world */){};
-    virtual void onDestruction(PhysicsWorld& /* world */){};
+    friend World;
+    virtual void onConstruction(World& /* world */){};
+    virtual void onDestruction(World& /* world */){};
     virtual void onKill(){};
 
     virtual bool shouldDie() { return false; }

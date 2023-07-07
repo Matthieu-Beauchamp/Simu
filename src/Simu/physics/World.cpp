@@ -22,7 +22,7 @@
 //
 ////////////////////////////////////////////////////////////
 
-#include "Simu/physics/PhysicsWorld.hpp"
+#include "Simu/physics/World.hpp"
 
 #include "Simu/physics/Constraint.hpp"
 #include "Simu/physics/Island.hpp"
@@ -30,7 +30,7 @@
 namespace simu
 {
 
-void PhysicsWorld::step(float dt)
+void World::step(float dt)
 {
     // TODO:
     // - cleanup
@@ -62,7 +62,7 @@ void PhysicsWorld::step(float dt)
     Islands islands(bodies());
     for (Island& island : islands.islands())
         if (island.isAwake())
-            for (PhysicsBody* body : island.bodies())
+            for (Body* body : island.bodies())
                 body->wake();
 
     applyForces(dt);
@@ -80,7 +80,7 @@ void PhysicsWorld::step(float dt)
     updateBodies(dt);
 }
 
-void PhysicsWorld::declareContactConflict(const Bodies<2>& bodies)
+void World::declareContactConflict(const Bodies<2>& bodies)
 {
     auto contact = inContacts(bodies);
     if (contact == contacts_.end())
@@ -96,7 +96,7 @@ void PhysicsWorld::declareContactConflict(const Bodies<2>& bodies)
 }
 
 
-void PhysicsWorld::removeContactConflict(const Bodies<2>& bodies)
+void World::removeContactConflict(const Bodies<2>& bodies)
 {
     auto contact = inContacts(bodies);
     if (contact != contacts_.end())
@@ -108,13 +108,13 @@ void PhysicsWorld::removeContactConflict(const Bodies<2>& bodies)
 }
 
 
-void PhysicsWorld::applyForces(float dt)
+void World::applyForces(float dt)
 {
     struct ApplyForce
     {
         void operator()(BodyTree::iterator body) const { (*this)(**body); }
 
-        void operator()(PhysicsBody& body) const
+        void operator()(Body& body) const
         {
             if (!body.isAsleep() && !body.isStructural())
                 force.apply(body, dt);
@@ -131,7 +131,7 @@ void PhysicsWorld::applyForces(float dt)
 
         if (force.domain().type == ForceField::DomainType::global)
         {
-            for (PhysicsBody& body : bodies())
+            for (Body& body : bodies())
                 applyForce(body);
         }
         else
@@ -142,7 +142,7 @@ void PhysicsWorld::applyForces(float dt)
 }
 
 
-void PhysicsWorld::detectContacts()
+void World::detectContacts()
 {
     for (auto it = bodies_.begin(); it != bodies_.end(); ++it)
     {
@@ -165,9 +165,9 @@ void PhysicsWorld::detectContacts()
 }
 
 
-struct PhysicsWorld::Cleaner
+struct World::Cleaner
 {
-    typedef std::unordered_map<Bodies<2>, PhysicsWorld::ContactStatus>::iterator
+    typedef std::unordered_map<Bodies<2>, World::ContactStatus>::iterator
         ContactIter;
 
     template <class Container>
@@ -182,7 +182,7 @@ struct PhysicsWorld::Cleaner
     }
 
     template <class DeadObjects>
-    void onDestruction(PhysicsWorld& world, const DeadObjects& deadObjects)
+    void onDestruction(World& world, const DeadObjects& deadObjects)
     {
         for (auto it : deadObjects)
             notifyDestruction(it, world);
@@ -205,7 +205,7 @@ private:
     }
 
     template <class Iter>
-    void notifyDestruction(Iter it, PhysicsWorld& world)
+    void notifyDestruction(Iter it, World& world)
     {
         return access(it)->onDestruction(world);
     }
@@ -220,7 +220,7 @@ private:
 
 template <>
 PhysicsObject*
-PhysicsWorld::Cleaner::access<typename PhysicsWorld::Cleaner::ContactIter>(
+World::Cleaner::access<typename World::Cleaner::ContactIter>(
     ContactIter it
 )
 {
@@ -228,7 +228,7 @@ PhysicsWorld::Cleaner::access<typename PhysicsWorld::Cleaner::ContactIter>(
 }
 
 template <>
-bool PhysicsWorld::Cleaner::isDead<typename PhysicsWorld::Cleaner::ContactIter>(
+bool World::Cleaner::isDead<typename World::Cleaner::ContactIter>(
     ContactIter it
 )
 {
@@ -236,7 +236,7 @@ bool PhysicsWorld::Cleaner::isDead<typename PhysicsWorld::Cleaner::ContactIter>(
 }
 
 
-void PhysicsWorld::cleanup()
+void World::cleanup()
 {
     Cleaner cleaner{};
 
@@ -247,7 +247,7 @@ void PhysicsWorld::cleanup()
 
     for (auto c : deadConstraints)
     {
-        for (PhysicsBody* body : (*c)->bodies())
+        for (Body* body : (*c)->bodies())
         {
             body->constraints_.erase(std::find(
                 body->constraints_.begin(),
@@ -270,7 +270,7 @@ void PhysicsWorld::cleanup()
     cleaner.erase(bodies_, deadBodies);
 }
 
-void PhysicsWorld::applyVelocityConstraints(Island& island, float dt)
+void World::applyVelocityConstraints(Island& island, float dt)
 {
     std::vector<ConstraintPtr> actives{};
     for (Constraint* constraint : island.constraints())
@@ -289,14 +289,14 @@ void PhysicsWorld::applyVelocityConstraints(Island& island, float dt)
     }
 }
 
-void PhysicsWorld::integrateBodies(float dt)
+void World::integrateBodies(float dt)
 {
-    for (PhysicsBody& body : bodies())
+    for (Body& body : bodies())
         if (!body.isAsleep())
             body.step(dt);
 }
 
-void PhysicsWorld::applyPositionConstraints(Island& island)
+void World::applyPositionConstraints(Island& island)
 {
     for (Uint32 iter = 0; iter < settings_.nPositionIterations; ++iter)
     {
@@ -306,11 +306,11 @@ void PhysicsWorld::applyPositionConstraints(Island& island)
     }
 }
 
-void PhysicsWorld::updateBodies(float dt)
+void World::updateBodies(float dt)
 {
     if (settings_.enableSleeping)
     {
-        for (PhysicsBody& body : bodies())
+        for (Body& body : bodies())
         {
             body.updateTimeImmobile(
                 dt,
