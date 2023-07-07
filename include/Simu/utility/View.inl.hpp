@@ -31,6 +31,8 @@ namespace simu
 namespace details
 {
 
+#if !SIMU_HAS_STD_VIEW
+
 template <std::forward_iterator Iter, std::invocable<decltype(*std::declval<Iter>())> Deref>
 class View<Iter, Deref>::Iterator
 {
@@ -72,6 +74,7 @@ static_assert(
     std::sentinel_for<View<int*, Identity>::Iterator, View<int*, Identity>::Iterator>,
     ""
 );
+static_assert(std::ranges::range<View<int*, Identity>>, "");
 
 
 template <std::forward_iterator Iter, std::invocable<decltype(*std::declval<Iter>())> Deref>
@@ -97,6 +100,8 @@ std::size_t View<Iter, Deref>::size() const
 {
     return std::distance(begin(), end());
 }
+
+#endif
 
 } // namespace details
 } // namespace simu

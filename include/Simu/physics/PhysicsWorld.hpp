@@ -110,14 +110,14 @@ public:
     PhysicsWorld() = default;
 
     // clang-format off
-    auto bodies() { return makeView(bodies_, BypassSmartPointer{}); }
-    auto bodies() const { return makeView(bodies_, BypassSmartPointer{}); }
+    auto bodies() { return makeView(bodies_, DoubleDereference{}); }
+    auto bodies() const { return makeView(bodies_, DoubleDereference{}); }
 
-    auto forceFields() { return makeView(forces_, BypassSmartPointer{}); }
-    auto forceFields() const { return makeView(forces_, BypassSmartPointer{}); }
+    auto forceFields() { return makeView(forces_, DoubleDereference{}); }
+    auto forceFields() const { return makeView(forces_, DoubleDereference{}); }
 
-    auto constraints() { return makeView(constraints_, BypassSmartPointer{}); }
-    auto constraints() const { return makeView(constraints_, BypassSmartPointer{}); }
+    auto constraints() { return makeView(constraints_, DoubleDereference{}); }
+    auto constraints() const { return makeView(constraints_, DoubleDereference{}); }
     // clang-format on
 
     PhysicsBody* makeBody(const BodyDescriptor& descr)

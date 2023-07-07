@@ -30,15 +30,39 @@
 namespace simu
 {
 
+////////////////////////////////////////////////////////////
+/// \brief Static helper class for creating transformation matrices.
+///
+/// Transformation matrices are always 3x3 for 2D.
+/// A global operator* overload is provided to multiply Mat3 * Vec2 -> Vec2,
+///     this overload will apply translations.
+/// If translations should not be applied, then Transform::linear(Mat3, Vec2) -> Vec2 should be used.
+/// 
+/// To combine transformation matrices, multiply them together in order:
+/// T = T3 * T2 * T1
+/// where T1 is the transformation that acts first, then T2 and is T3 the last transformation.
+/// 
+/// To apply T to a vector v: v' = T * v
+/// 
+////////////////////////////////////////////////////////////
 class Transform
 {
 public:
 
     Transform() = delete;
 
+    ////////////////////////////////////////////////////////////
+    /// \brief No-op transformation
+    ///
+    ////////////////////////////////////////////////////////////
     static Mat3 identity() { return Mat3::identity(); }
 
     // clang-format off
+    
+    ////////////////////////////////////////////////////////////
+    /// \brief Rotates a 2D vector by theta radians around the origin {0, 0}
+    /// 
+    ////////////////////////////////////////////////////////////
     static Mat3 rotation(float theta) 
     { 
         return Mat3{
@@ -48,6 +72,10 @@ public:
         }; 
     }
 
+    ////////////////////////////////////////////////////////////
+    /// \brief Translate a 2D vector by offset 
+    /// 
+    ////////////////////////////////////////////////////////////
     static Mat3 translation(Vec2 offset) 
     { 
         return Mat3{
@@ -58,15 +86,36 @@ public:
     }
     // clang-format on
 
+    ////////////////////////////////////////////////////////////
+    /// \brief Combines Transform::translation and Transform::rotation
+    ///
+    /// The rotation is applied first, and the translation is applied after.
+    ///
+    ////////////////////////////////////////////////////////////
     static Mat3 transform(float theta, Vec2 offset)
     {
         return transformAround(theta, offset, Vec2{0, 0});
     }
 
+    ////////////////////////////////////////////////////////////
+    /// \brief Rotates around transformOrigin by theta radians and then translates by offset.
+    ///
+    ////////////////////////////////////////////////////////////
     static Mat3 transformAround(float theta, Vec2 offset, Vec2 transformOrigin)
     {
         return translation(offset + transformOrigin) * rotation(theta)
                * translation(-transformOrigin);
+    }
+
+    ////////////////////////////////////////////////////////////
+    /// \brief Transforms v by transform, ignoring translations
+    /// 
+    /// 
+    ////////////////////////////////////////////////////////////
+    static Vec2 linear(Mat3 transform, Vec2 v)
+    {
+        Vec3 res = transform* Vec3{v[0], v[1], 0};
+        return Vec2{res[0], res[1]};
     }
 };
 

@@ -413,8 +413,7 @@ public:
         : normal_{(manifold.incidentIndex() == 0 ? 1.f:-1.f) * normalized(manifold.contactNormal)},
           reference_{manifold.referenceIndex()}
     {
-        normal_
-            = Transform::rotation(-bodies[reference_]->orientation()) * normal_;
+        normal_ = Transform::linear(bodies[reference_]->toLocalSpace(), normal_);
 
         localSpaceContacts_[0]
             = bodies[0]->toLocalSpace() * manifold.contacts[0][contactIndex];
@@ -440,8 +439,7 @@ public:
     {
         auto contacts = worldSpaceContacts(bodies);
 
-        Vec2 n
-            = Transform::rotation(bodies[reference_]->orientation()) * normal_;
+        Vec2 n = Transform::linear(bodies[reference_]->toWorldSpace(), normal_);
 
         Jacobian J{
             n[0],
@@ -495,8 +493,8 @@ public:
                                                   bodies[1]->material().friction}.value},
                                                   reference_{manifold.referenceIndex()}
     {
-        tangent_ = Transform::rotation(-bodies[reference_]->orientation())
-                   * tangent_;
+        tangent_
+            = Transform::linear(bodies[reference_]->toLocalSpace(), tangent_);
 
         localSpaceContacts_[0]
             = bodies[0]->toLocalSpace() * manifold.contacts[0][0];
@@ -512,8 +510,7 @@ public:
     {
         auto contacts = worldSpaceContacts(bodies);
 
-        Vec2 t
-            = Transform::rotation(bodies[reference_]->orientation()) * tangent_;
+        Vec2 t = Transform::linear(bodies[reference_]->toWorldSpace(), tangent_);
 
         return Jacobian{
             t[0],

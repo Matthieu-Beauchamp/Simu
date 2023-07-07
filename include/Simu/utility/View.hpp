@@ -24,7 +24,11 @@
 
 #pragma once
 
-#include <ranges>
+#define SIMU_HAS_STD_VIEW (!defined(__clang__) || (__clang_major__ >= 16))
+
+#if SIMU_HAS_STD_VIEW
+#    include <ranges>
+#endif
 
 namespace simu
 {
@@ -33,14 +37,15 @@ namespace details
 {
 
 
+#if !SIMU_HAS_STD_VIEW
 
 ////////////////////////////////////////////////////////////
 /// \brief Lightweight iterable sequence constructed from a pair of iterators
-/// 
-/// The Deref parameter can specialise how the iterator is dereferenced, 
+///
+/// The Deref parameter can specialise how the iterator is dereferenced,
 ///     but unlike std::views::transform, cannot create new objects.
 ///
-/// The typical use is to hide the usage of smart pointers, instead giving access only 
+/// The typical use is to hide the usage of smart pointers, instead giving access only
 ///     to raw references/pointers.
 ///
 /// This class covers the needs of Simu for views instead of using the standard library
@@ -85,9 +90,15 @@ private:
     Deref deref_;
 };
 
+#endif
+
 } // namespace details
 
 
+////////////////////////////////////////////////////////////
+/// \brief Returns the element as-is
+///
+////////////////////////////////////////////////////////////
 struct Identity
 {
     template <class Value>
@@ -95,18 +106,16 @@ struct Identity
     {
         return v;
     }
-
-    template <class Value>
-    const auto& operator()(const Value& v) const
-    {
-        return v;
-    }
 };
 
 ////////////////////////////////////////////////////////////
-/// \brief Dereferences the element one more time to hide the use of smart pointers
+/// \brief Dereferences the element one more time
+///
+/// Propagates const, suppose a sequence of int*const *
+/// then a simple dereference returns int*const &
+/// and doubleDereference returns const int&
 ////////////////////////////////////////////////////////////
-struct BypassSmartPointer
+struct DoubleDereference
 {
     template <class Value>
     auto& operator()(Value& v) const
@@ -123,25 +132,36 @@ struct BypassSmartPointer
 
 
 ////////////////////////////////////////////////////////////
-/// \brief Creates a view of [begin, end) and applies Fn to every dereferenced element
+/// \brief Creates a view of [begin, end) and applies Deref(*Iter) to every dereferenced element
 ///
+/// Deref must return a reference, ie it should not create new objects.
 ////////////////////////////////////////////////////////////
-template <std::forward_iterator Iter, class Fn = Identity>
-auto makeView(Iter begin, Iter end, Fn deref = Fn{})
+template <std::forward_iterator Iter, class Deref = Identity>
+auto makeView(Iter begin, Iter end, Deref deref = Deref{})
 {
-    // TODO: If !Clang or Clang-version > 16
-    // return std::ranges::subrange<Iter, Sentinel>{begin, end}
-    //        | std::views::transform(deref);
+    typedef decltype(std::declval<Deref>()(
+        std::declval<typename std::iterator_traits<Iter>::reference>()
+    )) DerefReturn;
 
+    static_assert(
+        std::is_reference_v<DerefReturn>,
+        "Deref may not create new objets, only redirect on dereference"
+    );
+    
+#if SIMU_HAS_STD_VIEW
+    return std::ranges::subrange<Iter, Iter>{begin, end}
+           | std::views::transform(deref);
+#else
     return details::View<Iter, Fn>{begin, end, deref};
+#endif
 }
 
 ////////////////////////////////////////////////////////////
-/// \brief Creates a view of the range and applies Fn to every dereferenced element
+/// \brief Creates a view of the range and applies Deref to every dereferenced element
 ///
 ////////////////////////////////////////////////////////////
-template <std::ranges::range R, class Fn = Identity>
-auto makeView(R& range, Fn deref = Fn{})
+template <std::ranges::range R, class Deref = Identity>
+auto makeView(R& range, Deref deref = Deref{})
 {
     return makeView(range.begin(), range.end(), deref);
 }
