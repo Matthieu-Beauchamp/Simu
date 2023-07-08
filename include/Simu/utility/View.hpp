@@ -30,6 +30,8 @@
 #    include <ranges>
 #endif
 
+// TODO: We always use views in way that we don't want to original sequence to be modifiable, this is currently not true since we use references.
+
 namespace simu
 {
 

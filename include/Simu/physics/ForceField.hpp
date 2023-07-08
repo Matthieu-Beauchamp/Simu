@@ -75,6 +75,7 @@ protected:
     Domain domain_;
 };
 
+
 class LinearField : public ForceField
 {
 public:

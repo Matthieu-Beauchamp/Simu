@@ -70,9 +70,12 @@ struct Material
     /// This value should be small enough that there is no visible overlapping,
     ///     while being big enough relative to a Body's geometry to compute correct ContactManifolds.
     /// 
-    /// It is also use to determine if a ContactManifold is still valid. 
+    /// It is also used to determine if a ContactManifold is still valid. 
     ///     if the contact points between two bodies are closer than penetration,
     ///     the contact is considered valid.
+    /// 
+    /// This means that the Body's geometry's vertices should have a distance of more  
+    ///     than twice the Material's penetration between them.
     /// 
     ////////////////////////////////////////////////////////////
     CombinableProperty penetration{1e-3f, CombinableProperty::average};

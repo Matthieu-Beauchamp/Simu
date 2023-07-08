@@ -55,8 +55,22 @@ public:
 
     auto overlaps(const Interval& other) const
     {
-        return contains(other.min_) || contains(other.max_)
-               || other.contains(min_) || other.contains(max_);
+        // divisions by 2 can be factorised out and removed from both sides.
+        // Geometrical interpretation is easier with:
+        //
+        // span = (max - min)/2 + (other.max - other.min)/2
+        //      is the sum of half widths
+        //
+        // dist = std::abs((max_ + min_)/2 - (other.max_ + other.min_)/2)
+        //      is the absolute distance between midpoints.
+        //
+        // we have intersection if
+        // dist <= span, or equivalently if 2*dist <= 2*span to remove divisions
+
+        T span = (max_ - min_) + (other.max_ - other.min_);
+        T dist = std::abs((max_ + min_) - (other.max_ + other.min_));
+
+        return dist <= span;
     }
 
 private:
