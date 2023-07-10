@@ -24,7 +24,11 @@
 
 #pragma once
 
-#define SIMU_HAS_STD_VIEW (!defined(__clang__) || (__clang_major__ >= 16))
+#if !defined(__clang__) || (__clang_major__ >= 16)
+    #define SIMU_HAS_STD_VIEW 1
+#else 
+    #define SIMU_HAS_STD_VIEW 0
+#endif
 
 #if SIMU_HAS_STD_VIEW
 #    include <ranges>
@@ -154,7 +158,7 @@ auto makeView(Iter begin, Iter end, Deref deref = Deref{})
     return std::ranges::subrange<Iter, Iter>{begin, end}
            | std::views::transform(deref);
 #else
-    return details::View<Iter, Fn>{begin, end, deref};
+    return details::View<Iter, Deref>{begin, end, deref};
 #endif
 }
 
