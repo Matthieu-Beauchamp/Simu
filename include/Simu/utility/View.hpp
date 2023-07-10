@@ -24,15 +24,15 @@
 
 #pragma once
 
+#include <ranges>
+
+
 #if !defined(__clang__) || (__clang_major__ >= 16)
-    #define SIMU_HAS_STD_VIEW 1
-#else 
-    #define SIMU_HAS_STD_VIEW 0
+#    define SIMU_HAS_STD_VIEW 1
+#else
+#    define SIMU_HAS_STD_VIEW 0
 #endif
 
-#if SIMU_HAS_STD_VIEW
-#    include <ranges>
-#endif
 
 // TODO: We always use views in way that we don't want to original sequence to be modifiable, this is currently not true since we use references.
 
@@ -153,7 +153,7 @@ auto makeView(Iter begin, Iter end, Deref deref = Deref{})
         std::is_reference_v<DerefReturn>,
         "Deref may not create new objets, only redirect on dereference"
     );
-    
+
 #if SIMU_HAS_STD_VIEW
     return std::ranges::subrange<Iter, Iter>{begin, end}
            | std::views::transform(deref);
