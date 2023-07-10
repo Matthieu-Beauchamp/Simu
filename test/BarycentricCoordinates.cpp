@@ -106,4 +106,24 @@ TEST_CASE("Barycentric Coordinates")
             REQUIRE(all(closestPoint(Vec2{1.75, -1}) == Vec2{1.75, 0}));
         }
     }
+
+    SECTION("Precision issue")
+    {
+        Vec2 A{-6.00139189, -8.94069672e-8};
+        Vec2 B{3.99860811, -8.94069672e-8};
+        Vec2 Q{0.f, 0.f};
+        REQUIRE(all(
+            LineBarycentric{A, B, Q}.closestPoint == Vec2{0.f, -8.94069672e-8}
+        ));
+    }
+    SECTION("Precision issue")
+    {
+        // debugger does not show the exact value that were seen in practice...
+        Vec2 A{-6.0012547, -2.98023224e-8};
+        Vec2 B{3.99874353, -2.98023224e-8};
+        Vec2 Q{0.f, 0.f};
+        REQUIRE(all(
+            LineBarycentric{A, B, Q}.closestPoint == Vec2{0.f, -2.98023224e-8}
+        ));
+    }
 }

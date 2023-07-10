@@ -22,19 +22,19 @@
 //
 ////////////////////////////////////////////////////////////
 
-#include "Simu/math/Polygon.hpp"
+#include "Simu/physics/Body.hpp"
+#include "Simu/physics/Constraint.hpp"
 
 namespace simu
 {
 
-Polygon::Polygon(const std::initializer_list<Vertex>& vertices)
-    : Polygon(vertices.begin(), vertices.end())
+bool Body::interactsAsStructural() const
 {
+    bool isStruct = true;
+    for (Constraint* constraint : constraints_)
+        isStruct = isStruct && constraint->isBodyStructural(this);
+
+    return isStruct;
 }
 
-Vec2 Polygon::furthestVertexInDirection(const Vec2& direction) const
-{
-    return simu::furthestVertexInDirection(*this, direction);
-}
-
-} // namepace simu 
+} // namespace simu

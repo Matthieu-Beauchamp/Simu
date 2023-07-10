@@ -22,19 +22,50 @@
 //
 ////////////////////////////////////////////////////////////
 
-#include "Simu/math/Polygon.hpp"
+#pragma once
+
+#include <random>
+#include <concepts>
+
+#include "Simu/config.hpp"
 
 namespace simu
 {
 
-Polygon::Polygon(const std::initializer_list<Vertex>& vertices)
-    : Polygon(vertices.begin(), vertices.end())
+class Random
 {
-}
+public:
 
-Vec2 Polygon::furthestVertexInDirection(const Vec2& direction) const
-{
-    return simu::furthestVertexInDirection(*this, direction);
-}
+    template <class Dist>
+    static auto generate(Dist& dist)
+    {
+        return dist(engine_);
+    }
 
-} // namepace simu 
+    template <class Dist, class... Args>
+    static auto generate(Args&&... args)
+    {
+        Dist dist{std::forward<Args>(args)...};
+        return generate<Dist>(dist);
+    }
+
+    template <std::integral T>
+    static T uniform(T min, T max)
+        requires(sizeof(T) > 1)
+    {
+        return generate<std::uniform_int_distribution<T>>(min, max);
+    }
+
+    template <std::floating_point T>
+    static T uniform(T min, T max)
+    {
+        return generate<std::uniform_real_distribution<T>>(min, max);
+    }
+
+private:
+
+    static std::mt19937_64 engine_;
+};
+
+
+} // namespace simu

@@ -22,19 +22,37 @@
 //
 ////////////////////////////////////////////////////////////
 
-#include "Simu/math/Polygon.hpp"
+#pragma once
+
+#include "Simu/physics/Constraint.hpp"
+#include "Simu/physics/World.hpp"
 
 namespace simu
 {
 
-Polygon::Polygon(const std::initializer_list<Vertex>& vertices)
-    : Polygon(vertices.begin(), vertices.end())
+template <ConstraintFunction F, ConstraintSolver S, std::derived_from<Constraint> B>
+void ConstraintImplementation<F, S, B>::onConstruction(World& world)
 {
-}
+    if (disableContacts_)
+    {
+        for (auto first = bodies_.begin(); first != bodies_.end(); ++first)
+            for (auto second = std::next(first); second != bodies_.end();
+                 ++second)
+                world.declareContactConflict(Bodies<2>{*first, *second});
+    }
+};
 
-Vec2 Polygon::furthestVertexInDirection(const Vec2& direction) const
+template <ConstraintFunction F, ConstraintSolver S, std::derived_from<Constraint> B>
+void ConstraintImplementation<F, S, B>::onDestruction(World& world)
 {
-    return simu::furthestVertexInDirection(*this, direction);
-}
+    if (disableContacts_)
+    {
+        for (auto first = bodies_.begin(); first != bodies_.end(); ++first)
+            for (auto second = std::next(first); second != bodies_.end();
+                 ++second)
+                world.removeContactConflict(Bodies<2>{*first, *second});
+    }
+};
 
-} // namepace simu 
+
+} // namespace simu

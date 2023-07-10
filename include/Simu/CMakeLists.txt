@@ -1,5 +1,7 @@
 target_sources(simu-math PUBLIC config.hpp)
 
+# TODO: Include utility/*
+
 foreach(component IN LISTS simuComponents)
     file(GLOB_RECURSE ${component}Headers 
         LIST_DIRECTORIES FALSE

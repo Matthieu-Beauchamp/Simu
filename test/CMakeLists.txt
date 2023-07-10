@@ -5,4 +5,10 @@ target_sources(simu-test PUBLIC
     Polygon.cpp
     Gjk.cpp
     BarycentricCoordinates.cpp
+
+    BoundingBox.cpp
+    RTree.cpp
+    ContactManifold.cpp
+    Island.cpp
+    Physics.cpp
 )

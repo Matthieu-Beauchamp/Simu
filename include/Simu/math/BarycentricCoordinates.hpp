@@ -48,7 +48,10 @@ namespace simu
 ///
 /// closestPoint is the point on A->B closest to Q
 ///
-/// \warning coordinates are not normalized, they are such that u+v = ||AB||^2
+/// The following equation holds if u and v are both greater than 0:
+///     closestPoint = u*A + v*B;
+///
+/// \warning coordinates are normalized, they are such that u+v = 1
 ////////////////////////////////////////////////////////////
 struct LineBarycentric
 {

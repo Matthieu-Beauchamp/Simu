@@ -64,7 +64,7 @@ struct MatrixData
     template <class U>
     explicit MatrixData(const MatrixData<U, mRows_, nCols_>& other);
 
-    Uint32 size() const { return mRows * nCols; }
+    constexpr static Uint32 size() { return mRows * nCols; }
 
     T&       operator()(Uint32 row, Uint32 col);
     const T& operator()(Uint32 row, Uint32 col) const;
@@ -96,19 +96,20 @@ struct Matrix;
 template <class T, Uint32 dim>
 using Vector = Matrix<T, dim, 1>;
 
-template <class T, Uint32 m, Uint32 n, bool isVector = (n == 1)>
+template <class T, Uint32 m, Uint32 n, bool isSquare = (m == n)>
 struct SpecialConstructors
 {
 };
 
 template <class T, Uint32 dim>
-struct SpecialConstructors<T, dim, dim, false>
+struct SpecialConstructors<T, dim, dim, true>
 {
     static Matrix<T, dim, dim> identity();
+    static Matrix<T, dim, dim> diagonal(const Vector<T, dim>& elements);
 };
 
 template <class T, Uint32 dim>
-struct SpecialConstructors<T, dim, 1, true>
+struct SpecialConstructors<T, dim, 1, false>
 {
     static Vector<T, dim> i();
     static Vector<T, dim> j();
@@ -119,7 +120,7 @@ struct SpecialConstructors<T, dim, 1, true>
 ////////////////////////////////////////////////////////////
 /// \ingroup LinearAlgebra
 /// \brief Matrix class for small matrices
-/// 
+///
 /// Most operations are provided as global functions
 /// \see operations
 ////////////////////////////////////////////////////////////
@@ -135,13 +136,25 @@ struct Matrix : public MatrixData<T, m, n>, public SpecialConstructors<T, m, n>
 
     explicit Matrix(const std::initializer_list<T>& init);
 
+    static Matrix filled(T val);
+
     template <class U>
     static Matrix fromRows(const std::initializer_list<Vector<U, n>>& rows);
 
     template <class U>
+    static Matrix fromRows(const Vector<Vector<U, n>, m>& rows);
+
+    template <class U>
     static Matrix fromCols(const std::initializer_list<Vector<U, m>>& cols);
 
-    static Matrix filled(T val);
+    template <class U>
+    static Matrix fromCols(const Vector<Vector<U, m>, n>& cols);
+
+
+    Vector<Vector<T, n>, m> asRows() const;
+
+    Vector<Vector<T, m>, n> asCols() const;
+
 
     Matrix operator+() const;
     Matrix operator-() const;
@@ -196,16 +209,69 @@ Matrix<T, n, m> transpose(const Matrix<T, m, n>& original);
 
 
 ////////////////////////////////////////////////////////////
+/// \brief Return x such that Ax = b
+///
+////////////////////////////////////////////////////////////
+template <class T, class U, Uint32 n>
+Vector<Promoted<T, U>, n> solve(const Matrix<T, n, n>& A, const Vector<U, n>& b);
+
+template <class T, Uint32 n>
+class Solver
+{
+public:
+
+    Solver(const Matrix<T, n, n>& A);
+
+    template <class U>
+    Vector<Promoted<T, U>, n> solve(const Vector<U, n>& b) const;
+
+    Matrix<T, n, n> original() const { return transpose(QT_) * R_; }
+
+    bool isValid() const { return isValid_; }
+
+private:
+
+    Matrix<T, n, n> QT_;
+    Matrix<T, n, n> R_;
+    bool            isValid_ = true;
+};
+
+template <class T, Uint32 n>
+Matrix<T, n, n> invert(const Matrix<T, n, n>& mat);
+
+
+////////////////////////////////////////////////////////////
+/// \brief Return x such that Ax >= b with bounds on x
+///
+/// proj must project x onto its valid bounds (ie clamp its values).
+///
+/// when the absolute change of components of x drops below epsilon, iteration terminates.
+///
+/// Uses projected Gauss-Seidel to solve the MLCP,
+/// See A. Enzenhofer's master thesis (McGill): Numerical Solutions of MLCP
+////////////////////////////////////////////////////////////
+template <class T, class U, Uint32 n, std::invocable<Vector<Promoted<T, U>, n>> Proj>
+Vector<Promoted<T, U>, n> solveInequalities(
+    const Matrix<T, n, n>&    A,
+    Vector<U, n>              b,
+    Proj                      proj,
+    Vector<Promoted<T, U>, n> initialGuess = Vector<Promoted<T, U>, n>{},
+    float                     epsilon      = simu::EPSILON
+);
+
+
+////////////////////////////////////////////////////////////
 // Vector operations
 ////////////////////////////////////////////////////////////
 
 template <class T, class U, Uint32 dim>
 Promoted<T, U> dot(const Vector<T, dim>& lhs, const Vector<U, dim>& rhs);
 
-template<class T, class U>
-Vector<Promoted<T, U>, 3> cross(const Vector<T, 3>& lhs, const Vector<U, 3>& rhs);
+template <class T, class U>
+Vector<Promoted<T, U>, 3>
+cross(const Vector<T, 3>& lhs, const Vector<U, 3>& rhs);
 
-template<class T, class U>
+template <class T, class U>
 Promoted<T, U> cross(const Vector<T, 2>& lhs, const Vector<U, 2>& rhs);
 
 template <class T, Uint32 dim>
@@ -217,11 +283,15 @@ T norm(const Vector<T, dim>& v);
 template <class T, Uint32 dim>
 Vector<T, dim> normalized(const Vector<T, dim>& v);
 
+template <class T, class U, Uint32 dim>
+Vector<Promoted<T, U>, dim>
+projection(const Vector<T, dim>& ofThis, const Vector<U, dim>& onThat);
+
 
 ////////////////////////////////////////////////////////////
 /// \brief rotates v by 90 degrees
 ////////////////////////////////////////////////////////////
-template<class T>
+template <class T>
 Vector<T, 2> perp(const Vector<T, 2>& v, bool clockwise = false);
 
 /// \}
@@ -335,7 +405,7 @@ namespace std
 {
 
 ////////////////////////////////////////////////////////////
-/// \ingroup operations  
+/// \ingroup operations
 /// \{
 ////////////////////////////////////////////////////////////
 
@@ -350,6 +420,14 @@ simu::Matrix<T, m, n> abs(const simu::Matrix<T, m, n>& mat);
 
 template <class T, simu::Uint32 m, simu::Uint32 n>
 simu::Matrix<T, m, n> round(const simu::Matrix<T, m, n>& mat);
+
+template <class T, simu::Uint32 m, simu::Uint32 n>
+simu::Matrix<T, m, n>
+min(const simu::Matrix<T, m, n>& lhs, const simu::Matrix<T, m, n>& rhs);
+
+template <class T, simu::Uint32 m, simu::Uint32 n>
+simu::Matrix<T, m, n>
+max(const simu::Matrix<T, m, n>& lhs, const simu::Matrix<T, m, n>& rhs);
 
 /// \}
 

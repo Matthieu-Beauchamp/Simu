@@ -71,7 +71,7 @@ const T& MatrixData<T, m, n>::operator[](Uint32 index) const
 ////////////////////////////////////////////////////////////
 
 template <class T, Uint32 dim>
-Matrix<T, dim, dim> SpecialConstructors<T, dim, dim, false>::identity()
+Matrix<T, dim, dim> SpecialConstructors<T, dim, dim, true>::identity()
 {
     Matrix<T, dim, dim> ident{};
     for (Uint32 i = 0; i < dim; ++i)
@@ -80,42 +80,52 @@ Matrix<T, dim, dim> SpecialConstructors<T, dim, dim, false>::identity()
     return ident;
 }
 
+template <class T, Uint32 dim>
+Matrix<T, dim, dim>
+SpecialConstructors<T, dim, dim, true>::diagonal(const Vector<T, dim>& elements)
+{
+    Matrix<T, dim, dim> diag{};
+    for (Uint32 i = 0; i < dim; ++i)
+        diag(i, i) = elements[i];
+
+    return diag;
+}
 
 template <class T, Uint32 dim>
-Vector<T, dim> SpecialConstructors<T, dim, 1, true>::i()
+Vector<T, dim> SpecialConstructors<T, dim, 1, false>::i()
 {
     Vector<T, dim> vec{};
-    if (0 < dim)
+    if constexpr (0 < dim)
         vec[0] = 1;
 
     return vec;
 }
 
 template <class T, Uint32 dim>
-Vector<T, dim> SpecialConstructors<T, dim, 1, true>::j()
+Vector<T, dim> SpecialConstructors<T, dim, 1, false>::j()
 {
     Vector<T, dim> vec{};
-    if (1 < dim)
+    if constexpr (1 < dim)
         vec[1] = 1;
 
     return vec;
 }
 
 template <class T, Uint32 dim>
-Vector<T, dim> SpecialConstructors<T, dim, 1, true>::k()
+Vector<T, dim> SpecialConstructors<T, dim, 1, false>::k()
 {
     Vector<T, dim> vec{};
-    if (2 < dim)
+    if constexpr (2 < dim)
         vec[2] = 1;
 
     return vec;
 }
 
 template <class T, Uint32 dim>
-Vector<T, dim> SpecialConstructors<T, dim, 1, true>::w()
+Vector<T, dim> SpecialConstructors<T, dim, 1, false>::w()
 {
     Vector<T, dim> vec{};
-    if (3 < dim)
+    if constexpr (3 < dim)
         vec[3] = 1;
 
     return vec;
@@ -155,16 +165,19 @@ template <class U>
 Matrix<T, m, n>
 Matrix<T, m, n>::fromRows(const std::initializer_list<Vector<U, n>>& rows)
 {
+    return fromRows(Vector<Vector<U, n>, m>{rows});
+}
+
+template <class T, Uint32 m, Uint32 n>
+template <class U>
+Matrix<T, m, n> Matrix<T, m, n>::fromRows(const Vector<Vector<U, n>, m>& rows)
+{
     Matrix mat{};
-    Uint32 rowIndex = 0;
+
+    auto it = mat.begin();
     for (const auto& row : rows)
-    {
-        for (Uint32 col = 0; col < n; ++col)
-        {
-            mat(rowIndex, col) = row[col];
-        }
-        rowIndex++;
-    }
+        for (const auto& val : row)
+            *it++ = val;
 
     return mat;
 }
@@ -178,6 +191,13 @@ Matrix<T, m, n>::fromCols(const std::initializer_list<Vector<U, m>>& cols)
 }
 
 template <class T, Uint32 m, Uint32 n>
+template <class U>
+Matrix<T, m, n> Matrix<T, m, n>::fromCols(const Vector<Vector<U, m>, n>& cols)
+{
+    return transpose(Matrix<T, n, m>::fromRows(cols));
+}
+
+template <class T, Uint32 m, Uint32 n>
 Matrix<T, m, n> Matrix<T, m, n>::filled(T val)
 {
     Matrix<T, m, n> mat{};
@@ -185,6 +205,25 @@ Matrix<T, m, n> Matrix<T, m, n>::filled(T val)
         elem = val;
 
     return mat;
+}
+
+template <class T, Uint32 m, Uint32 n>
+Vector<Vector<T, n>, m> Matrix<T, m, n>::asRows() const
+{
+    Vector<Vector<T, n>, m> rows{};
+
+    auto it = this->begin();
+    for (Vector<T, n>& row : rows)
+        for (T& val : row)
+            val = *it++;
+
+    return rows;
+}
+
+template <class T, Uint32 m, Uint32 n>
+Vector<Vector<T, m>, n> Matrix<T, m, n>::asCols() const
+{
+    return transpose(*this).asRows();
 }
 
 
@@ -313,6 +352,120 @@ Matrix<T, n, m> transpose(const Matrix<T, m, n>& original)
 }
 
 
+template <class T, class U, Uint32 n>
+Vector<Promoted<T, U>, n> solve(const Matrix<T, n, n>& A, const Vector<U, n>& b)
+{
+    return Solver{A}.solve(b);
+}
+
+template <class T, Uint32 n>
+Solver<T, n>::Solver(const Matrix<T, n, n>& A) : R_{}
+{
+    // modified Gram-Schmidt for QR decomposition
+    // https://www.math.uci.edu/~ttrogdon/105A/html/Lecture23.html
+
+    auto Q = A.asCols();
+
+    for (Uint32 col = 0; col < n; ++col)
+    {
+        R_(col, col) = norm(Q[col]);
+
+        isValid_ = isValid_ && R_(col, col) != 0.f;
+        if (!isValid_)
+            return;
+
+        Q[col] /= R_(col, col);
+
+        for (Uint32 nextCol = col + 1; nextCol < n; ++nextCol)
+        {
+            R_(col, nextCol) = dot(Q[col], Q[nextCol]);
+            Q[nextCol] -= R_(col, nextCol) * Q[col];
+        }
+    }
+
+    QT_ = transpose(Matrix<T, n, n>::fromCols(Q));
+}
+
+template <class T, Uint32 n>
+template <class U>
+Vector<Promoted<T, U>, n> Solver<T, n>::solve(const Vector<U, n>& b) const
+{
+    SIMU_ASSERT(
+        isValid_,
+        "Solver invalid, ensure the original matrix has full rank"
+    );
+
+    Vector<Promoted<T, U>, n> c = QT_ * b;
+    Vector<Promoted<T, U>, n> x{};
+
+    for (Uint32 row = n; row > 0; --row)
+    {
+        for (Uint32 col = row; col < n; ++col)
+        {
+            c[row - 1] -= R_(row - 1, col) * x[col];
+        }
+
+        x[row - 1] = c[row - 1] / R_(row - 1, row - 1);
+    }
+
+    return x;
+}
+
+
+template <class T, Uint32 n>
+Matrix<T, n, n> invert(const Matrix<T, n, n>& mat)
+{
+    Solver<T, n> solver{mat};
+
+    auto inverse = Matrix<T, n, n>::identity().asCols();
+    for (auto& col : inverse)
+        col = solver.solve(col);
+
+    return Matrix<T, n, n>::fromCols(inverse);
+}
+
+
+template <class T, class U, Uint32 n, std::invocable<Vector<Promoted<T, U>, n>> Proj>
+Vector<Promoted<T, U>, n> solveInequalities(
+    const Matrix<T, n, n>&    A,
+    Vector<U, n>              b,
+    Proj                      proj,
+    Vector<Promoted<T, U>, n> initialGuess,
+    float                     epsilon
+)
+{
+    b = -b; // Ax - b >= 0
+
+    Vector<Promoted<T, U>, n> x = initialGuess;
+
+    float eps = 1.f + epsilon;
+    while (eps > epsilon)
+    {
+        eps = 0.f;
+        for (Uint32 row = 0; row < n; ++row)
+        {
+            float delX = 0.f;
+
+            for (Uint32 col = 0; col < row; ++col)
+                delX += A(row, col) * x[col];
+
+            for (Uint32 col = row + 1; col < n; ++col)
+                delX += A(row, col) * x[col];
+
+            delX = -(delX + b[row]) / A(row, row);
+
+            Vector<Promoted<T, U>, n> newX{x};
+            newX[row] = delX;
+            delX      = proj(newX)[row];
+
+            eps    = std::max(eps, std::abs(delX - x[row]));
+            x[row] = delX;
+        }
+    }
+
+    return x;
+}
+
 ////////////////////////////////////////////////////////////
 // Vector operations
 ////////////////////////////////////////////////////////////
@@ -364,6 +517,13 @@ template <class T, class U>
 Promoted<T, U> cross(const Vector<T, 2>& lhs, const Vector<U, 2>& rhs)
 {
     return lhs[0] * rhs[1] - lhs[1] * rhs[0];
+}
+
+template <class T, class U, Uint32 dim>
+Vector<Promoted<T, U>, dim>
+projection(const Vector<T, dim>& ofThis, const Vector<U, dim>& onThat)
+{
+    return onThat * dot(ofThis, onThat) / normSquared(onThat);
 }
 
 
@@ -519,6 +679,32 @@ simu::Matrix<T, m, n> round(const simu::Matrix<T, m, n>& mat)
     for (simu::Uint32 i = 0; i < mat.size(); ++i)
     {
         res[i] = std::round(mat[i]);
+    }
+
+    return res;
+}
+
+template <class T, simu::Uint32 m, simu::Uint32 n>
+simu::Matrix<T, m, n>
+min(const simu::Matrix<T, m, n>& lhs, const simu::Matrix<T, m, n>& rhs)
+{
+    simu::Matrix<T, m, n> res;
+    for (simu::Uint32 i = 0; i < lhs.size(); ++i)
+    {
+        res[i] = std::min(lhs[i], rhs[i]);
+    }
+
+    return res;
+}
+
+template <class T, simu::Uint32 m, simu::Uint32 n>
+simu::Matrix<T, m, n>
+max(const simu::Matrix<T, m, n>& lhs, const simu::Matrix<T, m, n>& rhs)
+{
+    simu::Matrix<T, m, n> res;
+    for (simu::Uint32 i = 0; i < lhs.size(); ++i)
+    {
+        res[i] = std::max(lhs[i], rhs[i]);
     }
 
     return res;

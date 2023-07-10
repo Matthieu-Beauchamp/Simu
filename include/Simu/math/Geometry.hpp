@@ -41,23 +41,46 @@ namespace simu
 ////////////////////////////////////////////////////////////
 
 // clang-format off
+
+////////////////////////////////////////////////////////////
+/// \brief Any iterator that dereferences to a vector of dimension dim
+/// 
+////////////////////////////////////////////////////////////
 template <class T, Uint32 dim>
 concept VertexIterator = requires(T it) {
     { *it } -> std::convertible_to<Vector<float, dim>>;
 } && std::forward_iterator<T>;
 
+////////////////////////////////////////////////////////////
+/// \brief Any iterator that dereferences to a Vertex
+/// 
+////////////////////////////////////////////////////////////
 template <class T>
 concept VertexIterator2D = VertexIterator<T, 2>;
 
 typedef Vec2                Vertex;
 typedef std::vector<Vertex> Vertices;
 
+////////////////////////////////////////////////////////////
+/// \brief Any type that allows iterating over vertices
+/// 
+////////////////////////////////////////////////////////////
 template<class T>
 concept Geometry = requires(T geo){
     { geo.begin() } -> VertexIterator2D;
     { geo.end() }   -> VertexIterator2D;
 };
 // clang-format on
+
+
+////////////////////////////////////////////////////////////
+/// \brief The iterator type returned by T::begin()
+/// 
+////////////////////////////////////////////////////////////
+template <class T>
+using IteratorOf = decltype(std::declval<T>().begin());
+
+
 
 
 ////////////////////////////////////////////////////////////
@@ -73,36 +96,54 @@ enum class Orientation
 
 ////////////////////////////////////////////////////////////
 /// \brief Find the Orientation of 3 vertices
-/// 
+///
 /// epsilon is used to approximate collinearity
 ////////////////////////////////////////////////////////////
 Orientation
 orientation(Vertex v0, Vertex v1, Vertex v2, float epsilon = simu::EPSILON);
 
+template <Geometry T>
+Vertex furthestVertexInDirection(const T& geometry, Vec2 direction)
+{
+    Vec2  furthest = *geometry.begin();
+    float maxDist  = dot(furthest, direction);
+    for (const Vertex& v : geometry)
+    {
+        float dist = dot(v, direction);
+        if (dist > maxDist)
+        {
+            maxDist  = dist;
+            furthest = v;
+        }
+    }
+
+    return furthest;
+}
+
 
 ////////////////////////////////////////////////////////////
 /// \brief Compute properties of some non self-intersecting Geometry.
-/// 
+///
 /// Convex, concave and geometry containing holes are all valid input.
-/// The hole(s) should be of opposite Orientation and attached to a vertex 
+/// The hole(s) should be of opposite Orientation and attached to a vertex
 ///     of the outer (solid) perimeter.
-/// 
-/// if area == 0, then the geometry isDegenerate (collinear) and the 
+///
+/// if area == 0, then the geometry isDegenerate (collinear) and the
 ///     properties are undefined but no exception is raised
-/// 
+///
 /// If vertices are negatively oriented, then the area is negative.
 /// Centroid and momentOfArea are unaffected.
-/// 
+///
 /// Assuming constant density p, then
 ///     mass    = p * |area|
 ///     inertia = p * momentOfArea
-/// 
+///
 ////////////////////////////////////////////////////////////
 struct GeometricProperties
 {
     GeometricProperties() = default;
 
-    template<Geometry T>
+    template <Geometry T>
     GeometricProperties(const T& geometry) noexcept;
 
     Vec2  centroid{};

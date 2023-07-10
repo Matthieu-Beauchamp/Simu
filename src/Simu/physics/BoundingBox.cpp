@@ -22,19 +22,31 @@
 //
 ////////////////////////////////////////////////////////////
 
-#include "Simu/math/Polygon.hpp"
+#include "Simu/physics/BoundingBox.hpp"
 
 namespace simu
 {
 
-Polygon::Polygon(const std::initializer_list<Vertex>& vertices)
-    : Polygon(vertices.begin(), vertices.end())
+
+BoundingBox::BoundingBox(Vec2 min, Vec2 max) : min_{min}, max_{max} {}
+
+bool BoundingBox::overlaps(const BoundingBox& other) const
 {
+    if (isValid() && other.isValid())
+        return all(Interval{min_, max_}.overlaps(Interval{other.min_, other.max_}));
+
+    return false;
 }
 
-Vec2 Polygon::furthestVertexInDirection(const Vec2& direction) const
+BoundingBox BoundingBox::combined(const BoundingBox& other) const
 {
-    return simu::furthestVertexInDirection(*this, direction);
+    if (!isValid())
+        return other;
+
+    if (!other.isValid())
+        return *this;
+
+    return BoundingBox{std::min(min_, other.min_), std::max(max_, other.max_)};
 }
 
-} // namepace simu 
+} // namespace simu

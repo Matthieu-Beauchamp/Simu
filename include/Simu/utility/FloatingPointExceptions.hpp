@@ -22,14 +22,40 @@
 //
 ////////////////////////////////////////////////////////////
 
-#include "Simu/physics/physics.hpp"
+#pragma once
+
+#include <float.h>
 
 namespace simu
 {
 
 
+// https://stackoverflow.com/a/4455194
+// https://stackoverflow.com/a/2769889
 
+#ifdef SIMU_WINDOWS
 
+void enableFpExceptions()
+{
+    unsigned int fp_control_word;
+    unsigned int new_fp_control_word;
 
+    
 
-} // namepace simu 
+    _controlfp_s(&fp_control_word, 0, 0);
+
+    // setting the mask disables the exception
+    new_fp_control_word = fp_control_word | _EM_INVALID | _EM_DENORMAL
+                          | _EM_ZERODIVIDE | _EM_OVERFLOW | _EM_UNDERFLOW
+                          | _EM_INEXACT;
+
+    // clearing enables it
+    new_fp_control_word &= ~_EM_ZERODIVIDE;
+    new_fp_control_word &= ~_EM_INVALID;
+
+    _controlfp_s(&fp_control_word, new_fp_control_word, _MCW_EM);
+}
+
+#endif
+
+} // namespace simu

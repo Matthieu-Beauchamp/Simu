@@ -36,7 +36,7 @@ namespace priv
 
 struct Simplex
 {
-    void pushPoint(Vertex v);
+    bool pushPoint(Vertex v);
     Vec2 nextDirection() const;
 
     Vec2 closestPoint(Vec2 Q) const;
@@ -54,25 +54,14 @@ private:
     mutable bool keepBottomPoint_ = false;
 };
 
+
 struct Polytope
 {
+    typedef typename Edges<Vertices>::Edge Edge;
+
     Polytope(const Simplex& simplex);
 
-    struct Edge
-    {
-        Vec2               normal; // not normalized, any orientation
-        Vertices::iterator from;
-        Vertices::iterator to;
-
-        float distanceToOrigin() const
-        {
-            return std::abs(dot(normalized(normal), *to));
-        }
-    };
-
     bool addVertex(const Edge& where, Vertex v);
-
-    Edge getEdge(std::size_t index); // index in [0, vertices.size()-1]
 
     Vertices vertices{};
 };
@@ -80,27 +69,20 @@ struct Polytope
 } // namespace priv
 
 
-template <class T>
-concept Collidable = requires(T collidable) {
-    {
-        collidable.furthestVertexInDirection(Vec2{})
-    } -> std::convertible_to<Vec2>;
-};
-
 ////////////////////////////////////////////////////////////
 /// \ingroup Geometry
-/// \brief Determines if two collidable are in collision as well as the 
+/// \brief Determines if two collidable are in collision as well as the
 ///     separation/penetration vector between them
-/// 
-/// The boolean GJK algorithm is used upon construction and results are saved. 
+///
+/// The boolean GJK algorithm is used upon construction and results are saved.
 /// If areColliding(), then calling penetration() uses the EPA algorithm (results are not saved)
-/// 
-/// If the the underlying Geometry of the Collidables is concave or has holes, 
+///
+/// If the the underlying Geometry of the Collidables is concave or has holes,
 ///     only their convex hulls are considered.
-/// 
+///
 /// \warning changing first or second between construction and calls to any method is undefined.
 ////////////////////////////////////////////////////////////
-template <Collidable T = simu::Polygon>
+template <Geometry T = simu::Polygon>
 class Gjk
 {
 public:
@@ -132,10 +114,10 @@ public:
     ///
     /// In order to make first and second only touch, both are equivalent:
     ///     - translate first by -penetration()
-    ///     - translate seccond by penetration()
+    ///     - translate second by penetration()
     ///
     ////////////////////////////////////////////////////////////
-    Vec2 penetration();
+    Vec2 penetration() const;
 
 private:
 
