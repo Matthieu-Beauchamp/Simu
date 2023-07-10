@@ -92,6 +92,17 @@ namespace simu
 class Constraint;
 struct Island;
 
+////////////////////////////////////////////////////////////
+/// \brief The World class makes the ForceField, Body and Constraint classes interact.
+/// 
+/// Collisions are detected discretely, and the corresponding constraints are 
+///     managed by the world.
+/// 
+/// 
+/// The World owns all objects that are put into it.
+/// For object lifetime management, see PhysicsObject.
+/// 
+////////////////////////////////////////////////////////////
 class World
 {
     typedef RTree<std::unique_ptr<Body>> BodyTree;
@@ -107,24 +118,47 @@ public:
     typedef ForceField*       ForceFieldPtr;
     typedef const ForceField* ConstForceFieldPtr;
 
+    ////////////////////////////////////////////////////////////
+    /// \brief Construct an empty world
+    /// 
+    ////////////////////////////////////////////////////////////
     World() = default;
 
     // clang-format off
+
+    ////////////////////////////////////////////////////////////
+    /// \brief Gives a view over the Bodies in the world
+    /// 
+    /// ie for ( [const] Body& body : world.bodies())
+    /// 
+    ////////////////////////////////////////////////////////////
     auto bodies() { return makeView(bodies_, DoubleDereference{}); }
     auto bodies() const { return makeView(bodies_, DoubleDereference{}); }
 
+    ////////////////////////////////////////////////////////////
+    /// \brief Gives a view over the ForceFields in the world
+    /// 
+    /// ie for ( [const] ForceField& force : world.forceFields())
+    /// 
+    ////////////////////////////////////////////////////////////
     auto forceFields() { return makeView(forces_, DoubleDereference{}); }
     auto forceFields() const { return makeView(forces_, DoubleDereference{}); }
 
+    ////////////////////////////////////////////////////////////
+    /// \brief Gives a view over the Constraints in the world
+    /// 
+    /// ie for ( [const] Constraint& constraint : world.constraints())
+    /// 
+    ////////////////////////////////////////////////////////////
     auto constraints() { return makeView(constraints_, DoubleDereference{}); }
     auto constraints() const { return makeView(constraints_, DoubleDereference{}); }
     // clang-format on
 
-    Body* makeBody(const BodyDescriptor& descr)
-    {
-        return makeBody<Body>(descr);
-    }
 
+    ////////////////////////////////////////////////////////////
+    /// \brief Construct a Body and puts it in the world
+    /// 
+    ////////////////////////////////////////////////////////////
     template <std::derived_from<Body> T, class... Args>
     T* makeBody(Args&&... args)
     {
@@ -133,7 +167,15 @@ public:
         BoundingBox bounds = body->collider().boundingBox();
         return static_cast<T*>(bodies_.emplace(bounds, std::move(body))->get());
     }
+    Body* makeBody(const BodyDescriptor& descr)
+    {
+        return makeBody<Body>(descr);
+    }
 
+    ////////////////////////////////////////////////////////////
+    /// \brief Construct a Constraint and puts it in the world
+    /// 
+    ////////////////////////////////////////////////////////////
     template <std::derived_from<Constraint> T, class... Args>
     T* makeConstraint(Args&&... args)
     {
@@ -152,6 +194,11 @@ public:
         return c;
     }
 
+    ////////////////////////////////////////////////////////////
+    /// \brief Construct a ForceField and puts it in the world
+    /// 
+    /// 
+    ////////////////////////////////////////////////////////////
     template <std::derived_from<ForceField> T, class... Args>
     T* makeForceField(Args&&... args)
     {
@@ -170,20 +217,50 @@ public:
         return f;
     }
 
+    ////////////////////////////////////////////////////////////
+    /// \brief Makes the world progress in time.
+    /// 
+    /// ForceFields are applied to non-structural bodies, contacts are updated,
+    /// killed objects are removed, constraints are enforce and bodies are moved.
+    /// 
+    ////////////////////////////////////////////////////////////
     void step(float dt);
 
     // TODO: Contact conflicts needs testing
     // TODO: This is no longer needed since bodies knows their constraint
     //  constraint should be queried to know wether or not they prevent contact between two of their bodies.
+    ////////////////////////////////////////////////////////////
+    /// \brief Declares that contacts between 2 bodies should not be enforced
+    /// 
+    /// If there already exist a contact between them, it is killed.
+    /// As long as at least one conflict exists between the 2 bodies, they will
+    ///     never collide.
+    /// 
+    ////////////////////////////////////////////////////////////
     void declareContactConflict(const Bodies<2>& bodies);
+    
+    ////////////////////////////////////////////////////////////
+    /// \brief Removes a contact conflict between 2 bodies.
+    /// 
+    /// \see declareContactConflict
+    ////////////////////////////////////////////////////////////
     void removeContactConflict(const Bodies<2>& bodies);
 
     struct Settings
     {
+        ////////////////////////////////////////////////////////////
+        /// \brief Number of velocity solver iterations
+        ////////////////////////////////////////////////////////////
         Uint32 nVelocityIterations = 10;
+
+        ////////////////////////////////////////////////////////////
+        /// \brief Number of position solver iterations
+        ////////////////////////////////////////////////////////////
         Uint32 nPositionIterations = 3;
+
         // TODO: Epsilons, iterate until change < epsilon or iter >= maxIter.
 
+        // below is currently unused
         bool enableWarmstarting = true;
 
         bool  enableSleeping                = false;
@@ -192,6 +269,10 @@ public:
         float angularVelocitySleepThreshold = 1e-3f;
     };
 
+    ////////////////////////////////////////////////////////////
+    /// \brief Updates the world's settings
+    /// 
+    ////////////////////////////////////////////////////////////
     void updateSettings(const Settings& settings)
     {
         if (!settings.enableSleeping && settings_.enableSleeping)
@@ -201,6 +282,10 @@ public:
         settings_ = settings;
     }
 
+    ////////////////////////////////////////////////////////////
+    /// \brief Read the world's settings 
+    /// 
+    ////////////////////////////////////////////////////////////
     const Settings& settings() const { return settings_; }
 
 private:

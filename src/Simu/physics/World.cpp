@@ -101,7 +101,10 @@ void World::removeContactConflict(const Bodies<2>& bodies)
     auto contact = inContacts(bodies);
     if (contact != contacts_.end())
     {
-        if ((--contact->second.nConflictingConstraints <= 0)
+        contact->second.nConflictingConstraints
+            = std::max(0, contact->second.nConflictingConstraints - 1);
+
+        if ((contact->second.nConflictingConstraints == 0)
             && (contact->second.existingContact == nullptr))
             contacts_.erase(contact);
     }
@@ -167,8 +170,7 @@ void World::detectContacts()
 
 struct World::Cleaner
 {
-    typedef std::unordered_map<Bodies<2>, World::ContactStatus>::iterator
-        ContactIter;
+    typedef std::unordered_map<Bodies<2>, World::ContactStatus>::iterator ContactIter;
 
     template <class Container>
     auto deadObjects(Container& container)
@@ -220,17 +222,13 @@ private:
 
 template <>
 PhysicsObject*
-World::Cleaner::access<typename World::Cleaner::ContactIter>(
-    ContactIter it
-)
+World::Cleaner::access<typename World::Cleaner::ContactIter>(ContactIter it)
 {
     return it->second.existingContact;
 }
 
 template <>
-bool World::Cleaner::isDead<typename World::Cleaner::ContactIter>(
-    ContactIter it
-)
+bool World::Cleaner::isDead<typename World::Cleaner::ContactIter>(ContactIter it)
 {
     return access(it) != nullptr && access(it)->isDead();
 }
