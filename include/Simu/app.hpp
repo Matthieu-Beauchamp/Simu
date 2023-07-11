@@ -22,14 +22,8 @@
 //
 ////////////////////////////////////////////////////////////
 
-#include "Simu/graphics/graphics.hpp"
+#pragma once
 
-namespace simu
-{
+#include "Simu/physics.hpp"
+#include "Simu/app/Application.hpp"
 
-
-
-
-
-
-} // namepace simu 

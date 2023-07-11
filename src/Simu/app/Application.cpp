@@ -22,16 +22,36 @@
 //
 ////////////////////////////////////////////////////////////
 
-#pragma once
+#include <sstream>
 
-#include "Simu/config.hpp"
+#include "Simu/app/Application.hpp"
 
 namespace simu
 {
 
+void glfwErrorCallback(int error, const char* description)
+{
+    std::stringstream err;
+    err << "GLFW error code " << error << ":\n" << description;
+    throw simu::Exception{err.str()};
+}
 
+Application::Application()
+{
+    SIMU_ASSERT(glfwInit(), "glfw could not be initialised properly");
+    glfwSetErrorCallback(glfwErrorCallback);
 
+    // TODO: as args
+    window_ = glfwCreateWindow(640, 480, "My Title", nullptr, nullptr);
+    SIMU_ASSERT(window_ != nullptr, "Window creation failed");
+    
 
+}
 
+Application::~Application()
+{
+    glfwDestroyWindow(window_);
+    glfwTerminate();
+}
 
-} // namepace simu 
+} // namespace simu

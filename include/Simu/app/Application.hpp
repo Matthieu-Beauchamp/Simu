@@ -24,6 +24,24 @@
 
 #pragma once
 
-#include "Simu/math.hpp"
+#include "GLFW/glfw3.h"
 
-#include "Simu/physics/World.hpp"
+#include "Simu/config.hpp"
+
+namespace simu
+{
+
+class Application
+{
+public:
+
+    Application();
+    ~Application();
+
+private:
+
+    GLFWwindow* window_ = nullptr;
+};
+
+
+} // namespace simu
