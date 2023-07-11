@@ -62,18 +62,35 @@ endforeach()
 
 include(FetchContent)
 if (SIMU_BUILD_DEMOS)
+
     set(GLFW_BUILD_DOCS OFF CACHE INTERNAL "" FORCE)
     set(GLFW_BUILD_TESTS OFF CACHE INTERNAL "" FORCE)
     set(GLFW_BUILD_EXAMPLES OFF CACHE INTERNAL "" FORCE)
-
     FetchContent_Declare(
-      GLFW
-      GIT_REPOSITORY https://github.com/glfw/glfw.git
-      GIT_TAG        7482de6 # v3.3.8
+        GLFW
+        GIT_REPOSITORY https://github.com/glfw/glfw.git
+        GIT_TAG        7482de6 # v3.3.8
     )
-    FetchContent_MakeAvailable(GLFW)
 
-    target_link_libraries(simu-app glfw)
+    set(OPTION_SELF_CONTAINED          OFF CACHE INTERNAL "" FORCE)
+    set(OPTION_BUILD_TESTS             OFF CACHE INTERNAL "" FORCE)
+    set(OPTION_BUILD_DOCS              OFF CACHE INTERNAL "" FORCE)
+    set(OPTION_BUILD_TOOLS             OFF CACHE INTERNAL "" FORCE)
+    set(OPTION_BUILD_EXAMPLES          OFF CACHE INTERNAL "" FORCE)
+    set(OPTION_BUILD_WITH_BOOST_THREAD OFF CACHE INTERNAL "" FORCE)
+    set(OPTION_BUILD_CHECK             OFF CACHE INTERNAL "" FORCE)
+    set(OPTION_BUILD_OWN_KHR_HEADERS   OFF CACHE INTERNAL "" FORCE)
+    set(OPTION_BUILD_WITH_LTO          OFF CACHE INTERNAL "" FORCE)
+    set(OPTION_USE_GIT_INFORMATION     ON  CACHE INTERNAL "" FORCE)
+    FetchContent_Declare(
+        glbinding
+        GIT_REPOSITORY https://github.com/cginternals/glbinding.git
+        GIT_TAG        aedb549 # v3.3.0
+    )
+
+    FetchContent_MakeAvailable(GLFW glBinding)
+
+    target_link_libraries(simu-app glfw glbinding::glbinding)
     
     add_subdirectory(demos)
 endif()
