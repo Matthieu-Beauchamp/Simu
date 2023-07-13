@@ -22,6 +22,8 @@
 //
 ////////////////////////////////////////////////////////////
 
+#include "glbinding/gl33core/gl.h"
+
 #include "Simu/app/Renderer.hpp"
 
 namespace simu
@@ -53,28 +55,105 @@ void Renderer::drawContouredPolygon(
 
 void Renderer::drawTriangle(Vec2 A, Vec2 B, Vec2 C, Rgba color) {}
 
-void Renderer::drawLine(
-    Vec2    A,
-    Vec2    B,
-    Rgba    color,
-    float   width,
-    LineTip tip
-)
-{
-}
+void Renderer::drawLine(Vec2 A, Vec2 B, Rgba color, float width, LineTip tip) {}
 
-void Renderer::drawPoint(Vec2 P, Rgba color, float radius, Uint8 precision )
-{
-}
+void Renderer::drawPoint(Vec2 P, Rgba color, float radius, Uint8 precision) {}
 
 
 ////////////////////////////////////////////////////////////
 // OpenGl Renderer
 ////////////////////////////////////////////////////////////
 
-OpenGlRenderer::OpenGlRenderer() {}
+gl::GLuint compileShader(gl::GLenum shaderType, const char* src)
+{
+    // https://www.khronos.org/opengl/wiki/Shader_Compilation
 
-void OpenGlRenderer::drawPolygon(Vec2 center, Poly vertices, Rgba color) 
+    gl::GLuint shader = gl::glCreateShader(shaderType);
+
+    // Get strings for glShaderSource.
+    gl::GLint len = std::strlen(src);
+    gl::glShaderSource(shader, 1, &src, &len);
+
+    gl::glCompileShader(shader);
+
+    gl::GLint isCompiled = 0;
+    gl::glGetShaderiv(shader, gl::GL_COMPILE_STATUS, &isCompiled);
+    if (isCompiled == gl::GL_FALSE)
+    {
+        gl::GLint maxLength = 0;
+        gl::glGetShaderiv(shader, gl::GL_INFO_LOG_LENGTH, &maxLength);
+
+        // The maxLength includes the NULL character
+        std::string errorLog{};
+        errorLog.resize(maxLength);
+        gl::glGetShaderInfoLog(shader, maxLength, &maxLength, &errorLog[0]);
+
+        // Provide the infolog in whatever manor you deem best.
+        // Exit with failure.
+        gl::glDeleteShader(shader); // Don't leak the shader.
+
+        throw simu::Exception("GL shader compilation failed:\n" + errorLog);
+    }
+    else
+    {
+        return shader;
+    }
+}
+
+gl::GLuint compileShaderProgram(const char* vSrc, const char* fSrc)
+{
+    gl::GLuint vertexShader   = compileShader(gl::GL_VERTEX_SHADER, vSrc);
+    gl::GLuint fragmentShader = compileShader(gl::GL_FRAGMENT_SHADER, fSrc);
+
+    // Vertex and fragment shaders are successfully compiled.
+    // Now time to link them together into a program.
+    // Get a program object.
+    gl::GLuint program = gl::glCreateProgram();
+
+    // Attach our shaders to our program
+    gl::glAttachShader(program, vertexShader);
+    gl::glAttachShader(program, fragmentShader);
+
+    // Link our program
+    gl::glLinkProgram(program);
+
+    // Note the different functions here: glGetProgram* instead of glGetShader*.
+    gl::GLint isLinked = 0;
+    gl::glGetProgramiv(program, gl::GL_LINK_STATUS, (int*)&isLinked);
+    if (isLinked == gl::GL_FALSE)
+    {
+        gl::GLint maxLength = 0;
+        gl::glGetProgramiv(program, gl::GL_INFO_LOG_LENGTH, &maxLength);
+
+        // The maxLength includes the NULL character
+        std::string errorLog{};
+        errorLog.resize(maxLength);
+        gl::glGetProgramInfoLog(program, maxLength, &maxLength, &errorLog[0]);
+
+        // We don't need the program anymore.
+        gl::glDeleteProgram(program);
+        // Don't leak shaders either.
+        gl::glDeleteShader(vertexShader);
+        gl::glDeleteShader(fragmentShader);
+
+        throw simu::Exception("GL shader linking failed:\n" + errorLog);
+    }
+
+    // Always detach shaders after a successful link.
+    gl::glDetachShader(program, vertexShader);
+    gl::glDetachShader(program, fragmentShader);
+
+    return program;
+}
+
+OpenGlRenderer::OpenGlRenderer()
+{
+    programId_ = compileShaderProgram(vertexShaderSrc_, fragmentShaderSrc_);
+    cameraTransformBinding_
+        = gl::glGetUniformLocation(programId_, "cameraTransform");
+}
+
+void OpenGlRenderer::drawPolygon(Vec2 center, Poly vertices, Rgba color)
 {
     Uint16 centerIndex = vertices_.size();
 
@@ -96,11 +175,24 @@ void OpenGlRenderer::drawPolygon(Vec2 center, Poly vertices, Rgba color)
         indices_.emplace_back(index++);
     }
 
-    if (index >= maxVertices_)
+    if (vertices_.size() >= maxVertices_)
         flush();
 }
 
-void OpenGlRenderer::flush(){}
+void OpenGlRenderer::flush()
+{
+    gl::glUseProgram(programId_);
+    
+    const Mat3& rowMajorTransform = cameraTransform();
+    gl::glUniformMatrix3fv(
+        cameraTransformBinding_,
+        1,
+        gl::GL_TRUE,
+        rowMajorTransform.data
+    );
+
+    
+}
 
 const char* const OpenGlRenderer::vertexShaderSrc_ = R"(
 #version 330 core

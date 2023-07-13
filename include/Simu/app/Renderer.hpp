@@ -94,7 +94,7 @@ class OpenGlRenderer : public Renderer
 public:
 
     OpenGlRenderer();
-    ~OpenGlRenderer() override = default;
+    ~OpenGlRenderer() override;
 
     void drawPolygon(Vec2 center, Poly vertices, Rgba color) override;
     void flush() override;
@@ -116,6 +116,9 @@ private:
 
     static const char* const vertexShaderSrc_;
     static const char* const fragmentShaderSrc_;
+
+    unsigned int programId_;
+    unsigned int cameraTransformBinding_;
 };
 
 } // namespace simu
