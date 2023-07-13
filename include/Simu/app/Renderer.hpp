@@ -42,6 +42,7 @@ public:
     Renderer()          = default;
     virtual ~Renderer() = default;
 
+    // vertices are assumed to be positively oriented.
     // All vertices must be seen from center, ie a line from center to
     //      any of the vertices is fully contained in the polygon.
     typedef ViewType<Vec2*> Poly;
@@ -119,6 +120,10 @@ private:
 
     unsigned int programId_;
     unsigned int cameraTransformBinding_;
+
+    unsigned int vao_;
+    unsigned int vbo_;
+    unsigned int ebo_;
 };
 
 } // namespace simu

@@ -105,6 +105,8 @@ gl::GLuint compileShaderProgram(const char* vSrc, const char* fSrc)
     gl::GLuint vertexShader   = compileShader(gl::GL_VERTEX_SHADER, vSrc);
     gl::GLuint fragmentShader = compileShader(gl::GL_FRAGMENT_SHADER, fSrc);
 
+    // https://www.khronos.org/opengl/wiki/Shader_Compilation
+
     // Vertex and fragment shaders are successfully compiled.
     // Now time to link them together into a program.
     // Get a program object.
@@ -151,6 +153,45 @@ OpenGlRenderer::OpenGlRenderer()
     programId_ = compileShaderProgram(vertexShaderSrc_, fragmentShaderSrc_);
     cameraTransformBinding_
         = gl::glGetUniformLocation(programId_, "cameraTransform");
+
+    gl::glGenVertexArrays(1, &vao_);
+    gl::glGenBuffers(1, &vbo_);
+    gl::glGenBuffers(1, &ebo_);
+
+    gl::glBindVertexArray(vao_);
+    gl::glBindBuffer(gl::GL_ARRAY_BUFFER, vbo_);
+    gl::glBindBuffer(gl::GL_ELEMENT_ARRAY_BUFFER, ebo_);
+
+    gl::glVertexAttribPointer(
+        0,
+        2,
+        gl::GL_FLOAT,
+        gl::GL_FALSE,
+        sizeof(OpenGlRenderer::Vertex),
+        (void*)offsetof(OpenGlRenderer::Vertex, pos)
+    );
+    gl::glEnableVertexAttribArray(0);
+
+    gl::glVertexAttribPointer(
+        1,
+        4,
+        gl::GL_UNSIGNED_BYTE,
+        gl::GL_TRUE,
+        sizeof(OpenGlRenderer::Vertex),
+        (void*)offsetof(OpenGlRenderer::Vertex, color)
+    );
+    gl::glEnableVertexAttribArray(1);
+
+    gl::glBindVertexArray(0);
+}
+
+OpenGlRenderer::~OpenGlRenderer()
+{
+    gl::glDeleteProgram(programId_);
+
+    gl::glDeleteVertexArrays(1, &vao_);
+    gl::glDeleteBuffers(1, &vbo_);
+    gl::glDeleteBuffers(1, &ebo_);
 }
 
 void OpenGlRenderer::drawPolygon(Vec2 center, Poly vertices, Rgba color)
@@ -182,7 +223,7 @@ void OpenGlRenderer::drawPolygon(Vec2 center, Poly vertices, Rgba color)
 void OpenGlRenderer::flush()
 {
     gl::glUseProgram(programId_);
-    
+
     const Mat3& rowMajorTransform = cameraTransform();
     gl::glUniformMatrix3fv(
         cameraTransformBinding_,
@@ -191,13 +232,41 @@ void OpenGlRenderer::flush()
         rowMajorTransform.data
     );
 
-    
+    // https://learnopengl.com/Getting-started/Hello-Triangle
+
+    gl::glBindVertexArray(vao_);
+
+    // vbo_ is already rebound?
+    gl::glBindBuffer(gl::GL_ARRAY_BUFFER, vbo_);
+    gl::glBufferData(
+        gl::GL_ARRAY_BUFFER,
+        vertices_.size() * sizeof(OpenGlRenderer::Vertex),
+        vertices_.data(),
+        gl::GL_STREAM_DRAW
+    );
+
+    // ebo_ is already rebound?
+    gl::glBindBuffer(gl::GL_ELEMENT_ARRAY_BUFFER, ebo_);
+    gl::glBufferData(
+        gl::GL_ELEMENT_ARRAY_BUFFER,
+        indices_.size() * sizeof(Uint16),
+        indices_.data(),
+        gl::GL_STREAM_DRAW
+    );
+
+    gl::glDrawElements(gl::GL_TRIANGLES, indices_.size(), gl::GL_UNSIGNED_SHORT, 0);
+
+    gl::glBindVertexArray(0);
+
+    vertices_.clear();
+    indices_.clear();
 }
+
 
 const char* const OpenGlRenderer::vertexShaderSrc_ = R"(
 #version 330 core
 layout (location = 0) in vec2 pos;
-layout (location = 1) in uint col;
+layout (location = 1) in vec4 col;
 
 uniform mat3 cameraTransform;
 
@@ -206,12 +275,7 @@ out vec4 vCol;
 void main()
 {
     gl_Position = vec4(pos, 0.0, 1.0); 
-
-    vCol.r = col & 0xFF000000;
-    vCol.g = col & 0x00FF0000;
-    vCol.b = col & 0x0000FF00;
-    vCol.a = col & 0x000000FF;
-    vCol = vCol / 255.0;
+    vCol = col;
 }
 
 )";
