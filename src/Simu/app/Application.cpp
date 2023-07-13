@@ -44,14 +44,32 @@ Application::Application()
     // TODO: as args
     window_ = glfwCreateWindow(640, 480, "My Title", nullptr, nullptr);
     SIMU_ASSERT(window_ != nullptr, "Window creation failed");
-    
+    glfwSetWindowUserPointer(window_, this);
 
+    glfwSwapInterval(1);
 }
 
 Application::~Application()
 {
     glfwDestroyWindow(window_);
     glfwTerminate();
+}
+
+void Application::run()
+{
+    while (!glfwWindowShouldClose(window_))
+    {
+        glfwPollEvents();
+        // ...
+    }
+
+
+}
+
+void Application::render() const {
+    // ...
+
+    glfwSwapBuffers(window_);
 }
 
 } // namespace simu

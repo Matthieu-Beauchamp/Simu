@@ -26,7 +26,7 @@
 
 #include "GLFW/glfw3.h"
 
-#include "Simu/config.hpp"
+#include "Simu/physics.hpp"
 
 namespace simu
 {
@@ -38,7 +38,19 @@ public:
     Application();
     ~Application();
 
+    void run();
+
+    Mat3 cameraTransform() const;
+    void setCameraTransform(Mat3 transform);
+
+protected:
+
+    virtual void init(World& world) = 0;
+
 private:
+
+    void render() const;
+
 
     GLFWwindow* window_ = nullptr;
 };
