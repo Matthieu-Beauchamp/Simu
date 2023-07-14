@@ -41,12 +41,4 @@ public:
 };
 
 
-class Invisible : public Drawable
-{
-public:
-
-    void draw(Renderer& /* renderer */) override{};
-};
-
-
 } // namespace simu

@@ -24,6 +24,10 @@
 
 #include <sstream>
 
+#include "GLFW/glfw3.h"
+#include "glbinding/glbinding.h"
+
+
 #include "Simu/app/Application.hpp"
 
 namespace simu
@@ -46,6 +50,14 @@ Application::Application()
     SIMU_ASSERT(window_ != nullptr, "Window creation failed");
     glfwSetWindowUserPointer(window_, this);
 
+    glfwMakeContextCurrent(window_);
+    glbinding::initialize(glfwGetProcAddress);
+    renderer_ = std::make_unique<OpenGlRenderer>();
+
+    int w, h;
+    glfwGetWindowSize(window_, &w, &h);
+    renderer_->setViewport(Vec2i{0, 0}, Vec2i{w, h});
+
     glfwSwapInterval(1);
 }
 
@@ -57,17 +69,24 @@ Application::~Application()
 
 void Application::run()
 {
+    glfwSetTime(0.0);
     while (!glfwWindowShouldClose(window_))
     {
         glfwPollEvents();
-        // ...
+    
+        scene_->step(glfwGetTime());
+        glfwSetTime(0.0);
+    
+        render();
+        
+        scene_ = nextScene(scene_);
     }
-
-
 }
 
-void Application::render() const {
-    // ...
+void Application::render() const
+{
+    if (scene_ != nullptr)
+        scene_->render(*renderer_);
 
     glfwSwapBuffers(window_);
 }

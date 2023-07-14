@@ -261,9 +261,9 @@ void OpenGlRenderer::drawPolygon(Vec2 center, Poly vertices, Rgba color)
 {
     Uint16 centerIndex = vertices_.size();
 
-    vertices_.emplace_back(center);
+    vertices_.emplace_back(center, color);
     for (Vec2 v : vertices)
-        vertices_.emplace_back(v);
+        vertices_.emplace_back(v, color);
 
     Uint16 end = vertices_.size();
 
@@ -325,6 +325,16 @@ void OpenGlRenderer::flush()
     indices_.clear();
 }
 
+void OpenGlRenderer::fillScreen(Rgba color) {
+    FloatRgba col = static_cast<FloatRgba>(color) / 255.f;
+    gl::glClearColor(col[0], col[1], col[2], col[3]);
+    gl::glClear(gl::GL_COLOR_BUFFER_BIT);
+}
+
+void OpenGlRenderer::setViewport(Vec2i lowerLeft, Vec2i dim)
+{
+    gl::glViewport(lowerLeft[0], lowerLeft[1], dim[0], dim[1]);
+}
 
 const char* const OpenGlRenderer::vertexShaderSrc_ = R"(
 #version 330 core

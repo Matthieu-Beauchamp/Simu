@@ -50,6 +50,8 @@ public:
 
     virtual void drawPolygon(Vec2 center, Poly vertices, Rgba color) = 0;
     virtual void flush()                                             = 0;
+    virtual void fillScreen(Rgba color)                              = 0;
+    virtual void setViewport(Vec2i lowerLeft, Vec2i dim)             = 0;
 
     void        setCameraTransform(const Mat3& cameraTransform);
     const Mat3& cameraTransform() const;
@@ -100,6 +102,8 @@ public:
 
     void drawPolygon(Vec2 center, Poly vertices, Rgba color) override;
     void flush() override;
+    void fillScreen(Rgba color) override;
+    void setViewport(Vec2i lowerLeft, Vec2i dim) override;
 
 private:
 
@@ -108,8 +112,10 @@ private:
 
     struct Vertex
     {
-        Vec2      pos;
-        FloatRgba color;
+        Vertex(Vec2 pos, Rgba color) : pos{pos}, color{color} {}
+
+        Vec2 pos;
+        Rgba color;
     };
 
     std::vector<Vertex>      vertices_{};

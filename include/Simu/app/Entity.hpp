@@ -48,4 +48,15 @@ public:
 };
 
 
+class InvisibleEntity : public Entity
+{
+public:
+
+    InvisibleEntity()           = default;
+    ~InvisibleEntity() override = default;
+
+    void draw(Renderer& /* renderer */) override {}
+};
+
+
 } // namespace simu

@@ -24,9 +24,12 @@
 
 #pragma once
 
-#include "GLFW/glfw3.h"
 
 #include "Simu/physics.hpp"
+
+#include "Simu/app/Scene.hpp"
+
+struct GLFWwindow;
 
 namespace simu
 {
@@ -40,19 +43,17 @@ public:
 
     void run();
 
-    Mat3 cameraTransform() const;
-    void setCameraTransform(Mat3 transform);
-
 protected:
 
-    virtual void init(World& world) = 0;
+    virtual std::shared_ptr<Scene> nextScene(std::shared_ptr<Scene> current) = 0;
 
 private:
 
     void render() const;
 
-
-    GLFWwindow* window_ = nullptr;
+    std::shared_ptr<Scene>    scene_    = nullptr;
+    std::unique_ptr<Renderer> renderer_ = nullptr;
+    GLFWwindow*               window_   = nullptr;
 };
 
 
