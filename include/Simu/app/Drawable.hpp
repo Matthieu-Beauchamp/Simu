@@ -25,13 +25,28 @@
 #pragma once
 
 #include "Simu/config.hpp"
+#include "Simu/app/Renderer.hpp"
 
 namespace simu
 {
 
+class Drawable
+{
+public:
+
+    Drawable()          = default;
+    virtual ~Drawable() = default;
+
+    virtual void draw(Renderer& renderer) = 0;
+};
 
 
+class Invisible : public Drawable
+{
+public:
+
+    void draw(Renderer& /* renderer */) override{};
+};
 
 
-
-} // namepace simu 
+} // namespace simu
