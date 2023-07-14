@@ -36,11 +36,11 @@ namespace simu
 ///
 /// If minimum == maximum, then the box is a single point.
 ///
-/// The bounding box is invalid if any coordinates of minimum are greater than 
+/// The bounding box is invalid if any coordinates of minimum are greater than
 ///     their maximum counterpart.
-/// 
+///
 /// An invalid bounding box overlaps nothing and is ignored when combining boxes.
-/// 
+///
 ////////////////////////////////////////////////////////////
 class BoundingBox
 {
@@ -69,7 +69,7 @@ public:
     BoundingBox(const T& geoemtry);
 
     ////////////////////////////////////////////////////////////
-    /// true if the bounding box covers a valid area, 
+    /// true if the bounding box covers a valid area,
     /// \see BoundingBox
     ////////////////////////////////////////////////////////////
     bool isValid() const { return all(max() >= min()); }
@@ -83,6 +83,11 @@ public:
     /// The maximum coordinate
     ////////////////////////////////////////////////////////////
     Vec2 max() const { return max_; }
+
+    ////////////////////////////////////////////////////////////
+    /// The center of the box
+    ////////////////////////////////////////////////////////////
+    Vec2 center() const { return (max() + min()) / 2.f; }
 
     ////////////////////////////////////////////////////////////
     /// true if this overlaps other, if the borders touch, the boxes overlap.
