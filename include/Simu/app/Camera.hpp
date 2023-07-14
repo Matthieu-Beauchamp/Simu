@@ -30,6 +30,9 @@
 namespace simu
 {
 
+// TODO: What happens when the window is resized?
+// See Application.cpp -> frameBufferResizeCallback...
+// This whole class will need to be revised
 class Camera
 {
 public:

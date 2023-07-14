@@ -72,6 +72,7 @@ public:
     void render(Renderer& renderer)
     {
         renderer.setCameraTransform(camera_.transform());
+
         for (Entity& e : entities())
             e.draw(renderer);
 
@@ -86,11 +87,15 @@ public:
         this->postStep(dt);
     }
 
-    const Camera& camera() const;
+    // The desired size of a pixel in scene coordinates.
+    float pixelSize() const { return pixelSize_; }
+    void  setPixelSize(float size) { pixelSize_ = size; }
+
+    Camera&       camera() { return camera_; }
+    const Camera& camera() const { return camera_; }
+
 
 protected:
-
-    Camera& camera();
 
     template <std::derived_from<Entity> T, class... Args>
     T* makeEntity(Args&&... args)
@@ -120,6 +125,8 @@ private:
     World                              world_{};
     std::list<std::unique_ptr<Entity>> entities_{};
     Camera                             camera_{};
+
+    float pixelSize_ = 1.f / 10.f; // 10 pixels per unit.
 };
 
 

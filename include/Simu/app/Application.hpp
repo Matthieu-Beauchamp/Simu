@@ -43,6 +43,10 @@ public:
 
     void run();
 
+    // TODO: Scenes should know their Application, to allow setting cursors and such.
+    Scene*       scene() { return scene_.get(); }
+    const Scene* scene() const { return scene_.get(); }
+
 protected:
 
     virtual std::shared_ptr<Scene> nextScene(std::shared_ptr<Scene> current) = 0;
@@ -50,6 +54,8 @@ protected:
 private:
 
     void render() const;
+
+    friend void frameBufferResizeCallback(GLFWwindow* window, int w, int h);
 
     std::shared_ptr<Scene>    scene_    = nullptr;
     std::unique_ptr<Renderer> renderer_ = nullptr;

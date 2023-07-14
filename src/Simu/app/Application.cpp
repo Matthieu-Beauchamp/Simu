@@ -40,6 +40,22 @@ void glfwErrorCallback(int error, const char* description)
     throw simu::Exception{err.str()};
 }
 
+void frameBufferResizeCallback(GLFWwindow* window, int w, int h)
+{
+    Application* app
+        = static_cast<Application*>(glfwGetWindowUserPointer(window));
+
+    if (app->renderer_ != nullptr)
+        app->renderer_->setViewport(Vec2i{0, 0}, Vec2i{w, h});
+
+    if (app->scene_ != nullptr)
+    {
+        Vec2 center = app->scene_->camera().lookingAt().center();
+        Vec2 diag   = app->scene_->pixelSize() * (Vec2i{w, h} / 2.f);
+        app->scene_->camera().lookAt(BoundingBox{center - diag, center + diag});
+    }
+}
+
 Application::Application()
 {
     SIMU_ASSERT(glfwInit(), "glfw could not be initialised properly");
@@ -49,6 +65,8 @@ Application::Application()
     window_ = glfwCreateWindow(640, 480, "My Title", nullptr, nullptr);
     SIMU_ASSERT(window_ != nullptr, "Window creation failed");
     glfwSetWindowUserPointer(window_, this);
+
+    glfwSetFramebufferSizeCallback(window_, frameBufferResizeCallback);
 
     glfwMakeContextCurrent(window_);
     glbinding::initialize(glfwGetProcAddress);
@@ -73,12 +91,12 @@ void Application::run()
     while (!glfwWindowShouldClose(window_))
     {
         glfwPollEvents();
-    
+
         scene_->step(glfwGetTime());
         glfwSetTime(0.0);
-    
+
         render();
-        
+
         scene_ = nextScene(scene_);
     }
 }
