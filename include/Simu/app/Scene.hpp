@@ -26,12 +26,101 @@
 
 #include "Simu/config.hpp"
 
+#include "Simu/utility/View.hpp"
+
+#include "Simu/app/Renderer.hpp"
+#include "Simu/app/Camera.hpp"
+#include "Simu/app/Entity.hpp"
+
 namespace simu
 {
 
+class Scene
+{
+public:
+
+    Scene()          = default;
+    virtual ~Scene() = default;
+
+    virtual void init() = 0;
+    // TODO: virtual void processEvent(Event& e);
+
+protected:
+
+    virtual void onClear(){};
+    virtual void preStep(float dt){};
+    virtual void postStep(float dt){};
+
+public:
+
+    auto entities() { return makeView(entities_, DoubleDereference{}); }
+    auto entities() const { return makeView(entities_, DoubleDereference{}); }
 
 
+    void clear()
+    {
+        this->onClear();
+        entities_.clear();
+    };
+
+    void reset()
+    {
+        clear();
+        this->init();
+    }
+
+    void render(Renderer& renderer)
+    {
+        renderer.setCameraTransform(camera_.transform());
+        for (Entity& e : entities())
+            e.draw(renderer);
+
+        renderer.flush();
+    }
 
 
+    void step(float dt)
+    {
+        this->preStep(dt);
+        world_.step(dt);
+        this->postStep(dt);
+    }
 
-} // namepace simu 
+    const Camera& camera() const;
+
+protected:
+
+    Camera& camera();
+
+    template <std::derived_from<Entity> T, class... Args>
+    T* makeEntity(Args&&... args)
+    {
+        auto ent = std::make_unique<T>(std::forward<Args>(args)...);
+        ent->declarePhysics(world_);
+        return entities_.emplace_back(std::move(ent))->get();
+    }
+
+    template <std::derived_from<Entity> T>
+    void removeEntity(T* entity)
+    {
+        auto it = std::find_if(
+            entities_.begin(),
+            entities_.end(),
+            [=](const std::unique_ptr<Entity>& ptr) -> bool {
+                return ptr->get() == entity;
+            }
+        );
+
+        if (it != entities_.end())
+            entities_.erase(it);
+    }
+
+private:
+
+    World                              world_{};
+    std::list<std::unique_ptr<Entity>> entities_{};
+    Camera                             camera_{};
+};
+
+
+} // namespace simu
