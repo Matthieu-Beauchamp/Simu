@@ -30,21 +30,23 @@
 #include "Simu/math/Matrix.hpp"
 #include "Simu/math/Geometry.hpp"
 
+#include "Simu/utility/View.hpp"
+
 namespace simu
 {
 
 ////////////////////////////////////////////////////////////
 /// \ingroup Geometry
 /// \brief A polygon has at least 3 vertices in a positive Orientation
-/// 
-/// Polygons are allowed to be concave and have holes as long as they do not 
+///
+/// Polygons are allowed to be concave and have holes as long as they do not
 ///     self-intersect, in which case behavior is undefined.
-/// 
+///
 /// The vertices are reordered to be positively oriented.
 /// The GeometricProperties are modified to reflect this change.
-/// 
+///
 /// Polygons are not allowed to modify their vertices after construction.
-/// 
+///
 /// \warning no special measures are taken if properties indicate that the geometry isDegenerate.
 ////////////////////////////////////////////////////////////
 class Polygon
@@ -62,6 +64,11 @@ public:
 
     Vertices::const_iterator begin() const { return vertices_.begin(); }
     Vertices::const_iterator end() const { return vertices_.end(); }
+
+    auto vertexView() const
+    {
+        return makeView(vertices_.data(), vertices_.data() + vertices_.size());
+    }
 
 private:
 

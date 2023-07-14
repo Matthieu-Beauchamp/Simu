@@ -22,9 +22,12 @@
 //
 ////////////////////////////////////////////////////////////
 
+#include <numbers>
+
 #include "glbinding/gl33core/gl.h"
 
 #include "Simu/app/Renderer.hpp"
+#include "Simu/math/Polygon.hpp"
 
 namespace simu
 {
@@ -50,14 +53,74 @@ void Renderer::drawContouredPolygon(
     Contour contour
 )
 {
+    SIMU_ASSERT(contour == Contour::outside, "Not implemented");
+
+    Vertices outer{vertices.begin(), vertices.end()};
+
+    Uint32 i     = 0;
+    auto   edges = edgesOf(vertices);
+    for (auto e1 = edges.begin(); e1 != edges.end(); ++e1)
+    {
+        auto e2 = edges.next(e1);
+        outer[i++]
+            += (e1->normalizedNormal() + e2->normalizedNormal()) * contourWidth;
+    }
+
+    const Vertices& cOuter = outer;
+    drawPolygon(
+        center,
+        makeView(cOuter.data(), cOuter.data() + cOuter.size()),
+        contourColor
+    );
+
+    drawPolygon(center, vertices, fillColor);
 }
 
 
-void Renderer::drawTriangle(Vec2 A, Vec2 B, Vec2 C, Rgba color) {}
+void Renderer::drawTriangle(Vec2 A, Vec2 B, Vec2 C, Rgba color)
+{
+    Polygon triangle{A, B, C};
+    drawPolygon(triangle.properties().centroid, triangle.vertexView(), color);
+}
 
-void Renderer::drawLine(Vec2 A, Vec2 B, Rgba color, float width, LineTip tip) {}
+void Renderer::drawLine(Vec2 A, Vec2 B, Rgba color, float width, LineTip tip)
+{
+    SIMU_ASSERT(any(A != B), "A and B must not be the same point");
 
-void Renderer::drawPoint(Vec2 P, Rgba color, float radius, Uint8 precision) {}
+    Vertices v;
+    Vec2     n = width * normalized(perp(B - A));
+
+    switch (tip)
+    {
+        case LineTip::rounded:
+        case LineTip::triangle: SIMU_ASSERT(false, "Not implemented"); break;
+        default:
+            v.emplace_back(A + n / 2);
+            v.emplace_back(B + n / 2);
+            v.emplace_back(B - n / 2);
+            v.emplace_back(A - n / 2);
+            break;
+    }
+
+    Polygon line{v.begin(), v.end()};
+    drawPolygon(line.properties().centroid, line.vertexView(), color);
+}
+
+void Renderer::drawPoint(Vec2 P, Rgba color, float radius, Uint8 precision)
+{
+    SIMU_ASSERT(precision >= 3, "");
+
+    Vertices        v;
+    constexpr float pi = std::numbers::pi_v<float>;
+    for (Uint8 i = 0; i < precision; ++i)
+    {
+        float theta = 2.f * pi * i / precision;
+        v.emplace_back(P + radius* Vertex{std::cos(theta), std::sin(theta)});
+    }
+
+    const Vertices& cv = v;
+    drawPolygon(P, makeView(cv.data(), cv.data() + cv.size()), color);
+}
 
 
 ////////////////////////////////////////////////////////////

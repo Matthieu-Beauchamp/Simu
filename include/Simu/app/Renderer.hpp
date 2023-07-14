@@ -45,7 +45,8 @@ public:
     // vertices are assumed to be positively oriented.
     // All vertices must be seen from center, ie a line from center to
     //      any of the vertices is fully contained in the polygon.
-    typedef ViewType<Vec2*> Poly;
+    typedef ViewType<const Vec2*> Poly;
+    // TODO: Make overloads that take ViewType<Vec2*>, convert begin and end.
 
     virtual void drawPolygon(Vec2 center, Poly vertices, Rgba color) = 0;
     virtual void flush()                                             = 0;
