@@ -30,31 +30,47 @@
 namespace simu
 {
 
-// TODO: What happens when the window is resized?
-// See Application.cpp -> frameBufferResizeCallback...
-// This whole class will need to be revised
 class Camera
 {
 public:
 
-    Camera(BoundingBox lookAt = BoundingBox{Vec2{0, 0}, Vec2{100, 100}});
-
-    void        lookAt(BoundingBox where);
-    BoundingBox lookingAt() const;
+    Camera();
 
     // a ratio of 2 zooms in, the looking at rect will be twice as small
-    void zoom(float ratio);
+    float zoom() const;
+    void  setZoom(float ratio);
+
+    // The current center of the camera's view
+    Vec2 center() const;
 
     // pans or translate the camera's view by offset
     void pan(Vec2 offset);
+    void panTo(Vec2 center);
 
     // the transform takes lookingAt and maps it to x in [-1, 1] and y in [-1, 1].
     Mat3 transform() const;
 
+    // The desired size of a pixel in scene coordinates.
+    float pixelSize() const { return pixelSize_; }
+    void  setPixelSize(float size) { pixelSize_ = size; }
+
+
+    // does not consider zoom
+    Vec2 viewDimensions() const;
+
+    // updated by application, notably on window resizes.
+    void setViewDimensions(Vec2 dimensions);
+    void setDimensionsFromPixels(Vec2 pixelDimensions);
 
 private:
 
-    BoundingBox lookAt_;
+    Vec2 center_{};
+
+    Vec2 viewDimensions_{100, 100}; // in scene units, ignoring zoom
+
+    float zoom_ = 1.f;              // zooms in if zoom > 1
+
+    float pixelSize_ = 1.f / 10.f;  // 10 pixels per scene unit.
 };
 
 

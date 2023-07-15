@@ -29,32 +29,38 @@ namespace simu
 {
 
 
-Camera::Camera(BoundingBox lookAt) : lookAt_{lookAt} {}
+Camera::Camera() {}
 
-void        Camera::lookAt(BoundingBox where) { lookAt_ = where; }
-BoundingBox Camera::lookingAt() const { return lookAt_; }
-
-void Camera::zoom(float ratio)
+float Camera::zoom() const { return zoom_; }
+void  Camera::setZoom(float ratio)
 {
-    Vec2 center = lookAt_.center();
-    Mat3 scale  = Transform::translation(center)
-                 * Mat3::diagonal(Vec3::filled(1.f / ratio))
-                 * Transform::translation(-center);
-
-    lookAt_ = BoundingBox{scale * lookAt_.min(), scale * lookAt_.max()};
+    if (ratio > 0.f)
+        zoom_ = ratio;
 }
 
-void Camera::pan(Vec2 offset)
-{
-    lookAt_ = BoundingBox{offset + lookAt_.min(), offset + lookAt_.max()};
-}
+Vec2 Camera::center() const { return center_; }
+void Camera::pan(Vec2 offset) { center_ += offset; }
+void Camera::panTo(Vec2 center) { pan(center - this->center()); }
 
 Mat3 Camera::transform() const
 {
-    Vec2 dim = lookAt_.max() - lookAt_.min();
-    return Mat3::diagonal(Vec3{1.f / dim[0], 1.f / dim[1], 1.f})
-           * Transform::translation(-lookAt_.center());
+    Vec2 dimensions = viewDimensions() / zoom();
+    Mat3 scale = Mat3::diagonal(Vec3{1 / dimensions[0], 1 / dimensions[1], 1.f});
+
+    return scale * Transform::translation(-center());
 }
 
+Vec2 Camera::viewDimensions() const { return viewDimensions_; }
+
+void Camera::setViewDimensions(Vec2 dimensions)
+{
+    if (all(dimensions > Vec2::filled(0.f)))
+        viewDimensions_ = dimensions;
+}
+
+void Camera::setDimensionsFromPixels(Vec2 pixelDimensions)
+{
+    setViewDimensions(pixelDimensions * pixelSize());
+}
 
 } // namespace simu

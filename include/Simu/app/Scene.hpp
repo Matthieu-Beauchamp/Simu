@@ -87,10 +87,6 @@ public:
         this->postStep(dt);
     }
 
-    // The desired size of a pixel in scene coordinates.
-    float pixelSize() const { return pixelSize_; }
-    void  setPixelSize(float size) { pixelSize_ = size; }
-
     Camera&       camera() { return camera_; }
     const Camera& camera() const { return camera_; }
 
@@ -126,7 +122,6 @@ private:
     std::list<std::unique_ptr<Entity>> entities_{};
     Camera                             camera_{};
 
-    float pixelSize_ = 1.f / 10.f; // 10 pixels per unit.
 };
 
 
