@@ -28,6 +28,7 @@
 #include "Simu/physics.hpp"
 
 #include "Simu/app/Scene.hpp"
+#include "Simu/app/Event.hpp"
 
 struct GLFWwindow;
 
@@ -47,9 +48,15 @@ public:
     Scene*       scene() { return scene_.get(); }
     const Scene* scene() const { return scene_.get(); }
 
+    void close();
+
+    bool isKeyPressed(Keyboard::Key key) const;
+
 protected:
 
     virtual std::shared_ptr<Scene> nextScene(std::shared_ptr<Scene> current) = 0;
+
+
 
 private:
 

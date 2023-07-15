@@ -41,17 +41,25 @@ public:
 
     struct Input
     {
+        static Input fromGlfw(int key, int action, int mods){
+            Input input;
+            input.action = static_cast<Action>(action);
+            input.modifier = static_cast<Modifier>(mods);
+            input.key = static_cast<Key>(key);
+            return input;
+        }
+
         Action   action;
         Modifier modifier;
         Key      key;
     };
 
-
+    static bool isPressed(Key key);
 
     enum class Action
     {
-        press,
         release,
+        press,
         repeat
     };
 

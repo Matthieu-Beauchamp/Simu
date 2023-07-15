@@ -31,6 +31,7 @@
 #include "Simu/app/Renderer.hpp"
 #include "Simu/app/Camera.hpp"
 #include "Simu/app/Entity.hpp"
+#include "Simu/app/Event.hpp"
 
 namespace simu
 {
@@ -48,10 +49,41 @@ public:
 protected:
 
     virtual void onClear(){};
-    virtual void preStep(float dt){};
+    virtual void preStep(float dt)
+    {
+        if (app_ == nullptr)
+            return;
+
+        float panSpeed = 10.f * camera().pixelSize(); // 10 pixel / s
+        Vec2  panDir{};
+        if (app_->isKeyPressed(Keyboard::Key::left))
+            panDir += Vec2{-1.f, 0.f};
+        if (app_->isKeyPressed(Keyboard::Key::right))
+            panDir += Vec2{1.f, 0.f};
+        if (app_->isKeyPressed(Keyboard::Key::up))
+            panDir += Vec2{0.f, 1.f};
+        if (app_->isKeyPressed(Keyboard::Key::down))
+            panDir += Vec2{0.f, -1.f};
+    
+        camera().pan(panDir * panSpeed * dt);
+    };
+
     virtual void postStep(float dt){};
 
 public:
+
+    // returns true if the input was used
+    // base Scene will use escape to close() the application
+    virtual bool onKeypress(Keyboard::Input input)
+    {
+        if ((input.key == Keyboard::Key::escape)
+            && (input.action == Keyboard::Action::press))
+        {
+            if (app_ != nullptr)
+                app_->close();
+        }
+    }
+
 
     auto entities() { return makeView(entities_, DoubleDereference{}); }
     auto entities() const { return makeView(entities_, DoubleDereference{}); }
@@ -122,6 +154,8 @@ private:
     std::list<std::unique_ptr<Entity>> entities_{};
     Camera                             camera_{};
 
+    friend class Application;
+    Application* app_ = nullptr;
 };
 
 

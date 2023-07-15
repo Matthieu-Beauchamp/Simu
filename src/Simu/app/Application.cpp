@@ -58,7 +58,12 @@ void frameBufferResizeCallback(GLFWwindow* window, int w, int h)
 
 void keypressCallback(GLFWwindow* window, int key, int scancode, int action, int modifiers)
 {
-    
+    Application* app
+        = static_cast<Application*>(glfwGetWindowUserPointer(window));
+
+    if (app->scene() != nullptr)
+        app->scene()->onKeypress(Keyboard::Input::fromGlfw(key, action, modifiers)
+        );
 }
 
 Application::Application()
@@ -102,8 +107,19 @@ void Application::run()
 
         render();
 
-        scene_ = nextScene(scene_);
+        auto next = nextScene(scene_);
+        if (scene() != nullptr)
+            scene()->app_ = nullptr;
+        if (next != nullptr)
+            next->app_ = this;
     }
+}
+
+void Application::close() { glfwSetWindowShouldClose(window_, true); }
+
+bool Application::isKeyPressed(Keyboard::Key key) const
+{
+    return glfwGetKey(window_, static_cast<int>(key)) == GLFW_PRESS;
 }
 
 void Application::render() const
