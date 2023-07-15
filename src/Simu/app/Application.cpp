@@ -56,6 +56,11 @@ void frameBufferResizeCallback(GLFWwindow* window, int w, int h)
     }
 }
 
+void keypressCallback(GLFWwindow* window, int key, int scancode, int action, int modifiers)
+{
+    
+}
+
 Application::Application()
 {
     SIMU_ASSERT(glfwInit(), "glfw could not be initialised properly");
