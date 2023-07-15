@@ -40,6 +40,9 @@ public:
     float zoom() const;
     void  setZoom(float ratio);
 
+    void zoomIn() { setZoom(zoom() * 5.f / 4.f); }
+    void zoomOut() { setZoom(zoom() * 4.f / 5.f); }
+
     // The current center of the camera's view
     Vec2 center() const;
 
