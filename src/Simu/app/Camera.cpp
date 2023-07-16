@@ -50,6 +50,14 @@ Mat3 Camera::transform() const
     return scale * Transform::translation(-center());
 }
 
+Mat3 Camera::invTransform() const
+{
+    Vec2 dimensions = viewDimensions() / zoom();
+    Mat3 scale = Mat3::diagonal(Vec3{dimensions[0] / 2.f, dimensions[1] / 2.f, 1.f});
+
+    return Transform::translation(center()) * scale;
+}
+
 Vec2 Camera::viewDimensions() const { return viewDimensions_; }
 
 void Camera::setViewDimensions(Vec2 dimensions)

@@ -33,7 +33,9 @@ void Scene::preStep(float dt)
     if (app() == nullptr)
         return;
 
-    float panSpeed = 100.f * camera().pixelSize(); // 100 pixel / s
+    // 500 pixel / s at normal zoom
+    float panSpeed = 500.f * camera().pixelSize() * 1 / camera().zoom();
+
     Vec2  panDir{};
     if (app()->isKeyPressed(Keyboard::Key::left))
         panDir += Vec2{-1.f, 0.f};

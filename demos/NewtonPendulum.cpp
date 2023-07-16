@@ -30,19 +30,23 @@ class Triangle : public simu::Entity
 {
 public:
 
-    Triangle() {}
+    Triangle(simu::Vec2 pos = simu::Vec2{}) : pos{pos} {}
 
     void declarePhysics(simu::World&) override{};
 
     void draw(simu::Renderer& renderer)
     {
         renderer.drawTriangle(
-            simu::Vec2{0, 0},
-            simu::Vec2{1, 0},
-            simu::Vec2{0.5f, 0.5f},
-            simu::Rgba{255, 0, 0}
+            pos + simu::Vec2{0, 0},
+            pos + simu::Vec2{1, 0},
+            pos + simu::Vec2{0.5f, 0.5f},
+            simu::Rgba{225, 150, 240}
         );
     }
+
+private:
+
+    simu::Vec2 pos;
 };
 
 class NewtonPendulum : public simu::Scene
@@ -52,6 +56,18 @@ public:
     NewtonPendulum() { camera().setPixelSize(1.f / 100.f); }
 
     void init() override { this->makeEntity<Triangle>(); }
+
+    bool onMousePress(simu::Mouse::Input input) override
+    {
+        if (input.action == simu::Mouse::Action::press
+            && input.button == simu::Mouse::Button::left)
+        {
+            this->makeEntity<Triangle>(input.pos);
+            return true;
+        }
+        
+        return false;
+    }
 };
 
 class DummyApp : public simu::Application

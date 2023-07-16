@@ -52,6 +52,7 @@ public:
 
     // the transform takes lookingAt and maps it to x in [-1, 1] and y in [-1, 1].
     Mat3 transform() const;
+    Mat3 invTransform() const;
 
     // The desired size of a pixel in scene coordinates.
     float pixelSize() const { return pixelSize_; }
