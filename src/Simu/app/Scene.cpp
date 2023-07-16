@@ -22,45 +22,43 @@
 //
 ////////////////////////////////////////////////////////////
 
-#include "Simu/app/Camera.hpp"
-#include "Simu/physics/Transform.hpp"
+#include "Simu/app/Scene.hpp"
+#include "Simu/app/Application.hpp"
 
 namespace simu
 {
 
-
-Camera::Camera() {}
-
-float Camera::zoom() const { return zoom_; }
-void  Camera::setZoom(float ratio)
+void Scene::preStep(float dt)
 {
-    if (ratio > 0.f)
-        zoom_ = ratio;
-}
+    if (app() == nullptr)
+        return;
 
-Vec2 Camera::center() const { return center_; }
-void Camera::pan(Vec2 offset) { center_ += offset; }
-void Camera::panTo(Vec2 center) { pan(center - this->center()); }
+    float panSpeed = 100.f * camera().pixelSize(); // 100 pixel / s
+    Vec2  panDir{};
+    if (app()->isKeyPressed(Keyboard::Key::left))
+        panDir += Vec2{-1.f, 0.f};
+    if (app()->isKeyPressed(Keyboard::Key::right))
+        panDir += Vec2{1.f, 0.f};
+    if (app()->isKeyPressed(Keyboard::Key::up))
+        panDir += Vec2{0.f, 1.f};
+    if (app()->isKeyPressed(Keyboard::Key::down))
+        panDir += Vec2{0.f, -1.f};
 
-Mat3 Camera::transform() const
+    if (any(panDir != Vec2{0.f, 0.f}))
+        camera().pan(normalized(panDir) * panSpeed * dt);
+};
+
+bool Scene::onKeypress(Keyboard::Input input)
 {
-    Vec2 dimensions = viewDimensions() / zoom();
-    Mat3 scale = Mat3::diagonal(Vec3{2.f / dimensions[0], 2.f / dimensions[1], 1.f});
+    if ((input.key == Keyboard::Key::escape)
+        && (input.action == Keyboard::Action::press))
+    {
+        if (app() != nullptr)
+            app()->close();
 
-    return scale * Transform::translation(-center());
+        return true;
+    }
+
+    return false;
 }
-
-Vec2 Camera::viewDimensions() const { return viewDimensions_; }
-
-void Camera::setViewDimensions(Vec2 dimensions)
-{
-    if (all(dimensions > Vec2::filled(0.f)))
-        viewDimensions_ = dimensions;
-}
-
-void Camera::setDimensionsFromScreenCoordinates(Vec2 pixelDimensions)
-{
-    setViewDimensions(pixelDimensions * pixelSize());
-}
-
 } // namespace simu

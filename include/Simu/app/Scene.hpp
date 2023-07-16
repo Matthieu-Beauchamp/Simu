@@ -36,6 +36,8 @@
 namespace simu
 {
 
+class Application;
+
 class Scene
 {
 public:
@@ -49,24 +51,7 @@ public:
 protected:
 
     virtual void onClear(){};
-    virtual void preStep(float dt)
-    {
-        if (app_ == nullptr)
-            return;
-
-        float panSpeed = 10.f * camera().pixelSize(); // 10 pixel / s
-        Vec2  panDir{};
-        if (app_->isKeyPressed(Keyboard::Key::left))
-            panDir += Vec2{-1.f, 0.f};
-        if (app_->isKeyPressed(Keyboard::Key::right))
-            panDir += Vec2{1.f, 0.f};
-        if (app_->isKeyPressed(Keyboard::Key::up))
-            panDir += Vec2{0.f, 1.f};
-        if (app_->isKeyPressed(Keyboard::Key::down))
-            panDir += Vec2{0.f, -1.f};
-    
-        camera().pan(panDir * panSpeed * dt);
-    };
+    virtual void preStep(float dt);
 
     virtual void postStep(float dt){};
 
@@ -74,16 +59,16 @@ public:
 
     // returns true if the input was used
     // base Scene will use escape to close() the application
-    virtual bool onKeypress(Keyboard::Input input)
-    {
-        if ((input.key == Keyboard::Key::escape)
-            && (input.action == Keyboard::Action::press))
-        {
-            if (app_ != nullptr)
-                app_->close();
-        }
-    }
+    virtual bool onKeypress(Keyboard::Input input);
 
+    virtual bool onMousePress(Mouse::Input input) { return false; }
+    virtual bool onMouseMove(Vec2 newPos) { return false; }
+    virtual bool onMouseScroll(Vec2 scroll)
+    {
+        float zoomRatio = (scroll[1] < 0.f) ? 4.f / 5.f : 5.f / 4.f;
+        camera().setZoom(camera().zoom() * std::abs(scroll[1]) * zoomRatio);
+        return true;
+    }
 
     auto entities() { return makeView(entities_, DoubleDereference{}); }
     auto entities() const { return makeView(entities_, DoubleDereference{}); }
@@ -103,6 +88,7 @@ public:
 
     void render(Renderer& renderer)
     {
+        renderer.fillScreen(Rgba{50, 10, 50, 255});
         renderer.setCameraTransform(camera_.transform());
 
         for (Entity& e : entities())
@@ -122,6 +108,8 @@ public:
     Camera&       camera() { return camera_; }
     const Camera& camera() const { return camera_; }
 
+    Application*       app() { return app_; }
+    const Application* app() const { return app_; }
 
 protected:
 
@@ -130,7 +118,7 @@ protected:
     {
         auto ent = std::make_unique<T>(std::forward<Args>(args)...);
         ent->declarePhysics(world_);
-        return entities_.emplace_back(std::move(ent))->get();
+        return static_cast<T*>(entities_.emplace_back(std::move(ent)).get());
     }
 
     template <std::derived_from<Entity> T>
@@ -140,7 +128,7 @@ protected:
             entities_.begin(),
             entities_.end(),
             [=](const std::unique_ptr<Entity>& ptr) -> bool {
-                return ptr->get() == entity;
+                return ptr.get() == entity;
             }
         );
 
@@ -154,7 +142,7 @@ private:
     std::list<std::unique_ptr<Entity>> entities_{};
     Camera                             camera_{};
 
-    friend class Application;
+    friend Application;
     Application* app_ = nullptr;
 };
 

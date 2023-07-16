@@ -63,13 +63,13 @@ public:
 
     // updated by application, notably on window resizes.
     void setViewDimensions(Vec2 dimensions);
-    void setDimensionsFromPixels(Vec2 pixelDimensions);
+    void setDimensionsFromScreenCoordinates(Vec2 pixelDimensions);
 
 private:
 
     Vec2 center_{};
 
-    Vec2 viewDimensions_{100, 100}; // in scene units, ignoring zoom
+    Vec2 viewDimensions_{2, 2}; // in scene units, ignoring zoom
 
     float zoom_ = 1.f;              // zooms in if zoom > 1
 

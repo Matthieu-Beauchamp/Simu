@@ -49,10 +49,19 @@ void frameBufferResizeCallback(GLFWwindow* window, int w, int h)
 
     if (app->renderer_ != nullptr)
         app->renderer_->setViewport(Vec2i{0, 0}, dim);
+}
 
-    if (app->scene_ != nullptr)
+void windowResizeCallback(GLFWwindow* window, int w, int h)
+{
+    Application* app
+        = static_cast<Application*>(glfwGetWindowUserPointer(window));
+
+    Vec2i dim{w, h};
+    // TODO: Window content scale..?
+
+    if (app->scene() != nullptr)
     {
-        app->scene()->camera().setDimensionsFromPixels(Vec2{dim});
+        app->scene()->camera().setDimensionsFromScreenCoordinates(Vec2{dim});
     }
 }
 
@@ -66,6 +75,45 @@ void keypressCallback(GLFWwindow* window, int key, int scancode, int action, int
         );
 }
 
+void mouseMoveCallback(GLFWwindow* window, double x, double y)
+{
+    Application* app
+        = static_cast<Application*>(glfwGetWindowUserPointer(window));
+
+    Vec2i windowSize;
+    glfwGetWindowSize(window, &windowSize[0], &windowSize[1]);
+    Vector<double, 2> posFromBottomleft{x, windowSize[1] - y};
+
+    Vec2i frameBufferSize;
+    glfwGetFramebufferSize(window, &frameBufferSize[0], &frameBufferSize[1]);
+
+    // Vec2 screenToPixelRatios{
+    //     static_cast<float>()
+    // }
+
+    // if (app->scene() != nullptr) app->scene()->onMouseMove();
+}
+
+void mousePressCallback(GLFWwindow* window, double x, double y)
+{
+    Application* app
+        = static_cast<Application*>(glfwGetWindowUserPointer(window));
+
+    // if (app->scene() != nullptr)
+    //     app->scene()->onKeypress(Keyboard::Input::fromGlfw(key, action, modifiers)
+    //     );
+}
+
+void mouseScrollCallback(GLFWwindow* window, double x, double y)
+{
+    Application* app
+        = static_cast<Application*>(glfwGetWindowUserPointer(window));
+
+    if (app->scene() != nullptr)
+        app->scene()->onMouseScroll(Vec2{(float)x, (float)y});
+}
+
+
 Application::Application()
 {
     SIMU_ASSERT(glfwInit(), "glfw could not be initialised properly");
@@ -77,6 +125,12 @@ Application::Application()
     glfwSetWindowUserPointer(window_, this);
 
     glfwSetFramebufferSizeCallback(window_, frameBufferResizeCallback);
+    glfwSetWindowSizeCallback(window_, windowResizeCallback);
+
+    glfwSetKeyCallback(window_, keypressCallback);
+
+    glfwSetScrollCallback(window_, mouseScrollCallback);
+
 
     glfwMakeContextCurrent(window_);
     glbinding::initialize(glfwGetProcAddress);
@@ -102,16 +156,32 @@ void Application::run()
     {
         glfwPollEvents();
 
-        scene_->step(glfwGetTime());
+        float dt = glfwGetTime();
         glfwSetTime(0.0);
+
+        if (scene_ != nullptr)
+            scene_->step(dt);
 
         render();
 
-        auto next = nextScene(scene_);
-        if (scene() != nullptr)
-            scene()->app_ = nullptr;
-        if (next != nullptr)
-            next->app_ = this;
+        auto current = scene_;
+        auto next    = nextScene(current);
+        if (next != current)
+        {
+            scene_ = next;
+
+            if (current != nullptr)
+                current->app_ = nullptr;
+
+            if (next != nullptr)
+            {
+                next->app_ = this;
+
+                int w, h;
+                glfwGetWindowSize(window_, &w, &h);
+                windowResizeCallback(window_, w, h);
+            }
+        };
     }
 }
 

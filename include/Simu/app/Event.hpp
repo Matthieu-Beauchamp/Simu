@@ -29,23 +29,35 @@
 namespace simu
 {
 
-// redefine glfw's constants as enums to avoid leaking glfw's header into global namespace,
-//  keeping it encapsulated in .cpp files.
-class Keyboard
+class Event
 {
 public:
 
-    enum class Action;
+    enum class Action
+    {
+        release,
+        press,
+        repeat // only for Keyboard::Input
+    };
+};
+
+// redefine glfw's constants as enums to avoid leaking glfw's header into global namespace,
+//  keeping it encapsulated in .cpp files.
+class Keyboard : public Event
+{
+public:
+
     enum Modifier;
     enum class Key;
 
     struct Input
     {
-        static Input fromGlfw(int key, int action, int mods){
+        static Input fromGlfw(int key, int action, int mods)
+        {
             Input input;
-            input.action = static_cast<Action>(action);
+            input.action   = static_cast<Action>(action);
             input.modifier = static_cast<Modifier>(mods);
-            input.key = static_cast<Key>(key);
+            input.key      = static_cast<Key>(key);
             return input;
         }
 
@@ -56,12 +68,6 @@ public:
 
     static bool isPressed(Key key);
 
-    enum class Action
-    {
-        release,
-        press,
-        repeat
-    };
 
     enum Modifier
     {
@@ -216,5 +222,44 @@ public:
     };
 };
 
+
+class Mouse : public Event
+{
+public:
+
+    enum class Button
+    {
+        button1 = 0,
+        button2,
+        button3,
+        button4,
+        button5,
+        button6,
+        button7,
+        button8,
+
+        left   = button1,
+        right  = button2,
+        middle = button3
+    };
+
+    struct Input
+    {
+        static Input fromGlfw(Vec2 pos, int button, int action, int mods)
+        {
+            Input input{pos};
+            input.button    = static_cast<Button>(button);
+            input.action    = static_cast<Action>(action);
+            input.modifiers = static_cast<Keyboard::Modifier>(mods);
+            return input;
+        }
+
+        Vec2 pos; // given in scene coordinates
+
+        Button             button;
+        Action             action;
+        Keyboard::Modifier modifiers;
+    };
+};
 
 } // namespace simu

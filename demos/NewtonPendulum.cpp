@@ -26,17 +26,59 @@
 
 #include "Simu/app.hpp"
 
-class NewtonPendulum : public simu::Application
+class Triangle : public simu::Entity
 {
 public:
 
-    using simu::Application::Application;
+    Triangle() {}
+
+    void declarePhysics(simu::World&) override{};
+
+    void draw(simu::Renderer& renderer)
+    {
+        renderer.drawTriangle(
+            simu::Vec2{0, 0},
+            simu::Vec2{1, 0},
+            simu::Vec2{0.5f, 0.5f},
+            simu::Rgba{255, 0, 0}
+        );
+    }
 };
 
-int main() {
-    NewtonPendulum newtonPendulum{};
+class NewtonPendulum : public simu::Scene
+{
+public:
 
-    std::this_thread::sleep_for(std::chrono::seconds{5});
+    NewtonPendulum() { camera().setPixelSize(1.f / 100.f); }
+
+    void init() override { this->makeEntity<Triangle>(); }
+};
+
+class DummyApp : public simu::Application
+{
+public:
+
+    DummyApp() = default;
+
+    std::shared_ptr<simu::Scene>
+    nextScene(std::shared_ptr<simu::Scene> current) override
+    {
+        if (current == nullptr)
+        {
+            auto scene = std::make_shared<NewtonPendulum>();
+            scene->init();
+            return scene;
+        }
+
+        return current;
+    }
+};
+
+int main()
+{
+    DummyApp dummy{};
+
+    dummy.run();
 
     return 0;
 }
