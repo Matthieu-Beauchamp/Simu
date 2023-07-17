@@ -114,6 +114,27 @@ protected:
     ////////////////////////////////////////////////////////////
     virtual bool shouldDie() { return false; }
 
+    ////////////////////////////////////////////////////////////
+    /// \brief Called at the start of World::step, after dead objects are removed.
+    /// 
+    /// Subclasses should always call Base::preStep().
+    /// 
+    /// This is called for Body, Constraint and then for ForceField.
+    /// 
+    ////////////////////////////////////////////////////////////
+    virtual void preStep() {}
+
+    ////////////////////////////////////////////////////////////
+    /// \brief Called at the end of World::step.
+    /// 
+    /// Subclasses should always call Base::postStep().
+    /// 
+    /// This is called for Body, Constraint and then for ForceField.
+    /// 
+    ////////////////////////////////////////////////////////////
+    virtual void postStep() {}
+
+
 private:
 
     bool killed_ = false;

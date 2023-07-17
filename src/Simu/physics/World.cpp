@@ -24,11 +24,14 @@
 
 #include "Simu/physics/World.hpp"
 
-#include "Simu/physics/Constraint.hpp"
 #include "Simu/physics/Island.hpp"
 
 namespace simu
 {
+
+World::World(ContactFactory makeContact) : makeContactConstraint_{makeContact}
+{
+}
 
 void World::step(float dt)
 {
@@ -156,7 +159,7 @@ void World::detectContacts()
                 auto      contact = inContacts(bodies);
                 if (contact == contacts_.end())
                 {
-                    auto constraint = makeConstraint<ContactConstraint>(bodies);
+                    auto constraint = makeContactConstraint(bodies);
 
                     contacts_[bodies] = ContactStatus{0, constraint};
                 }

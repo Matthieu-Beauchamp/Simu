@@ -25,6 +25,7 @@
 #pragma once
 
 #include <memory>
+#include <functional>
 
 #include "Simu/config.hpp"
 #include "Simu/utility/View.hpp"
@@ -32,6 +33,7 @@
 #include "Simu/physics/RTree.hpp"
 #include "Simu/physics/Body.hpp"
 #include "Simu/physics/Bodies.hpp"
+#include "Simu/physics/Constraint.hpp"
 #include "Simu/physics/ForceField.hpp"
 
 namespace details
@@ -89,19 +91,18 @@ struct hash<simu::Bodies<2>>
 namespace simu
 {
 
-class Constraint;
 struct Island;
 
 ////////////////////////////////////////////////////////////
 /// \brief The World class makes the ForceField, Body and Constraint classes interact.
-/// 
-/// Collisions are detected discretely, and the corresponding constraints are 
+///
+/// Collisions are detected discretely, and the corresponding constraints are
 ///     managed by the world.
-/// 
-/// 
+///
+///
 /// The World owns all objects that are put into it.
 /// For object lifetime management, see PhysicsObject.
-/// 
+///
 ////////////////////////////////////////////////////////////
 class World
 {
@@ -118,11 +119,15 @@ public:
     typedef ForceField*       ForceFieldPtr;
     typedef const ForceField* ConstForceFieldPtr;
 
+    typedef std::function<std::unique_ptr<ContactConstraint>(Bodies<2>)> ContactFactory;
+
     ////////////////////////////////////////////////////////////
     /// \brief Construct an empty world
-    /// 
+    ///
     ////////////////////////////////////////////////////////////
-    World() = default;
+    World(ContactFactory makeContact = [](Bodies<2> b) {
+        return std::make_unique<ContactConstraint>(b);
+    });
 
     // clang-format off
 
@@ -157,7 +162,7 @@ public:
 
     ////////////////////////////////////////////////////////////
     /// \brief Construct a Body and puts it in the world
-    /// 
+    ///
     ////////////////////////////////////////////////////////////
     template <std::derived_from<Body> T, class... Args>
     T* makeBody(Args&&... args)
@@ -174,7 +179,7 @@ public:
 
     ////////////////////////////////////////////////////////////
     /// \brief Construct a Constraint and puts it in the world
-    /// 
+    ///
     ////////////////////////////////////////////////////////////
     template <std::derived_from<Constraint> T, class... Args>
     T* makeConstraint(Args&&... args)
@@ -196,8 +201,8 @@ public:
 
     ////////////////////////////////////////////////////////////
     /// \brief Construct a ForceField and puts it in the world
-    /// 
-    /// 
+    ///
+    ///
     ////////////////////////////////////////////////////////////
     template <std::derived_from<ForceField> T, class... Args>
     T* makeForceField(Args&&... args)
@@ -219,10 +224,10 @@ public:
 
     ////////////////////////////////////////////////////////////
     /// \brief Makes the world progress in time.
-    /// 
+    ///
     /// ForceFields are applied to non-structural bodies, contacts are updated,
     /// killed objects are removed, constraints are enforce and bodies are moved.
-    /// 
+    ///
     ////////////////////////////////////////////////////////////
     void step(float dt);
 
@@ -231,17 +236,17 @@ public:
     //  constraint should be queried to know wether or not they prevent contact between two of their bodies.
     ////////////////////////////////////////////////////////////
     /// \brief Declares that contacts between 2 bodies should not be enforced
-    /// 
+    ///
     /// If there already exist a contact between them, it is killed.
     /// As long as at least one conflict exists between the 2 bodies, they will
     ///     never collide.
-    /// 
+    ///
     ////////////////////////////////////////////////////////////
     void declareContactConflict(const Bodies<2>& bodies);
-    
+
     ////////////////////////////////////////////////////////////
     /// \brief Removes a contact conflict between 2 bodies.
-    /// 
+    ///
     /// \see declareContactConflict
     ////////////////////////////////////////////////////////////
     void removeContactConflict(const Bodies<2>& bodies);
@@ -271,7 +276,7 @@ public:
 
     ////////////////////////////////////////////////////////////
     /// \brief Updates the world's settings
-    /// 
+    ///
     ////////////////////////////////////////////////////////////
     void updateSettings(const Settings& settings)
     {
@@ -283,12 +288,28 @@ public:
     }
 
     ////////////////////////////////////////////////////////////
-    /// \brief Read the world's settings 
-    /// 
+    /// \brief Read the world's settings
+    ///
     ////////////////////////////////////////////////////////////
     const Settings& settings() const { return settings_; }
 
 private:
+
+    ContactConstraint* makeContactConstraint(Bodies<2> bodies)
+    {
+        auto c = makeContactConstraint_(bodies);
+        c->onConstruction(*this);
+
+        for (Body* body : c->bodies())
+        {
+            body->constraints_.emplace_back(c.get());
+            body->wake();
+        }
+
+        return static_cast<ContactConstraint*>(
+            constraints_.emplace_back(std::move(c)).get()
+        );
+    }
 
     template <std::derived_from<PhysicsObject> T, class... Args>
     std::unique_ptr<T> makeObject(Args&&... args)
@@ -333,6 +354,8 @@ private:
     }
 
     Settings settings_;
+
+    std::function<std::unique_ptr<ContactConstraint>(Bodies<2>)> makeContactConstraint_;
 };
 
 
