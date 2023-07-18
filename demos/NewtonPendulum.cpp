@@ -22,79 +22,52 @@
 //
 ////////////////////////////////////////////////////////////
 
-#include <thread>
+#include <numbers>
 
 #include "Simu/app.hpp"
-
 
 class NewtonPendulum : public simu::Scene
 {
 public:
 
-    NewtonPendulum() { camera().setPixelSize(1.f / 100.f); }
+    NewtonPendulum()
+    {
+        camera().setPixelSize(1.f / 10.f);
+        camera().panTo(simu::Vec2{0.f, 0.f});
+    }
 
     void init(simu::Renderer& renderer) override
     {
-        camera().setZoom(0.25f);
-
-        for (simu::Int32 x = -90; x < 90; x+= 5)
-            for (simu::Uint32 i = 0; i < 10; ++i)
-                makeStar(simu::Vec2{(float)x, (float)5 * i});
-
-
-        world().makeForceField<simu::Gravity>(simu::Vec2{0.f, -10.f});
-
         simu::BodyDescriptor descr{
             simu::Polygon{
-                          simu::Vertex{-100.f, -20.f},
-                          simu::Vertex{100.f, -20.f},
-                          simu::Vertex{100.f, -1.f},
-                          simu::Vertex{-100.f, -1.f}}
+                          simu::Vertex{-5.f, 2.f},
+                          simu::Vertex{5.f, 2.f},
+                          simu::Vertex{5.f, 3.f},
+                          simu::Vertex{-5.f, 3.f}}
         };
 
-        descr.dominance               = 0.f;
-        descr.material.friction.value = 0.8f;
-        world().makeBody<simu::VisibleBody>(descr, simu::Rgba{}, &renderer);
-    }
+        descr.dominance = 0.f;
+        auto bar
+            = world().makeBody<simu::VisibleBody>(descr, simu::Rgba{}, &renderer);
 
-    bool onMousePress(simu::Mouse::Input input) override
-    {
-        if (input.action == simu::Mouse::Action::press
-            && input.button == simu::Mouse::Button::left)
+
+        simu::Vertices v{};
+        for (int i = 0; i < 12; ++i)
         {
-            makeStar(input.pos);
-            return true;
+            float theta = i / (2.f * std::numbers::pi_v<float>);
+            v.emplace_back(simu::Vec2{std::cos(theta), std::sin(theta)});
         }
+        descr.polygon = simu::Polygon{v.begin(), v.end()};
 
-        return false;
+        for (int i = 0; i < 5; ++i)
+        {
+            // TODO: distance constraint from ball to bar.
+        }
     }
+
 
 private:
 
-    void makeStar(simu::Vec2 pos)
-    {
-        simu::BodyDescriptor descr{
-  //   simu::Polygon{
-  //                 simu::Vertex{-1.f, 0.f},
-  //                 simu::Vertex{0.f, -1.f},
-  //                 simu::Vertex{1.f, 0.f},
-  //                 simu::Vertex{0.f, 1.f}}
-            simu::Polygon{
-                          simu::Vertex{-1.f, -1.f},
-                          simu::Vertex{1.f, -1.f},
-                          simu::Vertex{1.f, 1.f},
-                          simu::Vertex{-1.f, 1.f}}
-        };
-
-        descr.position                  = pos;
-        descr.material.bounciness.value = 0.f;
-        descr.material.friction.value   = 0.5f;
-        world().makeBody<simu::VisibleBody>(
-            descr,
-            simu::Rgba{225, 150, 240},
-            app()->renderer()
-        );
-    }
 };
 
 class DummyApp : public simu::Application

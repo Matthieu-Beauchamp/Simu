@@ -38,7 +38,7 @@ template <class U>
 MatrixData<T, m, n>::MatrixData(const MatrixData<U, m, n>& other)
 {
     for (Uint32 i = 0; i < size(); ++i)
-        data[i] = other.data[i];
+        data[i] = static_cast<T>(other.data[i]);
 }
 
 template <class T, Uint32 m, Uint32 n>

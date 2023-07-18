@@ -61,7 +61,9 @@ void windowResizeCallback(GLFWwindow* window, int w, int h)
 
     if (app->scene() != nullptr)
     {
-        app->scene()->camera().setDimensionsFromScreenCoordinates(Vec2{dim});
+        app->scene()->camera().setDimensionsFromScreenCoordinates(
+            static_cast<Vec2>(dim)
+        );
     }
 }
 
@@ -193,10 +195,14 @@ void Application::run()
     {
         glfwPollEvents();
 
-        float dt = glfwGetTime();
+        float dt = static_cast<float>(glfwGetTime());
         glfwSetTime(0.0);
+
         std::stringstream ss{};
+        ss << "Elapsed: " << dt * 1000.f << " ms | using: ";
+        dt = std::min(dt, 1.f / 60.f);
         ss << dt * 1000.f << " ms";
+
         glfwSetWindowTitle(window_, ss.str().c_str());
 
         if (scene_ != nullptr)

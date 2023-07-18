@@ -135,7 +135,7 @@ gl::GLuint compileShader(gl::GLenum shaderType, const char* src)
     gl::GLuint shader = gl::glCreateShader(shaderType);
 
     // Get strings for glShaderSource.
-    gl::GLint len = std::strlen(src);
+    gl::GLint len = static_cast<gl::GLint>(std::strlen(src));
     gl::glShaderSource(shader, 1, &src, &len);
 
     gl::glCompileShader(shader);
@@ -260,13 +260,13 @@ OpenGlRenderer::~OpenGlRenderer()
 
 void OpenGlRenderer::drawPolygon(Vec2 center, Poly vertices, Rgba color)
 {
-    Uint16 centerIndex = vertices_.size();
+    Uint16 centerIndex = static_cast<Uint16>(vertices_.size());
 
     vertices_.emplace_back(center, color);
     for (Vec2 v : vertices)
         vertices_.emplace_back(v, color);
 
-    Uint16 end = vertices_.size();
+    Uint16 end = static_cast<Uint16>(vertices_.size());
 
     indices_.emplace_back(centerIndex);
     indices_.emplace_back(end - 1);
@@ -326,7 +326,8 @@ void OpenGlRenderer::flush()
     indices_.clear();
 }
 
-void OpenGlRenderer::fillScreen(Rgba color) {
+void OpenGlRenderer::fillScreen(Rgba color)
+{
     FloatRgba col = static_cast<FloatRgba>(color) / 255.f;
     gl::glClearColor(col[0], col[1], col[2], col[3]);
     gl::glClear(gl::GL_COLOR_BUFFER_BIT);

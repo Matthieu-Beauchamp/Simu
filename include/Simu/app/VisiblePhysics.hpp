@@ -31,6 +31,7 @@
 namespace simu
 {
 
+// TODO: Store pointer to scene instead of renderer, in case scene changes application.
 class Visible
 {
 public:
