@@ -58,7 +58,7 @@ public:
         return *this;
     }
 
-    Iterator operator++(int) { return Iterator{it_++}; }
+    Iterator operator++(int) { return Iterator{it_++, deref_}; }
 
     bool operator==(const Iterator& other) const { return it_ == other.it_; }
     bool operator!=(const Iterator& other) const { return it_ != other.it_; }

@@ -181,6 +181,7 @@ Application::Application()
 
 Application::~Application()
 {
+    renderer_.reset(nullptr);
     glfwDestroyWindow(window_);
     glfwTerminate();
 }
