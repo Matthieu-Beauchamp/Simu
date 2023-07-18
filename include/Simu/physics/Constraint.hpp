@@ -494,6 +494,7 @@ public:
 
     void solveVelocities(float dt) override
     {
+        // TODO: Use baumgarte?
         // if (normSquared(penetration_) >= maxPen_ * maxPen_)
         //     contactConstraint_->setRestitution(0.2f);
         // else
@@ -506,7 +507,8 @@ public:
 
     void solvePositions() override
     {
-        if (appliedVelocityConstraint_ && normSquared(penetration_) >= maxPen_ * maxPen_)
+        if (appliedVelocityConstraint_
+            && normSquared(penetration_) >= maxPen_ * maxPen_)
             contactConstraint_->solvePositions();
     }
 
@@ -526,11 +528,10 @@ public:
 
         return ContactInfo{};
     }
+
 protected:
 
-    void preStep() override {
-        appliedVelocityConstraint_ = false;
-    }
+    void preStep() override { appliedVelocityConstraint_ = false; }
 
 private:
 
@@ -540,7 +541,7 @@ private:
 
     Vec2  penetration_;
     float maxPen_;
-    bool appliedVelocityConstraint_ = false;
+    bool  appliedVelocityConstraint_ = false;
 
     void updateContact()
     {

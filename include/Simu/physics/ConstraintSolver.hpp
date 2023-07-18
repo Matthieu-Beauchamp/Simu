@@ -344,7 +344,14 @@ public:
 
         // this->updateLambda(bodies, f, dt, dLambda);
 
-        // using bounce as the restitution bias when the solver is initialized..
+
+        // computing the bounce from the relative normal velocities when the solver is initialized
+        // 
+        // Box stacking is unstable for bouncy bodies.
+        // Box2d uses a restitution threshold:
+        //  if the relative velocity is lower than the treshold, then apply 
+        //  restitution.
+        // This avoids the jittery bounces, allow stable contacts (that can sleep)
 
         Jacobian J     = this->getJacobian();
         auto     error = -(J * bodies.velocity())
