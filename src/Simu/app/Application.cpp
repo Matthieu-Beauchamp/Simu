@@ -188,6 +188,9 @@ void Application::run()
 
         float dt = glfwGetTime();
         glfwSetTime(0.0);
+        std::stringstream ss{};
+        ss << dt * 1000.f << " ms";
+        glfwSetWindowTitle(window_, ss.str().c_str());
 
         if (scene_ != nullptr)
             scene_->step(dt);

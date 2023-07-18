@@ -70,15 +70,17 @@ protected:
 
     void draw(Renderer& renderer) override
     {
-        Rgba contourColor = Rgba::filled(255) - color_;
+        // Rgba contourColor = Rgba::filled(255) - color_;
 
-        renderer.drawContouredPolygon(
-            properties().centroid,
-            collider().vertexView(),
-            color_,
-            contourColor,
-            100 * material().penetration.value
-        );
+        // renderer.drawContouredPolygon(
+        //     properties().centroid,
+        //     collider().vertexView(),
+        //     color_,
+        //     contourColor,
+        //     100 * material().penetration.value
+        // );
+
+        renderer.drawPolygon(properties().centroid, collider().vertexView(), color_);
     }
 
 private:

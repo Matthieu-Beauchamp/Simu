@@ -48,6 +48,8 @@ struct Material
     /// A value of 0 means the object does not bounce at all (all energy is
     /// lost) A value of 1 means the object fully bounces (no energy is lost)
     ///
+    /// behavior is undefined if e <= -1
+    ///
     /// This value is combined to obtain a coefficient of restitution:
     /// https://en.wikipedia.org/wiki/Coefficient_of_restitution
     ////////////////////////////////////////////////////////////
@@ -78,7 +80,7 @@ struct Material
     ///     than twice the Material's penetration between them.
     /// 
     ////////////////////////////////////////////////////////////
-    CombinableProperty penetration{1e-3f, CombinableProperty::average};
+    CombinableProperty penetration{1e-2f, CombinableProperty::average};
 };
 
 

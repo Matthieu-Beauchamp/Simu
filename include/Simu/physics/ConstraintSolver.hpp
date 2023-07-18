@@ -24,6 +24,8 @@
 
 #pragma once
 
+#include <iostream>
+
 #include "Simu/config.hpp"
 #include "Simu/math/Matrix.hpp"
 
@@ -325,20 +327,38 @@ public:
 
     void solveVelocity(Bodies<nBodies>& bodies, const F& f, float dt)
     {
-        auto error = this->computeRhs(bodies, f, dt, false);
-        auto initialGuess
-            = -(restitutionCoefficient_ / (1.f + restitutionCoefficient_))
-              * this->getAccumulatedLambda();
+        // auto error = this->computeRhs(bodies, f, dt, false);
+        // auto initialGuess
+        //     = -(restitutionCoefficient_ / (1.f + restitutionCoefficient_))
+        //       * this->getAccumulatedLambda();
 
-        Value x = solveInequalities(
+        // Value x = solveInequalities(
+        //     effectiveMass_,
+        //     error,
+        //     [this](Value x) { return this->clampX(x); },
+        //     initialGuess
+        // );
+
+        // Value dLambda = (1.f + restitutionCoefficient_) * x
+        //                 + restitutionCoefficient_ * this->getAccumulatedLambda();
+
+        // this->updateLambda(bodies, f, dt, dLambda);
+
+        // using bounce as the restitution bias when the solver is initialized..
+
+        Jacobian J     = this->getJacobian();
+        auto     error = -(J * bodies.velocity())
+                     + effectiveMass_ * this->getAccumulatedLambda();
+        error -= bounce_;
+
+        Value lambda = solveInequalities(
             effectiveMass_,
             error,
-            [this](Value lambda) { return this->clampLambda(lambda); },
-            initialGuess
+            [=, &f](Value lambda) { return f.clampLambda(lambda, dt); },
+            this->getAccumulatedLambda()
         );
 
-        Value dLambda = (1.f + restitutionCoefficient_) * x
-                        + restitutionCoefficient_ * this->getAccumulatedLambda();
+        Value dLambda = lambda - this->getAccumulatedLambda();
 
         this->updateLambda(bodies, f, dt, dLambda);
     }
@@ -350,12 +370,17 @@ public:
         Jacobian J     = f.jacobian(bodies);
         effectiveMass_ = J * bodies.inverseMass() * transpose(J);
 
-        Solver<float, F::dimension> s{effectiveMass_};
-        if (!s.isValid())
-            return; // Jacobians are parallel, TODO:
+        Value posLambda
+            = solveInequalities(effectiveMass_, -error, [&f](Value posLambda) {
+                  return f.clampPositionLambda(posLambda);
+              });
 
-        Value posLambda = s.solve(-error);
-        posLambda       = f.clampPositionLambda(posLambda);
+        // Solver<float, F::dimension> s{effectiveMass_};
+        // if (!s.isValid())
+        //     return; // Jacobians are parallel, TODO:
+
+        // Value posLambda = s.solve(-error);
+        // posLambda       = f.clampPositionLambda(posLambda);
 
         State positionCorrection
             = bodies.inverseMass() * transpose(J) * posLambda;
@@ -368,15 +393,19 @@ private:
 
     void initSolver(const Bodies<nBodies>& bodies, const F& f)
     {
-        effectiveMass_ = this->computeEffectiveMass(bodies, f, true);
+        effectiveMass_ = this->computeEffectiveMass(bodies, f, false);
+        bounce_
+            = restitutionCoefficient_ * this->getJacobian() * bodies.velocity();
+        bounce_ = std::min(Value::filled(0.f), bounce_);
     }
 
-    typename F::Value clampLambda(typename F::Value x)
+    typename F::Value clampX(typename F::Value x)
     {
         return std::max(x, -this->getAccumulatedLambda());
     }
 
     float   restitutionCoefficient_;
+    Value   bounce_;
     KMatrix effectiveMass_;
 };
 

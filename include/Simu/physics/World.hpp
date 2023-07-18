@@ -256,12 +256,12 @@ public:
         ////////////////////////////////////////////////////////////
         /// \brief Number of velocity solver iterations
         ////////////////////////////////////////////////////////////
-        Uint32 nVelocityIterations = 10;
+        Uint32 nVelocityIterations = 8;
 
         ////////////////////////////////////////////////////////////
         /// \brief Number of position solver iterations
         ////////////////////////////////////////////////////////////
-        Uint32 nPositionIterations = 3;
+        Uint32 nPositionIterations = 2;
 
         // TODO: Epsilons, iterate until change < epsilon or iter >= maxIter.
 

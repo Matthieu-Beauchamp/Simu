@@ -406,11 +406,11 @@ public:
     typedef ContactManifold<Collider> Manifold;
 
     NonPenetrationConstraintFunction(
-        const Bodies<nBodies>&         bodies,
-        const Manifold& manifold,
-        Uint32          contactIndex
+        const Bodies<nBodies>& bodies,
+        const Manifold&        manifold,
+        Uint32                 contactIndex
     )
-        : normal_{(manifold.incidentIndex() == 0 ? 1.f:-1.f) * normalized(manifold.contactNormal)},
+        : normal_{normalized(manifold.contactNormal)},
           reference_{manifold.referenceIndex()}
     {
         normal_ = Transform::linear(bodies[reference_]->toLocalSpace(), normal_);
@@ -425,7 +425,7 @@ public:
     Vec2 contactDistance(const Bodies<nBodies>& bodies) const
     {
         auto contacts = worldSpaceContacts(bodies);
-        return contacts[0] - contacts[1];
+        return contacts[incident()] - contacts[reference()];
     }
 
     Value eval(const Bodies<nBodies>& bodies) const
@@ -441,17 +441,17 @@ public:
 
         Vec2 n = normal(bodies);
 
-        Jacobian J{
-            n[0],
-            n[1],
-            cross(contacts[0] - bodies[0]->properties().centroid, n),
-            -n[0],
-            -n[1],
-            -cross(contacts[1] - bodies[1]->properties().centroid, n)};
+        Jacobian J{};
+        Uint32   i = incident();
+        Uint32   r = reference();
 
-        Uint32 incident = reference_ == 0 ? 1 : 0;
-        J[3 * reference_ + 2]
-            += cross(n, contacts[incident] - contacts[reference_]);
+        J[3 * i]     = n[0];
+        J[3 * i + 1] = n[1];
+        J[3 * i + 2] = cross(contacts[i] - bodies[i]->properties().centroid, n);
+        J[3 * r]     = -n[0];
+        J[3 * r + 1] = -n[1];
+        J[3 * r + 2] = -cross(contacts[r] - bodies[r]->properties().centroid, n);
+                    //    + cross(n, contacts[i] - contacts[r]);
 
         return J;
     }

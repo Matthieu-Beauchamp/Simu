@@ -224,6 +224,8 @@ public:
     virtual Uint32 nContacts() const = 0;
 
     virtual ContactInfo contactInfo(Bodies<2> bodies) const = 0;
+
+    virtual void setRestitution(float beta) = 0;
 };
 
 class SingleContactConstraint : public ConstraintImplementation<
@@ -286,6 +288,11 @@ public:
 
         info.normal = f.normal(bodies);
         return info;
+    }
+
+    void setRestitution(float beta) override
+    {
+        solver.restitution() = Value::filled(beta);
     }
 
 private:
@@ -373,6 +380,11 @@ public:
         return info;
     }
 
+    void setRestitution(float beta) override
+    {
+        solver.restitution() = Value::filled(beta);
+    }
+
 private:
 
     static DoubleContactFunction
@@ -449,7 +461,13 @@ class ContactConstraint : public Constraint
 {
 public:
 
-    ContactConstraint(const Bodies<2>& bodies) : contact_{bodies} {}
+    ContactConstraint(const Bodies<2>& bodies) : contact_{bodies}
+    {
+        maxPen_ = CombinableProperty{
+            contact_.bodies[0]->material().penetration,
+            contact_.bodies[1]->material().penetration
+        }.value;
+    }
 
     bool shouldDie() override
     {
@@ -475,12 +493,21 @@ public:
 
     void solveVelocities(float dt) override
     {
+        // if (normSquared(penetration_) >= maxPen_ * maxPen_)
+        //     contactConstraint_->setRestitution(0.2f);
+        // else
+        //     contactConstraint_->setRestitution(0.f);
+
         frictionConstraint_->solveVelocities(dt);
         contactConstraint_->solveVelocities(dt);
         frictionConstraint_->setNormalLambda(contactConstraint_->lambdaHint());
     }
 
-    void solvePositions() override { contactConstraint_->solvePositions(); }
+    void solvePositions() override
+    {
+        if (normSquared(penetration_) >= maxPen_ * maxPen_)
+            contactConstraint_->solvePositions();
+    }
 
     BodiesView      bodies() override { return contact_.bodies.view(); }
     ConstBodiesView bodies() const override { return contact_.bodies.view(); }
@@ -505,23 +532,22 @@ private:
     std::unique_ptr<ContactConstraintI> contactConstraint_  = nullptr;
     std::unique_ptr<FrictionConstraint> frictionConstraint_ = nullptr;
 
+    Vec2  penetration_;
+    float maxPen_;
+
     void updateContact()
     {
-        auto gjk         = contact_.makeGjk();
-        Vec2 penetration = gjk.penetration();
-
-        float maxPen = CombinableProperty{
-            contact_.bodies[0]->material().penetration,
-            contact_.bodies[1]->material().penetration
-        }.value;
+        auto gjk     = contact_.makeGjk();
+        penetration_ = gjk.penetration();
 
         bool hasNoConstraint = (contactConstraint_ == nullptr);
 
-        bool canComputeNewManifold = normSquared(penetration) >= maxPen * maxPen;
+        bool canComputeNewManifold
+            = normSquared(penetration_) >= maxPen_ * maxPen_;
         if (!canComputeNewManifold)
         {
             if (!hasNoConstraint
-                && !contactConstraint_->isContactValid(contact_.bodies, maxPen))
+                && !contactConstraint_->isContactValid(contact_.bodies, maxPen_))
             {
                 contactConstraint_ = nullptr;
             }

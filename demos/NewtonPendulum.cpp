@@ -35,15 +35,21 @@ public:
 
     void init(simu::Renderer& renderer) override
     {
-        makeStar(simu::Vec2{});
+        camera().setZoom(0.25f);
+
+        for (simu::Int32 x = -90; x < 90; x+= 5)
+            for (simu::Uint32 i = 0; i < 10; ++i)
+                makeStar(simu::Vec2{(float)x, (float)5 * i});
+
+
         world().makeForceField<simu::Gravity>(simu::Vec2{0.f, -10.f});
 
         simu::BodyDescriptor descr{
             simu::Polygon{
                           simu::Vertex{-100.f, -20.f},
                           simu::Vertex{100.f, -20.f},
-                          simu::Vertex{100.f, -5.f},
-                          simu::Vertex{-100.f, -5.f}}
+                          simu::Vertex{100.f, -1.f},
+                          simu::Vertex{-100.f, -1.f}}
         };
 
         descr.dominance               = 0.f;
@@ -68,11 +74,11 @@ private:
     void makeStar(simu::Vec2 pos)
     {
         simu::BodyDescriptor descr{
-  // simu::Polygon{
-  //               simu::Vertex{-1.f, 0.f},
-  //               simu::Vertex{0.f, -1.f},
-  //               simu::Vertex{1.f, 0.f},
-  //               simu::Vertex{0.f, 1.f}}
+  //   simu::Polygon{
+  //                 simu::Vertex{-1.f, 0.f},
+  //                 simu::Vertex{0.f, -1.f},
+  //                 simu::Vertex{1.f, 0.f},
+  //                 simu::Vertex{0.f, 1.f}}
             simu::Polygon{
                           simu::Vertex{-1.f, -1.f},
                           simu::Vertex{1.f, -1.f},
@@ -81,7 +87,7 @@ private:
         };
 
         descr.position                  = pos;
-        descr.material.bounciness.value = 0.5f;
+        descr.material.bounciness.value = 0.f;
         descr.material.friction.value   = 0.5f;
         world().makeBody<simu::VisibleBody>(
             descr,
