@@ -25,6 +25,7 @@
 #pragma once
 
 #include "Simu/config.hpp"
+#include "Simu/math/Matrix.hpp"
 
 namespace simu
 {
@@ -247,7 +248,8 @@ public:
     {
         static Input fromGlfw(Vec2 pos, int button, int action, int mods)
         {
-            Input input{pos};
+            Input input;
+            input.pos = pos;
             input.button    = static_cast<Button>(button);
             input.action    = static_cast<Action>(action);
             input.modifiers = static_cast<Keyboard::Modifier>(mods);

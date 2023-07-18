@@ -65,7 +65,13 @@ void windowResizeCallback(GLFWwindow* window, int w, int h)
     }
 }
 
-void keypressCallback(GLFWwindow* window, int key, int scancode, int action, int modifiers)
+void keypressCallback(
+    GLFWwindow* window,
+    int         key,
+    int /* scancode */,
+    int action,
+    int modifiers
+)
 {
     Application* app
         = static_cast<Application*>(glfwGetWindowUserPointer(window));

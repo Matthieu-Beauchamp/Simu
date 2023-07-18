@@ -54,9 +54,9 @@ protected:
     virtual void init(Renderer& renderer) = 0;
 
     virtual void onClear(){};
-    virtual void preStep(float dt);
+    virtual void preStep(float /* dt */);
 
-    virtual void postStep(float dt){};
+    virtual void postStep(float /* dt */){};
 
 public:
 
@@ -66,8 +66,8 @@ public:
     // base Scene will use escape to close() the application
     virtual bool onKeypress(Keyboard::Input input);
 
-    virtual bool onMousePress(Mouse::Input input) { return false; }
-    virtual bool onMouseMove(Vec2 newPos) { return false; }
+    virtual bool onMousePress(Mouse::Input /* input */) { return false; }
+    virtual bool onMouseMove(Vec2 /* newPos */) { return false; }
     virtual bool onMouseScroll(Vec2 scroll)
     {
         float zoomRatio = (scroll[1] < 0.f) ? 4.f / 5.f : 5.f / 4.f;

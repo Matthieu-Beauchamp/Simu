@@ -23,6 +23,7 @@
 ////////////////////////////////////////////////////////////
 
 #include <numbers>
+#include <cstring>
 
 #include "glbinding/gl33core/gl.h"
 
@@ -141,7 +142,7 @@ gl::GLuint compileShader(gl::GLenum shaderType, const char* src)
 
     gl::GLint isCompiled = 0;
     gl::glGetShaderiv(shader, gl::GL_COMPILE_STATUS, &isCompiled);
-    if (isCompiled == gl::GL_FALSE)
+    if (isCompiled == 0)
     {
         gl::GLint maxLength = 0;
         gl::glGetShaderiv(shader, gl::GL_INFO_LOG_LENGTH, &maxLength);
@@ -185,7 +186,7 @@ gl::GLuint compileShaderProgram(const char* vSrc, const char* fSrc)
     // Note the different functions here: glGetProgram* instead of glGetShader*.
     gl::GLint isLinked = 0;
     gl::glGetProgramiv(program, gl::GL_LINK_STATUS, (int*)&isLinked);
-    if (isLinked == gl::GL_FALSE)
+    if (isLinked == 0)
     {
         gl::GLint maxLength = 0;
         gl::glGetProgramiv(program, gl::GL_INFO_LOG_LENGTH, &maxLength);
