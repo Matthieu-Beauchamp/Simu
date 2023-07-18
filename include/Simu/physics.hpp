@@ -27,3 +27,4 @@
 #include "Simu/math.hpp"
 
 #include "Simu/physics/World.hpp"
+#include "Simu/physics/Constraint.hpp"

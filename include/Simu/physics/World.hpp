@@ -33,7 +33,6 @@
 #include "Simu/physics/RTree.hpp"
 #include "Simu/physics/Body.hpp"
 #include "Simu/physics/Bodies.hpp"
-#include "Simu/physics/Constraint.hpp"
 #include "Simu/physics/ForceField.hpp"
 
 namespace details
@@ -91,6 +90,8 @@ struct hash<simu::Bodies<2>>
 namespace simu
 {
 
+class Constraint;
+class ContactConstraint;
 struct Island;
 
 ////////////////////////////////////////////////////////////
@@ -120,14 +121,13 @@ public:
     typedef const ForceField* ConstForceFieldPtr;
 
     typedef std::function<std::unique_ptr<ContactConstraint>(Bodies<2>)> ContactFactory;
+    static ContactFactory defaultContactFactory;
 
     ////////////////////////////////////////////////////////////
     /// \brief Construct an empty world
     ///
     ////////////////////////////////////////////////////////////
-    World(ContactFactory makeContact = [](Bodies<2> b) {
-        return std::make_unique<ContactConstraint>(b);
-    });
+    World(ContactFactory makeContact = defaultContactFactory);
 
     // clang-format off
 
@@ -295,21 +295,7 @@ public:
 
 private:
 
-    ContactConstraint* makeContactConstraint(Bodies<2> bodies)
-    {
-        auto c = makeContactConstraint_(bodies);
-        c->onConstruction(*this);
-
-        for (Body* body : c->bodies())
-        {
-            body->constraints_.emplace_back(c.get());
-            body->wake();
-        }
-
-        return static_cast<ContactConstraint*>(
-            constraints_.emplace_back(std::move(c)).get()
-        );
-    }
+    ContactConstraint* makeContactConstraint(Bodies<2> bodies);
 
     template <std::derived_from<PhysicsObject> T, class... Args>
     std::unique_ptr<T> makeObject(Args&&... args)

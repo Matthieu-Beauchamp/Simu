@@ -192,7 +192,7 @@ void Application::run()
         if (scene_ != nullptr)
             scene_->step(dt);
 
-        render();
+        show();
 
         auto current = scene_;
         auto next    = nextScene(current);
@@ -201,11 +201,15 @@ void Application::run()
             scene_ = next;
 
             if (current != nullptr)
-                current->app_ = nullptr;
+            {
+                current->app_      = nullptr;
+                current->renderer_ = nullptr;
+            }
 
             if (next != nullptr)
             {
-                next->app_ = this;
+                if (!next->isInit() || next->app_ != this)
+                    next->init(this);
 
                 int w, h;
                 glfwGetWindowSize(window_, &w, &h);
@@ -222,12 +226,6 @@ bool Application::isKeyPressed(Keyboard::Key key) const
     return glfwGetKey(window_, static_cast<int>(key)) == GLFW_PRESS;
 }
 
-void Application::render() const
-{
-    if (scene_ != nullptr)
-        scene_->render(*renderer_);
-
-    glfwSwapBuffers(window_);
-}
+void Application::show() const { glfwSwapBuffers(window_); }
 
 } // namespace simu

@@ -77,6 +77,14 @@ public:
     Vertices::iterator       end() { return transformed_.end(); }
     Vertices::const_iterator end() const { return transformed_.end(); }
 
+    auto vertexView() const
+    {
+        return makeView(
+            transformed_.data(),
+            transformed_.data() + transformed_.size()
+        );
+    }
+
     ////////////////////////////////////////////////////////////
     /// Changes the transform of the Collider applied to the local space geometry
     ////////////////////////////////////////////////////////////

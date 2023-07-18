@@ -439,7 +439,7 @@ public:
     {
         auto contacts = worldSpaceContacts(bodies);
 
-        Vec2 n = Transform::linear(bodies[reference_]->toWorldSpace(), normal_);
+        Vec2 n = normal(bodies);
 
         Jacobian J{
             n[0],
@@ -456,14 +456,21 @@ public:
         return J;
     }
 
-private:
-
+    Uint32              reference() const { return reference_; }
+    Uint32              incident() const { return reference_ == 0 ? 1 : 0; }
     std::array<Vec2, 2> worldSpaceContacts(const Bodies<nBodies>& bodies) const
     {
         return std::array<Vec2, 2>{
             bodies[0]->toWorldSpace() * localSpaceContacts_[0],
             bodies[1]->toWorldSpace() * localSpaceContacts_[1]};
     }
+
+    Vec2 normal(const Bodies<nBodies>& bodies) const
+    {
+        return Transform::linear(bodies[reference_]->toWorldSpace(), normal_);
+    }
+
+private:
 
     std::array<Vec2, 2> localSpaceContacts_;
     Vec2                normal_;

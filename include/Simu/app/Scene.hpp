@@ -26,12 +26,14 @@
 
 #include "Simu/config.hpp"
 
+#include "Simu/physics.hpp"
+
 #include "Simu/utility/View.hpp"
 
 #include "Simu/app/Renderer.hpp"
 #include "Simu/app/Camera.hpp"
-#include "Simu/app/Entity.hpp"
 #include "Simu/app/Event.hpp"
+#include "Simu/app/VisiblePhysics.hpp"
 
 namespace simu
 {
@@ -45,10 +47,11 @@ public:
     Scene()          = default;
     virtual ~Scene() = default;
 
-    virtual void init() = 0;
-    // TODO: virtual void processEvent(Event& e);
+    bool isInit() const { return isInit_; }
 
 protected:
+
+    virtual void init(Renderer& renderer) = 0;
 
     virtual void onClear(){};
     virtual void preStep(float dt);
@@ -56,6 +59,8 @@ protected:
     virtual void postStep(float dt){};
 
 public:
+
+    // TODO: In protected...
 
     // returns true if the input was used
     // base Scene will use escape to close() the application
@@ -70,39 +75,24 @@ public:
         return true;
     }
 
-    auto entities() { return makeView(entities_, DoubleDereference{}); }
-    auto entities() const { return makeView(entities_, DoubleDereference{}); }
-
-
-    void clear()
-    {
-        this->onClear();
-        entities_.clear();
-    };
+    /////////////
 
     void reset()
     {
-        clear();
-        this->init();
+        world_ = makeWorld();
+        this->init(*renderer_);
     }
-
-    void render(Renderer& renderer)
-    {
-        renderer.fillScreen(Rgba{50, 10, 50, 255});
-        renderer.setCameraTransform(camera_.transform());
-
-        for (Entity& e : entities())
-            e.draw(renderer);
-
-        renderer.flush();
-    }
-
 
     void step(float dt)
     {
+        renderer_->fillScreen(Rgba{50, 10, 50, 255});
+        renderer_->setCameraTransform(camera_.transform());
+
         this->preStep(dt);
         world_.step(dt);
         this->postStep(dt);
+
+        renderer_->flush();
     }
 
     Camera&       camera() { return camera_; }
@@ -111,39 +101,30 @@ public:
     Application*       app() { return app_; }
     const Application* app() const { return app_; }
 
-protected:
-
-    template <std::derived_from<Entity> T, class... Args>
-    T* makeEntity(Args&&... args)
-    {
-        auto ent = std::make_unique<T>(std::forward<Args>(args)...);
-        ent->declarePhysics(world_);
-        return static_cast<T*>(entities_.emplace_back(std::move(ent)).get());
-    }
-
-    template <std::derived_from<Entity> T>
-    void removeEntity(T* entity)
-    {
-        auto it = std::find_if(
-            entities_.begin(),
-            entities_.end(),
-            [=](const std::unique_ptr<Entity>& ptr) -> bool {
-                return ptr.get() == entity;
-            }
-        );
-
-        if (it != entities_.end())
-            entities_.erase(it);
-    }
+    World&       world() { return world_; }
+    const World& world() const { return world_; }
 
 private:
 
-    World                              world_{};
-    std::list<std::unique_ptr<Entity>> entities_{};
-    Camera                             camera_{};
-
+    // called by Application
     friend Application;
-    Application* app_ = nullptr;
+    void init(Application* app);
+
+    World makeWorld()
+    {
+        Renderer* r = this->renderer_;
+        return World([=](Bodies<2> bodies) {
+            return std::make_unique<VisibleContactConstraint>(bodies, r);
+        });
+    }
+
+    World  world_{};
+    Camera camera_{};
+
+    Renderer*    renderer_ = nullptr;
+    Application* app_      = nullptr;
+
+    bool isInit_ = false;
 };
 
 

@@ -196,6 +196,16 @@ private:
 };
 
 
+struct ContactInfo
+{
+    std::array<Vec2, 2> refContacts;
+    std::array<Vec2, 2> incContacts;
+    Uint32              nContacts;
+
+    Vec2 normal;
+};
+
+
 class ContactConstraintI : public Constraint
 {
 public:
@@ -212,6 +222,8 @@ public:
     virtual Impulse          impulseHint() const = 0;
 
     virtual Uint32 nContacts() const = 0;
+
+    virtual ContactInfo contactInfo(Bodies<2> bodies) const = 0;
 };
 
 class SingleContactConstraint : public ConstraintImplementation<
@@ -261,6 +273,20 @@ public:
     }
 
     Uint32 nContacts() const override { return 1; }
+
+
+    ContactInfo contactInfo(Bodies<2> bodies) const override
+    {
+        ContactInfo info;
+        info.nContacts = 1;
+
+        auto worldContacts  = f.worldSpaceContacts(bodies);
+        info.refContacts[0] = worldContacts[f.reference()];
+        info.incContacts[0] = worldContacts[f.incident()];
+
+        info.normal = f.normal(bodies);
+        return info;
+    }
 
 private:
 
@@ -326,6 +352,26 @@ public:
     }
 
     Uint32 nContacts() const override { return 2; }
+
+    ContactInfo contactInfo(Bodies<2> bodies) const override
+    {
+        ContactInfo info;
+        info.nContacts = 2;
+
+        auto c0             = std::get<0>(f.constraints);
+        auto worldContacts  = c0.worldSpaceContacts(bodies);
+        info.refContacts[0] = worldContacts[c0.reference()];
+        info.incContacts[0] = worldContacts[c0.incident()];
+
+        auto c1             = std::get<1>(f.constraints);
+        worldContacts       = c1.worldSpaceContacts(bodies);
+        info.refContacts[1] = worldContacts[c1.reference()];
+        info.incContacts[1] = worldContacts[c1.incident()];
+
+        info.normal = c0.normal(bodies);
+
+        return info;
+    }
 
 private:
 
@@ -443,6 +489,15 @@ public:
     {
         return body->isStructural();
     };
+
+
+    ContactInfo contactInfo() const
+    {
+        if (contactConstraint_ != nullptr)
+            return contactConstraint_->contactInfo(contact_.bodies);
+
+        return ContactInfo{};
+    }
 
 private:
 

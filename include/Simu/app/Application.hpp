@@ -52,15 +52,16 @@ public:
 
     bool isKeyPressed(Keyboard::Key key) const;
 
+    Renderer* renderer() { return renderer_.get(); }
+
 protected:
 
     virtual std::shared_ptr<Scene> nextScene(std::shared_ptr<Scene> current) = 0;
 
 
-
 private:
 
-    void render() const;
+    void show() const;
 
     friend void frameBufferResizeCallback(GLFWwindow* window, int w, int h);
 

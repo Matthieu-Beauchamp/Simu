@@ -60,6 +60,15 @@ void World::step(float dt)
     cleanup();
     detectContacts();
 
+
+    for (Body& b : bodies())
+        b.preStep();
+    for (Constraint& c : constraints())
+        c.preStep();
+    for (ForceField& f : forceFields())
+        f.preStep();
+
+
     // TODO: with some additionnal management code,
     //  islands can be made to persist between steps, possibly reducing computation.
     Islands islands(bodies());
@@ -81,6 +90,13 @@ void World::step(float dt)
             applyPositionConstraints(island);
 
     updateBodies(dt);
+
+    for (Body& b : bodies())
+        b.postStep();
+    for (Constraint& c : constraints())
+        c.postStep();
+    for (ForceField& f : forceFields())
+        f.postStep();
 }
 
 void World::declareContactConflict(const Bodies<2>& bodies)
@@ -113,6 +129,24 @@ void World::removeContactConflict(const Bodies<2>& bodies)
     }
 }
 
+typename World::ContactFactory World::defaultContactFactory
+    = [](Bodies<2> b) { return std::make_unique<ContactConstraint>(b); };
+
+ContactConstraint* World::makeContactConstraint(Bodies<2> bodies)
+{
+    auto c = makeContactConstraint_(bodies);
+    c->onConstruction(*this);
+
+    for (Body* body : c->bodies())
+    {
+        body->constraints_.emplace_back(c.get());
+        body->wake();
+    }
+
+    return static_cast<ContactConstraint*>(
+        constraints_.emplace_back(std::move(c)).get()
+    );
+}
 
 void World::applyForces(float dt)
 {

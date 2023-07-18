@@ -47,7 +47,7 @@ class Keyboard : public Event
 {
 public:
 
-    enum Modifier;
+    enum Modifier : int;
     enum class Key;
 
     struct Input
@@ -69,7 +69,7 @@ public:
     static bool isPressed(Key key);
 
 
-    enum Modifier
+    enum Modifier : int
     {
         shift    = (1 << 0),
         control  = (1 << 1),

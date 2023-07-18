@@ -26,28 +26,6 @@
 
 #include "Simu/app.hpp"
 
-class Triangle : public simu::Entity
-{
-public:
-
-    Triangle(simu::Vec2 pos = simu::Vec2{}) : pos{pos} {}
-
-    void declarePhysics(simu::World&) override{};
-
-    void draw(simu::Renderer& renderer)
-    {
-        renderer.drawTriangle(
-            pos + simu::Vec2{0, 0},
-            pos + simu::Vec2{1, 0},
-            pos + simu::Vec2{0.5f, 0.5f},
-            simu::Rgba{225, 150, 240}
-        );
-    }
-
-private:
-
-    simu::Vec2 pos;
-};
 
 class NewtonPendulum : public simu::Scene
 {
@@ -55,18 +33,61 @@ public:
 
     NewtonPendulum() { camera().setPixelSize(1.f / 100.f); }
 
-    void init() override { this->makeEntity<Triangle>(); }
+    void init(simu::Renderer& renderer) override
+    {
+        makeStar(simu::Vec2{});
+        world().makeForceField<simu::Gravity>(simu::Vec2{0.f, -10.f});
+
+        simu::BodyDescriptor descr{
+            simu::Polygon{
+                          simu::Vertex{-100.f, -20.f},
+                          simu::Vertex{100.f, -20.f},
+                          simu::Vertex{100.f, -5.f},
+                          simu::Vertex{-100.f, -5.f}}
+        };
+
+        descr.dominance               = 0.f;
+        descr.material.friction.value = 0.8f;
+        world().makeBody<simu::VisibleBody>(descr, simu::Rgba{}, &renderer);
+    }
 
     bool onMousePress(simu::Mouse::Input input) override
     {
         if (input.action == simu::Mouse::Action::press
             && input.button == simu::Mouse::Button::left)
         {
-            this->makeEntity<Triangle>(input.pos);
+            makeStar(input.pos);
             return true;
         }
-        
+
         return false;
+    }
+
+private:
+
+    void makeStar(simu::Vec2 pos)
+    {
+        simu::BodyDescriptor descr{
+  // simu::Polygon{
+  //               simu::Vertex{-1.f, 0.f},
+  //               simu::Vertex{0.f, -1.f},
+  //               simu::Vertex{1.f, 0.f},
+  //               simu::Vertex{0.f, 1.f}}
+            simu::Polygon{
+                          simu::Vertex{-1.f, -1.f},
+                          simu::Vertex{1.f, -1.f},
+                          simu::Vertex{1.f, 1.f},
+                          simu::Vertex{-1.f, 1.f}}
+        };
+
+        descr.position                  = pos;
+        descr.material.bounciness.value = 0.5f;
+        descr.material.friction.value   = 0.5f;
+        world().makeBody<simu::VisibleBody>(
+            descr,
+            simu::Rgba{225, 150, 240},
+            app()->renderer()
+        );
     }
 };
 
@@ -81,9 +102,7 @@ public:
     {
         if (current == nullptr)
         {
-            auto scene = std::make_shared<NewtonPendulum>();
-            scene->init();
-            return scene;
+            return std::make_shared<NewtonPendulum>();
         }
 
         return current;

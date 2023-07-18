@@ -36,7 +36,7 @@ void Scene::preStep(float dt)
     // 500 pixel / s at normal zoom
     float panSpeed = 500.f * camera().pixelSize() * 1 / camera().zoom();
 
-    Vec2  panDir{};
+    Vec2 panDir{};
     if (app()->isKeyPressed(Keyboard::Key::left))
         panDir += Vec2{-1.f, 0.f};
     if (app()->isKeyPressed(Keyboard::Key::right))
@@ -63,4 +63,15 @@ bool Scene::onKeypress(Keyboard::Input input)
 
     return false;
 }
+
+void Scene::init(Application* app)
+{
+    app_      = app;
+    renderer_ = app->renderer();
+
+    reset();
+
+    isInit_ = true;
+}
+
 } // namespace simu
