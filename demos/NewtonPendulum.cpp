@@ -40,8 +40,8 @@ public:
     {
         simu::BodyDescriptor descr{
             simu::Polygon{
-                          simu::Vertex{-5.f, 10.f},
-                          simu::Vertex{5.f, 10.f},
+                          simu::Vertex{-5.f, 8.f},
+                          simu::Vertex{5.f, 8.f},
                           simu::Vertex{5.f, 11.f},
                           simu::Vertex{-5.f, 11.f}}
         };
@@ -54,7 +54,7 @@ public:
         simu::Vertices v{};
 
         // TODO: The fact that we don't have vertex-vertex contacts is very apparent here,
-        int            nPoints = 50;
+        int            nPoints = 48;
         float          theta   = 0.f;
         for (int i = 0; i < nPoints; ++i)
         {
@@ -82,23 +82,18 @@ public:
                     bar
             },
                 std::array<simu::Vec2, 2>{
-                    ball->properties().centroid,
-                    simu::Vec2{x, 10.f}},
+                    simu::Vec2{x, 1.f},
+                    simu::Vec2{x, 8.f}},
                 &renderer
             );
-            world().makeConstraint<simu::RotationConstraint>(
-                simu::Bodies<2>{ball, bar}
-            );
 
-
-            if (i >= 3)
-                ball->setVelocity(simu::Vec2{10.f, 0.f});
+            if (i >= 2)
+                ball->setVelocity(simu::Vec2{7.f, 0.f});
         }
 
         world().makeForceField<simu::Gravity>(simu::Vec2{0, -10.f});
 
         auto settings = world().settings();
-        settings.nVelocityIterations = 20;
         world().updateSettings(settings);
     }
 

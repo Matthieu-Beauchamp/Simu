@@ -72,10 +72,10 @@ public:
         return 2.f * Jacobian{
             d[0],
             d[1],
-            cross(d, fromCentroid[0]),
+            cross(fromCentroid[0], d),
             -d[0],
             -d[1],
-            -cross(d, fromCentroid[1])};
+            -cross(fromCentroid[1], d)};
     }
 
     std::array<Vec2, 2> worldSpaceFixedPoints(const Bodies<nBodies>& bodies) const
