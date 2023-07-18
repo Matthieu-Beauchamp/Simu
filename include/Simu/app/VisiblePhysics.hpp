@@ -123,4 +123,33 @@ protected:
     }
 };
 
+class VisibleDistanceConstraint : public DistanceConstraint, public Visible
+{
+public:
+
+    VisibleDistanceConstraint(
+        const Bodies<2>&     bodies,
+        std::array<Vec2, 2>  fixedPoints,
+        Renderer*            renderer,
+        std::optional<float> distance        = std::nullopt,
+        bool                 disableContacts = true
+    )
+        : DistanceConstraint{bodies, fixedPoints, distance, disableContacts},
+          Visible{renderer}
+    {
+    }
+
+protected:
+
+    void postStep() override { Visible::draw(); }
+
+    void draw(Renderer& renderer) override
+    {
+        Rgba turquoise = Rgba{50, 235, 235, 255};
+        auto points = f.worldSpaceFixedPoints(getBodies());
+        renderer.drawLine(points[0], points[1], turquoise, 0.1f);
+    }
+};
+
+
 } // namespace simu

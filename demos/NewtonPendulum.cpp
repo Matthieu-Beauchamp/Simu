@@ -40,10 +40,10 @@ public:
     {
         simu::BodyDescriptor descr{
             simu::Polygon{
-                          simu::Vertex{-5.f, 2.f},
-                          simu::Vertex{5.f, 2.f},
-                          simu::Vertex{5.f, 3.f},
-                          simu::Vertex{-5.f, 3.f}}
+                          simu::Vertex{-5.f, 10.f},
+                          simu::Vertex{5.f, 10.f},
+                          simu::Vertex{5.f, 11.f},
+                          simu::Vertex{-5.f, 11.f}}
         };
 
         descr.dominance = 0.f;
@@ -52,22 +52,63 @@ public:
 
 
         simu::Vertices v{};
-        for (int i = 0; i < 12; ++i)
+
+        // TODO: The fact that we don't have vertex-vertex contacts is very apparent here,
+        int            nPoints = 50;
+        float          theta   = 0.f;
+        for (int i = 0; i < nPoints; ++i)
         {
-            float theta = i / (2.f * std::numbers::pi_v<float>);
+            theta += (2.f * std::numbers::pi_v<float>) / nPoints;
             v.emplace_back(simu::Vec2{std::cos(theta), std::sin(theta)});
         }
-        descr.polygon = simu::Polygon{v.begin(), v.end()};
 
+        descr.polygon                   = simu::Polygon{v.begin(), v.end()};
+        descr.dominance                 = 1.f;
+        descr.material.density          = 10.f;
+        descr.material.bounciness.value = 1.f;
         for (int i = 0; i < 5; ++i)
         {
-            // TODO: distance constraint from ball to bar.
+            float x = -4.f + 2 * i;
+
+            descr.position = simu::Vec2{x, 0.f};
+            auto ball      = world().makeBody<simu::VisibleBody>(
+                descr,
+                simu::Rgba::filled(200),
+                &renderer
+            );
+            world().makeConstraint<simu::VisibleDistanceConstraint>(
+                simu::Bodies<2>{
+                    ball,
+                    bar
+            },
+                std::array<simu::Vec2, 2>{
+                    ball->properties().centroid,
+                    simu::Vec2{x, 10.f}},
+                &renderer
+            );
+            world().makeConstraint<simu::RotationConstraint>(
+                simu::Bodies<2>{ball, bar}
+            );
+
+
+            if (i >= 3)
+                ball->setVelocity(simu::Vec2{10.f, 0.f});
         }
+
+        world().makeForceField<simu::Gravity>(simu::Vec2{0, -10.f});
+
+        auto settings = world().settings();
+        settings.nVelocityIterations = 20;
+        world().updateSettings(settings);
     }
 
+    bool onMousePress(simu::Mouse::Input input) override
+    {
+        // TODO: Access world's body tree
+        return false;
+    }
 
 private:
-
 };
 
 class DummyApp : public simu::Application
