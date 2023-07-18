@@ -487,6 +487,7 @@ public:
 
     void initSolve(float dt) override
     {
+        appliedVelocityConstraint_ = true;
         frictionConstraint_->initSolve(dt);
         contactConstraint_->initSolve(dt);
     }
@@ -505,7 +506,7 @@ public:
 
     void solvePositions() override
     {
-        if (normSquared(penetration_) >= maxPen_ * maxPen_)
+        if (appliedVelocityConstraint_ && normSquared(penetration_) >= maxPen_ * maxPen_)
             contactConstraint_->solvePositions();
     }
 
@@ -525,6 +526,11 @@ public:
 
         return ContactInfo{};
     }
+protected:
+
+    void preStep() override {
+        appliedVelocityConstraint_ = false;
+    }
 
 private:
 
@@ -534,6 +540,7 @@ private:
 
     Vec2  penetration_;
     float maxPen_;
+    bool appliedVelocityConstraint_ = false;
 
     void updateContact()
     {
