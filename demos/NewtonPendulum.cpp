@@ -54,8 +54,8 @@ public:
         simu::Vertices v{};
 
         // TODO: The fact that we don't have vertex-vertex contacts is very apparent here,
-        int            nPoints = 48;
-        float          theta   = 0.f;
+        int   nPoints = 48;
+        float theta   = 0.f;
         for (int i = 0; i < nPoints; ++i)
         {
             theta += (2.f * std::numbers::pi_v<float>) / nPoints;
@@ -81,14 +81,14 @@ public:
                     ball,
                     bar
             },
-                std::array<simu::Vec2, 2>{
-                    simu::Vec2{x, 1.f},
-                    simu::Vec2{x, 8.f}},
-                &renderer
+                std::array<simu::Vec2, 2>{simu::Vec2{x, 1.f}, simu::Vec2{x, 8.f}},
+                &renderer,
+                std::nullopt,
+                false
             );
 
-            if (i >= 2)
-                ball->setVelocity(simu::Vec2{7.f, 0.f});
+            // if (i >= 2)
+            //     ball->setVelocity(simu::Vec2{7.f, 0.f});
         }
 
         world().makeForceField<simu::Gravity>(simu::Vec2{0, -10.f});
@@ -99,11 +99,57 @@ public:
 
     bool onMousePress(simu::Mouse::Input input) override
     {
-        // TODO: Access world's body tree
+        if (input.button != simu::Mouse::Button::left)
+            return false;
+
+        if (input.action == simu::Mouse::Action::press)
+        {
+            world().forEachAt(input.pos, [&, this](simu::Body* b) {
+                if (!b->isStructural())
+                    mc_ = this->makeMouseConstraint(b, input.pos);
+            });
+        }
+        else if (input.action == simu::Mouse::Action::release)
+        {
+            if (mc_ != nullptr)
+            {
+                mc_->kill();
+                mc_ = nullptr;
+            }
+        }
+        else
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    bool onMouseMove(simu::Vec2 pos) override
+    {
+        if (mc_ != nullptr)
+        {
+            mc_->updateMousePos(pos);
+            return true;
+        }
+    
         return false;
     }
 
+
 private:
+
+    simu::VisibleMouseConstraint*
+    makeMouseConstraint(simu::Body* b, simu::Vec2 pos)
+    {
+        return world().makeConstraint<simu::VisibleMouseConstraint>(
+            b,
+            pos,
+            app()->renderer()
+        );
+    }
+
+    simu::VisibleMouseConstraint* mc_ = nullptr;
 };
 
 class DummyApp : public simu::Application

@@ -35,17 +35,21 @@ public:
 
     typedef EqualityConstraintFunctionBase<1, 2> Base;
 
-    MouseConstraintFunction() : Base{} {}
+    MouseConstraintFunction(Body* body, Vec2 pos) : Base{}
+    {
+        localBodyPos_ = body->toLocalSpace() * pos;
+        mousePos_ = pos;
+    }
 
-    Value eval(Bodies<1> body)
+    Value eval(Bodies<1> body) const
     {
         return body[0]->toWorldSpace() * localBodyPos_ - mousePos_;
     }
 
-    Value bias(Bodies<1> /* body */) { return Value{}; }
+    Value bias(Bodies<1> /* body */) const { return Value{}; }
 
 
-    Jacobian jacobian(Bodies<1> body)
+    Jacobian jacobian(Bodies<1> body) const
     {
         Vec2 r = body[0]->toWorldSpace() * localBodyPos_
                  - body[0]->properties().centroid;
@@ -58,11 +62,11 @@ public:
         // clang-format on
     }
 
+    Vec2 mousePos() const { return mousePos_; }
+    Vec2 localBodyPos() const { return localBodyPos_; }
+
     void updateMousePos(Vec2 pos) { mousePos_ = pos; }
-    void updateBody(Body* body, Vec2 worldPos)
-    {
-        localBodyPos_ = body->toLocalSpace() * worldPos;
-    }
+
 
 private:
 
@@ -71,89 +75,29 @@ private:
 };
 
 
-class MouseConstraint : public Constraint
+class MouseConstraint : public ConstraintImplementation<MouseConstraintFunction>
 {
+    typedef ConstraintImplementation<MouseConstraintFunction> Base;
+
 public:
 
-    MouseConstraint() = default;
-
-    void turnOff() { updateBody(nullptr, Vec2{}); }
-    void updateMousePos(Vec2 pos) { f_.updateMousePos(pos); }
-    void updateBody(Body* body, Vec2 worldPos)
+    MouseConstraint(Body* body, Vec2 pos)
+        : Base{
+            Bodies<1>{body},
+            MouseConstraintFunction{body, pos},
+            false
+    }
     {
-        if (body == nullptr)
-        {
-            solver_ = std::nullopt;
-        }
-        else
-        {
-            f_.updateBody(body, worldPos);
-            solver_ = S{Bodies<1>{body}, f_};
-        }
-
-        body_[0] = body;
+        solver.restitution() = Value::filled(0.1f);
+        solver.damping()     = Value::filled(1.f);
     }
 
-    bool shouldDie() override
-    {
-        if (body_[0] != nullptr && body_[0]->isDead())
-            body_[0] = nullptr;
+    Vec2 bodyPos() const { return getBodies()[0]->toWorldSpace() * f.localBodyPos(); }
+    Vec2 mousePos() const { return f.mousePos(); }
 
-        return false;
-    }
+    void updateMousePos(Vec2 pos) { f.updateMousePos(pos); }
 
-    bool isActive() override { return body_[0] != nullptr; }
-
-    void initSolve(float dt) override
-    {
-        solver_.value().restitution() = Vec2::filled(restitution_);
-        solver_.value().damping()     = Vec2::filled(damping_);
-
-        solver_.value().initSolve(body_, f_, dt);
-    }
-
-    void solveVelocities(float dt) override
-    {
-        solver_.value().solveVelocity(body_, f_, dt);
-    }
-
-    void solvePositions() override { solver_.value().solvePosition(body_, f_); }
-
-    BodiesView bodies() override
-    {
-        Body** b = &body_[0];
-        return (body_[0] == nullptr) ? makeView(b, b) : body_.view();
-    }
-    ConstBodiesView bodies() const override
-    {
-        Body const** b = const_cast<Body const**>(&body_[0]);
-        return (body_[0] == nullptr) ? makeView(b, b) : body_.view();
-    }
-
-    bool isBodyStructural(const Body* body) const override
-    {
-        return body_.isBodyStructural(body);
-    }
-
-    // TODO: Naming..
-    float&       restitution() { return restitution_; }
-    const float& restitution() const { return restitution_; }
-
-    float&       damping() { return damping_; }
-    const float& damping() const { return damping_; }
-
-private:
-
-    typedef EqualitySolver<MouseConstraintFunction> S;
-
-    MouseConstraintFunction f_{};
-    std::optional<S>        solver_ = std::nullopt;
-    Bodies<1>               body_   = {nullptr};
-
-    // TODO: Don't use optional<S>, -> solver must not require valid params in constructor.
-    //  this way we can make these settings persist directly in solver
-    float restitution_ = 0.2f;
-    float damping_     = 0.1f;
+    void solvePositions() override {}
 };
 
 } // namespace simu

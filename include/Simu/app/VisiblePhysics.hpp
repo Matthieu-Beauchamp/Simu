@@ -28,6 +28,8 @@
 
 #include "Simu/app/Renderer.hpp"
 
+#include "Simu/app/MouseConstraint.hpp"
+
 namespace simu
 {
 
@@ -146,8 +148,31 @@ protected:
     void draw(Renderer& renderer) override
     {
         Rgba turquoise = Rgba{50, 235, 235, 255};
-        auto points = f.worldSpaceFixedPoints(getBodies());
+        auto points    = f.worldSpaceFixedPoints(getBodies());
         renderer.drawLine(points[0], points[1], turquoise, 0.1f);
+    }
+};
+
+class VisibleMouseConstraint : public MouseConstraint, public Visible
+{
+public:
+
+    VisibleMouseConstraint(Body* b, Vec2 pos, Renderer* renderer)
+        : MouseConstraint{b, pos}, Visible{renderer}
+    {
+    }
+
+protected:
+
+    void postStep() override { Visible::draw(); }
+
+    void draw(Renderer& renderer) override
+    {
+        if (this->isActive() && any(bodyPos() != mousePos()))
+        {
+            Rgba purple = Rgba{235, 50, 235, 255};
+            renderer.drawLine(bodyPos(), mousePos(), purple, 0.1f);
+        }
     }
 };
 

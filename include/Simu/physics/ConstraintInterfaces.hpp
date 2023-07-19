@@ -52,11 +52,7 @@ public:
     virtual void solveVelocities(float dt) = 0;
     virtual void solvePositions()          = 0;
 
-    // TODO: Currently doing this with MouseConstraint.
-    //  I believe this message is outdated and was meant for persisting islands.
-    //
-    // But, a constraint should not give nullptr as one of its bodies as the code is currently.
-    //
+
     // if a constraint has no bodies or changes its bodies during its lifetime,
     //  then behavior is undefined.
     virtual BodiesView      bodies()       = 0;
