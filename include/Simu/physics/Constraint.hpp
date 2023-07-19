@@ -83,7 +83,14 @@ public:
         return false;
     }
 
-    bool isActive() override { return true; }
+    bool isActive() override
+    {
+        // TODO: Shouldn't something similar be done for inequality constraints?
+        if constexpr (std::is_same_v<S, LimitsSolver<F>>)
+            return solver.isActive(bodies_, f);
+        else
+            return true;
+    }
 
     void initSolve(float dt) override { solver.initSolve(bodies_, f, dt); }
 

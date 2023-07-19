@@ -90,10 +90,11 @@ concept ConstraintFunction = requires(
 template <ConstraintFunction F>
 class ConstraintSolverBase;
 
+// clang-format off
 template <class S>
 concept ConstraintSolver
-    = requires(S s, Bodies<S::nBodies>& bodies, typename S::F f, float dt) {
-          // clang-format off
+    = requires(S s, Bodies<S::nBodies>& bodies, typename S::F f, float dt) 
+{
     typename S::F;
     requires ConstraintFunction<typename S::F>;
 
@@ -107,8 +108,8 @@ concept ConstraintSolver
     { s.solveVelocity(bodies, f, dt) };
     { s.solvePosition(bodies, f) };
 
-          // clang-format on
-      };
+};
+// clang-format on
 
 
 } // namespace simu

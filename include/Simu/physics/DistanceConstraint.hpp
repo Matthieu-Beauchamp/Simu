@@ -29,6 +29,9 @@
 namespace simu
 {
 
+// TODO: Distance velocity constraint is degenerate if points are equal,
+//  this is not handled.
+
 class DistanceConstraintFunction : public EqualityConstraintFunctionBase<2, 1>
 {
 public:
