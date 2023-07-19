@@ -68,7 +68,7 @@ bool Bodies<n>::isBodyStructural(const Body* body) const
         if (body == (*this)[i])
             return dominances_[i] == 0.f;
 
-    SIMU_ASSERT(false, "Body is not part of this constraint.");
+    SIMU_ASSERT(false, "Body is not part of these bodies.");
 }
 
 

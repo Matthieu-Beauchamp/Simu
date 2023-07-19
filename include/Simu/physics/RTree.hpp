@@ -71,13 +71,13 @@ public:
     }
 
     template <std::invocable<iterator> F>
-    void forEachIn(BoundingBox box, F func)
+    void forEachIn(BoundingBox box, const F& func)
     {
         forEachIn(box, func, root_);
     }
 
     template <std::invocable<iterator> F>
-    void forEachAt(Vec2 point, F func)
+    void forEachAt(Vec2 point, const F& func)
     {
         forEachIn(BoundingBox{point, point}, func);
     }

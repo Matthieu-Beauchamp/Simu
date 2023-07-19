@@ -293,6 +293,19 @@ public:
     ////////////////////////////////////////////////////////////
     const Settings& settings() const { return settings_; }
 
+
+    template <std::invocable<Body*> F>
+    void forEachIn(BoundingBox box, const F& func)
+    {
+        bodies_.forEachIn(box, [&](BodyTree::iterator it) { func(it->get()) });
+    }
+
+    template <std::invocable<Body*> F>
+    void forEachAt(Vec2 point, const F& func)
+    {
+        bodies_.forEachAt(point, [&](BodyTree::iterator it) { func(it->get()) });
+    }
+
 private:
 
     ContactConstraint* makeContactConstraint(Bodies<2> bodies);
