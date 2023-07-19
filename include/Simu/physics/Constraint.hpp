@@ -488,18 +488,19 @@ public:
     void initSolve(float dt) override
     {
         appliedVelocityConstraint_ = true;
+
+        // TODO: Use baumgarte?
+        if (normSquared(penetration_) >= maxPen_ * maxPen_)
+            contactConstraint_->setRestitution(0.2f);
+        else
+            contactConstraint_->setRestitution(0.f);
+
         frictionConstraint_->initSolve(dt);
         contactConstraint_->initSolve(dt);
     }
 
     void solveVelocities(float dt) override
     {
-        // TODO: Use baumgarte?
-        // if (normSquared(penetration_) >= maxPen_ * maxPen_)
-        //     contactConstraint_->setRestitution(0.2f);
-        // else
-        //     contactConstraint_->setRestitution(0.f);
-
         frictionConstraint_->solveVelocities(dt);
         contactConstraint_->solveVelocities(dt);
         frictionConstraint_->setNormalLambda(contactConstraint_->lambdaHint());
@@ -507,9 +508,9 @@ public:
 
     void solvePositions() override
     {
-        if (appliedVelocityConstraint_
-            && normSquared(penetration_) >= maxPen_ * maxPen_)
-            contactConstraint_->solvePositions();
+        // if (appliedVelocityConstraint_
+        //     && normSquared(penetration_) >= maxPen_ * maxPen_)
+        //     contactConstraint_->solvePositions();
     }
 
     BodiesView      bodies() override { return contact_.bodies.view(); }

@@ -40,7 +40,7 @@ void glfwErrorCallback(int error, const char* description)
     throw simu::Exception{err.str()};
 }
 
-void frameBufferResizeCallback(GLFWwindow* window, int w, int h)
+void Application::frameBufferResizeCallback(GLFWwindow* window, int w, int h)
 {
     Application* app
         = static_cast<Application*>(glfwGetWindowUserPointer(window));
@@ -51,7 +51,7 @@ void frameBufferResizeCallback(GLFWwindow* window, int w, int h)
         app->renderer_->setViewport(Vec2i{0, 0}, dim);
 }
 
-void windowResizeCallback(GLFWwindow* window, int w, int h)
+void Application::windowResizeCallback(GLFWwindow* window, int w, int h)
 {
     Application* app
         = static_cast<Application*>(glfwGetWindowUserPointer(window));
@@ -67,7 +67,7 @@ void windowResizeCallback(GLFWwindow* window, int w, int h)
     }
 }
 
-void keypressCallback(
+void Application::keypressCallback(
     GLFWwindow* window,
     int         key,
     int /* scancode */,
@@ -79,8 +79,7 @@ void keypressCallback(
         = static_cast<Application*>(glfwGetWindowUserPointer(window));
 
     if (app->scene() != nullptr)
-        app->scene()->onKeypress(Keyboard::Input::fromGlfw(key, action, modifiers)
-        );
+        app->scene()->keypress(Keyboard::Input::fromGlfw(key, action, modifiers));
 }
 
 Mat3 windowToScene(GLFWwindow* window, const Camera& camera)
@@ -109,7 +108,7 @@ Mat3 windowToScene(GLFWwindow* window, const Camera& camera)
     return camera.invTransform() * screenToNdc * flipY;
 }
 
-void mouseMoveCallback(GLFWwindow* window, double x, double y)
+void Application::mouseMoveCallback(GLFWwindow* window, double x, double y)
 {
     Application* app
         = static_cast<Application*>(glfwGetWindowUserPointer(window));
@@ -117,12 +116,17 @@ void mouseMoveCallback(GLFWwindow* window, double x, double y)
     Vec2 windowPos{(float)x, (float)y};
 
     if (app->scene() != nullptr)
-        app->scene()->onMouseMove(
+        app->scene()->mouseMove(
             windowToScene(window, app->scene()->camera()) * windowPos
         );
 }
 
-void mousePressCallback(GLFWwindow* window, int button, int action, int mods)
+void Application::mousePressCallback(
+    GLFWwindow* window,
+    int         button,
+    int         action,
+    int         mods
+)
 {
     Application* app
         = static_cast<Application*>(glfwGetWindowUserPointer(window));
@@ -132,7 +136,7 @@ void mousePressCallback(GLFWwindow* window, int button, int action, int mods)
     Vec2 windowPos{(float)x, (float)y};
 
     if (app->scene() != nullptr)
-        app->scene()->onMousePress(Mouse::Input::fromGlfw(
+        app->scene()->mousePress(Mouse::Input::fromGlfw(
             windowToScene(window, app->scene()->camera()) * windowPos,
             button,
             action,
@@ -140,13 +144,13 @@ void mousePressCallback(GLFWwindow* window, int button, int action, int mods)
         ));
 }
 
-void mouseScrollCallback(GLFWwindow* window, double x, double y)
+void Application::mouseScrollCallback(GLFWwindow* window, double x, double y)
 {
     Application* app
         = static_cast<Application*>(glfwGetWindowUserPointer(window));
 
     if (app->scene() != nullptr)
-        app->scene()->onMouseScroll(Vec2{(float)x, (float)y});
+        app->scene()->mouseScroll(Vec2{(float)x, (float)y});
 }
 
 

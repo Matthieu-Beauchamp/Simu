@@ -86,70 +86,12 @@ public:
                 std::nullopt,
                 false
             );
-
-            // if (i >= 2)
-            //     ball->setVelocity(simu::Vec2{7.f, 0.f});
         }
 
         world().makeForceField<simu::Gravity>(simu::Vec2{0, -10.f});
 
-        auto settings = world().settings();
-        world().updateSettings(settings);
+        useTool<simu::Grabber>(*this);
     }
-
-    bool onMousePress(simu::Mouse::Input input) override
-    {
-        if (input.button != simu::Mouse::Button::left)
-            return false;
-
-        if (input.action == simu::Mouse::Action::press)
-        {
-            world().forEachAt(input.pos, [&, this](simu::Body* b) {
-                if (!b->isStructural())
-                    mc_ = this->makeMouseConstraint(b, input.pos);
-            });
-        }
-        else if (input.action == simu::Mouse::Action::release)
-        {
-            if (mc_ != nullptr)
-            {
-                mc_->kill();
-                mc_ = nullptr;
-            }
-        }
-        else
-        {
-            return false;
-        }
-
-        return true;
-    }
-
-    bool onMouseMove(simu::Vec2 pos) override
-    {
-        if (mc_ != nullptr)
-        {
-            mc_->updateMousePos(pos);
-            return true;
-        }
-    
-        return false;
-    }
-
-
-private:
-
-    simu::VisibleMouseConstraint*
-    makeMouseConstraint(simu::Body* b, simu::Vec2 pos)
-    {
-        return world().makeConstraint<simu::VisibleMouseConstraint>(
-            b,
-            pos,
-            app()->renderer()
-        );
-    }
-
-    simu::VisibleMouseConstraint* mc_ = nullptr;
 };
 
 class DummyApp : public simu::Application

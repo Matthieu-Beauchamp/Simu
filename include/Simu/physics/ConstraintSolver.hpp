@@ -346,21 +346,21 @@ public:
 
 
         // computing the bounce from the relative normal velocities when the solver is initialized
-        // 
+        //
         // Box stacking is unstable for bouncy bodies.
         // Box2d uses a restitution threshold:
-        //  if the relative velocity is lower than the treshold, then apply 
+        //  if the relative velocity is lower than the treshold, then apply
         //  restitution.
         // This avoids the jittery bounces, allow stable contacts (that can sleep)
 
         Jacobian J     = this->getJacobian();
-        auto     error = -(J * bodies.velocity())
-                     + effectiveMass_ * this->getAccumulatedLambda();
-        error -= bounce_;
+        Value    error = J * bodies.velocity() + bounce_;
+        Value baumgarte = KMatrix::diagonal(this->restitution()) * f.eval(bodies) / dt;
+        Value alreadyComputed = effectiveMass_ * this->getAccumulatedLambda();
 
         Value lambda = solveInequalities(
             effectiveMass_,
-            error,
+            -(error - alreadyComputed + baumgarte),
             [=, &f](Value lambda) { return f.clampLambda(lambda, dt); },
             this->getAccumulatedLambda()
         );

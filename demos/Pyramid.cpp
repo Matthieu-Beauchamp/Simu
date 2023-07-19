@@ -25,22 +25,18 @@
 #include "Simu/app.hpp"
 
 
-class BoxStacks : public simu::Scene
+class Tower : public simu::Scene
 {
 public:
 
-    BoxStacks() { camera().setPixelSize(1.f / 10.f); }
+    Tower()
+    {
+        camera().setPixelSize(1.f / 10.f);
+        camera().panTo(simu::Vec2{10.f, 0.f});
+    }
 
     void init(simu::Renderer& renderer) override
     {
-        simu::BoxSpawner spawner{*this};
-
-        // NGS is a lot more stable here, but is a bit slower than baumgarte.
-        for (simu::Int32 x = -90; x < 90; x+= 5)
-            for (simu::Uint32 i = 0; i < 10; ++i)
-                spawner.makeBox(simu::Vec2{(float)x, (float)5 * i});
-
-
         world().makeForceField<simu::Gravity>(simu::Vec2{0.f, -10.f});
 
         simu::BodyDescriptor descr{
@@ -54,10 +50,43 @@ public:
         descr.dominance               = 0.f;
         descr.material.friction.value = 0.8f;
         world().makeBody<simu::VisibleBody>(descr, simu::Rgba{}, &renderer);
-    
+
+        simu::BoxSpawner spawn{*this};
+
+        int  h       = 10;
+        bool bricked = true;
+
+        for (int y = 0; y < h; ++y)
+            if (bricked)
+                for (int x = 0; x < h - y; ++x)
+                    spawn.makeBox(simu::Vec2{2.f * x + y, 2.f * y});
+            else
+                for (int x = y; x < 2*h - y; ++x)
+                    spawn.makeBox(simu::Vec2{2.f * x, 2.f * y});
+
+        // Baumgarte is much more stable for bricked pyramid, NGS needs a LOT of iterations and still falls apart pretty fast.
+        auto s = world().settings();
+        // s.nPositionIterations = 40;
+        // s.nVelocityIterations = 10;
+        world().updateSettings(s);
+
         useTool<simu::Grabber>(*this);
     }
 
+    bool onKeypress(simu::Keyboard::Input input) override
+    {
+        if (input.action != simu::Mouse::Action::press)
+            return false;
+
+        if (input.key == simu::Keyboard::Key::G)
+            useTool<simu::Grabber>(*this);
+        else if (input.key == simu::Keyboard::Key::B)
+            useTool<simu::BoxSpawner>(*this);
+        else
+            return false;
+
+        return true;
+    }
 };
 
 class DummyApp : public simu::Application
@@ -71,7 +100,7 @@ public:
     {
         if (current == nullptr)
         {
-            return std::make_shared<BoxStacks>();
+            return std::make_shared<Tower>();
         }
 
         return current;
