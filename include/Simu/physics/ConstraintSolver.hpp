@@ -382,13 +382,6 @@ public:
                   return f.clampPositionLambda(posLambda);
               });
 
-        // Solver<float, F::dimension> s{effectiveMass_};
-        // if (!s.isValid())
-        //     return; // Jacobians are parallel, TODO:
-
-        // Value posLambda = s.solve(-error);
-        // posLambda       = f.clampPositionLambda(posLambda);
-
         State positionCorrection
             = bodies.inverseMass() * transpose(J) * posLambda;
 

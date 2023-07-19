@@ -53,7 +53,7 @@ public:
 
         simu::BoxSpawner spawn{*this};
 
-        int  h       = 10;
+        int  h       = 20;
         bool bricked = true;
 
         for (int y = 0; y < h; ++y)

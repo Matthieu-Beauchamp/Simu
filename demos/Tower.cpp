@@ -54,7 +54,7 @@ public:
         world().makeBody<simu::VisibleBody>(descr, simu::Rgba{}, &renderer);
 
 
-        int h = 10;
+        int h = 5;
 
         for (int y = 0; y < h; ++y)
         {
@@ -71,7 +71,7 @@ public:
         }
 
         auto s = world().settings();
-        // s.nPositionIterations = 30;
+        // s.nPositionIterations = 1;
         // s.nVelocityIterations = 20;
         world().updateSettings(s);
 
@@ -95,7 +95,7 @@ public:
 
 private:
 
-    static constexpr float w         = 10.f;
+    static constexpr float w         = 5.f;
     static constexpr float thickness = 1.f;
 
     void makeSlab(simu::Vec2 pos, bool vertical)
