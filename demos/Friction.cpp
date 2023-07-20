@@ -59,6 +59,9 @@ public:
 
     bool onKeypress(simu::Keyboard::Input input) override
     {
+        if (simu::Scene::onKeypress(input))
+            return true;
+
         if (input.action != simu::Mouse::Action::press)
             return false;
 

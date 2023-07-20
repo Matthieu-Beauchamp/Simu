@@ -61,7 +61,7 @@ public:
                 for (int x = 0; x < h - y; ++x)
                     spawn.makeBox(simu::Vec2{2.f * x + y, 2.f * y});
             else
-                for (int x = y; x < 2*h - y; ++x)
+                for (int x = y; x < 2 * h - y; ++x)
                     spawn.makeBox(simu::Vec2{2.f * x, 2.f * y});
 
         // Baumgarte is much more stable for bricked pyramid, NGS needs a LOT of iterations and still falls apart pretty fast.
@@ -70,11 +70,15 @@ public:
         // s.nVelocityIterations = 10;
         world().updateSettings(s);
 
+        pause();
         useTool<simu::Grabber>(*this);
     }
 
     bool onKeypress(simu::Keyboard::Input input) override
     {
+        if (simu::Scene::onKeypress(input))
+            return true;
+
         if (input.action != simu::Mouse::Action::press)
             return false;
 

@@ -203,9 +203,12 @@ void Application::run()
         glfwSetTime(0.0);
 
         std::stringstream ss{};
-        ss << "Elapsed: " << dt * 1000.f << " ms | using: ";
-        dt = std::min(dt, 1.f / 60.f);
-        ss << dt * 1000.f << " ms";
+        ss << "Elapsed: " << dt * 1000.f << " ms";
+        if (scene_ != nullptr)
+        {
+            ss << (scene_->isPaused() ? " | Paused | " : " | ");
+            ss << "x" << scene_->playSpeed();
+        }
 
         glfwSetWindowTitle(window_, ss.str().c_str());
 

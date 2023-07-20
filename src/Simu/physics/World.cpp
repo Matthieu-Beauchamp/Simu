@@ -69,27 +69,30 @@ void World::step(float dt)
         f.preStep();
 
 
-    // TODO: with some additionnal management code,
-    //  islands can be made to persist between steps, possibly reducing computation.
-    Islands islands(bodies());
-    for (Island& island : islands.islands())
-        if (island.isAwake())
-            for (Body* body : island.bodies())
-                body->wake();
+    if (dt > 0.f)
+    {
+        // TODO: with some additionnal management code,
+        //  islands can be made to persist between steps, possibly reducing computation.
+        Islands islands(bodies());
+        for (Island& island : islands.islands())
+            if (island.isAwake())
+                for (Body* body : island.bodies())
+                    body->wake();
 
-    applyForces(dt);
+        applyForces(dt);
 
-    for (Island& island : islands.islands())
-        if (!settings().enableSleeping || island.isAwake())
-            applyVelocityConstraints(island, dt);
+        for (Island& island : islands.islands())
+            if (!settings().enableSleeping || island.isAwake())
+                applyVelocityConstraints(island, dt);
 
-    integrateBodies(dt);
+        integrateBodies(dt);
 
-    for (Island& island : islands.islands())
-        if (!settings().enableSleeping || island.isAwake())
-            applyPositionConstraints(island);
+        for (Island& island : islands.islands())
+            if (!settings().enableSleeping || island.isAwake())
+                applyPositionConstraints(island);
 
-    updateBodies(dt);
+        updateBodies(dt);
+    }
 
     for (Body& b : bodies())
         b.postStep();

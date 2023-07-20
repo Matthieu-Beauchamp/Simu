@@ -55,12 +55,27 @@ public:
         this->init(*renderer_);
     }
 
+    // play speeds above 1 may hinder the physics accuracy
+    void setPlaySpeed(float speed)
+    {
+        if (speed > 0.f)
+            playSpeed_ = speed;
+    }
+    float playSpeed() const { return playSpeed_; }
+
+    void resume() { isPaused_ = false; }
+    void pause() { isPaused_ = true; }
+    bool isPaused() const { return isPaused_; }
+
     void step(float dt)
     {
-        renderer_->fillScreen(Rgba{50, 10, 50, 255});
-
         this->moveCamera(dt);
         renderer_->setCameraTransform(camera_.transform());
+
+        dt = std::min(dt, 1.f / 60.f) * playSpeed()
+             * static_cast<float>(!isPaused());
+
+        renderer_->fillScreen(Rgba{50, 10, 50, 255});
 
         this->preStep(dt);
         world_.step(dt);
@@ -92,6 +107,9 @@ protected:
     //  and call Base::on...
 
     // base Scene will use escape to close() the application
+    // P to pause/resume
+    // - and = to slow and speed the simulation respectively
+    // s to single step
     virtual bool onKeypress(Keyboard::Input input);
     virtual bool onMousePress(Mouse::Input /* input */) { return false; }
     virtual bool onMouseMove(Vec2 /* newPos */) { return false; }
@@ -133,7 +151,9 @@ private:
     Renderer*    renderer_ = nullptr;
     Application* app_      = nullptr;
 
-    bool isInit_ = false;
+    float playSpeed_ = 1.f;
+    bool  isPaused_  = false;
+    bool  isInit_    = false;
 };
 
 

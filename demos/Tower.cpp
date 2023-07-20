@@ -59,15 +59,19 @@ public:
         for (int y = 0; y < h; ++y)
         {
             makeSlab(
-                simu::Vec2{-w / 2.f + thickness / 2.f, w/2.f + y * (w + thickness)},
+                simu::Vec2{
+                    -w / 2.f + thickness / 2.f,
+                    w / 2.f + y * (w + thickness)},
                 true
             );
             makeSlab(
-                simu::Vec2{w / 2.f - thickness / 2.f, w/2.f + y * (w + thickness)},
+                simu::Vec2{
+                    w / 2.f - thickness / 2.f,
+                    w / 2.f + y * (w + thickness)},
                 true
             );
 
-            makeSlab(simu::Vec2{0.f, (y + 1) * w + (y+0.5f) * thickness}, false);
+            makeSlab(simu::Vec2{0.f, (y + 1) * w + (y + 0.5f) * thickness}, false);
         }
 
         auto s = world().settings();
@@ -80,6 +84,9 @@ public:
 
     bool onKeypress(simu::Keyboard::Input input) override
     {
+        if (simu::Scene::onKeypress(input))
+            return true;
+
         if (input.action != simu::Mouse::Action::press)
             return false;
 
@@ -110,10 +117,14 @@ private:
 
         d.material.friction.value = 0.5f;
         // d.position                = simu::Vec2{pos[0], 1.2f* pos[1]};
-        d.position                = pos;
+        d.position    = pos;
         d.orientation = vertical ? std::numbers::pi_v<float> / 2 : 0.f;
 
-        world().makeBody<simu::VisibleBody>(d, simu::Rgba::filled(200.f), app()->renderer());
+        world().makeBody<simu::VisibleBody>(
+            d,
+            simu::Rgba::filled(200.f),
+            app()->renderer()
+        );
     }
 };
 

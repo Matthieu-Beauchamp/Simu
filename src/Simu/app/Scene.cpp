@@ -52,16 +52,54 @@ void Scene::moveCamera(float dt)
 
 bool Scene::onKeypress(Keyboard::Input input)
 {
-    if ((input.key == Keyboard::Key::escape)
-        && (input.action == Keyboard::Action::press))
+    if (input.action == Keyboard::Action::release)
+        return false;
+
+
+    if (input.key == Keyboard::Key::S)
     {
-        if (app() != nullptr)
-            app()->close();
+        if (isPaused())
+        {
+            resume();
+            step(1.f / 60.f);
+            pause();
+        }
+        else
+            step(1.f / 60.f);
 
         return true;
     }
 
-    return false;
+    if (input.action == Keyboard::Action::press)
+    {
+        switch (input.key)
+        {
+            case Keyboard::Key::escape:
+            {
+                if (app() != nullptr)
+                    app()->close();
+
+                break;
+            }
+            case Keyboard::Key::P:
+            {
+                isPaused() ? resume() : pause();
+                break;
+            }
+            case Keyboard::Key::minus:
+            {
+                setPlaySpeed(playSpeed() / 2.f);
+                break;
+            }
+            case Keyboard::Key::equal:
+            {
+                setPlaySpeed(playSpeed() * 2.f);
+                break;
+            }
+            default: return false;
+        }
+    }
+    return true;
 }
 
 bool Scene::onMouseScroll(Vec2 scroll)
