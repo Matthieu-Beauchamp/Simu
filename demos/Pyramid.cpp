@@ -32,8 +32,12 @@ public:
     Tower()
     {
         camera().setPixelSize(1.f / 10.f);
-        camera().panTo(simu::Vec2{10.f, 0.f});
+        camera().panTo(simu::Vec2{0.f, 0.f});
     }
+
+    static constexpr float w = 2.f;
+    static constexpr float h = 2.f;
+
 
     void init(simu::Renderer& renderer) override
     {
@@ -53,24 +57,29 @@ public:
 
         simu::BoxSpawner spawn{*this};
 
-        int  height  = 20;
+        int  height  = 60;
         bool bricked = true;
         // only for bricked, otherwise we are only doing stacks.
-        float spacing = 0.f;
+        float spacing = 0.5f;
+
+        float start = -(w + spacing)*height/2;
 
         for (int y = 0; y < height; ++y)
             if (bricked)
                 for (int x = 0; x < height - y; ++x)
-                    spawn.makeBox(simu::Vec2{
-                        (2.f + spacing) * x + y * (1.f + spacing/2.f),
-                        (2.f + spacing) * y});
+                    spawn.makeBox(
+                        simu::Vec2{
+                            start + (w + spacing) * x + y * (1.f + spacing / 2.f),
+                            (h + spacing) * y},
+                        simu::Vec2{w, h}
+                    );
             else
                 for (int x = y; x < 2 * height - y; ++x)
-                    spawn.makeBox(simu::Vec2{2.f * x, 2.f * y});
+                    spawn.makeBox(simu::Vec2{start + w * x, h * y}, simu::Vec2{w, h});
 
         // Baumgarte is much more stable for bricked pyramid, NGS needs a LOT of iterations and still falls apart pretty fast.
         auto s = world().settings();
-        // s.nPositionIterations = 10;
+        // s.nPositionIterations = 4;
         // s.nVelocityIterations = 20;
         world().updateSettings(s);
 

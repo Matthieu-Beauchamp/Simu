@@ -54,7 +54,7 @@ public:
         world().makeBody<simu::VisibleBody>(descr, simu::Rgba{}, &renderer);
 
 
-        int h = 5;
+        int h = 10;
 
         for (int y = 0; y < h; ++y)
         {

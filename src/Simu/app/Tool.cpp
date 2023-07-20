@@ -106,14 +106,17 @@ bool BoxSpawner::onMousePress(simu::Mouse::Input input)
 }
 
 
-simu::Body* BoxSpawner::makeBox(simu::Vec2 pos)
+simu::Body* BoxSpawner::makeBox(simu::Vec2 pos, simu::Vec2 dims)
 {
+    float w = dims[0] / 2.f;
+    float h = dims[1] / 2.f;
+
     simu::BodyDescriptor descr{
         simu::Polygon{
-                      simu::Vertex{-1.f, -1.f},
-                      simu::Vertex{1.f, -1.f},
-                      simu::Vertex{1.f, 1.f},
-                      simu::Vertex{-1.f, 1.f}}
+                      simu::Vertex{-w, -h},
+                      simu::Vertex{w, -h},
+                      simu::Vertex{w, h},
+                      simu::Vertex{-w, h}}
     };
 
     descr.position                  = pos;

@@ -92,7 +92,7 @@ public:
     bool onKeypress(Keyboard::Input /* input */) override { return false; }
     bool onMouseScroll(Vec2 /* scroll */) override { return false; }
 
-    simu::Body* makeBox(simu::Vec2 pos);
+    simu::Body* makeBox(simu::Vec2 pos, simu::Vec2 dims = simu::Vec2{2.f, 2.f});
 
 private:
 
