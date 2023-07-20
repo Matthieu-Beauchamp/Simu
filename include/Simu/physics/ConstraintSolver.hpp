@@ -355,7 +355,8 @@ public:
 
         Jacobian J     = this->getJacobian();
         Value    error = J * bodies.velocity() + bounce_;
-        Value baumgarte = KMatrix::diagonal(this->restitution()) * f.eval(bodies) / dt;
+        Value    baumgarte
+            = KMatrix::diagonal(this->restitution()) * f.eval(bodies) / dt;
         Value alreadyComputed = effectiveMass_ * this->getAccumulatedLambda();
 
         Value lambda = solveInequalities(
@@ -373,6 +374,12 @@ public:
     void solvePosition(Bodies<nBodies>& bodies, const F& f)
     {
         Value error = f.eval(bodies);
+
+        float beta          = 0.2f;
+        Value maxPen        = Value::filled(0.001f);
+        Value maxCorrection = Value::filled(0.2f);
+
+        error = clamp(beta * (error + maxPen), -maxCorrection, Value{});
 
         Jacobian J     = f.jacobian(bodies);
         effectiveMass_ = J * bodies.inverseMass() * transpose(J);
