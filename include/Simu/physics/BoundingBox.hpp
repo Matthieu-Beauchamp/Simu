@@ -68,6 +68,8 @@ public:
     template <Geometry T>
     BoundingBox(const T& geoemtry);
 
+    static BoundingBox scaled(BoundingBox original, float ratio);
+
     ////////////////////////////////////////////////////////////
     /// true if the bounding box covers a valid area,
     /// \see BoundingBox
@@ -94,6 +96,8 @@ public:
     /// If this or other is invalid, they never overlap.
     ////////////////////////////////////////////////////////////
     bool overlaps(const BoundingBox& other) const;
+
+    bool contains(const BoundingBox& other) const;
 
     ////////////////////////////////////////////////////////////
     /// Returns a bounding box that covers this and other.

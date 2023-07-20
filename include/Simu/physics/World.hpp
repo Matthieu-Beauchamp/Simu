@@ -169,7 +169,7 @@ public:
     {
         std::unique_ptr<T> body = makeObject<T>(std::forward<Args>(args)...);
 
-        BoundingBox bounds = body->collider().boundingBox();
+        BoundingBox bounds = boundsOf(body.get());
         return static_cast<T*>(bodies_.emplace(bounds, std::move(body))->get());
     }
     Body* makeBody(const BodyDescriptor& descr)
@@ -355,6 +355,13 @@ private:
     Settings settings_;
 
     std::function<std::unique_ptr<ContactConstraint>(Bodies<2>)> makeContactConstraint_;
+
+    static constexpr float boundsScale = 1.2f;
+
+    static BoundingBox boundsOf(Body* body)
+    {
+        return BoundingBox::scaled(body->collider().boundingBox(), boundsScale);
+    }
 };
 
 

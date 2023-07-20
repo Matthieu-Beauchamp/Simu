@@ -491,7 +491,7 @@ public:
 
         // TODO: Use baumgarte?
         // if (normSquared(penetration_) >= maxPen_ * maxPen_)
-        //     contactConstraint_->setRestitution(0.2f);
+        //     contactConstraint_->setRestitution(0.05f);
         // else
         //     contactConstraint_->setRestitution(0.f);
 

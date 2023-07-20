@@ -30,13 +30,32 @@ namespace simu
 
 BoundingBox::BoundingBox(Vec2 min, Vec2 max) : min_{min}, max_{max} {}
 
+BoundingBox BoundingBox::scaled(BoundingBox original, float ratio)
+{
+    auto transform = [&](Vec2 p) {
+        return original.center() + ratio * (p - original.center());
+    };
+
+    return BoundingBox{transform(original.min()), transform(original.max())};
+}
+
+
 bool BoundingBox::overlaps(const BoundingBox& other) const
 {
-    if (isValid() && other.isValid())
-        return all(Interval{min_, max_}.overlaps(Interval{other.min_, other.max_}));
+    if (!isValid() || !other.isValid())
+        return false;
 
-    return false;
+    return all(Interval{min_, max_}.overlaps(Interval{other.min_, other.max_}));
 }
+
+bool BoundingBox::contains(const BoundingBox& other) const
+{
+    if (!isValid() || !other.isValid())
+        return false;
+
+    return this->combined(other) == *this;
+}
+
 
 BoundingBox BoundingBox::combined(const BoundingBox& other) const
 {

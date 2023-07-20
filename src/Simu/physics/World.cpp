@@ -364,14 +364,15 @@ void World::updateBodies(float dt)
     std::vector<BodyTree::iterator> toUpdate{};
     for (auto it = bodies_.begin(); it != bodies_.end(); ++it)
     {
-        if (!(*it)->isAsleep())
+        if (!(*it)->isAsleep()
+            && !it.bounds().contains((*it)->collider().boundingBox()))
             toUpdate.emplace_back(it);
     }
 
     // TODO: batch updates of RTree ...
     // TODO: Modifying the tree while iterating is undefined.
     for (auto it : toUpdate)
-        bodies_.update(it, (*it)->collider().boundingBox());
+        bodies_.update(it, boundsOf(it->get()));
 }
 
 
