@@ -210,8 +210,6 @@ void World::detectContacts()
 
 struct World::Cleaner
 {
-    typedef std::unordered_map<Bodies<2>, World::ContactStatus>::iterator ContactIter;
-
     template <class Container>
     auto deadObjects(Container& container)
     {
@@ -260,25 +258,23 @@ private:
 };
 
 
-template <>
-PhysicsObject*
-World::Cleaner::access<typename World::Cleaner::ContactIter>(ContactIter it)
-{
-    return it->second.existingContact;
-}
-
-template <>
-bool World::Cleaner::isDead<typename World::Cleaner::ContactIter>(ContactIter it)
-{
-    return access(it) != nullptr && access(it)->isDead();
-}
-
-
 void World::cleanup()
 {
+    for (auto it = contacts_.begin(); it != contacts_.end(); ++it)
+    {
+        auto& contact = *it;
+        if (contact.second.existingContact != nullptr)
+        {
+            if (!boundsOf(contact.first[0]).overlaps(boundsOf(contact.first[1])))
+            {
+                contact.second.existingContact->kill();
+                contacts_.erase(it);
+            }
+        }
+    }
+
     Cleaner cleaner{};
 
-    auto deadContacts    = cleaner.deadObjects(contacts_);
     auto deadConstraints = cleaner.deadObjects(constraints_);
     auto deadForces      = cleaner.deadObjects(forces_);
     auto deadBodies      = cleaner.deadObjects(bodies_);
@@ -297,12 +293,10 @@ void World::cleanup()
         }
     }
 
-    cleaner.onDestruction(*this, deadContacts);
     cleaner.onDestruction(*this, deadConstraints);
     cleaner.onDestruction(*this, deadForces);
     cleaner.onDestruction(*this, deadBodies);
 
-    cleaner.erase(contacts_, deadContacts);
     cleaner.erase(constraints_, deadConstraints);
     cleaner.erase(forces_, deadForces);
     cleaner.erase(bodies_, deadBodies);

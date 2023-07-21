@@ -55,8 +55,8 @@ public:
                 {
                     if (!body->interactsAsStructural())
                     {
-                        addBody(body);
-                        expand(body);
+                        if (addBody(body))
+                            expand(body);
                     }
                 }
             }
@@ -72,10 +72,11 @@ public:
 
 private:
 
-    void addBody(Body* body)
+    bool addBody(Body* body)
     {
-        bodies_.emplace(body);
+        bool isNew = bodies_.emplace(body).second;
         isAwake_ = isAwake_ || !body->isAsleep();
+        return isNew;
     }
 
     std::set<Body*> bodies_;
@@ -95,7 +96,7 @@ class Islands
 public:
 
     template <BodyRange T>
-    Islands(T&& bodies)
+    Islands(const T& bodies)
     {
         std::vector<Body*> bodiesToProcess;
         for (Body& body : bodies)

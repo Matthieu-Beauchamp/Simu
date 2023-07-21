@@ -342,6 +342,7 @@ private:
         ConstraintPtr existingContact         = nullptr;
     };
 
+    // TODO: Use BodyTree::iterator pair...
     std::unordered_map<Bodies<2>, ContactStatus> contacts_;
     std::unordered_map<Bodies<2>, ContactStatus>::iterator
     inContacts(Bodies<2> bodies)
