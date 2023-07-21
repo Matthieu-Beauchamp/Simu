@@ -63,7 +63,23 @@ private:
 
     void show() const;
 
-    friend void frameBufferResizeCallback(GLFWwindow* window, int w, int h);
+    static void frameBufferResizeCallback(GLFWwindow* window, int w, int h);
+    static void windowResizeCallback(GLFWwindow* window, int w, int h);
+
+    static void keypressCallback(
+        GLFWwindow* window,
+        int         key,
+        int         scancode,
+        int         action,
+        int         modifiers
+    );
+
+    static void mouseMoveCallback(GLFWwindow* window, double x, double y);
+    static void
+    mousePressCallback(GLFWwindow* window, int button, int action, int mods);
+
+    static void mouseScrollCallback(GLFWwindow* window, double x, double y);
+
 
     std::shared_ptr<Scene>    scene_    = nullptr;
     std::unique_ptr<Renderer> renderer_ = nullptr;

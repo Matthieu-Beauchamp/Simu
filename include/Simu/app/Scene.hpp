@@ -34,6 +34,7 @@
 #include "Simu/app/Camera.hpp"
 #include "Simu/app/Event.hpp"
 #include "Simu/app/VisiblePhysics.hpp"
+#include "Simu/app/Tool.hpp"
 
 namespace simu
 {
@@ -48,45 +49,33 @@ public:
     virtual ~Scene() = default;
 
     bool isInit() const { return isInit_; }
-
-protected:
-
-    virtual void init(Renderer& renderer) = 0;
-
-    virtual void onClear(){};
-    virtual void preStep(float /* dt */);
-
-    virtual void postStep(float /* dt */){};
-
-public:
-
-    // TODO: In protected...
-
-    // returns true if the input was used
-    // base Scene will use escape to close() the application
-    virtual bool onKeypress(Keyboard::Input input);
-
-    virtual bool onMousePress(Mouse::Input /* input */) { return false; }
-    virtual bool onMouseMove(Vec2 /* newPos */) { return false; }
-    virtual bool onMouseScroll(Vec2 scroll)
-    {
-        float zoomRatio = (scroll[1] < 0.f) ? 4.f / 5.f : 5.f / 4.f;
-        camera().setZoom(camera().zoom() * std::abs(scroll[1]) * zoomRatio);
-        return true;
-    }
-
-    /////////////
-
     void reset()
     {
         world_ = makeWorld();
         this->init(*renderer_);
     }
 
+    // play speeds above 1 may hinder the physics accuracy
+    void setPlaySpeed(float speed)
+    {
+        if (speed > 0.f)
+            playSpeed_ = speed;
+    }
+    float playSpeed() const { return playSpeed_; }
+
+    void resume() { isPaused_ = false; }
+    void pause() { isPaused_ = true; }
+    bool isPaused() const { return isPaused_; }
+
     void step(float dt)
     {
-        renderer_->fillScreen(Rgba{50, 10, 50, 255});
+        this->moveCamera(dt);
         renderer_->setCameraTransform(camera_.transform());
+
+        dt = std::min(dt, 1.f / 60.f) * playSpeed()
+             * static_cast<float>(!isPaused());
+
+        renderer_->fillScreen(Rgba{50, 10, 50, 255});
 
         this->preStep(dt);
         world_.step(dt);
@@ -104,11 +93,49 @@ public:
     World&       world() { return world_; }
     const World& world() const { return world_; }
 
+protected:
+
+    virtual void init(Renderer& renderer) = 0;
+
+    virtual void onClear(){};
+    virtual void preStep(float /* dt */){};
+    virtual void postStep(float /* dt */){};
+
+    virtual void moveCamera(float dt);
+
+    // returns true if the input was used, derived classes should always override
+    //  and call Base::on...
+
+    // base Scene will use:
+    // escape to close() the application
+    // P to pause/resume
+    // - and = to slow and speed the simulation respectively
+    // s to single step
+    // r to reset() the scene
+    virtual bool onKeypress(Keyboard::Input input);
+    virtual bool onMousePress(Mouse::Input /* input */) { return false; }
+    virtual bool onMouseMove(Vec2 /* newPos */) { return false; }
+
+    // zooms in or out
+    virtual bool onMouseScroll(Vec2 scroll);
+
+    template <std::derived_from<Tool> T, class... Args>
+    T* useTool(Args&&... args)
+    {
+        tool_ = std::make_unique<T>(std::forward<Args>(args)...);
+        return static_cast<T*>(tool_.get());
+    }
+
 private:
 
     // called by Application
     friend Application;
     void init(Application* app);
+    void keypress(Keyboard::Input input);
+    void mousePress(Mouse::Input input);
+    void mouseMove(Vec2 newPos);
+    void mouseScroll(Vec2 scroll);
+
 
     World makeWorld()
     {
@@ -121,10 +148,14 @@ private:
     World  world_{};
     Camera camera_{};
 
+    std::unique_ptr<Tool> tool_ = std::make_unique<NoTool>();
+
     Renderer*    renderer_ = nullptr;
     Application* app_      = nullptr;
 
-    bool isInit_ = false;
+    float playSpeed_ = 1.f;
+    bool  isPaused_  = false;
+    bool  isInit_    = false;
 };
 
 

@@ -69,27 +69,30 @@ void World::step(float dt)
         f.preStep();
 
 
-    // TODO: with some additionnal management code,
-    //  islands can be made to persist between steps, possibly reducing computation.
-    Islands islands(bodies());
-    for (Island& island : islands.islands())
-        if (island.isAwake())
-            for (Body* body : island.bodies())
-                body->wake();
+    if (dt > 0.f)
+    {
+        // TODO: with some additionnal management code,
+        //  islands can be made to persist between steps, possibly reducing computation.
+        Islands islands(bodies());
+        for (Island& island : islands.islands())
+            if (island.isAwake())
+                for (Body* body : island.bodies())
+                    body->wake();
 
-    applyForces(dt);
+        applyForces(dt);
 
-    for (Island& island : islands.islands())
-        if (!settings().enableSleeping || island.isAwake())
-            applyVelocityConstraints(island, dt);
+        for (Island& island : islands.islands())
+            if (!settings().enableSleeping || island.isAwake())
+                applyVelocityConstraints(island, dt);
 
-    integrateBodies(dt);
+        integrateBodies(dt);
 
-    for (Island& island : islands.islands())
-        if (!settings().enableSleeping || island.isAwake())
-            applyPositionConstraints(island);
+        for (Island& island : islands.islands())
+            if (!settings().enableSleeping || island.isAwake())
+                applyPositionConstraints(island);
 
-    updateBodies(dt);
+        updateBodies(dt);
+    }
 
     for (Body& b : bodies())
         b.postStep();
@@ -207,8 +210,6 @@ void World::detectContacts()
 
 struct World::Cleaner
 {
-    typedef std::unordered_map<Bodies<2>, World::ContactStatus>::iterator ContactIter;
-
     template <class Container>
     auto deadObjects(Container& container)
     {
@@ -257,25 +258,23 @@ private:
 };
 
 
-template <>
-PhysicsObject*
-World::Cleaner::access<typename World::Cleaner::ContactIter>(ContactIter it)
-{
-    return it->second.existingContact;
-}
-
-template <>
-bool World::Cleaner::isDead<typename World::Cleaner::ContactIter>(ContactIter it)
-{
-    return access(it) != nullptr && access(it)->isDead();
-}
-
-
 void World::cleanup()
 {
+    for (auto it = contacts_.begin(); it != contacts_.end(); ++it)
+    {
+        auto& contact = *it;
+        if (contact.second.existingContact != nullptr)
+        {
+            if (!boundsOf(contact.first[0]).overlaps(boundsOf(contact.first[1])))
+            {
+                contact.second.existingContact->kill();
+                contacts_.erase(it);
+            }
+        }
+    }
+
     Cleaner cleaner{};
 
-    auto deadContacts    = cleaner.deadObjects(contacts_);
     auto deadConstraints = cleaner.deadObjects(constraints_);
     auto deadForces      = cleaner.deadObjects(forces_);
     auto deadBodies      = cleaner.deadObjects(bodies_);
@@ -294,12 +293,10 @@ void World::cleanup()
         }
     }
 
-    cleaner.onDestruction(*this, deadContacts);
     cleaner.onDestruction(*this, deadConstraints);
     cleaner.onDestruction(*this, deadForces);
     cleaner.onDestruction(*this, deadBodies);
 
-    cleaner.erase(contacts_, deadContacts);
     cleaner.erase(constraints_, deadConstraints);
     cleaner.erase(forces_, deadForces);
     cleaner.erase(bodies_, deadBodies);
@@ -361,14 +358,15 @@ void World::updateBodies(float dt)
     std::vector<BodyTree::iterator> toUpdate{};
     for (auto it = bodies_.begin(); it != bodies_.end(); ++it)
     {
-        if (!(*it)->isAsleep())
+        if (!(*it)->isAsleep()
+            && !it.bounds().contains((*it)->collider().boundingBox()))
             toUpdate.emplace_back(it);
     }
 
     // TODO: batch updates of RTree ...
     // TODO: Modifying the tree while iterating is undefined.
     for (auto it : toUpdate)
-        bodies_.update(it, (*it)->collider().boundingBox());
+        bodies_.update(it, boundsOf(it->get()));
 }
 
 

@@ -28,13 +28,13 @@
 namespace simu
 {
 
-void Scene::preStep(float dt)
+void Scene::moveCamera(float dt)
 {
     if (app() == nullptr)
         return;
 
     // 500 pixel / s at normal zoom
-    float panSpeed = 500.f * camera().pixelSize() * 1 / camera().zoom();
+    float panSpeed = 500.f * camera().pixelSize() / camera().zoom();
 
     Vec2 panDir{};
     if (app()->isKeyPressed(Keyboard::Key::left))
@@ -52,17 +52,68 @@ void Scene::preStep(float dt)
 
 bool Scene::onKeypress(Keyboard::Input input)
 {
-    if ((input.key == Keyboard::Key::escape)
-        && (input.action == Keyboard::Action::press))
+    if (input.action == Keyboard::Action::release)
+        return false;
+
+
+    if (input.key == Keyboard::Key::S)
     {
-        if (app() != nullptr)
-            app()->close();
+        if (isPaused())
+        {
+            resume();
+            step(1.f / 60.f);
+            pause();
+        }
+        else
+            step(1.f / 60.f);
 
         return true;
     }
 
-    return false;
+    if (input.action == Keyboard::Action::press)
+    {
+        switch (input.key)
+        {
+            case Keyboard::Key::escape:
+            {
+                if (app() != nullptr)
+                    app()->close();
+
+                break;
+            }
+            case Keyboard::Key::P:
+            {
+                isPaused() ? resume() : pause();
+                break;
+            }
+            case Keyboard::Key::minus:
+            {
+                setPlaySpeed(playSpeed() / 2.f);
+                break;
+            }
+            case Keyboard::Key::equal:
+            {
+                setPlaySpeed(playSpeed() * 2.f);
+                break;
+            }
+            case Keyboard::Key::R:
+            {
+                reset();
+                break;
+            }
+            default: return false;
+        }
+    }
+    return true;
 }
+
+bool Scene::onMouseScroll(Vec2 scroll)
+{
+    float zoomRatio = (scroll[1] < 0.f) ? 4.f / 5.f : 5.f / 4.f;
+    camera().setZoom(camera().zoom() * std::abs(scroll[1]) * zoomRatio);
+    return true;
+}
+
 
 void Scene::init(Application* app)
 {
@@ -72,6 +123,26 @@ void Scene::init(Application* app)
     reset();
 
     isInit_ = true;
+}
+
+void Scene::keypress(Keyboard::Input input)
+{
+    tool_->onKeypress(input) || onKeypress(input);
+}
+
+void Scene::mousePress(Mouse::Input input)
+{
+    tool_->onMousePress(input) || onMousePress(input);
+}
+
+void Scene::mouseMove(Vec2 newPos)
+{
+    tool_->onMouseMove(newPos) || onMouseMove(newPos);
+}
+
+void Scene::mouseScroll(Vec2 scroll)
+{
+    tool_->onMouseScroll(scroll) || onMouseScroll(scroll);
 }
 
 } // namespace simu

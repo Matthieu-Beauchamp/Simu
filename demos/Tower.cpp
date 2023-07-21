@@ -22,6 +22,8 @@
 //
 ////////////////////////////////////////////////////////////
 
+#include <numbers>
+
 #include "Simu/app.hpp"
 
 
@@ -32,7 +34,7 @@ public:
     Tower()
     {
         camera().setPixelSize(1.f / 10.f);
-        camera().panTo(simu::Vec2{-90.f, 0.f});
+        camera().panTo(simu::Vec2{0.f, 0.f});
     }
 
     void init(simu::Renderer& renderer) override
@@ -43,16 +45,39 @@ public:
             simu::Polygon{
                           simu::Vertex{-100.f, -20.f},
                           simu::Vertex{100.f, -20.f},
-                          simu::Vertex{100.f, -1.f},
-                          simu::Vertex{-100.f, -1.f}}
+                          simu::Vertex{100.f, 0.f},
+                          simu::Vertex{-100.f, 0.f}}
         };
 
         descr.dominance               = 0.f;
         descr.material.friction.value = 0.8f;
         world().makeBody<simu::VisibleBody>(descr, simu::Rgba{}, &renderer);
 
-        auto box = simu::BoxSpawner{*this}.makeBox(simu::Vec2{-90.f, 0.f});
-        box->setVelocity(simu::Vec2{10.f, 0.f});
+
+        int h = 20;
+
+        for (int y = 0; y < h; ++y)
+        {
+            makeSlab(
+                simu::Vec2{
+                    -w / 2.f + thickness / 2.f,
+                    w / 2.f + y * (w + thickness)},
+                true
+            );
+            makeSlab(
+                simu::Vec2{
+                    w / 2.f - thickness / 2.f,
+                    w / 2.f + y * (w + thickness)},
+                true
+            );
+
+            makeSlab(simu::Vec2{0.f, (y + 1) * w + (y + 0.5f) * thickness}, false);
+        }
+
+        auto s = world().settings();
+        // s.nPositionIterations = 5;
+        // s.nVelocityIterations = 20;
+        world().updateSettings(s);
 
         useTool<simu::Grabber>(*this);
     }
@@ -73,6 +98,35 @@ public:
             return false;
 
         return true;
+    }
+
+private:
+
+    static constexpr float w         = 5.f;
+    static constexpr float thickness = 1.f;
+
+    void makeSlab(simu::Vec2 pos, bool vertical)
+    {
+        float width = vertical ? w : 2.f * w;
+
+        simu::BodyDescriptor d{
+            simu::Polygon{
+                          simu::Vec2{-width / 2.f, -thickness / 2.f},
+                          simu::Vec2{width / 2.f, -thickness / 2.f},
+                          simu::Vec2{width / 2.f, thickness / 2.f},
+                          simu::Vec2{-width / 2.f, thickness / 2.f}}
+        };
+
+        d.material.friction.value = 0.5f;
+        // d.position                = simu::Vec2{pos[0], 1.2f* pos[1]};
+        d.position    = pos;
+        d.orientation = vertical ? std::numbers::pi_v<float> / 2 : 0.f;
+
+        world().makeBody<simu::VisibleBody>(
+            d,
+            simu::Rgba::filled(200.f),
+            app()->renderer()
+        );
     }
 };
 

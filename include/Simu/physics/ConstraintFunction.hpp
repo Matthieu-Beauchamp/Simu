@@ -430,7 +430,7 @@ public:
 
     Value eval(const Bodies<nBodies>& bodies) const
     {
-        return Value{dot(contactDistance(bodies), normal_)};
+        return Value{dot(contactDistance(bodies), normal(bodies))};
     }
 
     Value bias(const Bodies<nBodies>& /* bodies */) const { return Value{}; }
@@ -451,13 +451,14 @@ public:
         J[3 * r]     = -n[0];
         J[3 * r + 1] = -n[1];
         J[3 * r + 2] = -cross(contacts[r] - bodies[r]->properties().centroid, n);
-                    //    + cross(n, contacts[i] - contacts[r]);
+        //    + cross(n, contacts[i] - contacts[r]);
 
         return J;
     }
 
-    Uint32              reference() const { return reference_; }
-    Uint32              incident() const { return reference_ == 0 ? 1 : 0; }
+    Uint32 reference() const { return reference_; }
+    Uint32 incident() const { return reference_ == 0 ? 1 : 0; }
+
     std::array<Vec2, 2> worldSpaceContacts(const Bodies<nBodies>& bodies) const
     {
         return std::array<Vec2, 2>{

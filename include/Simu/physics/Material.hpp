@@ -80,7 +80,7 @@ struct Material
     ///     than twice the Material's penetration between them.
     /// 
     ////////////////////////////////////////////////////////////
-    CombinableProperty penetration{1e-2f, CombinableProperty::average};
+    CombinableProperty penetration{0.005f, CombinableProperty::average};
 };
 
 

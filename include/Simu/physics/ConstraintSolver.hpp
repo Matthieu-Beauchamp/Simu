@@ -529,6 +529,8 @@ public:
         : Base{bodies, f},
           restitutionCoefficient_{
             CombinableProperty{bodies[0]->material().bounciness, bodies[1]->material().bounciness}
+          .value},
+          maxPen_{CombinableProperty{bodies[0]->material().penetration, bodies[1]->material().penetration}
           .value}
     {
     }
@@ -572,13 +574,14 @@ public:
         // This avoids the jittery bounces, allow stable contacts (that can sleep)
 
         Jacobian J     = this->getJacobian();
-        auto     error = -(J * bodies.velocity())
-                     + effectiveMass_ * this->getAccumulatedLambda();
-        error -= bounce_;
+        Value    error = J * bodies.velocity() + bounce_;
+        Value    baumgarte
+            = KMatrix::diagonal(this->restitution()) * f.eval(bodies) / dt;
+        Value alreadyComputed = effectiveMass_ * this->getAccumulatedLambda();
 
         Value lambda = solveInequalities(
             effectiveMass_,
-            error,
+            -(error - alreadyComputed + baumgarte),
             [=, &f](Value lambda) { return f.clampLambda(lambda, dt); },
             this->getAccumulatedLambda()
         );
@@ -592,6 +595,18 @@ public:
     {
         Value error = f.eval(bodies);
 
+        float beta          = 0.2f;
+        Value maxPen        = Value::filled(maxPen_);
+        Value maxCorrection = Value::filled(0.2f);
+
+        // should be done based on the maximum error found over all contacts...
+        //  (according to box2D)
+        if (all(error > -3.f * maxPen))
+            return;
+
+
+        error = clamp(beta * (error + maxPen), -maxCorrection, Value{});
+
         Jacobian J     = f.jacobian(bodies);
         effectiveMass_ = J * bodies.inverseMass() * transpose(J);
 
@@ -599,13 +614,6 @@ public:
             = solveInequalities(effectiveMass_, -error, [&f](Value posLambda) {
                   return f.clampPositionLambda(posLambda);
               });
-
-        // Solver<float, F::dimension> s{effectiveMass_};
-        // if (!s.isValid())
-        //     return; // Jacobians are parallel, TODO:
-
-        // Value posLambda = s.solve(-error);
-        // posLambda       = f.clampPositionLambda(posLambda);
 
         State positionCorrection
             = bodies.inverseMass() * transpose(J) * posLambda;
@@ -629,9 +637,11 @@ private:
         return std::max(x, -this->getAccumulatedLambda());
     }
 
-    float   restitutionCoefficient_;
     Value   bounce_;
     KMatrix effectiveMass_;
+
+    float restitutionCoefficient_;
+    float maxPen_;
 };
 
 } // namespace priv
