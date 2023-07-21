@@ -37,7 +37,7 @@ public:
 
         // NGS is a lot more stable here, but is a bit slower than baumgarte.
         for (simu::Int32 x = -90; x < 90; x+= 5)
-            for (simu::Uint32 i = 0; i < 40; ++i)
+            for (simu::Uint32 i = 0; i < 10; ++i)
                 spawner.makeBox(simu::Vec2{(float)x, (float)5 * i});
 
 

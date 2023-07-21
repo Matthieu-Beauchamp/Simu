@@ -54,7 +54,7 @@ public:
         world().makeBody<simu::VisibleBody>(descr, simu::Rgba{}, &renderer);
 
 
-        int h = 10;
+        int h = 20;
 
         for (int y = 0; y < h; ++y)
         {
@@ -75,7 +75,7 @@ public:
         }
 
         auto s = world().settings();
-        // s.nPositionIterations = 1;
+        // s.nPositionIterations = 5;
         // s.nVelocityIterations = 20;
         world().updateSettings(s);
 
@@ -107,12 +107,14 @@ private:
 
     void makeSlab(simu::Vec2 pos, bool vertical)
     {
+        float width = vertical ? w : 2.f * w;
+
         simu::BodyDescriptor d{
             simu::Polygon{
-                          simu::Vec2{-w / 2.f, -thickness / 2.f},
-                          simu::Vec2{w / 2.f, -thickness / 2.f},
-                          simu::Vec2{w / 2.f, thickness / 2.f},
-                          simu::Vec2{-w / 2.f, thickness / 2.f}}
+                          simu::Vec2{-width / 2.f, -thickness / 2.f},
+                          simu::Vec2{width / 2.f, -thickness / 2.f},
+                          simu::Vec2{width / 2.f, thickness / 2.f},
+                          simu::Vec2{-width / 2.f, thickness / 2.f}}
         };
 
         d.material.friction.value = 0.5f;

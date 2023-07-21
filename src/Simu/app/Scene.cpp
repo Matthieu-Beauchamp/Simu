@@ -96,6 +96,11 @@ bool Scene::onKeypress(Keyboard::Input input)
                 setPlaySpeed(playSpeed() * 2.f);
                 break;
             }
+            case Keyboard::Key::R:
+            {
+                reset();
+                break;
+            }
             default: return false;
         }
     }

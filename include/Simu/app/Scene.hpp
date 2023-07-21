@@ -106,10 +106,12 @@ protected:
     // returns true if the input was used, derived classes should always override
     //  and call Base::on...
 
-    // base Scene will use escape to close() the application
+    // base Scene will use:
+    // escape to close() the application
     // P to pause/resume
     // - and = to slow and speed the simulation respectively
     // s to single step
+    // r to reset() the scene
     virtual bool onKeypress(Keyboard::Input input);
     virtual bool onMousePress(Mouse::Input /* input */) { return false; }
     virtual bool onMouseMove(Vec2 /* newPos */) { return false; }

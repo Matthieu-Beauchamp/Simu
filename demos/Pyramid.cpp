@@ -57,7 +57,7 @@ public:
 
         simu::BoxSpawner spawn{*this};
 
-        int  height  = 60;
+        int  height  = 30;
         bool bricked = true;
         // only for bricked, otherwise we are only doing stacks.
         float spacing = 0.5f;
