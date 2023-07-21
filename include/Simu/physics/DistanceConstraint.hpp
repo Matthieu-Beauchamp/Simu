@@ -41,24 +41,18 @@ public:
 
     DistanceConstraintFunction(
         const Bodies<nBodies>& bodies,
-        std::array<Vec2, 2>    fixedPoints,
-        std::optional<float>   distance
+        std::array<Vec2, 2>    fixedPoints
     )
         : Base{},
           localFixedPoints_{
               bodies[0]->toLocalSpace() * fixedPoints[0],
-              bodies[1]->toLocalSpace() * fixedPoints[1]},
-          distanceSquared_{
-              distance.has_value() ? distance.value() * distance.value()
-                                   : distanceSquared(fixedPoints)}
+              bodies[1]->toLocalSpace() * fixedPoints[1]}
     {
-        SIMU_ASSERT(distanceSquared_ != 0.f, "Use an HingeConstraint instead");
     }
 
     Value eval(const Bodies<nBodies>& bodies) const
     {
-        return Value{
-            distanceSquared(worldSpaceFixedPoints(bodies)) - distanceSquared_};
+        return Value{distanceSquared(worldSpaceFixedPoints(bodies))};
     }
 
     Value bias(const Bodies<nBodies>& /* bodies */) const { return Value{}; }
@@ -72,13 +66,14 @@ public:
             worldPoints[0] - bodies[0]->properties().centroid,
             worldPoints[1] - bodies[1]->properties().centroid};
 
-        return 2.f * Jacobian{
-            d[0],
-            d[1],
-            cross(fromCentroid[0], d),
-            -d[0],
-            -d[1],
-            -cross(fromCentroid[1], d)};
+        return 2.f
+               * Jacobian{
+                   d[0],
+                   d[1],
+                   cross(fromCentroid[0], d),
+                   -d[0],
+                   -d[1],
+                   -cross(fromCentroid[1], d)};
     }
 
     std::array<Vec2, 2> worldSpaceFixedPoints(const Bodies<nBodies>& bodies) const
@@ -88,36 +83,87 @@ public:
             bodies[1]->toWorldSpace() * localFixedPoints_[1]};
     }
 
-private:
-
-    float distanceSquared(std::array<Vec2, 2> worldPoints) const
+    static float distanceSquared(std::array<Vec2, 2> worldPoints)
     {
         return normSquared(worldPoints[0] - worldPoints[1]);
     }
 
+private:
+
     std::array<Vec2, 2> localFixedPoints_;
-    float               distanceSquared_;
 };
 
-class DistanceConstraint
-    : public ConstraintImplementation<DistanceConstraintFunction>
+class DistanceConstraint : public ConstraintImplementation<
+                               DistanceConstraintFunction,
+                               LimitsSolver<DistanceConstraintFunction>>
 {
 public:
 
-    typedef ConstraintImplementation<DistanceConstraintFunction> Base;
+    typedef ConstraintImplementation<
+        DistanceConstraintFunction,
+        LimitsSolver<DistanceConstraintFunction>>
+        Base;
+
+    DistanceConstraint(
+        const Bodies<2>&    bodies,
+        std::array<Vec2, 2> fixedPoints,
+        bool                disableContacts = true
+    )
+        : DistanceConstraint{
+            bodies,
+            fixedPoints,
+            norm(fixedPoints[1] - fixedPoints[0]),
+            disableContacts}
+    {
+    }
+
+    DistanceConstraint(
+        const Bodies<2>&    bodies,
+        std::array<Vec2, 2> fixedPoints,
+        float               distance,
+        bool                disableContacts = true
+    )
+        : DistanceConstraint{bodies, fixedPoints, distance, distance, disableContacts}
+    {
+    }
 
     DistanceConstraint(
         const Bodies<2>&     bodies,
         std::array<Vec2, 2>  fixedPoints,
-        std::optional<float> distance        = std::nullopt,
+        std::optional<float> minDistance,
+        std::optional<float> maxDistance,
         bool                 disableContacts = true
     )
         : Base{
             bodies,
-            DistanceConstraintFunction{bodies, fixedPoints, distance},
+            DistanceConstraintFunction{bodies, fixedPoints},
             disableContacts
     }
     {
+        SIMU_ASSERT(
+            minDistance.has_value() || maxDistance.has_value(),
+            "This constraint has no effect."
+        );
+
+        SIMU_ASSERT(
+            !minDistance.has_value() || minDistance.value() > 0.f,
+            "Cannot enforce a minimal distance <= 0. Use an Hinge constraint "
+            "for distance of 0."
+        );
+
+        SIMU_ASSERT(
+            maxDistance > 0.f,
+            "Cannot enforce a maximal distance <= 0. Use an Hinge constraint "
+            "for a distance of 0."
+        );
+
+        if (minDistance.has_value())
+            solver.setLowerLimit(Value{minDistance.value() * minDistance.value()}
+            );
+
+        if (maxDistance.has_value())
+            solver.setUpperLimit(Value{maxDistance.value() * maxDistance.value()}
+            );
     }
 };
 

@@ -313,20 +313,20 @@ public:
     typedef typename Base::KMatrix         KMatrix;
     typedef Solver<float, Base::dimension> KSolver;
 
-    LimitsSolver(Bodies<nBodies> /* bodies */, const F& /* f */) {}
+    LimitsSolver(Bodies<nBodies> bodies, const F& f) : Base{bodies, f} {}
 
-    void setLowerLimit(Value L) { L_ = L; }
-    void setUpperLimit(Value U) { U_ = U; }
+    void setLowerLimit(std::optional<Value> L) { L_ = L; }
+    void setUpperLimit(std::optional<Value> U) { U_ = U; }
 
     bool isActive(const Bodies<nBodies>& bodies, const F& f) const
     {
-        return nextState(bodies, f) != State::off;
+        return nextFunc(bodies, f) != Func::off;
     }
 
-    void initSolve(const Bodies<nBodies>& bodies, const F& f, float dt)
+    void initSolve(Bodies<nBodies>& bodies, const F& f, float dt)
     {
-        State next = nextState(bodies, f);
-        if (state_ == next)
+        Func next = nextFunc(bodies, f);
+        if (func_ == next)
         {
             Value lambda = this->getAccumulatedLambda();
             this->setLambdaHint(Value::filled(0.f));
@@ -336,7 +336,7 @@ public:
         else
         {
             this->setLambdaHint(Value::filled(0.f));
-            state_ = next;
+            func_ = next;
         }
 
         initSolver(bodies, f);
@@ -346,14 +346,14 @@ public:
     {
         Value err = rhs(bodies, f, dt);
 
-        switch (state_)
+        switch (func_)
         {
-            case State::equality:
+            case Func::equality:
             {
                 this->updateLambda(bodies, f, dt, solver_.solve(err));
                 break;
             }
-            case State::lower:
+            case Func::lower:
             {
                 Value lambda = solveInequalities(
                     effectiveMass_,
@@ -375,21 +375,21 @@ public:
                 );
                 break;
             }
-            case State::upper:
+            case Func::upper:
             {
                 Value lambda = solveInequalities(
                     effectiveMass_,
                     err,
                     [=, &f](Value lambda) {
-                        return -std::max(
-                            f.clampLambda(-lambda, dt),
+                        return std::max(
+                            -f.clampLambda(-lambda, dt),
                             Value::filled(0.f)
                         );
                     },
                     this->getAccumulatedLambda()
                 );
 
-                bodies.applyImpulse(impulse(this->getJacobian(), -lambda));
+                bodies.applyImpulse(this->impulse(this->getJacobian(), -lambda));
                 this->setLambdaHint(lambda);
                 break;
             }
@@ -399,12 +399,51 @@ public:
 
     void solvePosition(Bodies<nBodies>& bodies, const F& f)
     {
-        Value error = f.eval(bodies);
+        Value    C       = f.eval(bodies);
+        Jacobian J       = f.jacobian(bodies);
+        KMatrix  effMass = this->computeEffectiveMass(bodies, f, false);
 
-        Jacobian J = f.jacobian(bodies);
-        solver_    = KSolver{this->computeEffectiveMass(bodies, f, false)};
+        Value posLambda;
+        switch (nextFunc(bodies, f))
+        {
+            case Func::equality:
+            {
+                posLambda
+                    = f.clampPositionLambda(solve(effMass, -(C - L_.value())));
+                break;
+            }
+            case Func::lower:
+            {
+                posLambda = solveInequalities(
+                    effMass,
+                    -(C - L_.value()),
+                    [&f](Value lambda) {
+                        return std::max(
+                            f.clampPositionLambda(lambda),
+                            Value::filled(0.f)
+                        );
+                    }
+                );
 
-        Value posLambda = f.clampPositionLambda(solver_.solve(-error));
+                break;
+            }
+            case Func::upper:
+            {
+                posLambda = -solveInequalities(
+                    effMass,
+                    C - U_.value(),
+                    [&f](Value lambda) {
+                        return std::max(
+                            -f.clampPositionLambda(-lambda),
+                            Value::filled(0.f)
+                        );
+                    }
+                );
+                break;
+            }
+            default: break;
+        }
+
         State positionCorrection
             = bodies.inverseMass() * transpose(J) * posLambda;
 
@@ -413,20 +452,29 @@ public:
 
 private:
 
-    State nextState(const Bodies<nBodies>& bodies, const F& f) const
+    enum class Func
     {
-        if (all(L_ == U_))
-            return State::equality;
-        else
-        {
-            Value C = f.eval(bodies);
-            if (all(C - L <= Value::filled(0.f)))
-                return State::lower;
-            else if all (-C + U <= Value::filled(0.f))
-                return State::upper;
+        lower,
+        upper,
+        equality,
+        off
+    };
 
-            return State::off;
-        }
+    Func nextFunc(const Bodies<nBodies>& bodies, const F& f) const
+    {
+        if (!L_.has_value() && !U_.has_value())
+            return Func::equality;
+
+        if (L_.has_value() && U_.has_value() && all(L_.value() == U_.value()))
+            return Func::equality;
+
+        Value C = f.eval(bodies);
+        if (L_.has_value() && all(C - L_.value() <= Value::filled(0.f)))
+            return Func::lower;
+        else if (U_.has_value() && all(-C + U_.value() <= Value::filled(0.f)))
+            return Func::upper;
+
+        return Func::off;
     }
 
     Value rhs(const Bodies<nBodies>& bodies, const F& f, float dt)
@@ -438,28 +486,30 @@ private:
 
         Value C = f.eval(bodies);
 
-        switch (state_)
+        switch (func_)
         {
-            case State::equality:
+            case Func::equality:
             {
-                C -= L_;
+                if (L_.has_value())
+                    C -= L_.value();
+
                 Value previousDamping = KMatrix::diagonal(this->damping())
                                         * this->getAccumulatedLambda();
                 return -(error + bias + baumgarteCoeff * C + previousDamping);
             }
-            case State::lower:
+            case Func::lower:
             {
-                C -= L_;
+                C -= L_.value();
                 Value alreadyCorrected = J * bodies.inverseMass() * transpose(J)
                                          * this->getAccumulatedLambda();
                 return -(error - alreadyCorrected + bias + baumgarteCoeff * C);
             }
-            case State::upper:
+            case Func::upper:
             {
-                C                      = -C + U_;
                 Value alreadyCorrected = J * bodies.inverseMass() * transpose(J)
-                                         * -this->getAccumulatedLambda();
-                return error - alreadyCorrected - bias + baumgarteCoeff * C;
+                                         * this->getAccumulatedLambda();
+                return error - alreadyCorrected + bias
+                       + baumgarteCoeff * (C - U_.value());
             }
             default: return Value{};
         }
@@ -469,30 +519,22 @@ private:
     {
         KMatrix effMass = this->computeEffectiveMass(bodies, f, true);
 
-        if (state_ == State::equality)
+        if (func_ == Func::equality)
             solver_ = KSolver{effMass};
-        else if (state_ == State::lower || state_ == State::upper)
+        else if (func_ == Func::lower || func_ == Func::upper)
             effectiveMass_ = effMass;
     }
 
-    enum class State
-    {
-        lower,
-        upper,
-        equality,
-        off
-    };
+    Func func_ = Func::off;
 
-    State state_ = State::off;
-
-    Value L_{};
-    Value U_{};
+    std::optional<Value> L_ = std::nullopt;
+    std::optional<Value> U_ = std::nullopt;
 
     union
     {
         KMatrix effectiveMass_;
         KSolver solver_;
-    }
+    };
 };
 
 

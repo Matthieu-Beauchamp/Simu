@@ -260,7 +260,7 @@ private:
 
 void World::cleanup()
 {
-    for (auto it = contacts_.begin(); it != contacts_.end(); ++it)
+    for (auto it = contacts_.begin(); it != contacts_.end();)
     {
         auto& contact = *it;
         if (contact.second.existingContact != nullptr)
@@ -268,9 +268,11 @@ void World::cleanup()
             if (!boundsOf(contact.first[0]).overlaps(boundsOf(contact.first[1])))
             {
                 contact.second.existingContact->kill();
-                contacts_.erase(it);
+                it = contacts_.erase(it);
+                continue;
             }
         }
+        ++it;
     }
 
     Cleaner cleaner{};

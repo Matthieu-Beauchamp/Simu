@@ -130,16 +130,41 @@ class VisibleDistanceConstraint : public DistanceConstraint, public Visible
 public:
 
     VisibleDistanceConstraint(
-        const Bodies<2>&     bodies,
-        std::array<Vec2, 2>  fixedPoints,
-        Renderer*            renderer,
-        std::optional<float> distance        = std::nullopt,
-        bool                 disableContacts = true
+        const Bodies<2>&    bodies,
+        std::array<Vec2, 2> fixedPoints,
+        Renderer*           renderer,
+        bool                disableContacts = true
+    )
+        : DistanceConstraint{bodies, fixedPoints, disableContacts},
+          Visible{renderer}
+    {
+    }
+
+    VisibleDistanceConstraint(
+        const Bodies<2>&    bodies,
+        std::array<Vec2, 2> fixedPoints,
+        float               distance,
+        Renderer*           renderer,
+        bool                disableContacts = true
     )
         : DistanceConstraint{bodies, fixedPoints, distance, disableContacts},
           Visible{renderer}
     {
     }
+
+    VisibleDistanceConstraint(
+        const Bodies<2>&     bodies,
+        std::array<Vec2, 2>  fixedPoints,
+        std::optional<float> minDistance,
+        std::optional<float> maxDistance,
+        Renderer*            renderer,
+        bool                 disableContacts = true
+    )
+        : DistanceConstraint{bodies, fixedPoints, minDistance, maxDistance, disableContacts},
+          Visible{renderer}
+    {
+    }
+
 
 protected:
 

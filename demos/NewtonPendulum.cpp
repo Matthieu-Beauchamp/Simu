@@ -82,8 +82,9 @@ public:
                     bar
             },
                 std::array<simu::Vec2, 2>{simu::Vec2{x, 1.f}, simu::Vec2{x, 8.f}},
-                &renderer,
                 std::nullopt,
+                7.f,
+                &renderer,
                 false
             );
         }
