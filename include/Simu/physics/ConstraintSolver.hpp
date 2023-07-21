@@ -315,8 +315,16 @@ public:
 
     LimitsSolver(Bodies<nBodies> bodies, const F& f) : Base{bodies, f} {}
 
-    void setLowerLimit(std::optional<Value> L) { L_ = L; }
-    void setUpperLimit(std::optional<Value> U) { U_ = U; }
+    void setLowerLimit(std::optional<Value> L)
+    {
+        L_ = L;
+        assertLimits();
+    }
+    void setUpperLimit(std::optional<Value> U)
+    {
+        U_ = U;
+        assertLimits();
+    }
 
     bool isActive(const Bodies<nBodies>& bodies, const F& f) const
     {
@@ -325,21 +333,28 @@ public:
 
     void initSolve(Bodies<nBodies>& bodies, const F& f, float dt)
     {
-        Func next = nextFunc(bodies, f);
-        if (func_ == next)
+        Func prev = func_;
+        func_     = nextFunc(bodies, f);
+        initSolver(bodies, f);
+
+        if (func_ == prev && func_ != Func::off)
         {
             Value lambda = this->getAccumulatedLambda();
-            this->setLambdaHint(Value::filled(0.f));
 
-            this->updateLambda(bodies, f, dt, lambda);
+            if (func_ == Func::upper)
+            {
+                bodies.applyImpulse(this->impulse(this->getJacobian(), -lambda));
+            }
+            else
+            {
+                this->setLambdaHint(Value::filled(0.f));
+                this->updateLambda(bodies, f, dt, lambda);
+            }
         }
         else
         {
             this->setLambdaHint(Value::filled(0.f));
-            func_ = next;
         }
-
-        initSolver(bodies, f);
     }
 
     void solveVelocity(Bodies<nBodies>& bodies, const F& f, float dt)
@@ -389,7 +404,10 @@ public:
                     this->getAccumulatedLambda()
                 );
 
-                bodies.applyImpulse(this->impulse(this->getJacobian(), -lambda));
+                bodies.applyImpulse(this->impulse(
+                    this->getJacobian(),
+                    -(lambda - this->getAccumulatedLambda())
+                ));
                 this->setLambdaHint(lambda);
                 break;
             }
@@ -452,6 +470,12 @@ public:
 
 private:
 
+    void assertLimits() const
+    {
+        if (L_.has_value() && U_.has_value())
+            SIMU_ASSERT(all(L_.value() <= U_.value()), "Invalid limits");
+    }
+
     enum class Func
     {
         lower,
@@ -507,7 +531,7 @@ private:
             case Func::upper:
             {
                 Value alreadyCorrected = J * bodies.inverseMass() * transpose(J)
-                                         * this->getAccumulatedLambda();
+                                         * -this->getAccumulatedLambda();
                 return error - alreadyCorrected + bias
                        + baumgarteCoeff * (C - U_.value());
             }

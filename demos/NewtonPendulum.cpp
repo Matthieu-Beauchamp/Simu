@@ -36,14 +36,16 @@ public:
         camera().panTo(simu::Vec2{0.f, 0.f});
     }
 
-    void init(simu::Renderer& renderer) override
+    simu::Int32 n = 5;
+
+    void        init(simu::Renderer& renderer) override
     {
         simu::BodyDescriptor descr{
             simu::Polygon{
-                          simu::Vertex{-5.f, 8.f},
-                          simu::Vertex{5.f, 8.f},
-                          simu::Vertex{5.f, 11.f},
-                          simu::Vertex{-5.f, 11.f}}
+                          simu::Vertex{-(float)n, 8.f},
+                          simu::Vertex{(float)n, 8.f},
+                          simu::Vertex{(float)n, 11.f},
+                          simu::Vertex{-(float)n, 11.f}}
         };
 
         descr.dominance = 0.f;
@@ -66,7 +68,7 @@ public:
         descr.dominance                 = 1.f;
         descr.material.density          = 10.f;
         descr.material.bounciness.value = 1.f;
-        for (int i = 0; i < 5; ++i)
+        for (int i = 0; i < n; ++i)
         {
             float x = -4.f + 2 * i;
 
