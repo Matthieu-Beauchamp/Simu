@@ -65,6 +65,14 @@ public:
     Value&       damping() { return damping_; }
     const Value& damping() const { return damping_; }
 
+    void warmstartDefault(Bodies<nBodies>& bodies, const F& f, float dt)
+    {
+        Value lambda = getAccumulatedLambda();
+        setLambdaHint(Value::filled(0.f));
+
+        updateLambda(bodies, f, dt, lambda);
+    }
+
     KMatrix
     computeEffectiveMass(const Bodies<nBodies>& bodies, const F& f, bool addDamping)
     {
@@ -141,18 +149,20 @@ public:
     EqualitySolver(const Bodies<nBodies>& bodies, const F& f)
         : Base{bodies, f}, solver_{KMatrix{}}
     {
-        initSolver(bodies, f);
     }
 
-    void initSolve(Bodies<nBodies>& bodies, const F& f, float dt)
+    void initSolve(Bodies<nBodies>& bodies, const F& f)
     {
-        initSolver(bodies, f);
-
-        Value lambda = this->getAccumulatedLambda();
-        this->setLambdaHint(Value::filled(0.f));
-
-        this->updateLambda(bodies, f, dt, lambda);
+        solver_ = Solver{this->computeEffectiveMass(bodies, f, true)};
+        SIMU_ASSERT(solver_.isValid(), "Constraint cannot be solved");
     }
+
+    void warmstart(Bodies<nBodies>& bodies, const F& f, float dt)
+    {
+        this->warmstartDefault(bodies, f, dt);
+    }
+
+    void preSolve(Bodies<nBodies>& /* bodies */, const F& /* f */) {}
 
     void solveVelocity(Bodies<nBodies>& bodies, const F& f, float dt)
     {
@@ -181,12 +191,6 @@ public:
 
 private:
 
-    void initSolver(const Bodies<nBodies>& bodies, const F& f)
-    {
-        solver_ = Solver{this->computeEffectiveMass(bodies, f, true)};
-        SIMU_ASSERT(solver_.isValid(), "Constraint cannot be solved");
-    }
-
     KSolver solver_;
 };
 
@@ -214,15 +218,17 @@ public:
     {
     }
 
-    void initSolve(Bodies<nBodies>& bodies, const F& f, float dt)
+    void initSolve(Bodies<nBodies>& bodies, const F& f)
     {
-        initSolver(bodies, f);
-
-        Value lambda = this->getAccumulatedLambda();
-        this->setLambdaHint(Value::filled(0.f));
-
-        this->updateLambda(bodies, f, dt, lambda);
+        effectiveMass_ = this->computeEffectiveMass(bodies, f, true);
     }
+
+    void warmstart(Bodies<nBodies>& bodies, const F& f, float dt)
+    {
+        this->warmstartDefault(bodies, f, dt);
+    }
+
+    void preSolve(Bodies<nBodies>& /* bodies */, const F& /* f */) {}
 
     void solveVelocity(Bodies<nBodies>& bodies, const F& f, float dt)
     {
@@ -270,11 +276,6 @@ public:
 
 
 private:
-
-    void initSolver(const Bodies<nBodies>& bodies, const F& f)
-    {
-        effectiveMass_ = this->computeEffectiveMass(bodies, f, true);
-    }
 
     KMatrix effectiveMass_;
 };
@@ -331,24 +332,35 @@ public:
         return nextFunc(bodies, f) != Func::off;
     }
 
-    void initSolve(Bodies<nBodies>& bodies, const F& f, float dt)
+
+    void initSolve(Bodies<nBodies>& bodies, const F& f)
     {
-        Func prev = func_;
-        func_     = nextFunc(bodies, f);
-        initSolver(bodies, f);
+        Func prev     = func_;
+        func_         = nextFunc(bodies, f);
+        canWarmstart_ = (func_ == prev) && (func_ != Func::off);
 
-        if (func_ == prev && func_ != Func::off)
+        KMatrix effMass = this->computeEffectiveMass(bodies, f, true);
+
+        if (func_ == Func::equality)
+            solver_ = KSolver{effMass};
+        else if (func_ == Func::lower || func_ == Func::upper)
+            effectiveMass_ = effMass;
+    }
+
+    void warmstart(Bodies<nBodies>& bodies, const F& f, float dt)
+    {
+        if (canWarmstart_)
         {
-            Value lambda = this->getAccumulatedLambda();
-
             if (func_ == Func::upper)
             {
-                bodies.applyImpulse(this->impulse(this->getJacobian(), -lambda));
+                bodies.applyImpulse(this->impulse(
+                    this->getJacobian(),
+                    -this->getAccumulatedLambda()
+                ));
             }
             else
             {
-                this->setLambdaHint(Value::filled(0.f));
-                this->updateLambda(bodies, f, dt, lambda);
+                this->warmstartDefault(bodies, f, dt);
             }
         }
         else
@@ -356,6 +368,8 @@ public:
             this->setLambdaHint(Value::filled(0.f));
         }
     }
+
+    void preSolve(Bodies<nBodies>& /* bodies */, const F& /* f */) {}
 
     void solveVelocity(Bodies<nBodies>& bodies, const F& f, float dt)
     {
@@ -539,16 +553,6 @@ private:
         }
     }
 
-    void initSolver(const Bodies<nBodies>& bodies, const F& f)
-    {
-        KMatrix effMass = this->computeEffectiveMass(bodies, f, true);
-
-        if (func_ == Func::equality)
-            solver_ = KSolver{effMass};
-        else if (func_ == Func::lower || func_ == Func::upper)
-            effectiveMass_ = effMass;
-    }
-
     Func func_ = Func::off;
 
     std::optional<Value> L_ = std::nullopt;
@@ -559,6 +563,8 @@ private:
         KMatrix effectiveMass_;
         KSolver solver_;
     };
+
+    bool canWarmstart_ = false;
 };
 
 
@@ -601,41 +607,31 @@ public:
     {
     }
 
-    void initSolve(Bodies<nBodies>& bodies, const F& f, float dt)
+    void initSolve(Bodies<nBodies>& bodies, const F& f)
     {
-        initSolver(bodies, f);
-
-        Value lambda = this->getAccumulatedLambda();
-        this->setLambdaHint(Value::filled(0.f));
-
-        this->updateLambda(bodies, f, dt, lambda);
+        effectiveMass_ = this->computeEffectiveMass(bodies, f, false);
     }
+
+    void warmstart(Bodies<nBodies>& bodies, const F& f, float dt)
+    {
+        this->warmstartDefault(bodies, f, dt);
+    }
+
+    void preSolve(Bodies<nBodies>& bodies, const F& f)
+    {
+        Value relVel = this->getJacobian() * bodies.velocity();
+        bounce_      = restitutionCoefficient_ * relVel;
+        bounce_      = std::min(Value::filled(0.f), bounce_);
+    }
+
 
     void solveVelocity(Bodies<nBodies>& bodies, const F& f, float dt)
     {
-        // auto error = this->computeRhs(bodies, f, dt, false);
-        // auto initialGuess
-        //     = -(restitutionCoefficient_ / (1.f + restitutionCoefficient_))
-        //       * this->getAccumulatedLambda();
-
-        // Value x = solveInequalities(
-        //     effectiveMass_,
-        //     error,
-        //     [this](Value x) { return this->clampX(x); },
-        //     initialGuess
-        // );
-
-        // Value dLambda = (1.f + restitutionCoefficient_) * x
-        //                 + restitutionCoefficient_ * this->getAccumulatedLambda();
-
-        // this->updateLambda(bodies, f, dt, dLambda);
-
-
         // computing the bounce from the relative normal velocities when the solver is initialized
         //
         // Box stacking is unstable for bouncy bodies.
         // Box2d uses a restitution threshold:
-        //  if the relative velocity is lower than the treshold, then apply
+        //  if the relative velocity (negative) is lower than the treshold, then apply
         //  restitution.
         // This avoids the jittery bounces, allow stable contacts (that can sleep)
 
@@ -689,14 +685,6 @@ public:
 
 
 private:
-
-    void initSolver(const Bodies<nBodies>& bodies, const F& f)
-    {
-        effectiveMass_ = this->computeEffectiveMass(bodies, f, false);
-        bounce_
-            = restitutionCoefficient_ * this->getJacobian() * bodies.velocity();
-        bounce_ = std::min(Value::filled(0.f), bounce_);
-    }
 
     typename F::Value clampX(typename F::Value x)
     {

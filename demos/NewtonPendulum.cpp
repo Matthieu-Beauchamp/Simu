@@ -36,7 +36,9 @@ public:
         camera().panTo(simu::Vec2{0.f, 0.f});
     }
 
-    simu::Int32 n = 5;
+    // n above 10 is not very stable, increasing velocity iterations does not help.
+    //  (issue seems to be with bouncing)
+    simu::Int32 n = 14;
 
     void        init(simu::Renderer& renderer) override
     {
@@ -70,7 +72,7 @@ public:
         descr.material.bounciness.value = 1.f;
         for (int i = 0; i < n; ++i)
         {
-            float x = -4.f + 2 * i;
+            float x = -(n - 1.f) + 2.f * i;
 
             descr.position = simu::Vec2{x, 0.f};
             auto ball      = world().makeBody<simu::VisibleBody>(
@@ -92,6 +94,10 @@ public:
         }
 
         world().makeForceField<simu::Gravity>(simu::Vec2{0, -10.f});
+
+        auto s = world().settings();
+        // s.nVelocityIterations = 10*n;
+        world().updateSettings(s);
 
         useTool<simu::Grabber>(*this);
     }

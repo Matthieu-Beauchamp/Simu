@@ -120,7 +120,7 @@ simu::Body* BoxSpawner::makeBox(simu::Vec2 pos, simu::Vec2 dims)
     };
 
     descr.position                  = pos;
-    descr.material.bounciness.value = 0.f;
+    descr.material.bounciness.value = 1.f;
     descr.material.friction.value   = 0.5f;
     return scene_.world().makeBody<simu::VisibleBody>(
         descr,

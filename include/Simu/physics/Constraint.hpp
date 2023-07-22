@@ -92,7 +92,9 @@ public:
             return true;
     }
 
-    void initSolve(float dt) override { solver.initSolve(bodies_, f, dt); }
+    void initSolve() override { solver.initSolve(bodies_, f); }
+    void warmstart(float dt) override { solver.warmstart(bodies_, f, dt); }
+    void preSolve() override { solver.preSolve(bodies_, f); }
 
     void solveVelocities(float dt) override
     {
@@ -492,7 +494,7 @@ public:
         return contactConstraint_ != nullptr && contactConstraint_->isActive();
     }
 
-    void initSolve(float dt) override
+    void initSolve() override
     {
         appliedVelocityConstraint_ = true;
 
@@ -502,8 +504,20 @@ public:
         // else
         //     contactConstraint_->setRestitution(0.f);
 
-        frictionConstraint_->initSolve(dt);
-        contactConstraint_->initSolve(dt);
+        frictionConstraint_->initSolve();
+        contactConstraint_->initSolve();
+    }
+
+    void warmstart(float dt) override
+    {
+        frictionConstraint_->warmstart(dt);
+        contactConstraint_->warmstart(dt);
+    }
+
+    void preSolve() override
+    {
+        frictionConstraint_->preSolve();
+        contactConstraint_->preSolve();
     }
 
     void solveVelocities(float dt) override
