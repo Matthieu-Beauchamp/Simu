@@ -516,8 +516,7 @@ public:
     void solvePositions() override
     {
         // TODO: Use NGS?
-        if (appliedVelocityConstraint_
-            && normSquared(penetration_) >= maxPen_ * maxPen_)
+        if (appliedVelocityConstraint_)
             contactConstraint_->solvePositions();
     }
 
@@ -554,44 +553,46 @@ private:
 
     void updateContact()
     {
+        bool hasConstraint = (contactConstraint_ != nullptr);
+        bool contactIsValid
+            = hasConstraint
+              && contactConstraint_->isContactValid(contact_.bodies, maxPen_);
+
+        if (contactIsValid)
+            return;
+
         auto gjk     = contact_.makeGjk();
         penetration_ = gjk.penetration();
-
-        bool hasNoConstraint = (contactConstraint_ == nullptr);
-
         bool canComputeNewManifold
             = normSquared(penetration_) >= maxPen_ * maxPen_;
+
         if (!canComputeNewManifold)
         {
-            if (!hasNoConstraint
-                && !contactConstraint_->isContactValid(contact_.bodies, maxPen_))
-            {
+            if (!contactIsValid)
                 contactConstraint_ = nullptr;
-            }
 
             return;
         }
 
         auto manifold = contact_.makeManifold(gjk);
 
-        if (hasNoConstraint
+        if (!hasConstraint
             || (manifold.nContacts != contactConstraint_->nContacts()))
         {
-            contactConstraint_ = makeContactConstraint(
+            makeContactConstraint(
                 manifold,
-                hasNoConstraint ? Vector<float, 6>{}
-                                : contactConstraint_->impulseHint()
+                !hasConstraint ? Vector<float, 6>{}
+                               : contactConstraint_->impulseHint()
             );
         }
         else
         {
             contactConstraint_->update(contact_.bodies, manifold);
+            frictionConstraint_->update(contact_.bodies, manifold);
         }
-
-        frictionConstraint_->update(contact_.bodies, manifold);
     }
 
-    std::unique_ptr<ContactConstraintI> makeContactConstraint(
+    void makeContactConstraint(
         const ContactManifold<Collider>& manifold,
         const Vector<float, 6>&          impulseHint
     )
@@ -603,18 +604,24 @@ private:
         switch (manifold.nContacts)
         {
             case 1:
-                return std::make_unique<SingleContactConstraint>(
+            {
+                contactConstraint_ = std::make_unique<SingleContactConstraint>(
                     contact_.bodies,
                     manifold,
                     impulseHint
                 );
+                break;
+            }
             case 2:
-                return std::make_unique<DoubleContactConstraint>(
+            {
+                contactConstraint_ = std::make_unique<DoubleContactConstraint>(
                     contact_.bodies,
                     manifold,
                     impulseHint
                 );
-            default: return nullptr;
+                break;
+            }
+            default: contactConstraint_ = nullptr;
         }
     }
 };

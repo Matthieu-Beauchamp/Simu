@@ -57,7 +57,7 @@ public:
 
         simu::BoxSpawner spawn{*this};
 
-        int  height  = 10;
+        int  height  = 30;
         bool bricked = true;
         // only for bricked, otherwise we are only doing stacks.
         float spacing = 0.5f;
@@ -83,7 +83,7 @@ public:
         // s.nVelocityIterations = 20;
         world().updateSettings(s);
 
-        pause();
+        // pause();
         useTool<simu::Grabber>(*this);
     }
 

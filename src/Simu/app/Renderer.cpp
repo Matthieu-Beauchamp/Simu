@@ -318,7 +318,7 @@ void OpenGlRenderer::flush()
         gl::GL_STREAM_DRAW
     );
 
-    gl::glDrawElements(gl::GL_TRIANGLES, indices_.size(), gl::GL_UNSIGNED_SHORT, 0);
+    gl::glDrawElements(gl::GL_TRIANGLES, indices_.size(), gl::GL_UNSIGNED_SHORT, nullptr);
 
     gl::glBindVertexArray(0);
 

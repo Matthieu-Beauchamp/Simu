@@ -89,6 +89,9 @@ public:
                 &renderer,
                 false
             );
+
+            if (i >= 2)
+                ball->setVelocity(simu::Vec2{10.f, 0.f});
         }
 
         world().makeForceField<simu::Gravity>(simu::Vec2{0, -10.f});
