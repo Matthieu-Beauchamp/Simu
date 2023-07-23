@@ -219,6 +219,7 @@ public:
 
     typedef ContactManifold<Collider> Manifold;
 
+    // TODO: Hard coded tolerance multiplier
     virtual bool isContactValid(const Bodies<2>& bodies, float maxPen) const = 0;
 
     virtual void update(const Bodies<2>& bodies, const Manifold& manifold) = 0;
@@ -263,7 +264,7 @@ public:
 
     bool isContactValid(const Bodies<2>& bodies, float maxPen) const override
     {
-        return normSquared(f.contactDistance(bodies)) < maxPen * maxPen;
+        return normSquared(f.contactDistance(bodies)) < 3.f* maxPen * maxPen;
     }
 
     void update(const Bodies<2>& bodies, const Manifold& manifold) override
@@ -341,10 +342,10 @@ public:
     {
         bool firstIsValid
             = normSquared(std::get<0>(f.constraints).contactDistance(bodies))
-              < maxPen * maxPen;
+              < 3.f*maxPen * maxPen;
         bool secondIsValid
             = normSquared(std::get<1>(f.constraints).contactDistance(bodies))
-              < maxPen * maxPen;
+              <3.f* maxPen * maxPen;
         return firstIsValid && secondIsValid;
     }
 
