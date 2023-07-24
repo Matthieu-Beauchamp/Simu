@@ -29,6 +29,7 @@
 
 #include "Simu/config.hpp"
 #include "Simu/utility/View.hpp"
+#include "Simu/utility/Memory.hpp"
 
 #include "Simu/physics/RTree.hpp"
 #include "Simu/physics/Body.hpp"
@@ -107,8 +108,6 @@ struct Island;
 ////////////////////////////////////////////////////////////
 class World
 {
-    typedef RTree<std::unique_ptr<Body>> BodyTree;
-
 public:
 
     typedef Body*       BodyPtr;
@@ -120,7 +119,14 @@ public:
     typedef ForceField*       ForceFieldPtr;
     typedef const ForceField* ConstForceFieldPtr;
 
-    typedef std::function<std::unique_ptr<ContactConstraint>(Bodies<2>)> ContactFactory;
+    typedef FreeListAllocator<PhysicsObject, 1024*1024> Alloc;
+
+    template <class U>
+    using UniquePtr = std::unique_ptr<U, typename Alloc::Deleter>;
+
+    typedef std::function<UniquePtr<ContactConstraint>(Bodies<2>, Alloc&)>
+        ContactFactory;
+
     static ContactFactory defaultContactFactory;
 
     ////////////////////////////////////////////////////////////
@@ -167,7 +173,7 @@ public:
     template <std::derived_from<Body> T, class... Args>
     T* makeBody(Args&&... args)
     {
-        std::unique_ptr<T> body = makeObject<T>(std::forward<Args>(args)...);
+        auto body = makeObject<T>(std::forward<Args>(args)...);
 
         BoundingBox bounds = boundsOf(body.get());
         return static_cast<T*>(bodies_.emplace(bounds, std::move(body))->get());
@@ -311,9 +317,9 @@ private:
     ContactConstraint* makeContactConstraint(Bodies<2> bodies);
 
     template <std::derived_from<PhysicsObject> T, class... Args>
-    std::unique_ptr<T> makeObject(Args&&... args)
+    UniquePtr<T> makeObject(Args&&... args)
     {
-        auto obj = std::make_unique<T>(std::forward<Args>(args)...);
+        auto obj = alloc_.makeUnique<T>(std::forward<Args>(args)...);
         obj->onConstruction(*this);
         return obj;
     }
@@ -332,9 +338,13 @@ private:
 
     void updateBodies(float dt);
 
-    BodyTree                               bodies_{};
-    std::list<std::unique_ptr<Constraint>> constraints_{};
-    std::list<std::unique_ptr<ForceField>> forces_{};
+
+    typedef RTree<UniquePtr<Body>> BodyTree;
+
+    Alloc                            alloc_{};
+    BodyTree                         bodies_{};
+    std::list<UniquePtr<Constraint>> constraints_{};
+    std::list<UniquePtr<ForceField>> forces_{};
 
     struct ContactStatus
     {
@@ -355,7 +365,7 @@ private:
 
     Settings settings_;
 
-    std::function<std::unique_ptr<ContactConstraint>(Bodies<2>)> makeContactConstraint_;
+    ContactFactory makeContactConstraint_;
 
     static constexpr float boundsScale = 1.2f;
 

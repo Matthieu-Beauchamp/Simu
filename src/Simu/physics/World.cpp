@@ -133,11 +133,13 @@ void World::removeContactConflict(const Bodies<2>& bodies)
 }
 
 typename World::ContactFactory World::defaultContactFactory
-    = [](Bodies<2> b) { return std::make_unique<ContactConstraint>(b); };
+    = [](Bodies<2> b, typename World::Alloc& alloc) {
+          return alloc.makeUnique<ContactConstraint>(b);
+      };
 
 ContactConstraint* World::makeContactConstraint(Bodies<2> bodies)
 {
-    auto c = makeContactConstraint_(bodies);
+    auto c = makeContactConstraint_(bodies, alloc_);
     c->onConstruction(*this);
 
     for (Body* body : c->bodies())

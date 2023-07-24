@@ -38,7 +38,18 @@ namespace simu
 template <std::size_t size>
 class Block
 {
+public:
+
     Block();
+
+    ~Block()
+    {
+        SIMU_ASSERT(
+            freeList_.front().start == data_
+                && freeList_.front().end == data_ + size,
+            "Missing deallocations"
+        );
+    }
 
     template <class T>
     T* allocate(std::size_t n);
@@ -61,7 +72,7 @@ private:
 
     std::list<FreeBlock> freeList_{};
 
-    Byte[size] data_;
+    Byte data_[size];
 };
 
 
@@ -98,20 +109,26 @@ public:
     FreeListAllocator&
     operator=(FreeListAllocator<U, blockSize>&& other) noexcept;
 
+    // otherwise Deleters of derived virtual types cannot be assigned
+    //  when moving unique pointers...
+    typedef std::function<void(void*)> Deleter;
+
     // unique pointer may outlive this allocator.
     // U may not be an array type (U[]).
     template <class U, class... Args>
-    auto makeUnique(Args&&... args)
+    std::unique_ptr<U, Deleter> makeUnique(Args&&... args)
     {
-        auto alloc   = rebind<U>::other{*this};
-        auto deleter = [=](U* obj) {
-            obj->~U();
-            alloc.deallocate(obj, 1);
+        typename rebind<U>::other alloc{*this};
+
+        Deleter d = [=](void* obj) mutable {
+            U* typed = static_cast<U*>(obj);
+            typed->~U();
+            alloc.deallocate(typed, 1);
         };
 
         U* obj = alloc.allocate(1);
         std::construct_at(obj, std::forward<Args>(args)...);
-        return std::unique_ptr<U, decltype(deleter)>{obj};
+        return {obj, d};
     }
 
 
@@ -128,6 +145,9 @@ public:
     bool operator!=(const FreeListAllocator<U, blockSize>& other) const noexcept;
 
 private:
+
+    template <class U, std::size_t s>
+    friend class FreeListAllocator;
 
     std::shared_ptr<std::list<Block<blockSize>>> blocks_;
 };
@@ -160,7 +180,7 @@ T* Block<sz>::allocate(std::size_t n)
         if (std::align(alignof(T), minSize, alignedStart, blockSize) != nullptr)
         {
             if (alignedStart != it->start)
-                freeList_.emplace(it, it->start, alignedStart);
+                freeList_.emplace(it, it->start, static_cast<Byte*>(alignedStart));
 
             Byte* alignedEnd = static_cast<Byte*>(alignedStart) + minSize;
             if (alignedEnd != it->end)
@@ -179,34 +199,36 @@ template <std::size_t sz>
 template <class T>
 bool Block<sz>::deallocate(T* p, std::size_t n) noexcept
 {
-    if (p < data_ || p >= data_ + sz)
+    Byte* start = reinterpret_cast<Byte*>(p);
+    if (start < data_ || start >= data_ + sz)
         return false;
 
     std::size_t size = n * sizeof(T);
-    Byte*       end  = p + size;
+    Byte*       end  = start + size;
 
     auto next = freeList_.begin();
     for (; next != freeList_.end(); ++next)
     {
-        if (p < next->start)
+        if (start < next->start)
             break;
     }
 
     bool canMergeWithNext = (next != freeList_.end() && end == next->start);
     bool canMergeWithPrev
-        = (next != freeList_.begin() && std::prev(next)->end == p);
+        = (next != freeList_.begin() && std::prev(next)->end == start);
 
     if (canMergeWithNext && canMergeWithPrev)
     {
-        next->start = std::prev(next)->start;
+        auto prev   = std::prev(next);
+        next->start = prev->start;
         freeList_.erase(prev);
     }
     else if (canMergeWithNext)
-        next->start = p;
+        next->start = start;
     else if (canMergeWithPrev)
         std::prev(next)->end = end;
     else
-        freeList_.emplace(next, p, end);
+        freeList_.emplace(next, start, end);
 
     return true;
 }
@@ -218,7 +240,7 @@ bool Block<sz>::deallocate(T* p, std::size_t n) noexcept
 
 template <class T, std::size_t sz>
 FreeListAllocator<T, sz>::FreeListAllocator()
-    : blocks_{std::make_shared<std::list<Block<blockSize>>>()}
+    : blocks_{std::make_shared<std::list<Block<sz>>>()}
 {
 }
 
