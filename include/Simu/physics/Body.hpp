@@ -131,11 +131,10 @@ public:
           properties_{
               descriptor.polygon.properties(),
               descriptor.material.density},
-          collider_{
-              descriptor.polygon,
-              Transform::transform(orientation_, position_)},
+          collider_{descriptor.polygon, Transform::identity()},
           dominance_{descriptor.dominance}
     {
+        update();
     }
 
     ~Body() override = default;
@@ -224,27 +223,13 @@ public:
     /// \brief Transformation matrix to convert from the Body's local space to world space
     ///
     ////////////////////////////////////////////////////////////
-    Mat3 toWorldSpace() const
-    {
-        return Transform::transformAround(
-            orientation_,
-            position_,
-            localProperties().centroid
-        );
-    }
+    const Mat3& toWorldSpace() const { return toWorldSpace_; }
 
     ////////////////////////////////////////////////////////////
     /// \brief Transformation matrix to convert from world space to the Body's local space
     ///
     ////////////////////////////////////////////////////////////
-    Mat3 toLocalSpace() const
-    {
-        return Transform::transformAround(
-            -orientation_,
-            -position_,
-            properties().centroid
-        );
-    }
+    const Mat3& toLocalSpace() const { return toLocalSpace_; }
 
     ////////////////////////////////////////////////////////////
     /// \brief The MassProperties of the Body with the centroid given in world space
@@ -299,10 +284,10 @@ public:
     // TODO: This allows users to modify this->constraints_
     //  (gives Constraint*&)
     ////////////////////////////////////////////////////////////
-    /// \brief Returns an iterable view of Constraint* 
-    /// 
+    /// \brief Returns an iterable view of Constraint*
+    ///
     /// ie: for (Constraint* c : body.constraints())
-    /// 
+    ///
     ////////////////////////////////////////////////////////////
     auto constraints()
     {
@@ -310,10 +295,10 @@ public:
     }
 
     ////////////////////////////////////////////////////////////
-    /// \brief Returns an iterable view of const Constraint* 
-    /// 
+    /// \brief Returns an iterable view of const Constraint*
+    ///
     /// ie: for (const Constraint* c : body.constraints())
-    /// 
+    ///
     ////////////////////////////////////////////////////////////
     auto constraints() const
     {
@@ -321,6 +306,7 @@ public:
     }
 
 private:
+
     friend class World;
 
     template <Uint32 n>
@@ -331,6 +317,23 @@ private:
     {
         position_ += velocity_ * dt;
         orientation_ += angularVelocity_ * dt;
+
+        update();
+    }
+
+    void update()
+    {
+        toLocalSpace_ = Transform::transformAround(
+            -orientation_,
+            -position_,
+            properties().centroid
+        );
+
+        toWorldSpace_ = Transform::transformAround(
+            orientation_,
+            position_,
+            localProperties().centroid
+        );
 
         collider_.update(toWorldSpace());
     }
@@ -375,6 +378,9 @@ private:
     float timeImmobile_ = 0.f;
 
     std::vector<Constraint*> constraints_;
+
+    Mat3 toWorldSpace_;
+    Mat3 toLocalSpace_;
 };
 
 
