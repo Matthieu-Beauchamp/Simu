@@ -28,8 +28,15 @@ endfunction()
 
 macro(simu_set_compile_options targetName)
 	if (MSVC)
-    	target_compile_options(${targetName} PRIVATE /fp:strict /diagnostics:caret /nologo /Zi /Zc:__cplusplus /W4 /permissive-)
-		string(REGEX REPLACE "(^| )/W[0-4]" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+    	target_compile_options(${targetName} PRIVATE 
+            # /fp:strict # for floating point exception debugging
+            /diagnostics:caret 
+            /nologo 
+            /Zi 
+            /Zc:__cplusplus 
+            /W4 
+            /permissive-
+        )
 
         if (CMAKE_VERSION VERSION_LESS "3.13.0")
 		else()
