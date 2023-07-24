@@ -31,23 +31,35 @@
 namespace simu
 {
 
+// TODO: Could keep track of the biggest available slot to avoid searches when
+//  size + (alignement-1) > slotSize
 template <std::size_t size>
 class Block
 {
-    Block() noexcept = default;
-
-    bool isFull() const noexcept;
+    Block();
 
     template <class T>
     T* allocate(std::size_t n);
 
     template <class T>
-    void deallocate(T* p, std::size_t n) noexcept;
+    bool deallocate(T* p, std::size_t n) noexcept;
 
 
 private:
 
-    std::uint8_t[blockSize] data;
+    typedef std::uint8_t Byte;
+
+    struct FreeBlock
+    {
+        std::size_t size() const noexcept { return end - start; }
+
+        Byte* start;
+        Byte* end;
+    };
+
+    std::list<FreeBlock> freeList_{};
+
+    Byte[size] data_;
 };
 
 
@@ -101,6 +113,81 @@ private:
 
     std::shared_ptr<std::list<Block<blockSize>>> blocks_;
 };
+
+
+template <std::size_t sz>
+Block<sz>::Block()
+{
+    freeList_.emplace_back(data_, data_ + sz);
+}
+
+template <std::size_t sz>
+template <class T>
+T* Block<sz>::allocate(std::size_t n)
+{
+    if (n == 0)
+        return nullptr;
+
+    std::size_t minSize = n * sizeof(T);
+
+    for (auto it = freeList_.begin(); it != freeList_.end(); ++it)
+    {
+        void*       alignedStart = it->start;
+        std::size_t blockSize    = it->size();
+
+        if (std::align(alignof(T), minSize, alignedStart, blockSize) != nullptr)
+        {
+            if (alignedStart != it->start)
+                freeList_.emplace(it, it->start, alignedStart);
+
+            Byte* alignedEnd = static_cast<Byte*>(alignedStart) + minSize;
+            if (alignedEnd != it->end)
+                it->start = alignedEnd;
+            else
+                freeList_.erase(it);
+
+            return static_cast<T*>(alignedStart);
+        }
+    }
+
+    return nullptr;
+}
+
+template <std::size_t sz>
+template <class T>
+bool Block<sz>::deallocate(T* p, std::size_t n) noexcept
+{
+    if (p < data_ || p >= data_ + sz)
+        return false;
+
+    std::size_t size = n * sizeof(T);
+    Byte*       end  = p + size;
+
+    auto next = freeList_.begin();
+    for (; next != freeList_.end(); ++next)
+    {
+        if (p < next->start)
+            break;
+    }
+
+    bool canMergeWithNext = (next != freeList_.end() && end == next->start);
+    bool canMergeWithPrev
+        = (next != freeList_.begin() && std::prev(next)->end == p);
+
+    if (canMergeWithNext && canMergeWithPrev)
+    {
+        next->start = std::prev(next)->start;
+        freeList_.erase(prev);
+    }
+    else if (canMergeWithNext)
+        next->start = p;
+    else if (canMergeWithPrev)
+        std::prev(next)->end = end;
+    else
+        freeList_.emplace(next, p, end);
+
+    return true;
+}
 
 
 } // namespace simu
