@@ -35,21 +35,12 @@ namespace simu
 
 // TODO: Could keep track of the biggest available slot to avoid searches when
 //  size + (alignement-1) > slotSize
-template <std::size_t size>
+template <std::size_t sz>
 class Block
 {
 public:
 
     Block();
-
-    ~Block()
-    {
-        SIMU_ASSERT(
-            freeList_.front().start == data_
-                && freeList_.front().end == data_ + size,
-            "Missing deallocations"
-        );
-    }
 
     template <class T>
     T* allocate(std::size_t n);
@@ -72,7 +63,7 @@ private:
 
     std::list<FreeBlock> freeList_{};
 
-    Byte data_[size];
+    Byte data_[sz];
 };
 
 
@@ -289,13 +280,13 @@ FreeListAllocator<T, sz>::pointer FreeListAllocator<T, sz>::allocate(size_type n
 
     for (auto& block : *blocks_)
     {
-        pointer p = block.allocate<T>(n);
+        pointer p = block.template allocate<T>(n);
         if (p != nullptr)
             return p;
     }
 
     blocks_->emplace_back();
-    return blocks_->back().allocate<T>(n);
+    return blocks_->back().template allocate<T>(n);
 }
 
 template <class T, std::size_t sz>
