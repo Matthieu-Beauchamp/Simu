@@ -28,6 +28,8 @@
 #include <memory>
 #include <list>
 
+#include "Simu/config.hpp"
+
 namespace simu
 {
 
@@ -115,6 +117,10 @@ private:
 };
 
 
+////////////////////////////////////////////////////////////
+// Block
+////////////////////////////////////////////////////////////
+
 template <std::size_t sz>
 Block<sz>::Block()
 {
@@ -189,5 +195,101 @@ bool Block<sz>::deallocate(T* p, std::size_t n) noexcept
     return true;
 }
 
+
+////////////////////////////////////////////////////////////
+// FreeListAllocator
+////////////////////////////////////////////////////////////
+
+template <class T, std::size_t sz>
+FreeListAllocator<T, sz>::FreeListAllocator()
+    : blocks_{std::make_shared<std::list<Block<blockSize>>>()}
+{
+}
+
+template <class T, std::size_t sz>
+template <class U>
+FreeListAllocator<T, sz>::FreeListAllocator(const FreeListAllocator<U, sz>& other
+) noexcept
+{
+    *this = other;
+}
+
+template <class T, std::size_t sz>
+template <class U>
+FreeListAllocator<T, sz>&
+FreeListAllocator<T, sz>::operator=(const FreeListAllocator<U, sz>& other) noexcept
+{
+    blocks_ = other.blocks_;
+    return *this;
+}
+
+template <class T, std::size_t sz>
+template <class U>
+FreeListAllocator<T, sz>::FreeListAllocator(FreeListAllocator<U, sz>&& other
+) noexcept
+{
+    *this = static_cast<const FreeListAllocator<U, sz>&>(other);
+}
+
+template <class T, std::size_t sz>
+template <class U>
+FreeListAllocator<T, sz>&
+FreeListAllocator<T, sz>::operator=(FreeListAllocator<U, sz>&& other) noexcept
+{
+    return *this = static_cast<const FreeListAllocator<U, sz>&>(other);
+}
+
+
+template <class T, std::size_t sz>
+FreeListAllocator<T, sz>::pointer FreeListAllocator<T, sz>::allocate(size_type n)
+{
+    if (n == 0)
+        return nullptr;
+
+    // throw std::bad_alloc?
+    SIMU_ASSERT(n <= max_size(), "Use a bigger block size");
+
+    for (auto& block : *blocks_)
+    {
+        pointer p = block.allocate<T>(n);
+        if (p != nullptr)
+            return p;
+    }
+
+    blocks_->emplace_back();
+    return blocks_->back().allocate<T>(n);
+}
+
+template <class T, std::size_t sz>
+void FreeListAllocator<T, sz>::deallocate(pointer p, size_type n) noexcept
+{
+    for (auto& block : *blocks_)
+        if (block.deallocate(p, n))
+            return;
+}
+
+template <class T, std::size_t sz>
+constexpr FreeListAllocator<T, sz>::size_type
+FreeListAllocator<T, sz>::max_size() const noexcept
+{
+    return (sz - alignof(T) + 1) / sizeof(T);
+}
+
+
+template <class T, std::size_t sz>
+template <class U>
+bool FreeListAllocator<T, sz>::operator==(const FreeListAllocator<U, sz>& other
+) const noexcept
+{
+    return blocks_ == other.blocks_;
+}
+
+template <class T, std::size_t sz>
+template <class U>
+bool FreeListAllocator<T, sz>::operator!=(const FreeListAllocator<U, sz>& other
+) const noexcept
+{
+    return !(*this == other);
+}
 
 } // namespace simu
