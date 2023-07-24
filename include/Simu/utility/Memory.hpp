@@ -98,6 +98,22 @@ public:
     FreeListAllocator&
     operator=(FreeListAllocator<U, blockSize>&& other) noexcept;
 
+    // unique pointer may outlive this allocator.
+    // U may not be an array type (U[]).
+    template <class U, class... Args>
+    auto makeUnique(Args&&... args)
+    {
+        auto alloc   = rebind<U>::other{*this};
+        auto deleter = [=](U* obj) {
+            obj->~U();
+            alloc.deallocate(obj, 1);
+        };
+
+        U* obj = alloc.allocate(1);
+        std::construct_at(obj, std::forward<Args>(args)...);
+        return std::unique_ptr<U, decltype(deleter)>{obj};
+    }
+
 
     pointer allocate(size_type n);
     void    deallocate(pointer p, size_type n) noexcept;
