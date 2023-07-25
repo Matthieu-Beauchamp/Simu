@@ -57,15 +57,21 @@ public:
     typedef Iterator<false> iterator;
     typedef Iterator<true>  const_iterator;
 
-    RTree() { root_ = makeNode(BoundingBox{}); }
+    RTree(const Allocator& alloc = Allocator{}) : alloc_{alloc}
+    {
+        root_ = makeNode(BoundingBox{});
+    }
+
     ~RTree() { deleteNode(root_); }
 
     RTree(const RTree& other)            = delete;
     RTree& operator=(const RTree& other) = delete;
 
-    RTree(RTree&& other) { *this = std::move(other); }
-    RTree& operator=(RTree&& other)
+    RTree(RTree&& other) noexcept { *this = std::move(other); }
+    RTree& operator=(RTree&& other) noexcept
     {
+        std::swap(alloc_, other.alloc_);
+        std::swap(nodeAlloc_, other.nodeAlloc_);
         std::swap(root_, other.root_);
         return *this;
     }
@@ -137,8 +143,9 @@ private:
     typedef typename AllocTraits::template rebind_traits<Node> NodeAllocTraits;
 
     Allocator     alloc_;
-    NodeAllocator nodeAlloc_;
-    Node*         root_;
+    NodeAllocator nodeAlloc_{alloc_};
+
+    Node* root_;
 
     Node* makeNode(const BoundingBox& bounds = BoundingBox{})
     {

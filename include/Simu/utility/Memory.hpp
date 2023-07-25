@@ -86,19 +86,13 @@ public:
 
     FreeListAllocator();
 
+
+    FreeListAllocator(const FreeListAllocator& other) noexcept;
+    FreeListAllocator& operator=(const FreeListAllocator& other) noexcept;
+
     template <class U>
     FreeListAllocator(const FreeListAllocator<U, blockSize>& other) noexcept;
 
-    template <class U>
-    FreeListAllocator&
-    operator=(const FreeListAllocator<U, blockSize>& other) noexcept;
-
-    template <class U>
-    FreeListAllocator(FreeListAllocator<U, blockSize>&& other) noexcept;
-
-    template <class U>
-    FreeListAllocator&
-    operator=(FreeListAllocator<U, blockSize>&& other) noexcept;
 
     // otherwise Deleters of derived virtual types cannot be assigned
     //  when moving unique pointers...
@@ -236,17 +230,15 @@ FreeListAllocator<T, sz>::FreeListAllocator()
 }
 
 template <class T, std::size_t sz>
-template <class U>
-FreeListAllocator<T, sz>::FreeListAllocator(const FreeListAllocator<U, sz>& other
+FreeListAllocator<T, sz>::FreeListAllocator(const FreeListAllocator& other
 ) noexcept
 {
     *this = other;
 }
 
 template <class T, std::size_t sz>
-template <class U>
 FreeListAllocator<T, sz>&
-FreeListAllocator<T, sz>::operator=(const FreeListAllocator<U, sz>& other) noexcept
+FreeListAllocator<T, sz>::operator=(const FreeListAllocator& other) noexcept
 {
     blocks_ = other.blocks_;
     return *this;
@@ -254,20 +246,11 @@ FreeListAllocator<T, sz>::operator=(const FreeListAllocator<U, sz>& other) noexc
 
 template <class T, std::size_t sz>
 template <class U>
-FreeListAllocator<T, sz>::FreeListAllocator(FreeListAllocator<U, sz>&& other
+FreeListAllocator<T, sz>::FreeListAllocator(const FreeListAllocator<U, sz>& other
 ) noexcept
+    : blocks_{other.blocks_}
 {
-    *this = static_cast<const FreeListAllocator<U, sz>&>(other);
 }
-
-template <class T, std::size_t sz>
-template <class U>
-FreeListAllocator<T, sz>&
-FreeListAllocator<T, sz>::operator=(FreeListAllocator<U, sz>&& other) noexcept
-{
-    return *this = static_cast<const FreeListAllocator<U, sz>&>(other);
-}
-
 
 template <class T, std::size_t sz>
 FreeListAllocator<T, sz>::pointer FreeListAllocator<T, sz>::allocate(size_type n)

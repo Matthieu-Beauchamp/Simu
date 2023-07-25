@@ -25,11 +25,11 @@
 #include "Simu/app.hpp"
 
 
-class Tower : public simu::Scene
+class Pyramid : public simu::Scene
 {
 public:
 
-    Tower()
+    Pyramid()
     {
         camera().setPixelSize(1.f / 10.f);
         camera().panTo(simu::Vec2{0.f, 0.f});
@@ -117,7 +117,7 @@ public:
     {
         if (current == nullptr)
         {
-            return std::make_shared<Tower>();
+            return std::make_shared<Pyramid>();
         }
 
         return current;

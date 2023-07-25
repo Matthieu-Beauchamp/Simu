@@ -119,7 +119,7 @@ public:
     typedef ForceField*       ForceFieldPtr;
     typedef const ForceField* ConstForceFieldPtr;
 
-    typedef FreeListAllocator<PhysicsObject, 1024*1024> Alloc;
+    typedef FreeListAllocator<PhysicsObject, 1024 * 1024> Alloc;
 
     template <class U>
     using UniquePtr = std::unique_ptr<U, typename Alloc::Deleter>;
@@ -339,12 +339,30 @@ private:
     void updateBodies(float dt);
 
 
-    typedef RTree<UniquePtr<Body>> BodyTree;
+    Alloc alloc_{};
 
-    Alloc                            alloc_{};
-    BodyTree                         bodies_{};
-    std::list<UniquePtr<Constraint>> constraints_{};
-    std::list<UniquePtr<ForceField>> forces_{};
+
+    typedef RTree<UniquePtr<Body>, typename Alloc::rebind<UniquePtr<Body>>::other>
+        BodyTree;
+
+    BodyTree bodies_{alloc_};
+
+
+    typedef std::list<
+        UniquePtr<Constraint>,
+        typename Alloc::rebind<UniquePtr<Constraint>>::other>
+        ConstraintList;
+
+    ConstraintList constraints_{alloc_};
+
+
+    typedef std::list<
+        UniquePtr<ForceField>,
+        typename Alloc::rebind<UniquePtr<ForceField>>::other>
+        ForceList;
+
+    ForceList forces_{alloc_};
+
 
     struct ContactStatus
     {
@@ -353,8 +371,17 @@ private:
     };
 
     // TODO: Use BodyTree::iterator pair...
-    std::unordered_map<Bodies<2>, ContactStatus> contacts_;
-    std::unordered_map<Bodies<2>, ContactStatus>::iterator
+    typedef std::unordered_map<
+        Bodies<2>,
+        ContactStatus,
+        std::hash<Bodies<2>>,
+        std::equal_to<Bodies<2>>,
+        Alloc::rebind<std::pair<const Bodies<2>, ContactStatus>>::other>
+        ContactList;
+
+    ContactList contacts_{alloc_};
+
+    ContactList::iterator
     inContacts(Bodies<2> bodies)
     {
         auto asIs = contacts_.find(bodies);
