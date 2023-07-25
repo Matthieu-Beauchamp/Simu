@@ -38,49 +38,28 @@ class ContactManifold
 {
 public:
 
-    typedef typename Edges<Collider>::Edge Edge;
-
-    std::array<std::array<Vertex, 2>, 2> contacts{};
-    Uint32                               nContacts = 0;
-
-    Vec2 contactNormal{}; // points outwards of the reference body
-
-    std::array<const Body*, 2> bodies;
-
-    // minimum penetration norm to compute a manifold when calling update()
-    float minPen = simu::EPSILON;
-
-    Uint32 referenceIndex() const { return referenceIndex_; }
-    Uint32 incidentIndex() const { return (referenceIndex() == 0) ? 1 : 0; }
-
-private:
-
-    Uint32 referenceIndex_ = 0;
-
-
-public:
-
-    // mtv is such that translating bodies[1] by mtv makes the bodies only touch,
-    //  the bodies must be colliding.
-    // (mtv points outwards of bodies[0])
-    ContactManifold(const Body* body0, const Body* body1) : bodies{body0, body1}
+    ContactManifold(const Body* body0, const Body* body1)
+        : bodies_{body0, body1}
     {
         update();
     }
 
     void update()
     {
-        Vec2 searchDir = nContacts == 0
-                             ? (bodies[1]->properties().centroid
-                                - bodies[0]->properties().centroid)
-                             : contactNormal;
+        Vec2 searchDir = nContacts_ == 0
+                             ? (bodies_[1]->properties().centroid
+                                - bodies_[0]->properties().centroid)
+                             : contactNormal_;
 
-        Gjk<Collider> gjk{bodies[0]->collider(), bodies[1]->collider(), searchDir};
+        Gjk<Collider> gjk{
+            bodies_[0]->collider(),
+            bodies_[1]->collider(),
+            searchDir};
         Vec2 mtv = gjk.penetration();
 
-        if (normSquared(mtv) < minPen * minPen)
+        if (normSquared(mtv) < minPen_ * minPen_)
         {
-            nContacts = 0;
+            nContacts_ = 0;
             return;
         }
 
@@ -95,24 +74,42 @@ public:
         if (e1Coeff > e2Coeff)
         {
             referenceIndex_ = 0;
-            contactNormal   = normal1;
+            contactNormal_  = normal1;
         }
         else
         {
             referenceIndex_ = 1;
-            contactNormal   = normal2;
+            contactNormal_  = normal2;
         }
 
         computeContacts(contactEdges);
     }
 
+
+    // if nContacts() is 0, then other getters will provide undefined results.
+    Uint32 nContacts() const { return nContacts_; }
+
+    /// contacts()[referenceIndex()][1] -> second contact point of the reference body
+    std::array<std::array<Vertex, 2>, 2> contacts() const { return contacts_; }
+
+    Vec2 contactNormal() const { return contactNormal_; }
+
+    Uint32 referenceIndex() const { return referenceIndex_; }
+    Uint32 incidentIndex() const { return (referenceIndex() == 0) ? 1 : 0; }
+
+    // minimum penetration norm for a contact to be considered.
+    void setMinimumPenetration(float minPen) { minPen_ = minPen; }
+
 private:
+
+
+    typedef typename Edges<Collider>::Edge Edge;
 
     std::array<Edge, 2> computeContactEdges(Vec2 mtv)
     {
         return {
-            computeContactEdge(bodies[0]->collider(), mtv),
-            computeContactEdge(bodies[1]->collider(), -mtv),
+            computeContactEdge(bodies_[0]->collider(), mtv),
+            computeContactEdge(bodies_[1]->collider(), -mtv),
         };
     }
 
@@ -140,32 +137,44 @@ private:
         const Uint32 ref = referenceIndex();
         const Uint32 inc = incidentIndex();
 
-        auto refEdges = edgesOf(bodies[ref]->collider());
+        auto refEdges = edgesOf(bodies_[ref]->collider());
 
         Edge previousOfRef{*refEdges.previous(contactEdges[ref])};
         Edge nextOfRef{*refEdges.next(contactEdges[ref])};
 
-        Vec2 n = -contactNormal;
+        Vec2 n = -contactNormal_;
 
         Vertex contact1 = contactEdges[inc].clipInside(previousOfRef);
         if (dot(contact1 - contactEdges[ref].from(), n) >= 0.f)
-            contacts[inc][nContacts++] = contact1;
+            contacts_[inc][nContacts_++] = contact1;
 
         Vertex contact2 = contactEdges[inc].clipInside(nextOfRef);
         if (dot(contact2 - contactEdges[ref].from(), n) >= 0.f)
         {
-            contacts[inc][nContacts++] = contact2;
-            if (nContacts == 2 && all(contacts[inc][0] == contacts[inc][1]))
-                --nContacts;
+            contacts_[inc][nContacts_++] = contact2;
+            if (nContacts_ == 2 && all(contacts_[inc][0] == contacts_[inc][1]))
+                --nContacts_;
         }
 
-        for (Uint32 i = 0; i < nContacts; ++i)
+        for (Uint32 i = 0; i < nContacts_; ++i)
         {
-            contacts[ref][i]
-                = LineBarycentric{contactEdges[ref].from(), contactEdges[ref].to(), contacts[inc][i]}
+            contacts_[ref][i]
+                = LineBarycentric{contactEdges[ref].from(), contactEdges[ref].to(), contacts_[inc][i]}
                       .closestPoint;
         }
     }
+
+    std::array<std::array<Vertex, 2>, 2> contacts_{};
+    Uint32                               nContacts_ = 0;
+
+    Vec2 contactNormal_{}; // points outwards of the reference body
+
+    // minimum penetration norm to compute a manifold when calling update()
+    float minPen_ = simu::EPSILON;
+
+    std::array<const Body*, 2> bodies_;
+
+    Uint32 referenceIndex_ = 0;
 };
 
 
