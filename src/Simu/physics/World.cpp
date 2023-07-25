@@ -315,13 +315,9 @@ void World::applyVelocityConstraints(Island& island, float dt)
 
     for (Constraint* constraint : actives)
         constraint->initSolve();
-
-    for (Constraint* constraint : actives)
-        constraint->preSolve();
         
     for (Constraint* constraint : actives)
         constraint->warmstart(dt);
-
 
 
     for (Uint32 iter = 0; iter < settings_.nVelocityIterations; ++iter)

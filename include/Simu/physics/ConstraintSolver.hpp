@@ -162,8 +162,6 @@ public:
         this->warmstartDefault(bodies, f, dt);
     }
 
-    void preSolve(Bodies<nBodies>& /* bodies */, const F& /* f */) {}
-
     void solveVelocity(Bodies<nBodies>& bodies, const F& f, float dt)
     {
         this->updateLambda(
@@ -227,8 +225,6 @@ public:
     {
         this->warmstartDefault(bodies, f, dt);
     }
-
-    void preSolve(Bodies<nBodies>& /* bodies */, const F& /* f */) {}
 
     void solveVelocity(Bodies<nBodies>& bodies, const F& f, float dt)
     {
@@ -368,8 +364,6 @@ public:
             this->setLambdaHint(Value::filled(0.f));
         }
     }
-
-    void preSolve(Bodies<nBodies>& /* bodies */, const F& /* f */) {}
 
     void solveVelocity(Bodies<nBodies>& bodies, const F& f, float dt)
     {
@@ -610,20 +604,20 @@ public:
     void initSolve(Bodies<nBodies>& bodies, const F& f)
     {
         effectiveMass_ = this->computeEffectiveMass(bodies, f, false);
+
+        Value relVel = this->getJacobian() * bodies.velocity();
+        if (all(relVel > Value::filled(1.f)))
+            bounce_ = Value{};
+        else
+            bounce_ = restitutionCoefficient_ * relVel;
+
+        bounce_ = std::min(Value::filled(0.f), bounce_);
     }
 
     void warmstart(Bodies<nBodies>& bodies, const F& f, float dt)
     {
         this->warmstartDefault(bodies, f, dt);
     }
-
-    void preSolve(Bodies<nBodies>& bodies, const F& f)
-    {
-        Value relVel = this->getJacobian() * bodies.velocity();
-        bounce_      = restitutionCoefficient_ * relVel;
-        bounce_      = std::min(Value::filled(0.f), bounce_);
-    }
-
 
     void solveVelocity(Bodies<nBodies>& bodies, const F& f, float dt)
     {

@@ -58,9 +58,6 @@ class Bodies;
 /// foreach constraint c in S:
 ///     c.warmstart();
 ///
-/// foreach constraint c in S:
-///     c.presolve();
-///
 /// for i in range(world.nVelocityIterations)
 ///     foreach constraint c in S:
 ///         c.solveVelocities();
@@ -83,7 +80,6 @@ public:
 
     virtual void initSolve() = 0;
     virtual void warmstart(float dt) = 0;
-    virtual void preSolve()  = 0;
 
     virtual void solveVelocities(float dt) = 0;
     virtual void solvePositions()          = 0;
@@ -143,7 +139,6 @@ concept ConstraintSolver
 
     { s.initSolve(bodies, f) };
     { s.warmstart(bodies, f, dt) };
-    { s.preSolve(bodies, f) };
 
     { s.solveVelocity(bodies, f, dt) };
     { s.solvePosition(bodies, f) };

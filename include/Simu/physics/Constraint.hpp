@@ -94,7 +94,6 @@ public:
 
     void initSolve() override { solver.initSolve(bodies_, f); }
     void warmstart(float dt) override { solver.warmstart(bodies_, f, dt); }
-    void preSolve() override { solver.preSolve(bodies_, f); }
 
     void solveVelocities(float dt) override
     {
@@ -512,12 +511,6 @@ public:
     {
         frictionConstraint_->warmstart(dt);
         contactConstraint_->warmstart(dt);
-    }
-
-    void preSolve() override
-    {
-        frictionConstraint_->preSolve();
-        contactConstraint_->preSolve();
     }
 
     void solveVelocities(float dt) override
