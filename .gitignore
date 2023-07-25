@@ -11,4 +11,4 @@
 docs/out/
 **/__pycache__/**
 
-
+CMakeSettings.json

@@ -33,7 +33,7 @@ namespace simu
 template <Uint32 n>
 Bodies<n>::Bodies(
     std::initializer_list<Body*> bodies,
-    std::optional<Dominance>            dominances
+    std::optional<Dominance>     dominances
 )
     : Base{}
 {
@@ -93,7 +93,7 @@ void Bodies<n>::applyPositionCorrection(const State& correction)
     {
         body->position_ += Vec2{correction[i], correction[i + 1]};
         body->orientation_ += correction[i + 2];
-        body->collider_.update(body->toWorldSpace());
+        body->update();
         i += 3;
     }
 }

@@ -220,6 +220,7 @@ public:
 
     typedef ContactManifold<Collider> Manifold;
 
+    // TODO: Hard coded tolerance multiplier
     virtual bool isContactValid(const Bodies<2>& bodies, float maxPen) const = 0;
 
     virtual void update(const Bodies<2>& bodies, const Manifold& manifold) = 0;
@@ -264,7 +265,7 @@ public:
 
     bool isContactValid(const Bodies<2>& bodies, float maxPen) const override
     {
-        return normSquared(f.contactDistance(bodies)) < maxPen * maxPen;
+        return normSquared(f.contactDistance(bodies)) < 3.f* maxPen * maxPen;
     }
 
     void update(const Bodies<2>& bodies, const Manifold& manifold) override
@@ -342,10 +343,10 @@ public:
     {
         bool firstIsValid
             = normSquared(std::get<0>(f.constraints).contactDistance(bodies))
-              < maxPen * maxPen;
+              < 3.f*maxPen * maxPen;
         bool secondIsValid
             = normSquared(std::get<1>(f.constraints).contactDistance(bodies))
-              < maxPen * maxPen;
+              <3.f* maxPen * maxPen;
         return firstIsValid && secondIsValid;
     }
 
@@ -523,8 +524,7 @@ public:
     void solvePositions() override
     {
         // TODO: Use NGS?
-        if (appliedVelocityConstraint_
-            && normSquared(penetration_) >= maxPen_ * maxPen_)
+        if (appliedVelocityConstraint_)
             contactConstraint_->solvePositions();
     }
 
@@ -561,44 +561,46 @@ private:
 
     void updateContact()
     {
+        bool hasConstraint = (contactConstraint_ != nullptr);
+        bool contactIsValid
+            = hasConstraint
+              && contactConstraint_->isContactValid(contact_.bodies, maxPen_);
+
+        if (contactIsValid)
+            return;
+
         auto gjk     = contact_.makeGjk();
         penetration_ = gjk.penetration();
-
-        bool hasNoConstraint = (contactConstraint_ == nullptr);
-
         bool canComputeNewManifold
             = normSquared(penetration_) >= maxPen_ * maxPen_;
+
         if (!canComputeNewManifold)
         {
-            if (!hasNoConstraint
-                && !contactConstraint_->isContactValid(contact_.bodies, maxPen_))
-            {
+            if (!contactIsValid)
                 contactConstraint_ = nullptr;
-            }
 
             return;
         }
 
         auto manifold = contact_.makeManifold(gjk);
 
-        if (hasNoConstraint
+        if (!hasConstraint
             || (manifold.nContacts != contactConstraint_->nContacts()))
         {
-            contactConstraint_ = makeContactConstraint(
+            makeContactConstraint(
                 manifold,
-                hasNoConstraint ? Vector<float, 6>{}
-                                : contactConstraint_->impulseHint()
+                !hasConstraint ? Vector<float, 6>{}
+                               : contactConstraint_->impulseHint()
             );
         }
         else
         {
             contactConstraint_->update(contact_.bodies, manifold);
+            frictionConstraint_->update(contact_.bodies, manifold);
         }
-
-        frictionConstraint_->update(contact_.bodies, manifold);
     }
 
-    std::unique_ptr<ContactConstraintI> makeContactConstraint(
+    void makeContactConstraint(
         const ContactManifold<Collider>& manifold,
         const Vector<float, 6>&          impulseHint
     )
@@ -610,18 +612,24 @@ private:
         switch (manifold.nContacts)
         {
             case 1:
-                return std::make_unique<SingleContactConstraint>(
+            {
+                contactConstraint_ = std::make_unique<SingleContactConstraint>(
                     contact_.bodies,
                     manifold,
                     impulseHint
                 );
+                break;
+            }
             case 2:
-                return std::make_unique<DoubleContactConstraint>(
+            {
+                contactConstraint_ = std::make_unique<DoubleContactConstraint>(
                     contact_.bodies,
                     manifold,
                     impulseHint
                 );
-            default: return nullptr;
+                break;
+            }
+            default: contactConstraint_ = nullptr;
         }
     }
 };
