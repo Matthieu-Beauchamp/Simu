@@ -425,18 +425,18 @@ Matrix<T, n, n> invert(const Matrix<T, n, n>& mat)
 }
 
 
-template <class T, class U, Uint32 n, std::invocable<Vector<Promoted<T, U>, n>> Proj>
-Vector<Promoted<T, U>, n> solveInequalities(
-    const Matrix<T, n, n>&    A,
-    Vector<U, n>              b,
-    Proj                      proj,
-    Vector<Promoted<T, U>, n> initialGuess,
-    float                     epsilon
+template <class T, Uint32 n, std::invocable<Vector<T, n>, Uint32> Proj>
+Vector<T, n> solveInequalities(
+    const Matrix<T, n, n>& A,
+    Vector<T, n>           b,
+    Proj                   proj,
+    Vector<T, n>           initialGuess,
+    float                  epsilon
 )
 {
     b = -b; // Ax - b >= 0
 
-    Vector<Promoted<T, U>, n> x = initialGuess;
+    Vector<T, n> x = initialGuess;
 
     float eps = 1.f + epsilon;
     while (eps > epsilon)
@@ -454,9 +454,9 @@ Vector<Promoted<T, U>, n> solveInequalities(
 
             delX = -(delX + b[row]) / A(row, row);
 
-            Vector<Promoted<T, U>, n> newX{x};
+            Vector<T, n> newX{x};
             newX[row] = delX;
-            delX      = proj(newX)[row];
+            delX      = proj(newX, row);
 
             eps    = std::max(eps, std::abs(delX - x[row]));
             x[row] = delX;
@@ -464,6 +464,25 @@ Vector<Promoted<T, U>, n> solveInequalities(
     }
 
     return x;
+}
+
+
+template <class T, Uint32 n, std::invocable<Vector<T, n>> Proj>
+Vector<T, n> solveInequalities(
+    const Matrix<T, n, n>& A,
+    Vector<T, n>           b,
+    Proj                   proj,
+    Vector<T, n>           initialGuess,
+    float                  epsilon
+)
+{
+    return solveInequalities(
+        A,
+        b,
+        [=](const Vector<T, n>& x, Uint32 i) { return proj(x)[i]; },
+        initialGuess,
+        epsilon
+    );
 }
 
 ////////////////////////////////////////////////////////////

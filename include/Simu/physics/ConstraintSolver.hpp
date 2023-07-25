@@ -648,7 +648,9 @@ public:
         Value lambda = solveInequalities(
             effectiveMass_,
             -(error - alreadyComputed + baumgarte),
-            [=, &f](Value lambda) { return f.clampLambda(lambda, dt); },
+            [](const Value& lambda, Uint32 i) {
+                return std::max(0.f, lambda[i]);
+            },
             this->getAccumulatedLambda()
         );
 
@@ -676,10 +678,13 @@ public:
         Jacobian J     = f.jacobian(bodies);
         effectiveMass_ = J * bodies.inverseMass() * transpose(J);
 
-        Value posLambda
-            = solveInequalities(effectiveMass_, -error, [&f](Value posLambda) {
-                  return f.clampPositionLambda(posLambda);
-              });
+        Value posLambda = solveInequalities(
+            effectiveMass_,
+            -error,
+            [](const Value& lambda, Uint32 i) {
+                return std::max(0.f, lambda[i]);
+            }
+        );
 
         State positionCorrection
             = bodies.inverseMass() * transpose(J) * posLambda;
