@@ -27,28 +27,28 @@
 #include <algorithm>
 #include <array>
 
-#include "Simu/config.hpp"
-#include "Simu/math/Geometry.hpp"
-#include "Simu/math/BarycentricCoordinates.hpp"
+#include "Simu/math/Gjk.hpp"
+
+#include "Simu/physics/Body.hpp"
 
 namespace simu
 {
 
-// requires that the geometry be positively oriented.
-template <Geometry T>
 class ContactManifold
 {
 public:
 
-    typedef typename Edges<T>::Edge Edge;
+    typedef typename Edges<Collider>::Edge Edge;
 
-    std::array<std::array<Vertex, 2>, 2> contacts;
+    std::array<std::array<Vertex, 2>, 2> contacts{};
     Uint32                               nContacts = 0;
 
-    Vec2 contactNormal; // points outwards of the reference body
+    Vec2 contactNormal{}; // points outwards of the reference body
 
-    std::array<const T*, 2> bodies;
-    std::array<Edge, 2>     contactEdges;
+    std::array<const Body*, 2> bodies;
+
+    // minimum penetration norm to compute a manifold when calling update()
+    float minPen = simu::EPSILON;
 
     Uint32 referenceIndex() const { return referenceIndex_; }
     Uint32 incidentIndex() const { return (referenceIndex() == 0) ? 1 : 0; }
@@ -63,9 +63,29 @@ public:
     // mtv is such that translating bodies[1] by mtv makes the bodies only touch,
     //  the bodies must be colliding.
     // (mtv points outwards of bodies[0])
-    ContactManifold(const T* body0, const T* body1, Vec2 mtv)
-        : bodies{body0, body1}, contactEdges{computeContactEdges(bodies, mtv)}
+    ContactManifold(const Body* body0, const Body* body1) : bodies{body0, body1}
     {
+        update();
+    }
+
+    void update()
+    {
+        Vec2 searchDir = nContacts == 0
+                             ? (bodies[1]->properties().centroid
+                                - bodies[0]->properties().centroid)
+                             : contactNormal;
+
+        Gjk<Collider> gjk{bodies[0]->collider(), bodies[1]->collider(), searchDir};
+        Vec2 mtv = gjk.penetration();
+
+        if (normSquared(mtv) < minPen * minPen)
+        {
+            nContacts = 0;
+            return;
+        }
+
+        std::array<Edge, 2> contactEdges = computeContactEdges(mtv);
+
         Vec2 normal1 = contactEdges[0].normalizedNormal();
         Vec2 normal2 = contactEdges[1].normalizedNormal();
 
@@ -83,17 +103,44 @@ public:
             contactNormal   = normal2;
         }
 
-        computeContacts();
+        computeContacts(contactEdges);
     }
 
 private:
 
-    void computeContacts()
+    std::array<Edge, 2> computeContactEdges(Vec2 mtv)
+    {
+        return {
+            computeContactEdge(bodies[0]->collider(), mtv),
+            computeContactEdge(bodies[1]->collider(), -mtv),
+        };
+    }
+
+    static Edge computeContactEdge(const Collider& collider, Vec2 direction)
+    {
+        Vec2 v = furthestVertexInDirection(collider, direction);
+
+        auto edges = edgesOf(collider);
+
+        auto previous = std::find_if(edges.begin(), edges.end(), [=](Edge e) {
+            return all(e.to() == v);
+        });
+
+        auto next = edges.next(previous);
+
+        if (dot(next->normalizedNormal(), direction)
+            > dot(previous->normalizedNormal(), direction))
+            return *next;
+
+        return *previous;
+    }
+
+    void computeContacts(std::array<Edge, 2> contactEdges)
     {
         const Uint32 ref = referenceIndex();
         const Uint32 inc = incidentIndex();
 
-        Edges<T> refEdges = edgesOf(*bodies[ref]);
+        auto refEdges = edgesOf(bodies[ref]->collider());
 
         Edge previousOfRef{*refEdges.previous(contactEdges[ref])};
         Edge nextOfRef{*refEdges.next(contactEdges[ref])};
@@ -118,38 +165,6 @@ private:
                 = LineBarycentric{contactEdges[ref].from(), contactEdges[ref].to(), contacts[inc][i]}
                       .closestPoint;
         }
-    }
-
-    static std::array<Edge, 2>
-    computeContactEdges(std::array<const T*, 2> bodies, Vec2 mtv)
-    {
-        return {
-            computeContactEdge(*bodies[0], mtv),
-            computeContactEdge(*bodies[1], -mtv),
-        };
-    }
-
-    static Edge computeContactEdge(const T& body, Vec2 direction)
-    {
-        // TODO: Check for furthest vertex first, then check neighbor edges
-
-        Vec2 v = furthestVertexInDirection(body, direction);
-
-        auto edges = edgesOf(body);
-
-        auto previous = std::find_if(
-            edges.begin(),
-            edges.end(),
-            [=](typename Edges<T>::Edge e) { return all(e.to() == v); }
-        );
-
-        auto next = edges.next(previous);
-
-        if (dot(next->normalizedNormal(), direction)
-            > dot(previous->normalizedNormal(), direction))
-            return *next;
-
-        return *previous;
     }
 };
 
