@@ -49,13 +49,22 @@ class Collider
 {
 public:
 
+    typedef FreeListAllocator<Vec2> Alloc;
+
     ////////////////////////////////////////////////////////////
     /// Creates a Collider from a local space polygon and an initial transform.
     ////////////////////////////////////////////////////////////
-    Collider(const Polygon& polygon, Mat3 transform) : local_{polygon}
+    Collider(const Polygon& polygon, Mat3 transform, const Alloc& alloc)
+        : local_{polygon.begin(), polygon.end(), alloc}, transformed_{alloc}
     {
-        transformed_.resize(std::distance(local_.begin(), local_.end()));
+        transformed_.resize(local_.size());
         update(transform);
+    }
+
+    void replaceAlloc(const Alloc& alloc)
+    {
+        replaceAllocator(local_, alloc);
+        replaceAllocator(transformed_, alloc);
     }
 
     ////////////////////////////////////////////////////////////
@@ -64,18 +73,13 @@ public:
     BoundingBox boundingBox() const { return boundingBox_; }
 
     ////////////////////////////////////////////////////////////
-    /// The local space polygon of the Collider
-    ////////////////////////////////////////////////////////////
-    const Polygon& local() const { return local_; }
-
-    ////////////////////////////////////////////////////////////
     /// Iterators for the transformed geometry (world space vertices)
     ////////////////////////////////////////////////////////////
-    Vertices::iterator       begin() { return transformed_.begin(); }
-    Vertices::const_iterator begin() const { return transformed_.begin(); }
+    auto begin() { return transformed_.begin(); }
+    auto begin() const { return transformed_.begin(); }
 
-    Vertices::iterator       end() { return transformed_.end(); }
-    Vertices::const_iterator end() const { return transformed_.end(); }
+    auto end() { return transformed_.end(); }
+    auto end() const { return transformed_.end(); }
 
     auto vertexView() const
     {
@@ -99,9 +103,9 @@ public:
 
 private:
 
-    Polygon local_;
+    std::vector<Vec2, Alloc> local_;
+    std::vector<Vec2, Alloc> transformed_;
 
-    Vertices    transformed_;
     BoundingBox boundingBox_;
 };
 

@@ -26,6 +26,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <functional>
 #include <list>
 
 #include "Simu/config.hpp"
@@ -33,14 +34,27 @@
 namespace simu
 {
 
+template <class Container, class A>
+void replaceAllocator(Container& c, const A& alloc)
+{
+    c = Container{c.begin(), c.end(), alloc};
+}
+
 // TODO: Could keep track of the biggest available slot to avoid searches when
 //  size + (alignement-1) > slotSize
-template <std::size_t sz>
 class Block
 {
 public:
 
-    Block();
+    Block(std::size_t size) : data_{new Byte[size]}, sz{size}
+    {
+        if (data_ == nullptr)
+            throw std::bad_alloc{};
+
+        freeList_.emplace_back(data_, data_ + sz);
+    }
+
+    ~Block() { delete[] data_; }
 
     template <class T>
     T* allocate(std::size_t n);
@@ -48,6 +62,10 @@ public:
     template <class T>
     bool deallocate(T* p, std::size_t n) noexcept;
 
+    bool isEmpty() const noexcept
+    {
+        return freeList_.size() == 1 && freeList_.back().size() == sz;
+    }
 
 private:
 
@@ -63,13 +81,14 @@ private:
 
     std::list<FreeBlock> freeList_{};
 
-    Byte data_[sz];
+    Byte*       data_;
+    std::size_t sz;
 };
 
 
 // https://github.com/mtrebi/memory-allocators
 // https://en.cppreference.com/w/cpp/named_req/Allocator
-template <class T, std::size_t blockSize>
+template <class T, std::size_t blockSize = 32 * 1024>
 class FreeListAllocator
 {
 public:
@@ -120,7 +139,9 @@ public:
     pointer allocate(size_type n);
     void    deallocate(pointer p, size_type n) noexcept;
 
-    constexpr size_type max_size() const noexcept;
+    // msvc's list seems to interpret this as the sum of allocations,
+    //  we meant the maximum single allocation (ie max object size)
+    // constexpr size_type max_size() const noexcept;
 
 
     template <class U>
@@ -134,23 +155,15 @@ private:
     template <class U, std::size_t s>
     friend class FreeListAllocator;
 
-    std::shared_ptr<std::list<Block<blockSize>>> blocks_;
+    std::shared_ptr<std::list<Block>> blocks_;
 };
-
 
 ////////////////////////////////////////////////////////////
 // Block
 ////////////////////////////////////////////////////////////
 
-template <std::size_t sz>
-Block<sz>::Block()
-{
-    freeList_.emplace_back(data_, data_ + sz);
-}
-
-template <std::size_t sz>
 template <class T>
-T* Block<sz>::allocate(std::size_t n)
+T* Block::allocate(std::size_t n)
 {
     if (n == 0)
         return nullptr;
@@ -180,9 +193,8 @@ T* Block<sz>::allocate(std::size_t n)
     return nullptr;
 }
 
-template <std::size_t sz>
 template <class T>
-bool Block<sz>::deallocate(T* p, std::size_t n) noexcept
+bool Block::deallocate(T* p, std::size_t n) noexcept
 {
     Byte* start = reinterpret_cast<Byte*>(p);
     if (start < data_ || start >= data_ + sz)
@@ -218,14 +230,9 @@ bool Block<sz>::deallocate(T* p, std::size_t n) noexcept
     return true;
 }
 
-
-////////////////////////////////////////////////////////////
-// FreeListAllocator
-////////////////////////////////////////////////////////////
-
 template <class T, std::size_t sz>
 FreeListAllocator<T, sz>::FreeListAllocator()
-    : blocks_{std::make_shared<std::list<Block<sz>>>()}
+    : blocks_{std::make_shared<std::list<Block>>()}
 {
 }
 
@@ -258,9 +265,6 @@ FreeListAllocator<T, sz>::pointer FreeListAllocator<T, sz>::allocate(size_type n
     if (n == 0)
         return nullptr;
 
-    // throw std::bad_alloc?
-    SIMU_ASSERT(n <= max_size(), "Use a bigger block size");
-
     for (auto& block : *blocks_)
     {
         pointer p = block.template allocate<T>(n);
@@ -268,23 +272,26 @@ FreeListAllocator<T, sz>::pointer FreeListAllocator<T, sz>::allocate(size_type n
             return p;
     }
 
-    blocks_->emplace_back();
+    std::size_t allocSize = n * sizeof(T) + alignof(T) - 1;
+
+    blocks_->emplace_back(std::max(sz, allocSize));
     return blocks_->back().template allocate<T>(n);
 }
 
 template <class T, std::size_t sz>
 void FreeListAllocator<T, sz>::deallocate(pointer p, size_type n) noexcept
 {
-    for (auto& block : *blocks_)
+    for (auto it = blocks_->begin(); it != blocks_->end(); ++it)
+    {
+        auto& block = *it;
         if (block.deallocate(p, n))
-            return;
-}
+        {
+            if (block.isEmpty())
+                blocks_->erase(it);
 
-template <class T, std::size_t sz>
-constexpr FreeListAllocator<T, sz>::size_type
-FreeListAllocator<T, sz>::max_size() const noexcept
-{
-    return (sz - alignof(T) + 1) / sizeof(T);
+            return;
+        }
+    }
 }
 
 

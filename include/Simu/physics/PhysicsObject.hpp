@@ -26,6 +26,8 @@
 
 #include "Simu/config.hpp"
 
+#include "Simu/utility/Memory.hpp"
+
 namespace simu
 {
 
@@ -57,6 +59,8 @@ class PhysicsObject
 {
 public:
 
+    typedef FreeListAllocator<PhysicsObject> PhysicsAlloc;
+
     virtual ~PhysicsObject() = default;
 
     bool isDead() { return killed_ || shouldDie(); }
@@ -70,67 +74,69 @@ protected:
 
     friend World;
 
+    virtual void setAllocator(const PhysicsAlloc& /* alloc */) {}
+
     ////////////////////////////////////////////////////////////
     /// \brief Called when a World creates this object
-    /// 
+    ///
     /// Subclasses should always call Base::onConstruction
-    /// 
+    ///
     ////////////////////////////////////////////////////////////
-    virtual void onConstruction(World& /* world */){};
+    virtual void onConstruction(World& /* world */) {}
 
     ////////////////////////////////////////////////////////////
     /// \brief Called when a World destroys this object
-    /// 
+    ///
     /// Subclasses should always call Base::onDestruction
-    ///  
-    /// \see onKill 
+    ///
+    /// \see onKill
     ////////////////////////////////////////////////////////////
-    virtual void onDestruction(World& /* world */){};
-    
+    virtual void onDestruction(World& /* world */) {}
+
     ////////////////////////////////////////////////////////////
-    /// \brief Called when this object is requested to die (by a call to kill()) 
-    /// 
+    /// \brief Called when this object is requested to die (by a call to kill())
+    ///
     /// Subclasses should always call Base::onKill
-    /// 
+    ///
     /// This is different from onDestruction since this object is not destroyed
-    /// immediately after this call. It will be destroyed the next time 
+    /// immediately after this call. It will be destroyed the next time
     /// World::step is called on the World owning this object.
-    /// 
+    ///
     /// This method should be used to kill other objects linked to this one.
     /// For example a composed Body may create other objects with onConstruction,
     /// keep a reference to them and kill them when it is killed with onKill.
-    /// 
+    ///
     ////////////////////////////////////////////////////////////
-    virtual void onKill(){};
+    virtual void onKill() {}
 
     ////////////////////////////////////////////////////////////
     /// \brief Offers an alternative death condition than this->kill().
-    /// 
+    ///
     /// Subclasses should always consider if Base::shouldDie() is true.
-    /// 
-    /// Example: a Constraint that is broken if the force it applies exceeds 
+    ///
+    /// Example: a Constraint that is broken if the force it applies exceeds
     ///     a treshold can implement this death condition in shouldDie.
-    /// 
+    ///
     ////////////////////////////////////////////////////////////
     virtual bool shouldDie() { return false; }
 
     ////////////////////////////////////////////////////////////
     /// \brief Called at the start of World::step, after dead objects are removed.
-    /// 
+    ///
     /// Subclasses should always call Base::preStep().
-    /// 
+    ///
     /// This is called for Body, Constraint and then for ForceField.
-    /// 
+    ///
     ////////////////////////////////////////////////////////////
     virtual void preStep() {}
 
     ////////////////////////////////////////////////////////////
     /// \brief Called at the end of World::step.
-    /// 
+    ///
     /// Subclasses should always call Base::postStep().
-    /// 
+    ///
     /// This is called for Body, Constraint and then for ForceField.
-    /// 
+    ///
     ////////////////////////////////////////////////////////////
     virtual void postStep() {}
 

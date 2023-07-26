@@ -120,6 +120,8 @@ class Body : public PhysicsObject
 {
 public:
 
+    typedef FreeListAllocator<Constraint*> Alloc;
+
     ////////////////////////////////////////////////////////////
     /// \brief Constructs a Body
     ///
@@ -131,10 +133,16 @@ public:
           properties_{
               descriptor.polygon.properties(),
               descriptor.material.density},
-          collider_{descriptor.polygon, Transform::identity()},
+          collider_{descriptor.polygon, Transform::identity(), Alloc{}},
           dominance_{descriptor.dominance}
     {
         update();
+    }
+
+    void setAllocator(const PhysicsAlloc& alloc) override
+    {
+        replaceAllocator(constraints_, alloc);
+        collider_.replaceAlloc(alloc);
     }
 
     ~Body() override = default;
@@ -231,11 +239,7 @@ public:
     ////////////////////////////////////////////////////////////
     Mat3 toLocalSpace() const
     {
-        return Transform::transformAround(
-            -orientation_,
-            -position_,
-            centroid()
-        );
+        return Transform::transformAround(-orientation_, -position_, centroid());
     }
 
     float mass() const { return properties_.mass; }
@@ -382,7 +386,7 @@ private:
     bool  isAsleep_     = false;
     float timeImmobile_ = 0.f;
 
-    std::vector<Constraint*> constraints_;
+    std::vector<Constraint*, Alloc> constraints_;
 
     Mat3 toWorldSpace_;
 };

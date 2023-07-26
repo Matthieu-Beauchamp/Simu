@@ -36,7 +36,12 @@ struct Island
 {
 public:
 
-    Island(Body* root)
+    typedef typename PhysicsObject::PhysicsAlloc       Alloc;
+    typedef typename Alloc::rebind<Body*>::other       BAlloc;
+    typedef typename Alloc::rebind<Constraint*>::other CAlloc;
+
+
+    Island(Body* root, const Alloc& alloc) : bodies_{alloc}, constraints_{alloc}
     {
         addBody(root);
         expand(root);
@@ -75,13 +80,14 @@ private:
     bool addBody(Body* body)
     {
         bool isNew = bodies_.emplace(body).second;
-        isAwake_ = isAwake_ || !body->isAsleep();
+        isAwake_   = isAwake_ || !body->isAsleep();
         return isNew;
     }
 
-    std::set<Body*> bodies_;
-    std::set<Constraint*>  constraints_;
-    bool                   isAwake_ = false;
+    std::set<Body*, std::less<Body*>, BAlloc>             bodies_;
+    std::set<Constraint*, std::less<Constraint*>, CAlloc> constraints_;
+
+    bool isAwake_ = false;
 };
 
 template <class T>
@@ -95,8 +101,10 @@ class Islands
 {
 public:
 
+    typedef typename PhysicsObject::PhysicsAlloc::rebind<Island>::other Alloc;
+
     template <BodyRange T>
-    Islands(const T& bodies)
+    Islands(const T& bodies, const Alloc& alloc) : islands_{alloc}
     {
         std::vector<Body*> bodiesToProcess;
         for (Body& body : bodies)
@@ -118,7 +126,7 @@ public:
             }
             else
             {
-                Island island{bodiesToProcess.back()};
+                Island island{bodiesToProcess.back(), islands_.get_allocator()};
                 for (Body* body : island.bodies())
                     removeBody(body);
 
@@ -131,7 +139,7 @@ public:
 
 private:
 
-    std::vector<Island> islands_;
+    std::vector<Island, Alloc> islands_;
 };
 
 

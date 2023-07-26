@@ -119,7 +119,7 @@ public:
     typedef ForceField*       ForceFieldPtr;
     typedef const ForceField* ConstForceFieldPtr;
 
-    typedef FreeListAllocator<PhysicsObject, 1024 * 1024> Alloc;
+    typedef typename PhysicsObject::PhysicsAlloc Alloc;
 
     template <class U>
     using UniquePtr = std::unique_ptr<U, typename Alloc::Deleter>;
@@ -320,6 +320,7 @@ private:
     UniquePtr<T> makeObject(Args&&... args)
     {
         auto obj = alloc_.makeUnique<T>(std::forward<Args>(args)...);
+        obj->setAllocator(alloc_);
         obj->onConstruction(*this);
         return obj;
     }
