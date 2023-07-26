@@ -236,8 +236,11 @@ Matrix<T, m, n> Matrix<T, m, n>::operator+() const
 template <class T, Uint32 m, Uint32 n>
 Matrix<T, m, n> Matrix<T, m, n>::operator-() const
 {
-    Matrix null{};
-    return null -= *this;
+    Matrix<T, m, n> res{*this};
+    for (T& x : res)
+        x = -x;
+    
+    return res;
 }
 
 template <class T, Uint32 m, Uint32 n>
@@ -293,7 +296,8 @@ template <class T, class U, Uint32 m, Uint32 n>
 Matrix<Promoted<T, U>, m, n>
 operator-(const Matrix<T, m, n>& lhs, const Matrix<U, m, n>& rhs)
 {
-    return lhs + (-rhs);
+    Matrix<Promoted<T, U>, m, n> res{lhs};
+    return res -= rhs;
 }
 
 template <class T, class U, Uint32 m, Uint32 n>
@@ -351,6 +355,45 @@ Matrix<T, n, m> transpose(const Matrix<T, m, n>& original)
     return res;
 }
 
+
+template <class T>
+class Solver<T, 2>
+{
+public:
+
+    Solver(const Matrix<T, 2, 2>& A) : A_{A}
+    {
+        invDet_  = A(0, 0) * A(1, 1) - A(0, 1) * A(1, 0);
+        isValid_ = (invDet_ != 0.f);
+        if (isValid_)
+            invDet_ = 1.f / invDet_;
+    }
+
+    template <class U>
+    Vector<Promoted<T, U>, 2> solve(const Vector<U, 2>& b) const
+    {
+        SIMU_ASSERT(
+            isValid_,
+            "Solver invalid, ensure the original matrix has full rank"
+        );
+
+        // use cramer's rule
+        return invDet_
+               * Vector<Promoted<T, U>, 2>{
+                   b[0] * A_(1, 1) - A_(0, 1) * b[1],
+                   A_(0, 0) * b[1] - b[0] * A_(1, 0)};
+    }
+
+    Matrix<T, 2, 2> original() const { return A_; }
+
+    bool isValid() const { return isValid_; }
+
+private:
+
+    Matrix<T, 2, 2> A_;
+    T               invDet_;
+    bool            isValid_;
+};
 
 template <class T, class U, Uint32 n>
 Vector<Promoted<T, U>, n> solve(const Matrix<T, n, n>& A, const Vector<U, n>& b)
@@ -484,6 +527,30 @@ Vector<T, n> solveInequalities(
         epsilon
     );
 }
+
+template <class T>
+std::optional<Vector<T, 2>>
+solveLcp(const Matrix<T, 2, 2>& A, const Vector<T, 2>& b)
+{
+    Vector<T, 2> x = solve(A, b);
+    if (all(x >= Vector<T, 2>::filled(0.f)))
+        return x;
+
+    x = Vector<T, 2>{b[0] / A(0, 0), 0.f};
+    if ((x[0] >= 0.f) && (x[0] * A(1, 0) - b[1] >= 0))
+        return x;
+
+    x = Vector<T, 2>{0.f, b[1] / A(1, 1)};
+    if ((x[1] >= 0.f) && (x[1] * A(0, 1) - b[0] >= 0))
+        return x;
+
+    x = Vector<T, 2>{};
+    if (all(-b >= Vector<T, 2>::filled(0.f)))
+        return x;
+
+    return std::nullopt;
+}
+
 
 ////////////////////////////////////////////////////////////
 // Vector operations

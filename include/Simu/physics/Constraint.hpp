@@ -288,6 +288,8 @@ public:
             Vec2::filled(0.f)
         );
 
+        // TODO: Sequential solving should be faster
+
         if (frame_.nContacts == 1)
         {
             float posLambda = -error[0] / normalK_(0, 0);
@@ -299,13 +301,26 @@ public:
         }
         else if (frame_.nContacts == 2)
         {
-            Vec2 posLambda = solveInequalities(
-                normalK_,
-                -error,
-                [](const Vec2& lambda, Uint32 i) {
-                    return std::max(0.f, lambda[i]);
-                }
-            );
+            Vec2 posLambda;
+            // PGS /////////////////////////////////
+            // Vec2 posLambda = solveInequalities(
+            //     normalK_,
+            //     -error,
+            //     [](const Vec2& lambda, Uint32 i) {
+            //         return std::max(0.f, lambda[i]);
+            //     }
+            // );
+            ////////////////////////////////////////
+
+
+            // Box2d's LCP solver /////////////////
+            auto res = solveLcp(normalK_, -error);
+            if (!res.has_value())
+                return;
+            else
+                posLambda = res.value();
+            ///////////////////////////////////////
+
 
             bodies_.applyPositionCorrection(
                 elementWiseMul(bodies_.inverseMassVec(), normalImpulse(posLambda))
@@ -346,7 +361,9 @@ private:
     void updateContacts()
     {
         frame_ = manifold_.frameManifold();
+
         // TODO: Use vertex matching in contact manifold
+        // TODO: All of this goes into contact manifold's update logic
         bool needsNewManifold = frame_.nContacts == 0;
 
         if (!needsNewManifold)
@@ -605,14 +622,26 @@ private:
 
             Vec2 oldNormalLambda = normalLambda_;
 
-            normalLambda_ = solveInequalities(
-                normalK_,
-                -(err - alreadyComputed + bounce_),
-                [](const Vec2& lambda, Uint32 i) {
-                    return std::max(0.f, lambda[i]);
-                },
-                normalLambda_
-            );
+            // PGS ////////////////////////////
+            // normalLambda_ = solveInequalities(
+            //     normalK_,
+            //     -(err - alreadyComputed + bounce_),
+            //     [](const Vec2& lambda, Uint32 i) {
+            //         return std::max(0.f, lambda[i]);
+            //     },
+            //     normalLambda_
+            // );
+            //////////////////////////////////
+
+            // Box2d's LCP solver ////////////
+            auto normalLambda
+                = solveLcp(normalK_, -(err - alreadyComputed + bounce_));
+
+            if (!normalLambda.has_value())
+                return;
+            else
+                normalLambda_ = normalLambda.value();
+            //////////////////////////////////
 
             Vec2 dNormalLambda = normalLambda_ - oldNormalLambda;
 

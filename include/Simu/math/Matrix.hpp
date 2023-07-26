@@ -27,6 +27,7 @@
 #include <initializer_list>
 #include <type_traits>
 #include <cmath>
+#include <optional>
 
 #include "Simu/config.hpp"
 
@@ -236,6 +237,8 @@ private:
     bool            isValid_ = true;
 };
 
+
+
 template <class T, Uint32 n>
 Matrix<T, n, n> invert(const Matrix<T, n, n>& mat);
 
@@ -279,6 +282,22 @@ Vector<T, n> solveInequalities(
     Vector<T, n>           initialGuess = Vector<T, n>{},
     float                  epsilon      = simu::EPSILON
 );
+
+
+////////////////////////////////////////////////////////////
+/// \brief Solves the LCP Ax >= b with x >= 0
+/// 
+/// This gives Ax - b = w with the residuals w >= 0,
+///     the complementarity condition is dot(x, w) = 0
+///     (xi = 0 or wi = 0 for each index i)
+/// 
+/// Uses total enumeration, taken from box2d's contact solver.
+/// If no value is returned, the LCP had no solution.
+/// 
+////////////////////////////////////////////////////////////
+template <class T>
+std::optional<Vector<T, 2>>
+solveLcp(const Matrix<T, 2, 2>& A, const Vector<T, 2>& b);
 
 
 ////////////////////////////////////////////////////////////
