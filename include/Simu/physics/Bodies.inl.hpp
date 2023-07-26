@@ -123,8 +123,8 @@ typename Bodies<n>::MassVec Bodies<n>::inverseMassVec() const
     Uint32 nthBody = 0;
     for (const Body* body : *this)
     {
-        float m = dominances_[nthBody] / body->properties().mass;
-        float I = dominances_[nthBody++] / body->properties().inertia;
+        float m = dominances_[nthBody] / body->mass();
+        float I = dominances_[nthBody++] / body->inertia();
 
         mv[i++] = m;
         mv[i++] = m;

@@ -185,8 +185,8 @@ private:
 
     static Vec2 centroidMidPoint(const Bodies<2>& bodies)
     {
-        return (bodies[0]->properties().centroid
-                + bodies[1]->properties().centroid)
+        return (bodies[0]->centroid()
+                + bodies[1]->centroid())
                / 2;
     }
 
@@ -391,7 +391,7 @@ private:
         for (Uint32 b = 0; b < 2; ++b)
             for (Uint32 c = 0; c < frame_.nContacts; ++c)
                 radius_[b][c] = frame_.worldContacts[b][c]
-                                - bodies_[b]->properties().centroid;
+                                - bodies_[b]->centroid();
     }
 
     void computeKs(bool computeFrictionK)

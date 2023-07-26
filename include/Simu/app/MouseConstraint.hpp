@@ -52,7 +52,7 @@ public:
     Jacobian jacobian(Bodies<1> body) const
     {
         Vec2 r = body[0]->toWorldSpace() * localBodyPos_
-                 - body[0]->properties().centroid;
+                 - body[0]->centroid();
 
         // clang-format off
         return Jacobian{

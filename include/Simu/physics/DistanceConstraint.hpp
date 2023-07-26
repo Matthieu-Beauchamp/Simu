@@ -63,8 +63,8 @@ public:
         Vec2 d           = worldPoints[0] - worldPoints[1];
 
         std::array<Vec2, 2> fromCentroid{
-            worldPoints[0] - bodies[0]->properties().centroid,
-            worldPoints[1] - bodies[1]->properties().centroid};
+            worldPoints[0] - bodies[0]->centroid(),
+            worldPoints[1] - bodies[1]->centroid()};
 
         return 2.f
                * Jacobian{

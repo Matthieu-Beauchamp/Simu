@@ -234,15 +234,19 @@ public:
         return Transform::transformAround(
             -orientation_,
             -position_,
-            properties().centroid
+            centroid()
         );
     }
+
+    float mass() const { return properties_.mass; }
+    float inertia() const { return properties_.inertia; }
+    Vec2  centroid() const { return worldProperties().centroid; }
 
     ////////////////////////////////////////////////////////////
     /// \brief The MassProperties of the Body with the centroid given in world space
     ///
     ////////////////////////////////////////////////////////////
-    MassProperties properties() const
+    MassProperties worldProperties() const
     {
         MassProperties transformedProperties{properties_};
         transformedProperties.centroid = toWorldSpace() * properties_.centroid;

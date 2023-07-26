@@ -106,7 +106,7 @@ public:
 
     void apply(Body& body, float dt) const override
     {
-        body.applyForce(acceleration_ * body.properties().mass, dt, Vec2{0, 0});
+        body.applyForce(acceleration_ * body.mass(), dt, Vec2{0, 0});
     }
 
 private:

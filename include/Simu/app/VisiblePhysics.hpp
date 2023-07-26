@@ -83,7 +83,7 @@ protected:
         //     100 * material().penetration.value
         // );
 
-        renderer.drawPolygon(properties().centroid, collider().vertexView(), color_);
+        renderer.drawPolygon(centroid(), collider().vertexView(), color_);
     }
 
 private:

@@ -49,8 +49,8 @@ public:
     void update()
     {
         Vec2 searchDir = nContacts_ == 0
-                             ? (bodies_[1]->properties().centroid
-                                - bodies_[0]->properties().centroid)
+                             ? (bodies_[1]->centroid()
+                                - bodies_[0]->centroid())
                              : contactNormal();
 
         Gjk<Collider> gjk{
