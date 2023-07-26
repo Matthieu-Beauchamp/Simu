@@ -31,12 +31,16 @@ namespace simu
 {
 
 template <Geometry T>
-Gjk<T>::Gjk(const T& first, const T& second) : first_{first}, second_{second}
+Gjk<T>::Gjk(const T& first, const T& second, Vec2 initialDir)
+    : first_{first}, second_{second}
 {
+    Vec2 direction = initialDir;
+    if (all(direction == Vec2{}))
+        direction = simplex_.nextDirection();
+
     while (!done_)
     {
-        Vec2   direction = simplex_.nextDirection();
-        Vertex v         = furthestVertexInDirection(direction);
+        Vertex v = furthestVertexInDirection(direction);
         if (dot(v, direction) < 0)
         {
             done_         = true;
@@ -58,6 +62,8 @@ Gjk<T>::Gjk(const T& first, const T& second) : first_{first}, second_{second}
                 done_         = true;
             }
         }
+
+        direction = simplex_.nextDirection();
     }
 }
 

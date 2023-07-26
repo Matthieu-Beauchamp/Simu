@@ -41,19 +41,51 @@ typedef ViewType<Body const**> ConstBodiesView;
 template <Uint32 n>
 class Bodies;
 
+////////////////////////////////////////////////////////////
+/// \brief
+///
+/// Call sequence pseudo-code:
+///
+/// \code
+/// let S be the set of active constraints;
+/// foreach constraint c:
+///     if c.isActive():
+///         S <- S U c;
+///
+/// foreach constraint c in S:
+///     c.initSolve();
+///
+/// foreach constraint c in S:
+///     c.warmstart();
+///
+/// for i in range(world.nVelocityIterations)
+///     foreach constraint c in S:
+///         c.solveVelocities();
+///
+/// for i in range(world.nPositionIterations)
+///     foreach constraint c:
+///         if c.isActive():
+///             c.solvePositions();
+/// \endcode
+///
+///
+////////////////////////////////////////////////////////////
 class Constraint : public PhysicsObject
 {
 public:
 
     ~Constraint() override = default;
 
-    virtual bool isActive()                = 0;
-    virtual void initSolve(float dt)       = 0;
+    virtual bool isActive() = 0;
+
+    virtual void initSolve() = 0;
+    virtual void warmstart(float dt) = 0;
+
     virtual void solveVelocities(float dt) = 0;
     virtual void solvePositions()          = 0;
 
 
-    // if a constraint has no bodies or changes its bodies during its lifetime,
+    // if a constraint has no bodies (or a nullptr body) or changes its bodies during its lifetime,
     //  then behavior is undefined.
     virtual BodiesView      bodies()       = 0;
     virtual ConstBodiesView bodies() const = 0;
@@ -104,7 +136,10 @@ concept ConstraintSolver
         Bodies<S::nBodies>, 
         typename S::F>;
 
-    { s.initSolve(bodies, f, dt) };
+
+    { s.initSolve(bodies, f) };
+    { s.warmstart(bodies, f, dt) };
+
     { s.solveVelocity(bodies, f, dt) };
     { s.solvePosition(bodies, f) };
 

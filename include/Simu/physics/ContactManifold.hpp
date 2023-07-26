@@ -27,45 +27,45 @@
 #include <algorithm>
 #include <array>
 
-#include "Simu/config.hpp"
-#include "Simu/math/Geometry.hpp"
-#include "Simu/math/BarycentricCoordinates.hpp"
+#include "Simu/math/Gjk.hpp"
+
+#include "Simu/physics/Body.hpp"
 
 namespace simu
 {
 
-// requires that the geometry be positively oriented.
-template <Geometry T>
 class ContactManifold
 {
 public:
 
-    typedef typename Edges<T>::Edge Edge;
-
-    std::array<std::array<Vertex, 2>, 2> contacts;
-    Uint32                               nContacts = 0;
-
-    Vec2 contactNormal; // points outwards of the reference body
-
-    std::array<const T*, 2> bodies;
-    std::array<Edge, 2>     contactEdges;
-
-    Uint32 referenceIndex() const { return referenceIndex_; }
-    Uint32 incidentIndex() const { return (referenceIndex() == 0) ? 1 : 0; }
-
-private:
-
-    Uint32 referenceIndex_ = 0;
-
-
-public:
-
-    // mtv is such that translating bodies[1] by mtv makes the bodies only touch,
-    //  the bodies must be colliding.
-    // (mtv points outwards of bodies[0])
-    ContactManifold(const T* body0, const T* body1, Vec2 mtv)
-        : bodies{body0, body1}, contactEdges{computeContactEdges(bodies, mtv)}
+    ContactManifold(const Body* body0, const Body* body1)
+        : bodies_{body0, body1}, 
+          minPen_{CombinableProperty{body0->material().penetration, 
+                                     body1->material().penetration}.value}
     {
+        update();
+    }
+
+    void update()
+    {
+        Vec2 searchDir = nContacts_ == 0
+                             ? (bodies_[1]->properties().centroid
+                                - bodies_[0]->properties().centroid)
+                             : contactNormal();
+
+        Gjk<Collider> gjk{
+            bodies_[0]->collider(),
+            bodies_[1]->collider(),
+            searchDir};
+        Vec2 mtv = gjk.penetration();
+
+        nContacts_ = 0;
+
+        if (normSquared(mtv) < minPen_ * minPen_)
+            return;
+
+        std::array<Edge, 2> contactEdges = computeContactEdges(mtv);
+
         Vec2 normal1 = contactEdges[0].normalizedNormal();
         Vec2 normal2 = contactEdges[1].normalizedNormal();
 
@@ -75,73 +75,100 @@ public:
         if (e1Coeff > e2Coeff)
         {
             referenceIndex_ = 0;
-            contactNormal   = normal1;
+            contactNormal_  = normal1;
         }
         else
         {
             referenceIndex_ = 1;
-            contactNormal   = normal2;
+            contactNormal_  = normal2;
         }
 
-        computeContacts();
+        computeContacts(contactEdges);
+
+        contactNormal_ = Transform::linear(
+            bodies_[referenceIndex()]->toLocalSpace(),
+            contactNormal_
+        );
+
+        for (Uint32 b = 0; b < 2; ++b)
+            for (Uint32 c = 0; c < nContacts(); ++c)
+                contacts_[b][c] = bodies_[b]->toLocalSpace() * contacts_[b][c];
     }
+
+
+    struct FrameManifold
+    {
+        Uint32                               nContacts;
+        std::array<std::array<Vertex, 2>, 2> worldContacts;
+        Vec2                                 normal;
+        Vec2                                 tangent;
+    };
+
+    FrameManifold frameManifold() const
+    {
+        return FrameManifold{
+            nContacts(),
+            contacts(),
+            contactNormal(),
+            contactTangent()};
+    }
+
+
+    // if nContacts() is 0, then other getters will provide undefined results.
+    Uint32 nContacts() const { return nContacts_; }
+
+    /// contacts()[referenceIndex()][1] -> second contact point of the reference body
+    std::array<std::array<Vertex, 2>, 2> contacts() const
+    {
+        std::array<std::array<Vertex, 2>, 2> worldContacts;
+
+        for (Uint32 b = 0; b < 2; ++b)
+            for (Uint32 c = 0; c < nContacts(); ++c)
+                worldContacts[b][c]
+                    = bodies_[b]->toWorldSpace() * contacts_[b][c];
+
+        return worldContacts;
+    }
+
+    Vec2 contactNormal() const
+    {
+        return Transform::linear(
+            bodies_[referenceIndex()]->toWorldSpace(),
+            contactNormal_
+        );
+    }
+
+    Vec2 contactTangent() const { return perp(contactNormal()); }
+
+    Uint32 referenceIndex() const { return referenceIndex_; }
+    Uint32 incidentIndex() const { return (referenceIndex() == 0) ? 1 : 0; }
+
+    // minimum penetration norm for a contact to be considered.
+    void  setMinimumPenetration(float minPen) { minPen_ = minPen; }
+    float minimumPenetration() const { return minPen_; }
 
 private:
 
-    void computeContacts()
-    {
-        const Uint32 ref = referenceIndex();
-        const Uint32 inc = incidentIndex();
 
-        Edges<T> refEdges = edgesOf(*bodies[ref]);
+    typedef typename Edges<Collider>::Edge Edge;
 
-        Edge previousOfRef{*refEdges.previous(contactEdges[ref])};
-        Edge nextOfRef{*refEdges.next(contactEdges[ref])};
-
-        Vec2 n = -contactNormal;
-
-        Vertex contact1 = contactEdges[inc].clipInside(previousOfRef);
-        if (dot(contact1 - contactEdges[ref].from(), n) >= 0.f)
-            contacts[inc][nContacts++] = contact1;
-
-        Vertex contact2 = contactEdges[inc].clipInside(nextOfRef);
-        if (dot(contact2 - contactEdges[ref].from(), n) >= 0.f)
-        {
-            contacts[inc][nContacts++] = contact2;
-            if (nContacts == 2 && all(contacts[inc][0] == contacts[inc][1]))
-                --nContacts;
-        }
-
-        for (Uint32 i = 0; i < nContacts; ++i)
-        {
-            contacts[ref][i]
-                = LineBarycentric{contactEdges[ref].from(), contactEdges[ref].to(), contacts[inc][i]}
-                      .closestPoint;
-        }
-    }
-
-    static std::array<Edge, 2>
-    computeContactEdges(std::array<const T*, 2> bodies, Vec2 mtv)
+    std::array<Edge, 2> computeContactEdges(Vec2 mtv)
     {
         return {
-            computeContactEdge(*bodies[0], mtv),
-            computeContactEdge(*bodies[1], -mtv),
+            computeContactEdge(bodies_[0]->collider(), mtv),
+            computeContactEdge(bodies_[1]->collider(), -mtv),
         };
     }
 
-    static Edge computeContactEdge(const T& body, Vec2 direction)
+    static Edge computeContactEdge(const Collider& collider, Vec2 direction)
     {
-        // TODO: Check for furthest vertex first, then check neighbor edges
+        Vec2 v = furthestVertexInDirection(collider, direction);
 
-        Vec2 v = furthestVertexInDirection(body, direction);
+        auto edges = edgesOf(collider);
 
-        auto edges = edgesOf(body);
-
-        auto previous = std::find_if(
-            edges.begin(),
-            edges.end(),
-            [=](typename Edges<T>::Edge e) { return all(e.to() == v); }
-        );
+        auto previous = std::find_if(edges.begin(), edges.end(), [=](Edge e) {
+            return all(e.to() == v);
+        });
 
         auto next = edges.next(previous);
 
@@ -151,6 +178,50 @@ private:
 
         return *previous;
     }
+
+    void computeContacts(std::array<Edge, 2> contactEdges)
+    {
+        const Uint32 ref = referenceIndex();
+        const Uint32 inc = incidentIndex();
+
+        auto refEdges = edgesOf(bodies_[ref]->collider());
+
+        Edge previousOfRef{*refEdges.previous(contactEdges[ref])};
+        Edge nextOfRef{*refEdges.next(contactEdges[ref])};
+
+        Vec2 n = -contactNormal_;
+
+        Vertex contact1 = contactEdges[inc].clipInside(previousOfRef);
+        if (dot(contact1 - contactEdges[ref].from(), n) >= 0.f)
+            contacts_[inc][nContacts_++] = contact1;
+
+        Vertex contact2 = contactEdges[inc].clipInside(nextOfRef);
+        if (dot(contact2 - contactEdges[ref].from(), n) >= 0.f)
+        {
+            contacts_[inc][nContacts_++] = contact2;
+            if (nContacts_ == 2 && all(contacts_[inc][0] == contacts_[inc][1]))
+                --nContacts_;
+        }
+
+        for (Uint32 i = 0; i < nContacts_; ++i)
+        {
+            contacts_[ref][i]
+                = LineBarycentric{contactEdges[ref].from(), contactEdges[ref].to(), contacts_[inc][i]}
+                      .closestPoint;
+        }
+    }
+
+    std::array<std::array<Vertex, 2>, 2> contacts_{};
+    Uint32                               nContacts_ = 0;
+
+    Vec2 contactNormal_{}; // points outwards of the reference body
+
+    // minimum penetration norm to compute a manifold when calling update()
+    float minPen_;
+
+    std::array<const Body*, 2> bodies_;
+
+    Uint32 referenceIndex_ = 0;
 };
 
 

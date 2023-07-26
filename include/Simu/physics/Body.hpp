@@ -229,7 +229,14 @@ public:
     /// \brief Transformation matrix to convert from world space to the Body's local space
     ///
     ////////////////////////////////////////////////////////////
-    const Mat3& toLocalSpace() const { return toLocalSpace_; }
+    Mat3 toLocalSpace() const
+    {
+        return Transform::transformAround(
+            -orientation_,
+            -position_,
+            properties().centroid
+        );
+    }
 
     ////////////////////////////////////////////////////////////
     /// \brief The MassProperties of the Body with the centroid given in world space
@@ -323,12 +330,6 @@ private:
 
     void update()
     {
-        toLocalSpace_ = Transform::transformAround(
-            -orientation_,
-            -position_,
-            properties().centroid
-        );
-
         toWorldSpace_ = Transform::transformAround(
             orientation_,
             position_,
@@ -380,7 +381,6 @@ private:
     std::vector<Constraint*> constraints_;
 
     Mat3 toWorldSpace_;
-    Mat3 toLocalSpace_;
 };
 
 

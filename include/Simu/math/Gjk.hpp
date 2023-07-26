@@ -87,7 +87,7 @@ class Gjk
 {
 public:
 
-    Gjk(const T& first, const T& second);
+    Gjk(const T& first, const T& second, Vec2 initialDir = Vec2::i());
 
     bool areColliding() const { return areColliding_; }
 

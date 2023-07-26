@@ -74,8 +74,9 @@ bool Bodies<n>::isBodyStructural(const Body* body) const
 
 template <Uint32 n>
 void Bodies<n>::applyImpulse(const Impulse& impulse)
-{
-    Velocity dv = inverseMass() * impulse;
+{ 
+    Velocity dv = elementWiseMul(inverseMassVec(), impulse);
+
     Uint32   i  = 0;
     for (Body* body : *this)
     {
@@ -114,20 +115,29 @@ typename Bodies<n>::Velocity Bodies<n>::velocity() const
 }
 
 template <Uint32 n>
-typename Bodies<n>::Mass Bodies<n>::inverseMass() const
+typename Bodies<n>::MassVec Bodies<n>::inverseMassVec() const
 {
-    Vector<float, 3 * n> diagonal;
+    MassVec mv;
 
     Uint32 i       = 0;
     Uint32 nthBody = 0;
     for (const Body* body : *this)
     {
-        diagonal[i++] = dominances_[nthBody] / body->properties().mass;
-        diagonal[i++] = dominances_[nthBody] / body->properties().mass;
-        diagonal[i++] = dominances_[nthBody++] / body->properties().inertia;
+        float m = dominances_[nthBody] / body->properties().mass;
+        float I = dominances_[nthBody++] / body->properties().inertia;
+
+        mv[i++] = m;
+        mv[i++] = m;
+        mv[i++] = I;
     }
 
-    return Mass::diagonal(diagonal);
+    return mv;
+}
+
+template <Uint32 n>
+typename Bodies<n>::Mass Bodies<n>::inverseMass() const
+{
+    return Mass::diagonal(inverseMassVec());
 }
 
 } // namespace simu

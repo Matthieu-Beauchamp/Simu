@@ -65,6 +65,14 @@ public:
     Value&       damping() { return damping_; }
     const Value& damping() const { return damping_; }
 
+    void warmstartDefault(Bodies<nBodies>& bodies, const F& f, float dt)
+    {
+        Value lambda = getAccumulatedLambda();
+        setLambdaHint(Value::filled(0.f));
+
+        updateLambda(bodies, f, dt, lambda);
+    }
+
     KMatrix
     computeEffectiveMass(const Bodies<nBodies>& bodies, const F& f, bool addDamping)
     {
@@ -141,17 +149,17 @@ public:
     EqualitySolver(const Bodies<nBodies>& bodies, const F& f)
         : Base{bodies, f}, solver_{KMatrix{}}
     {
-        initSolver(bodies, f);
     }
 
-    void initSolve(Bodies<nBodies>& bodies, const F& f, float dt)
+    void initSolve(Bodies<nBodies>& bodies, const F& f)
     {
-        initSolver(bodies, f);
+        solver_ = Solver{this->computeEffectiveMass(bodies, f, true)};
+        SIMU_ASSERT(solver_.isValid(), "Constraint cannot be solved");
+    }
 
-        Value lambda = this->getAccumulatedLambda();
-        this->setLambdaHint(Value::filled(0.f));
-
-        this->updateLambda(bodies, f, dt, lambda);
+    void warmstart(Bodies<nBodies>& bodies, const F& f, float dt)
+    {
+        this->warmstartDefault(bodies, f, dt);
     }
 
     void solveVelocity(Bodies<nBodies>& bodies, const F& f, float dt)
@@ -181,12 +189,6 @@ public:
 
 private:
 
-    void initSolver(const Bodies<nBodies>& bodies, const F& f)
-    {
-        solver_ = Solver{this->computeEffectiveMass(bodies, f, true)};
-        SIMU_ASSERT(solver_.isValid(), "Constraint cannot be solved");
-    }
-
     KSolver solver_;
 };
 
@@ -214,14 +216,14 @@ public:
     {
     }
 
-    void initSolve(Bodies<nBodies>& bodies, const F& f, float dt)
+    void initSolve(Bodies<nBodies>& bodies, const F& f)
     {
-        initSolver(bodies, f);
+        effectiveMass_ = this->computeEffectiveMass(bodies, f, true);
+    }
 
-        Value lambda = this->getAccumulatedLambda();
-        this->setLambdaHint(Value::filled(0.f));
-
-        this->updateLambda(bodies, f, dt, lambda);
+    void warmstart(Bodies<nBodies>& bodies, const F& f, float dt)
+    {
+        this->warmstartDefault(bodies, f, dt);
     }
 
     void solveVelocity(Bodies<nBodies>& bodies, const F& f, float dt)
@@ -270,11 +272,6 @@ public:
 
 
 private:
-
-    void initSolver(const Bodies<nBodies>& bodies, const F& f)
-    {
-        effectiveMass_ = this->computeEffectiveMass(bodies, f, true);
-    }
 
     KMatrix effectiveMass_;
 };
@@ -331,24 +328,35 @@ public:
         return nextFunc(bodies, f) != Func::off;
     }
 
-    void initSolve(Bodies<nBodies>& bodies, const F& f, float dt)
+
+    void initSolve(Bodies<nBodies>& bodies, const F& f)
     {
-        Func prev = func_;
-        func_     = nextFunc(bodies, f);
-        initSolver(bodies, f);
+        Func prev     = func_;
+        func_         = nextFunc(bodies, f);
+        canWarmstart_ = (func_ == prev) && (func_ != Func::off);
 
-        if (func_ == prev && func_ != Func::off)
+        KMatrix effMass = this->computeEffectiveMass(bodies, f, true);
+
+        if (func_ == Func::equality)
+            solver_ = KSolver{effMass};
+        else if (func_ == Func::lower || func_ == Func::upper)
+            effectiveMass_ = effMass;
+    }
+
+    void warmstart(Bodies<nBodies>& bodies, const F& f, float dt)
+    {
+        if (canWarmstart_)
         {
-            Value lambda = this->getAccumulatedLambda();
-
             if (func_ == Func::upper)
             {
-                bodies.applyImpulse(this->impulse(this->getJacobian(), -lambda));
+                bodies.applyImpulse(this->impulse(
+                    this->getJacobian(),
+                    -this->getAccumulatedLambda()
+                ));
             }
             else
             {
-                this->setLambdaHint(Value::filled(0.f));
-                this->updateLambda(bodies, f, dt, lambda);
+                this->warmstartDefault(bodies, f, dt);
             }
         }
         else
@@ -539,16 +547,6 @@ private:
         }
     }
 
-    void initSolver(const Bodies<nBodies>& bodies, const F& f)
-    {
-        KMatrix effMass = this->computeEffectiveMass(bodies, f, true);
-
-        if (func_ == Func::equality)
-            solver_ = KSolver{effMass};
-        else if (func_ == Func::lower || func_ == Func::upper)
-            effectiveMass_ = effMass;
-    }
-
     Func func_ = Func::off;
 
     std::optional<Value> L_ = std::nullopt;
@@ -559,157 +557,8 @@ private:
         KMatrix effectiveMass_;
         KSolver solver_;
     };
+
+    bool canWarmstart_ = false;
 };
-
-
-namespace priv
-{
-
-// Uses a special form for velocities:
-// K( (lambda + dLambda - (1+e)lambda) / (1+e) ) >= -Jv
-template <ConstraintFunction F>
-class ContactSolver : public ConstraintSolverBase<F>
-{
-public:
-
-    static_assert(
-        std::is_same_v<F, SingleContactFunction>
-            || std::is_same_v<F, DoubleContactFunction>,
-        "This is reserved for contact constraints."
-    );
-
-    typedef ConstraintSolverBase<F> Base;
-
-    static constexpr Uint32 nBodies   = F::nBodies;
-    static constexpr Uint32 dimension = F::dimension;
-
-    typedef typename Base::Value    Value;
-    typedef typename Base::Jacobian Jacobian;
-    typedef typename Base::State    State;
-
-    typedef typename Base::KMatrix         KMatrix;
-    typedef Solver<float, Base::dimension> KSolver;
-
-
-    ContactSolver(const Bodies<nBodies>& bodies, const F& f)
-        : Base{bodies, f},
-          restitutionCoefficient_{
-            CombinableProperty{bodies[0]->material().bounciness, bodies[1]->material().bounciness}
-          .value},
-          maxPen_{CombinableProperty{bodies[0]->material().penetration, bodies[1]->material().penetration}
-          .value}
-    {
-    }
-
-    void initSolve(Bodies<nBodies>& bodies, const F& f, float dt)
-    {
-        initSolver(bodies, f);
-
-        Value lambda = this->getAccumulatedLambda();
-        this->setLambdaHint(Value::filled(0.f));
-
-        this->updateLambda(bodies, f, dt, lambda);
-    }
-
-    void solveVelocity(Bodies<nBodies>& bodies, const F& f, float dt)
-    {
-        // auto error = this->computeRhs(bodies, f, dt, false);
-        // auto initialGuess
-        //     = -(restitutionCoefficient_ / (1.f + restitutionCoefficient_))
-        //       * this->getAccumulatedLambda();
-
-        // Value x = solveInequalities(
-        //     effectiveMass_,
-        //     error,
-        //     [this](Value x) { return this->clampX(x); },
-        //     initialGuess
-        // );
-
-        // Value dLambda = (1.f + restitutionCoefficient_) * x
-        //                 + restitutionCoefficient_ * this->getAccumulatedLambda();
-
-        // this->updateLambda(bodies, f, dt, dLambda);
-
-
-        // computing the bounce from the relative normal velocities when the solver is initialized
-        //
-        // Box stacking is unstable for bouncy bodies.
-        // Box2d uses a restitution threshold:
-        //  if the relative velocity is lower than the treshold, then apply
-        //  restitution.
-        // This avoids the jittery bounces, allow stable contacts (that can sleep)
-
-        Jacobian J     = this->getJacobian();
-        Value    error = J * bodies.velocity() + bounce_;
-        Value    baumgarte
-            = KMatrix::diagonal(this->restitution()) * f.eval(bodies) / dt;
-        Value alreadyComputed = effectiveMass_ * this->getAccumulatedLambda();
-
-        Value lambda = solveInequalities(
-            effectiveMass_,
-            -(error - alreadyComputed + baumgarte),
-            [=, &f](Value lambda) { return f.clampLambda(lambda, dt); },
-            this->getAccumulatedLambda()
-        );
-
-        Value dLambda = lambda - this->getAccumulatedLambda();
-
-        this->updateLambda(bodies, f, dt, dLambda);
-    }
-
-    void solvePosition(Bodies<nBodies>& bodies, const F& f)
-    {
-        Value error = f.eval(bodies);
-
-        float beta          = 0.2f;
-        Value maxPen        = Value::filled(maxPen_);
-        Value maxCorrection = Value::filled(0.2f);
-
-        // should be done based on the maximum error found over all contacts...
-        //  (according to box2D)
-        if (all(error > -3.f * maxPen))
-            return;
-
-
-        error = clamp(beta * (error + maxPen), -maxCorrection, Value{});
-
-        Jacobian J     = f.jacobian(bodies);
-        effectiveMass_ = J * bodies.inverseMass() * transpose(J);
-
-        Value posLambda
-            = solveInequalities(effectiveMass_, -error, [&f](Value posLambda) {
-                  return f.clampPositionLambda(posLambda);
-              });
-
-        State positionCorrection
-            = bodies.inverseMass() * transpose(J) * posLambda;
-
-        bodies.applyPositionCorrection(positionCorrection);
-    }
-
-
-private:
-
-    void initSolver(const Bodies<nBodies>& bodies, const F& f)
-    {
-        effectiveMass_ = this->computeEffectiveMass(bodies, f, false);
-        bounce_
-            = restitutionCoefficient_ * this->getJacobian() * bodies.velocity();
-        bounce_ = std::min(Value::filled(0.f), bounce_);
-    }
-
-    typename F::Value clampX(typename F::Value x)
-    {
-        return std::max(x, -this->getAccumulatedLambda());
-    }
-
-    Value   bounce_;
-    KMatrix effectiveMass_;
-
-    float restitutionCoefficient_;
-    float maxPen_;
-};
-
-} // namespace priv
 
 } // namespace simu
