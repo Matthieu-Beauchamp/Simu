@@ -51,11 +51,12 @@ public:
     typedef State                Impulse;
 
     typedef Matrix<float, 3 * n, 3 * n> Mass;
+    typedef Vector<float, 3 * n>        MassVec;
     typedef Vector<float, n>            Dominance;
 
     Bodies(
         std::initializer_list<Body*> bodies,
-        std::optional<Dominance>            dominances = std::nullopt
+        std::optional<Dominance>     dominances = std::nullopt
     );
 
     BodiesView view()
@@ -77,6 +78,7 @@ public:
 
     Velocity velocity() const;
     Mass     inverseMass() const;
+    MassVec  inverseMassVec() const;
 
 private:
 

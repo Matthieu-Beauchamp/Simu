@@ -39,7 +39,9 @@ class ContactManifold
 public:
 
     ContactManifold(const Body* body0, const Body* body1)
-        : bodies_{body0, body1}
+        : bodies_{body0, body1}, 
+          minPen_{CombinableProperty{body0->material().penetration, 
+                                     body1->material().penetration}.value}
     {
         update();
     }
@@ -49,7 +51,7 @@ public:
         Vec2 searchDir = nContacts_ == 0
                              ? (bodies_[1]->properties().centroid
                                 - bodies_[0]->properties().centroid)
-                             : contactNormal_;
+                             : contactNormal();
 
         Gjk<Collider> gjk{
             bodies_[0]->collider(),
@@ -57,11 +59,10 @@ public:
             searchDir};
         Vec2 mtv = gjk.penetration();
 
+        nContacts_ = 0;
+
         if (normSquared(mtv) < minPen_ * minPen_)
-        {
-            nContacts_ = 0;
             return;
-        }
 
         std::array<Edge, 2> contactEdges = computeContactEdges(mtv);
 
@@ -83,6 +84,33 @@ public:
         }
 
         computeContacts(contactEdges);
+
+        contactNormal_ = Transform::linear(
+            bodies_[referenceIndex()]->toLocalSpace(),
+            contactNormal_
+        );
+
+        for (Uint32 b = 0; b < 2; ++b)
+            for (Uint32 c = 0; c < nContacts(); ++c)
+                contacts_[b][c] = bodies_[b]->toLocalSpace() * contacts_[b][c];
+    }
+
+
+    struct FrameManifold
+    {
+        Uint32                               nContacts;
+        std::array<std::array<Vertex, 2>, 2> worldContacts;
+        Vec2                                 normal;
+        Vec2                                 tangent;
+    };
+
+    FrameManifold frameManifold() const
+    {
+        return FrameManifold{
+            nContacts(),
+            contacts(),
+            contactNormal(),
+            contactTangent()};
     }
 
 
@@ -90,15 +118,34 @@ public:
     Uint32 nContacts() const { return nContacts_; }
 
     /// contacts()[referenceIndex()][1] -> second contact point of the reference body
-    std::array<std::array<Vertex, 2>, 2> contacts() const { return contacts_; }
+    std::array<std::array<Vertex, 2>, 2> contacts() const
+    {
+        std::array<std::array<Vertex, 2>, 2> worldContacts;
 
-    Vec2 contactNormal() const { return contactNormal_; }
+        for (Uint32 b = 0; b < 2; ++b)
+            for (Uint32 c = 0; c < nContacts(); ++c)
+                worldContacts[b][c]
+                    = bodies_[b]->toWorldSpace() * contacts_[b][c];
+
+        return worldContacts;
+    }
+
+    Vec2 contactNormal() const
+    {
+        return Transform::linear(
+            bodies_[referenceIndex()]->toWorldSpace(),
+            contactNormal_
+        );
+    }
+
+    Vec2 contactTangent() const { return perp(contactNormal()); }
 
     Uint32 referenceIndex() const { return referenceIndex_; }
     Uint32 incidentIndex() const { return (referenceIndex() == 0) ? 1 : 0; }
 
     // minimum penetration norm for a contact to be considered.
-    void setMinimumPenetration(float minPen) { minPen_ = minPen; }
+    void  setMinimumPenetration(float minPen) { minPen_ = minPen; }
+    float minimumPenetration() const { return minPen_; }
 
 private:
 
@@ -170,7 +217,7 @@ private:
     Vec2 contactNormal_{}; // points outwards of the reference body
 
     // minimum penetration norm to compute a manifold when calling update()
-    float minPen_ = simu::EPSILON;
+    float minPen_;
 
     std::array<const Body*, 2> bodies_;
 

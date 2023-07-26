@@ -34,6 +34,11 @@ T clamp(T val, T min, T max)
 }
 
 
+template <class T>
+T squared(const T& x)
+{
+    return x * x;
+}
 
 
 } // namepace simu 

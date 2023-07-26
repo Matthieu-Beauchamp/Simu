@@ -311,6 +311,10 @@ projection(const Vector<T, dim>& ofThis, const Vector<U, dim>& onThat);
 
 ////////////////////////////////////////////////////////////
 /// \brief rotates v by 90 degrees
+///
+/// If clockwise is false, then this is (k x v)
+/// If clockwise is true, then this is  (v x k)
+///
 ////////////////////////////////////////////////////////////
 template <class T>
 Vector<T, 2> perp(const Vector<T, 2>& v, bool clockwise = false);
