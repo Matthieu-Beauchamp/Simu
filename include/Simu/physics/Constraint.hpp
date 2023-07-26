@@ -253,14 +253,14 @@ public:
         computeBounce();
     }
 
-    void warmstart(float dt) override
+    void warmstart(float /* dt */) override
     {
         Impulse P = tangentImpulse(tangentLambda_);
         P += normalImpulse(normalLambda_);
         bodies_.applyImpulse(P);
     }
 
-    void solveVelocities(float dt) override
+    void solveVelocities(float /* dt */) override
     {
         solveFrictionVelocity();
         solveContactVelocity();
