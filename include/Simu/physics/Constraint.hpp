@@ -53,7 +53,11 @@ public:
         const F&                  f,
         bool                      disableContacts
     )
-        : Base{}, f{f}, solver{bodies, f}, bodies_{bodies}, disableContacts_{disableContacts}
+        : Base{},
+          f{f},
+          solver{bodies, f},
+          bodies_{bodies},
+          disableContacts_{disableContacts}
     {
         Uint32 howManyStructural = 0;
         for (Body* body : this->bodies())
@@ -185,9 +189,7 @@ private:
 
     static Vec2 centroidMidPoint(const Bodies<2>& bodies)
     {
-        return (bodies[0]->centroid()
-                + bodies[1]->centroid())
-               / 2;
+        return (bodies[0]->centroid() + bodies[1]->centroid()) / 2;
     }
 
     static F makeWeldFunction(const Bodies<2>& bodies)
@@ -343,9 +345,9 @@ private:
     //  until the positions of the bodies change.
     void updateContacts()
     {
-        // frame_ = manifold_.frameManifold();
+        frame_ = manifold_.frameManifold();
         // TODO: Use vertex matching in contact manifold
-        bool needsNewManifold = true;
+        bool needsNewManifold = frame_.nContacts == 0;
 
         if (!needsNewManifold)
         {
@@ -365,7 +367,22 @@ private:
                     roseTooHigh = true;
             }
 
-            needsNewManifold = tangentDistanceExceeded || roseTooHigh;
+            const Uint32 inc = manifold_.incidentIndex();
+
+            Vec2 nearestIncident = furthestVertexInDirection(
+                bodies_[inc]->collider(),
+                -frame_.normal
+            );
+
+            bool hasNewCandidate
+                = any(frame_.worldContacts[inc][0] != nearestIncident);
+            if (frame_.nContacts == 2)
+                hasNewCandidate
+                    = hasNewCandidate
+                      && any(frame_.worldContacts[inc][1] != nearestIncident);
+
+            needsNewManifold
+                = tangentDistanceExceeded || roseTooHigh || hasNewCandidate;
         }
 
         if (needsNewManifold)
@@ -390,8 +407,8 @@ private:
 
         for (Uint32 b = 0; b < 2; ++b)
             for (Uint32 c = 0; c < frame_.nContacts; ++c)
-                radius_[b][c] = frame_.worldContacts[b][c]
-                                - bodies_[b]->centroid();
+                radius_[b][c]
+                    = frame_.worldContacts[b][c] - bodies_[b]->centroid();
     }
 
     void computeKs(bool computeFrictionK)

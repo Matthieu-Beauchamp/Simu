@@ -48,9 +48,15 @@ public:
 
     void update()
     {
+        nContacts_ = 0;
+
+        if (!bodies_[0]->collider().boundingBox().overlaps(
+                bodies_[1]->collider().boundingBox()
+            ))
+            return;
+
         Vec2 searchDir = nContacts_ == 0
-                             ? (bodies_[1]->centroid()
-                                - bodies_[0]->centroid())
+                             ? (bodies_[1]->centroid() - bodies_[0]->centroid())
                              : contactNormal();
 
         Gjk<Collider> gjk{
@@ -59,7 +65,6 @@ public:
             searchDir};
         Vec2 mtv = gjk.penetration();
 
-        nContacts_ = 0;
 
         if (normSquared(mtv) < minPen_ * minPen_)
             return;
