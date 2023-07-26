@@ -74,8 +74,9 @@ bool Bodies<n>::isBodyStructural(const Body* body) const
 
 template <Uint32 n>
 void Bodies<n>::applyImpulse(const Impulse& impulse)
-{
-    Velocity dv = inverseMass() * impulse;
+{ 
+    Velocity dv = elementWiseMul(inverseMassVec(), impulse);
+
     Uint32   i  = 0;
     for (Body* body : *this)
     {

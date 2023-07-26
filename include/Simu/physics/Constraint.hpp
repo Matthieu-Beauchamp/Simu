@@ -53,11 +53,7 @@ public:
         const F&                  f,
         bool                      disableContacts
     )
-        : Base{},
-          f{f},
-          solver{bodies, f},
-          bodies_{bodies},
-          disableContacts_{disableContacts}
+        : Base{}, f{f}, solver{bodies, f}, bodies_{bodies}, disableContacts_{disableContacts}
     {
         Uint32 howManyStructural = 0;
         for (Body* body : this->bodies())
@@ -296,7 +292,7 @@ public:
             posLambda       = std::max(posLambda, 0.f);
 
             bodies_.applyPositionCorrection(
-                bodies_.inverseMass() * normalImpulse(posLambda)
+                elementWiseMul(bodies_.inverseMassVec(), normalImpulse(posLambda))
             );
         }
         else if (frame_.nContacts == 2)
@@ -310,7 +306,7 @@ public:
             );
 
             bodies_.applyPositionCorrection(
-                bodies_.inverseMass() * normalImpulse(posLambda)
+                elementWiseMul(bodies_.inverseMassVec(), normalImpulse(posLambda))
             );
         }
     }
@@ -347,9 +343,9 @@ private:
     //  until the positions of the bodies change.
     void updateContacts()
     {
-        frame_ = manifold_.frameManifold();
-
-        bool needsNewManifold = frame_.nContacts == 0;
+        // frame_ = manifold_.frameManifold();
+        // TODO: Use vertex matching in contact manifold
+        bool needsNewManifold = true;
 
         if (!needsNewManifold)
         {

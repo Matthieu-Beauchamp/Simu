@@ -286,6 +286,17 @@ Vector<T, n> solveInequalities(
 ////////////////////////////////////////////////////////////
 
 template <class T, class U, Uint32 dim>
+Vector<Promoted<T, U>, dim>
+elementWiseMul(const Vector<T, dim>& lhs, const Vector<U, dim>& rhs)
+{
+    Vector<Promoted<T, U>, dim> res;
+    for (Uint32 i = 0; i < dim; ++i)
+        res[i] = lhs[i] * rhs[i];
+
+    return res;
+}
+
+template <class T, class U, Uint32 dim>
 Promoted<T, U> dot(const Vector<T, dim>& lhs, const Vector<U, dim>& rhs);
 
 template <class T, class U>
