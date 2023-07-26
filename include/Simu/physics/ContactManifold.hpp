@@ -216,6 +216,8 @@ private:
         }
     }
 
+    std::array<const Body*, 2> bodies_;
+
     std::array<std::array<Vertex, 2>, 2> contacts_{};
     Uint32                               nContacts_ = 0;
 
@@ -223,8 +225,6 @@ private:
 
     // minimum penetration norm to compute a manifold when calling update()
     float minPen_;
-
-    std::array<const Body*, 2> bodies_;
 
     Uint32 referenceIndex_ = 0;
 };
