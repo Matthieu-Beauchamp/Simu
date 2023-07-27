@@ -63,15 +63,15 @@ struct MatrixData
     MatrixData() = default;
 
     template <class U>
-    explicit MatrixData(const MatrixData<U, mRows_, nCols_>& other);
+    inline explicit MatrixData(const MatrixData<U, mRows_, nCols_>& other);
 
     constexpr static Uint32 size() { return mRows * nCols; }
 
-    T&       operator()(Uint32 row, Uint32 col);
-    const T& operator()(Uint32 row, Uint32 col) const;
+    inline T&       operator()(Uint32 row, Uint32 col);
+    inline const T& operator()(Uint32 row, Uint32 col) const;
 
-    T&       operator[](Uint32 index);
-    const T& operator[](Uint32 index) const;
+    inline T&       operator[](Uint32 index);
+    inline const T& operator[](Uint32 index) const;
 
 
     iterator begin() { return data; }
@@ -105,17 +105,17 @@ struct SpecialConstructors
 template <class T, Uint32 dim>
 struct SpecialConstructors<T, dim, dim, true>
 {
-    static Matrix<T, dim, dim> identity();
-    static Matrix<T, dim, dim> diagonal(const Vector<T, dim>& elements);
+    static inline Matrix<T, dim, dim> identity();
+    static inline Matrix<T, dim, dim> diagonal(const Vector<T, dim>& elements);
 };
 
 template <class T, Uint32 dim>
 struct SpecialConstructors<T, dim, 1, false>
 {
-    static Vector<T, dim> i();
-    static Vector<T, dim> j();
-    static Vector<T, dim> k();
-    static Vector<T, dim> w();
+    static inline Vector<T, dim> i();
+    static inline Vector<T, dim> j();
+    static inline Vector<T, dim> k();
+    static inline Vector<T, dim> w();
 };
 
 ////////////////////////////////////////////////////////////
@@ -131,46 +131,46 @@ struct Matrix : public MatrixData<T, m, n>, public SpecialConstructors<T, m, n>
     Matrix() = default;
 
     template <class U>
-    explicit Matrix(const Matrix<U, m, n>& other);
+    explicit inline Matrix(const Matrix<U, m, n>& other);
 
-    explicit Matrix(const MatrixData<T, m, n>& data);
+    explicit inline Matrix(const MatrixData<T, m, n>& data);
 
-    explicit Matrix(const std::initializer_list<T>& init);
+    explicit inline Matrix(const std::initializer_list<T>& init);
 
-    static Matrix filled(T val);
-
-    template <class U>
-    static Matrix fromRows(const std::initializer_list<Vector<U, n>>& rows);
+    static inline Matrix filled(T val);
 
     template <class U>
-    static Matrix fromRows(const Vector<Vector<U, n>, m>& rows);
+    static inline Matrix
+    fromRows(const std::initializer_list<Vector<U, n>>& rows);
 
     template <class U>
-    static Matrix fromCols(const std::initializer_list<Vector<U, m>>& cols);
+    static inline Matrix fromRows(const Vector<Vector<U, n>, m>& rows);
 
     template <class U>
-    static Matrix fromCols(const Vector<Vector<U, m>, n>& cols);
-
-
-    Vector<Vector<T, n>, m> asRows() const;
-
-    Vector<Vector<T, m>, n> asCols() const;
-
-
-    Matrix operator+() const;
-    Matrix operator-() const;
+    static inline Matrix
+    fromCols(const std::initializer_list<Vector<U, m>>& cols);
 
     template <class U>
-    Matrix& operator+=(const Matrix<U, m, n>& other);
+    static inline Matrix fromCols(const Vector<Vector<U, m>, n>& cols);
+
+    inline Vector<Vector<T, n>, m> asRows() const;
+    inline Vector<Vector<T, m>, n> asCols() const;
+
+
+    inline Matrix operator+() const;
+    inline Matrix operator-() const;
 
     template <class U>
-    Matrix& operator-=(const Matrix<U, m, n>& other);
+    inline Matrix& operator+=(const Matrix<U, m, n>& other);
 
     template <class U>
-    Matrix& operator*=(U scalar);
+    inline Matrix& operator-=(const Matrix<U, m, n>& other);
 
     template <class U>
-    Matrix& operator/=(U scalar);
+    inline Matrix& operator*=(U scalar);
+
+    template <class U>
+    inline Matrix& operator/=(U scalar);
 };
 
 ////////////////////////////////////////////////////////////
@@ -184,29 +184,32 @@ using Promoted = typename std::common_type<T, U>::type;
 
 
 template <class T, class U, Uint32 m, Uint32 n>
-Matrix<Promoted<T, U>, m, n>
+inline Matrix<Promoted<T, U>, m, n>
 operator+(const Matrix<T, m, n>& lhs, const Matrix<U, m, n>& rhs);
 
 template <class T, class U, Uint32 m, Uint32 n>
-Matrix<Promoted<T, U>, m, n>
+inline Matrix<Promoted<T, U>, m, n>
 operator-(const Matrix<T, m, n>& lhs, const Matrix<U, m, n>& rhs);
 
 template <class T, class U, Uint32 m, Uint32 n>
-Matrix<Promoted<T, U>, m, n> operator*(U scalar, const Matrix<T, m, n>& mat);
+inline Matrix<Promoted<T, U>, m, n>
+operator*(U scalar, const Matrix<T, m, n>& mat);
 
 template <class T, class U, Uint32 m, Uint32 n>
-Matrix<Promoted<T, U>, m, n> operator*(const Matrix<T, m, n>& mat, U scalar);
+inline Matrix<Promoted<T, U>, m, n>
+operator*(const Matrix<T, m, n>& mat, U scalar);
 
 template <class T, class U, Uint32 m, Uint32 n>
-Matrix<Promoted<T, U>, m, n> operator/(const Matrix<T, m, n>& mat, U scalar);
+inline Matrix<Promoted<T, U>, m, n>
+operator/(const Matrix<T, m, n>& mat, U scalar);
 
 template <class T, class U, Uint32 mLeft, Uint32 nLeft, Uint32 nRight>
-Matrix<Promoted<T, U>, mLeft, nRight>
+inline Matrix<Promoted<T, U>, mLeft, nRight>
 operator*(const Matrix<T, mLeft, nLeft>& lhs, const Matrix<U, nLeft, nRight>& rhs);
 
 
 template <class T, Uint32 m, Uint32 n>
-Matrix<T, n, m> transpose(const Matrix<T, m, n>& original);
+inline Matrix<T, n, m> transpose(const Matrix<T, m, n>& original);
 
 
 ////////////////////////////////////////////////////////////
@@ -236,7 +239,6 @@ private:
     Matrix<T, n, n> R_;
     bool            isValid_ = true;
 };
-
 
 
 template <class T, Uint32 n>
@@ -286,14 +288,14 @@ Vector<T, n> solveInequalities(
 
 ////////////////////////////////////////////////////////////
 /// \brief Solves the LCP Ax >= b with x >= 0
-/// 
+///
 /// This gives Ax - b = w with the residuals w >= 0,
 ///     the complementarity condition is dot(x, w) = 0
 ///     (xi = 0 or wi = 0 for each index i)
-/// 
+///
 /// Uses total enumeration, taken from box2d's contact solver.
 /// If no value is returned, the LCP had no solution.
-/// 
+///
 ////////////////////////////////////////////////////////////
 template <class T>
 std::optional<Vector<T, 2>>
@@ -305,7 +307,7 @@ solveLcp(const Matrix<T, 2, 2>& A, const Vector<T, 2>& b);
 ////////////////////////////////////////////////////////////
 
 template <class T, class U, Uint32 dim>
-Vector<Promoted<T, U>, dim>
+inline Vector<Promoted<T, U>, dim>
 elementWiseMul(const Vector<T, dim>& lhs, const Vector<U, dim>& rhs)
 {
     Vector<Promoted<T, U>, dim> res;
@@ -316,26 +318,26 @@ elementWiseMul(const Vector<T, dim>& lhs, const Vector<U, dim>& rhs)
 }
 
 template <class T, class U, Uint32 dim>
-Promoted<T, U> dot(const Vector<T, dim>& lhs, const Vector<U, dim>& rhs);
+inline Promoted<T, U> dot(const Vector<T, dim>& lhs, const Vector<U, dim>& rhs);
 
 template <class T, class U>
-Vector<Promoted<T, U>, 3>
+inline Vector<Promoted<T, U>, 3>
 cross(const Vector<T, 3>& lhs, const Vector<U, 3>& rhs);
 
 template <class T, class U>
-Promoted<T, U> cross(const Vector<T, 2>& lhs, const Vector<U, 2>& rhs);
+inline Promoted<T, U> cross(const Vector<T, 2>& lhs, const Vector<U, 2>& rhs);
 
 template <class T, Uint32 dim>
-T normSquared(const Vector<T, dim>& v);
+inline T normSquared(const Vector<T, dim>& v);
 
 template <class T, Uint32 dim>
-T norm(const Vector<T, dim>& v);
+inline T norm(const Vector<T, dim>& v);
 
 template <class T, Uint32 dim>
-Vector<T, dim> normalized(const Vector<T, dim>& v);
+inline Vector<T, dim> normalized(const Vector<T, dim>& v);
 
 template <class T, class U, Uint32 dim>
-Vector<Promoted<T, U>, dim>
+inline Vector<Promoted<T, U>, dim>
 projection(const Vector<T, dim>& ofThis, const Vector<U, dim>& onThat);
 
 
@@ -347,7 +349,7 @@ projection(const Vector<T, dim>& ofThis, const Vector<U, dim>& onThat);
 ///
 ////////////////////////////////////////////////////////////
 template <class T>
-Vector<T, 2> perp(const Vector<T, 2>& v, bool clockwise = false);
+inline Vector<T, 2> perp(const Vector<T, 2>& v, bool clockwise = false);
 
 /// \}
 
@@ -398,27 +400,27 @@ using ComparisonMatrix = MatrixData<bool, m, n>;
 
 
 template <class T, class U, Uint32 m, Uint32 n>
-ComparisonMatrix<m, n>
+inline ComparisonMatrix<m, n>
 operator==(const Matrix<T, m, n>& lhs, const Matrix<U, m, n>& rhs);
 
 template <class T, class U, Uint32 m, Uint32 n>
-ComparisonMatrix<m, n>
+inline ComparisonMatrix<m, n>
 operator!=(const Matrix<T, m, n>& lhs, const Matrix<U, m, n>& rhs);
 
 template <class T, class U, Uint32 m, Uint32 n>
-ComparisonMatrix<m, n>
+inline ComparisonMatrix<m, n>
 operator<(const Matrix<T, m, n>& lhs, const Matrix<U, m, n>& rhs);
 
 template <class T, class U, Uint32 m, Uint32 n>
-ComparisonMatrix<m, n>
+inline ComparisonMatrix<m, n>
 operator<=(const Matrix<T, m, n>& lhs, const Matrix<U, m, n>& rhs);
 
 template <class T, class U, Uint32 m, Uint32 n>
-ComparisonMatrix<m, n>
+inline ComparisonMatrix<m, n>
 operator>(const Matrix<T, m, n>& lhs, const Matrix<U, m, n>& rhs);
 
 template <class T, class U, Uint32 m, Uint32 n>
-ComparisonMatrix<m, n>
+inline ComparisonMatrix<m, n>
 operator>=(const Matrix<T, m, n>& lhs, const Matrix<U, m, n>& rhs);
 
 
@@ -427,25 +429,25 @@ operator>=(const Matrix<T, m, n>& lhs, const Matrix<U, m, n>& rhs);
 ///
 ////////////////////////////////////////////////////////////
 template <Uint32 m, Uint32 n>
-bool all(const ComparisonMatrix<m, n>& comp);
+inline bool all(const ComparisonMatrix<m, n>& comp);
 
 ////////////////////////////////////////////////////////////
 /// \brief true if any element is true
 ///
 ////////////////////////////////////////////////////////////
 template <Uint32 m, Uint32 n>
-bool any(const ComparisonMatrix<m, n>& comp);
+inline bool any(const ComparisonMatrix<m, n>& comp);
 
 template <Uint32 m, Uint32 n>
-ComparisonMatrix<m, n>
+inline ComparisonMatrix<m, n>
 operator&&(const ComparisonMatrix<m, n>& lhs, const ComparisonMatrix<m, n>& rhs);
 
 template <Uint32 m, Uint32 n>
-ComparisonMatrix<m, n>
+inline ComparisonMatrix<m, n>
 operator||(const ComparisonMatrix<m, n>& lhs, const ComparisonMatrix<m, n>& rhs);
 
 template <Uint32 m, Uint32 n>
-ComparisonMatrix<m, n> operator!(const ComparisonMatrix<m, n>& unary);
+inline ComparisonMatrix<m, n> operator!(const ComparisonMatrix<m, n>& unary);
 
 /// \}
 
@@ -471,17 +473,17 @@ struct common_type<simu::Matrix<T, m, n>, simu::Matrix<U, m, n>>
 };
 
 template <class T, simu::Uint32 m, simu::Uint32 n>
-simu::Matrix<T, m, n> abs(const simu::Matrix<T, m, n>& mat);
+inline simu::Matrix<T, m, n> abs(const simu::Matrix<T, m, n>& mat);
 
 template <class T, simu::Uint32 m, simu::Uint32 n>
-simu::Matrix<T, m, n> round(const simu::Matrix<T, m, n>& mat);
+inline simu::Matrix<T, m, n> round(const simu::Matrix<T, m, n>& mat);
 
 template <class T, simu::Uint32 m, simu::Uint32 n>
-simu::Matrix<T, m, n>
+inline simu::Matrix<T, m, n>
 min(const simu::Matrix<T, m, n>& lhs, const simu::Matrix<T, m, n>& rhs);
 
 template <class T, simu::Uint32 m, simu::Uint32 n>
-simu::Matrix<T, m, n>
+inline simu::Matrix<T, m, n>
 max(const simu::Matrix<T, m, n>& lhs, const simu::Matrix<T, m, n>& rhs);
 
 /// \}
