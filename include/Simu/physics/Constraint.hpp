@@ -363,8 +363,11 @@ private:
 
         for (Uint32 b = 0; b < 2; ++b)
             for (Uint32 c = 0; c < frame_.nContacts; ++c)
+            {
                 radius_[b][c]
                     = frame_.worldContacts[b][c] - bodies_[b]->centroid();
+                perpRadius_[b][c] = perp(radius_[b][c]);
+            }
     }
 
     // frame and manifold will be updated after this call,
@@ -485,20 +488,12 @@ private:
 
     void computeBounce()
     {
-        const Uint32 ref = manifold_.referenceIndex();
-        const Uint32 inc = manifold_.incidentIndex();
-
         bounce_ = Vec2{};
 
-        Vec2 linearRelVel = bodies_[inc]->velocity() - bodies_[ref]->velocity();
+        auto relVel = relativeVelocity();
         for (Uint32 c = 0; c < manifold_.nContacts(); ++c)
         {
-            Vec2 relVel
-                = linearRelVel
-                  + bodies_[inc]->angularVelocity() * perp(radius_[inc][c])
-                  - bodies_[ref]->angularVelocity() * perp(radius_[ref][c]);
-
-            bounce_[c] = dot(relVel, frame_.normal);
+            bounce_[c] = dot(relVel[c], frame_.normal);
             if (bounce_[c] > -restitutionTreshold)
                 bounce_[c] = 0.f;
         }
@@ -554,6 +549,22 @@ private:
         return tangentImpulse(lambda[0], 0) + tangentImpulse(lambda[1], 1);
     }
 
+    Vec2 relativeVelocity(Uint32 contact) const
+    {
+        const Uint32 ref = manifold_.referenceIndex();
+        const Uint32 inc = manifold_.incidentIndex();
+
+        Vec2 linearRelVel = bodies_[inc]->velocity() - bodies_[ref]->velocity();
+
+        Vec2 relVel
+            = linearRelVel
+              + bodies_[inc]->angularVelocity() * perpRadius_[inc][contact]
+              - bodies_[ref]->angularVelocity() * perpRadius_[ref][contact];
+
+
+        return relVel;
+    }
+
     std::array<Vec2, 2> relativeVelocity() const
     {
         const Uint32 ref = manifold_.referenceIndex();
@@ -566,8 +577,8 @@ private:
         {
             relVel[c]
                 = linearRelVel
-                  + bodies_[inc]->angularVelocity() * perp(radius_[inc][c])
-                  - bodies_[ref]->angularVelocity() * perp(radius_[ref][c]);
+                  + bodies_[inc]->angularVelocity() * perpRadius_[inc][c]
+                  - bodies_[ref]->angularVelocity() * perpRadius_[ref][c];
         }
 
         return relVel;
@@ -592,9 +603,9 @@ private:
     {
         for (Uint32 c = 0; c < frame_.nContacts; ++c)
         {
-            std::array<Vec2, 2> relVel = relativeVelocity();
+            Vec2 relVel = relativeVelocity(c);
 
-            float tangentVel     = dot(relVel[c], frame_.tangent);
+            float tangentVel     = dot(relVel, frame_.tangent);
             float dTangentLambda = -tangentVel / tangentK_[c];
 
             float oldTangentLambda = tangentLambda_[c];
@@ -657,10 +668,12 @@ private:
         }
     }
 
-    Bodies<2>                               bodies_;
-    ContactManifold                         manifold_;
+    Bodies<2>       bodies_;
+    ContactManifold manifold_;
+
     typename ContactManifold::FrameManifold frame_;
     std::array<std::array<Vec2, 2>, 2>      radius_;
+    std::array<std::array<Vec2, 2>, 2>      perpRadius_;
 
     Vec2 tangentK_;
     Mat2 normalK_;
