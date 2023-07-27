@@ -45,17 +45,19 @@ void Camera::panTo(Vec2 center) { pan(center - this->center()); }
 Mat3 Camera::transform() const
 {
     Vec2 dimensions = viewDimensions() / zoom();
-    Mat3 scale = Mat3::diagonal(Vec3{2.f / dimensions[0], 2.f / dimensions[1], 1.f});
+    Mat3 scale
+        = Mat3::diagonal(Vec3{2.f / dimensions[0], 2.f / dimensions[1], 1.f});
 
-    return scale * Transform::translation(-center());
+    return scale* Mat3{Transform::translation(-center())};
 }
 
 Mat3 Camera::invTransform() const
 {
     Vec2 dimensions = viewDimensions() / zoom();
-    Mat3 scale = Mat3::diagonal(Vec3{dimensions[0] / 2.f, dimensions[1] / 2.f, 1.f});
+    Mat3 scale
+        = Mat3::diagonal(Vec3{dimensions[0] / 2.f, dimensions[1] / 2.f, 1.f});
 
-    return Transform::translation(center()) * scale;
+    return Mat3{Transform::translation(center())} * scale;
 }
 
 Vec2 Camera::viewDimensions() const { return viewDimensions_; }

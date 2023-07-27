@@ -90,10 +90,9 @@ public:
 
         computeContacts(contactEdges);
 
-        contactNormal_ = Transform::linear(
-            bodies_[referenceIndex()]->toLocalSpace(),
-            contactNormal_
-        );
+        contactNormal_ = bodies_[referenceIndex()]->toLocalSpace().rotation()
+                         * contactNormal_;
+
 
         for (Uint32 b = 0; b < 2; ++b)
             for (Uint32 c = 0; c < nContacts(); ++c)
@@ -137,10 +136,8 @@ public:
 
     Vec2 contactNormal() const
     {
-        return Transform::linear(
-            bodies_[referenceIndex()]->toWorldSpace(),
-            contactNormal_
-        );
+        return bodies_[referenceIndex()]->toWorldSpace().rotation()
+               * contactNormal_;
     }
 
     Vec2 contactTangent() const { return perp(contactNormal()); }

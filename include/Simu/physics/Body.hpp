@@ -231,13 +231,13 @@ public:
     /// \brief Transformation matrix to convert from the Body's local space to world space
     ///
     ////////////////////////////////////////////////////////////
-    const Mat3& toWorldSpace() const { return toWorldSpace_; }
+    const Transform& toWorldSpace() const { return toWorldSpace_; }
 
     ////////////////////////////////////////////////////////////
     /// \brief Transformation matrix to convert from world space to the Body's local space
     ///
     ////////////////////////////////////////////////////////////
-    Mat3 toLocalSpace() const
+    Transform toLocalSpace() const
     {
         return Transform::transformAround(-orientation_, -position_, centroid());
     }
@@ -388,7 +388,7 @@ private:
 
     std::vector<Constraint*, Alloc> constraints_;
 
-    Mat3 toWorldSpace_;
+    Transform toWorldSpace_;
 };
 
 

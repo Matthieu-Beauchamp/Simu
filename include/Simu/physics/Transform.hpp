@@ -30,101 +30,215 @@
 namespace simu
 {
 
-////////////////////////////////////////////////////////////
-/// \brief Static helper class for creating transformation matrices.
-///
-/// Transformation matrices are always 3x3 for 2D.
-/// A global operator* overload is provided to multiply Mat3 * Vec2 -> Vec2,
-///     this overload will apply translations.
-/// If translations should not be applied, then Transform::linear(Mat3, Vec2) -> Vec2 should be used.
-/// 
-/// To combine transformation matrices, multiply them together in order:
-/// T = T3 * T2 * T1
-/// where T1 is the transformation that acts first, then T2 and is T3 the last transformation.
-/// 
-/// To apply T to a vector v: v' = T * v
-/// 
-////////////////////////////////////////////////////////////
+class Rotation
+{
+public:
+
+    explicit Rotation(float theta) { set(theta); }
+    explicit operator Mat3() const
+    {
+        update();
+        // clang-format off
+        return Mat3{
+            cosine, -sine,   0.f, 
+            sine,    cosine, 0.f, 
+            0.f,     0.f,    1.f
+        };
+        // clang-format on
+    }
+
+    float theta() const { return theta_; }
+    void  set(float theta)
+    {
+        theta_  = theta;
+        isDirty = true;
+    }
+
+    Vec2 operator*(const Vec2& v) const
+    {
+        update();
+        return Vec2{cosine * v[0] - sine * v[1], sine * v[0] + cosine * v[1]};
+    }
+
+    Rotation operator*(const Rotation& other) const
+    {
+        return Rotation{theta() + other.theta()};
+    }
+
+private:
+
+    void update() const
+    {
+        if (isDirty)
+        {
+            cosine  = std::cos(theta_);
+            sine    = std::sin(theta_);
+            isDirty = false;
+        }
+    }
+
+    float theta_;
+
+    mutable float cosine;
+    mutable float sine;
+    mutable bool  isDirty;
+};
+
+
+class Translation
+{
+public:
+
+    explicit Translation(Vec2 offset) : offset_{offset} {}
+    explicit operator Mat3() const
+    {
+        // clang-format off
+        return Mat3{
+            1, 0, offset_[0], 
+            0, 1, offset_[1], 
+            0, 0, 1
+        };
+        // clang-format on
+    }
+
+    Vec2 offset() const { return offset_; }
+    void set(Vec2 offset) { offset_ = offset; }
+
+    Vec2 operator*(const Vec2& v) const { return v + offset_; }
+
+    Translation operator*(const Translation& other) const
+    {
+        return Translation{offset() + other.offset()};
+    }
+
+private:
+
+    Vec2 offset_;
+};
+
+
 class Transform
 {
 public:
 
-    Transform() = delete;
+    explicit Transform() : Transform(Rotation{0.f}, Translation{Vec2{}}) {}
+
+    Transform(Rotation r, Translation t) : r_{r}, t_{t} {}
+    explicit operator Mat3() const
+    {
+        Mat3 T{r_};
+        Vec2 trans = t_.offset();
+        T(0, 2)    = trans[0];
+        T(1, 2)    = trans[1];
+        return T;
+    }
 
     ////////////////////////////////////////////////////////////
     /// \brief No-op transformation
     ///
     ////////////////////////////////////////////////////////////
-    static Mat3 identity() { return Mat3::identity(); }
+    static Transform identity() { return Transform{}; }
 
-    // clang-format off
-    
+
     ////////////////////////////////////////////////////////////
     /// \brief Rotates a 2D vector by theta radians around the origin {0, 0}
-    /// 
-    ////////////////////////////////////////////////////////////
-    static Mat3 rotation(float theta) 
-    { 
-        return Mat3{
-            std::cos(theta), -std::sin(theta), 0,
-            std::sin(theta),  std::cos(theta), 0,
-            0,                0,               1
-        }; 
-    }
-
-    ////////////////////////////////////////////////////////////
-    /// \brief Translate a 2D vector by offset 
-    /// 
-    ////////////////////////////////////////////////////////////
-    static Mat3 translation(Vec2 offset) 
-    { 
-        return Mat3{
-            1, 0, offset[0],
-            0, 1, offset[1],
-            0, 0, 1,
-        }; 
-    }
-    // clang-format on
-
-    ////////////////////////////////////////////////////////////
-    /// \brief Combines Transform::translation and Transform::rotation
-    ///
-    /// The rotation is applied first, and the translation is applied after.
     ///
     ////////////////////////////////////////////////////////////
-    static Mat3 transform(float theta, Vec2 offset)
-    {
-        return transformAround(theta, offset, Vec2{0, 0});
-    }
+    static Rotation rotation(float theta) { return Rotation{theta}; }
+
+    ////////////////////////////////////////////////////////////
+    /// \brief Translate a 2D vector by offset
+    ///
+    ////////////////////////////////////////////////////////////
+    static Translation translation(Vec2 offset) { return Translation{offset}; }
+
 
     ////////////////////////////////////////////////////////////
     /// \brief Rotates around transformOrigin by theta radians and then translates by offset.
     ///
     ////////////////////////////////////////////////////////////
-    static Mat3 transformAround(float theta, Vec2 offset, Vec2 transformOrigin)
-    {
-        return translation(offset + transformOrigin) * rotation(theta)
-               * translation(-transformOrigin);
-    }
+    static inline Transform
+    transformAround(float theta, Vec2 offset, Vec2 transformOrigin);
 
     ////////////////////////////////////////////////////////////
-    /// \brief Transforms v by transform, ignoring translations
-    /// 
-    /// 
+    /// \brief The rotation part of this transform
+    ///
     ////////////////////////////////////////////////////////////
-    static Vec2 linear(Mat3 transform, Vec2 v)
-    {
-        Vec3 res = transform* Vec3{v[0], v[1], 0};
-        return Vec2{res[0], res[1]};
-    }
+    const Rotation& rotation() const { return r_; }
+    void            setRot(float theta) { r_.set(theta); }
+
+    ////////////////////////////////////////////////////////////
+    /// \brief The translation part of this transform
+    ///
+    ////////////////////////////////////////////////////////////
+    const Translation& translation() const { return t_; }
+    void               setTranslation(Vec2 offset) { t_.set(offset); }
+
+
+    Vec2 operator*(const Vec2& v) const { return r_ * v + t_.offset(); }
+
+private:
+
+    Translation t_;
+    Rotation    r_;
 };
 
-template <class T, class U>
-Vector<Promoted<T, U>, 2>
-operator*(const Matrix<T, 3, 3>& transform, const Vector<U, 2>& vec)
+
+inline Transform operator*(const Rotation& r, const Translation& t)
 {
-    Vector<Promoted<T, U>, 3> res = transform * Vector<U, 3>{vec[0], vec[1], 1};
-    return Vector<Promoted<T, U>, 2>{res[0], res[1]};
+    return Transform(r, Translation(r * t.offset()));
+}
+
+inline Transform operator*(const Translation& t, const Rotation& r)
+{
+    return Transform(r, t);
+}
+
+
+inline Transform operator*(const Transform& T, const Translation& t)
+{
+    Vec2 offset = T.translation().offset() + T.rotation() * t.offset();
+    return Transform{T.rotation(), Translation{offset}};
+}
+
+inline Transform operator*(const Transform& T, const Rotation& r)
+{
+    return Transform(T.rotation() * r, T.translation());
+}
+
+
+inline Transform operator*(const Translation& t, const Transform& T)
+{
+    return Transform{T.rotation(), T.translation() * t};
+}
+
+inline Transform operator*(const Rotation& r, const Transform& T)
+{
+    return Transform(T.rotation() * r, Translation{r * T.translation().offset()});
+}
+
+
+inline Transform operator*(const Transform& T1, const Transform& T2)
+{
+    Transform T{T1.rotation() * T2};
+    T.setTranslation(T.translation().offset() + T1.translation().offset());
+    return T;
+}
+
+
+Transform
+Transform::transformAround(float theta, Vec2 offset, Vec2 transformOrigin)
+{
+    return translation(offset + transformOrigin) * rotation(theta)
+           * translation(-transformOrigin);
+}
+
+
+inline Vec2 operator*(const Mat3& T, Vec2 v)
+{
+    Vec3 vec{v[0], v[1], 1.f};
+    vec = T * vec;
+    return Vec2{vec[0], vec[1]};
 }
 
 } // namespace simu

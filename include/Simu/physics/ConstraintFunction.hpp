@@ -364,7 +364,7 @@ public:
 
     Jacobian jacobian(const Bodies<nBodies>& bodies) const
     {
-        std::array<Mat3, nBodies> toWorldSpace{
+        std::array<Transform, nBodies> toWorldSpace{
             bodies[0]->toWorldSpace(),
             bodies[1]->toWorldSpace()};
 

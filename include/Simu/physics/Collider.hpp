@@ -54,7 +54,7 @@ public:
     ////////////////////////////////////////////////////////////
     /// Creates a Collider from a local space polygon and an initial transform.
     ////////////////////////////////////////////////////////////
-    Collider(const Polygon& polygon, Mat3 transform, const Alloc& alloc)
+    Collider(const Polygon& polygon, const Transform& transform, const Alloc& alloc)
         : local_{polygon.begin(), polygon.end(), alloc}, transformed_{alloc}
     {
         transformed_.resize(local_.size());
@@ -92,7 +92,7 @@ public:
     ////////////////////////////////////////////////////////////
     /// Changes the transform of the Collider applied to the local space geometry
     ////////////////////////////////////////////////////////////
-    void update(const Mat3& transform)
+    void update(const Transform& transform)
     {
         auto it = transformed_.begin();
         for (const Vertex& v : local_)
