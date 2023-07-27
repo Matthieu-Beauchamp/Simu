@@ -88,6 +88,12 @@ public:
         forEachIn(BoundingBox{point, point}, func);
     }
 
+    template <std::invocable<iterator> F>
+    void forEachOverlapping(iterator it, const F& func)
+    {
+        forEachOverlapping(it.node, func);
+    }
+
     iterator begin() { return iterator::leftmost(root_); }
     iterator end() { return iterator{root_}; }
 
@@ -412,6 +418,22 @@ private:
                 forEachIn(box, func, node->left);
                 forEachIn(box, func, node->right);
             }
+        }
+    }
+
+    template <std::invocable<iterator> F>
+    void forEachOverlapping(Node* node, const F& func)
+    {
+        BoundingBox bounds = node->bounds;
+
+        while (node->parent != nullptr)
+        {
+            Node* sibling = node->sibling();
+            if (sibling != nullptr)
+                if (bounds.overlaps(sibling->bounds))
+                    forEachIn(bounds, func, sibling);
+
+            node = node->parent;
         }
     }
 

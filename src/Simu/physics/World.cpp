@@ -186,26 +186,20 @@ void World::applyForces(float dt)
     }
 }
 
-
 void World::detectContacts()
 {
     for (auto it = bodies_.begin(); it != bodies_.end(); ++it)
     {
         auto registerContact = [=, this](BodyTree::iterator other) {
-            if (it->get() != other->get())
-            {
-                Bodies<2> bodies{it->get(), other->get()};
-                auto      contact = inContacts(bodies);
-                if (contact == contacts_.end())
-                {
-                    auto constraint = makeContactConstraint(bodies);
+            Bodies<2> bodies{it->get(), other->get()};
+            auto      contact = inContacts(bodies);
 
-                    contacts_[bodies] = ContactStatus{0, constraint};
-                }
-            }
+            if (contact == contacts_.end())
+                contacts_[bodies]
+                    = ContactStatus{0, makeContactConstraint(bodies)};
         };
 
-        bodies_.forEachIn(it.bounds(), registerContact);
+        bodies_.forEachOverlapping(it, registerContact);
     }
 }
 
@@ -308,7 +302,9 @@ void World::cleanup()
 
 void World::applyVelocityConstraints(Island& island, float dt)
 {
-    std::vector<ConstraintPtr> actives{};
+    std::vector<ConstraintPtr, typename Alloc::rebind<ConstraintPtr>::other> actives{
+        alloc_};
+
     for (Constraint* constraint : island.constraints())
     {
         if (constraint->isActive())
@@ -317,7 +313,7 @@ void World::applyVelocityConstraints(Island& island, float dt)
 
     for (Constraint* constraint : actives)
         constraint->initSolve();
-        
+
     for (Constraint* constraint : actives)
         constraint->warmstart(dt);
 
@@ -341,8 +337,7 @@ void World::applyPositionConstraints(Island& island)
     for (Uint32 iter = 0; iter < settings_.nPositionIterations; ++iter)
     {
         for (auto constraint : island.constraints())
-            if (constraint->isActive())
-                constraint->solvePositions();
+            constraint->solvePositions();
     }
 }
 
@@ -363,7 +358,8 @@ void World::updateBodies(float dt)
         }
     }
 
-    std::vector<BodyTree::iterator> toUpdate{};
+    std::vector<BodyTree::iterator, typename Alloc::rebind<BodyTree::iterator>::other>
+        toUpdate{alloc_};
     for (auto it = bodies_.begin(); it != bodies_.end(); ++it)
     {
         if (!(*it)->isAsleep()

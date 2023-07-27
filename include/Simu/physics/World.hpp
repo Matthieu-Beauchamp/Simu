@@ -333,6 +333,14 @@ private:
     struct Cleaner;
     void cleanup();
 
+    // TODO: Move this code into island.
+    //  for each island
+    //      applyVelocityConstraints on active constraints
+    //      integratePositions
+    //      applyPositionConstraints on previously active constraints
+    // 
+    // integrate positions of excluded bodies (structural)
+
     void applyVelocityConstraints(Island& island, float dt);
     void integrateBodies(float dt);
     void applyPositionConstraints(Island& island);
