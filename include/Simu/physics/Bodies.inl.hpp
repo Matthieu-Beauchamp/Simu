@@ -46,18 +46,26 @@ Bodies<n>::Bodies(
             break;
     }
 
+    Dominance d{};
     if (dominances.has_value())
-    {
-        dominances_ = dominances.value();
-    }
+        d = dominances.value();
     else
     {
-        Dominance d{};
-        Uint32    j = 0;
+        Uint32 j = 0;
         for (Body* body : *this)
             d[j++] = body->dominance();
+    }
 
-        dominances_ = d;
+    Uint32 i       = 0;
+    Uint32 nthBody = 0;
+    for (const Body* body : *this)
+    {
+        float m = d[nthBody] / body->mass();
+        float I = d[nthBody++] / body->inertia();
+
+        invMassVec_[i++] = m;
+        invMassVec_[i++] = m;
+        invMassVec_[i++] = I;
     }
 }
 
@@ -74,10 +82,10 @@ bool Bodies<n>::isBodyStructural(const Body* body) const
 
 template <Uint32 n>
 void Bodies<n>::applyImpulse(const Impulse& impulse)
-{ 
+{
     Velocity dv = elementWiseMul(inverseMassVec(), impulse);
 
-    Uint32   i  = 0;
+    Uint32 i = 0;
     for (Body* body : *this)
     {
         body->setVelocity(body->velocity() + Vec2{dv[i], dv[i + 1]});
@@ -117,21 +125,7 @@ typename Bodies<n>::Velocity Bodies<n>::velocity() const
 template <Uint32 n>
 typename Bodies<n>::MassVec Bodies<n>::inverseMassVec() const
 {
-    MassVec mv;
-
-    Uint32 i       = 0;
-    Uint32 nthBody = 0;
-    for (const Body* body : *this)
-    {
-        float m = dominances_[nthBody] / body->mass();
-        float I = dominances_[nthBody++] / body->inertia();
-
-        mv[i++] = m;
-        mv[i++] = m;
-        mv[i++] = I;
-    }
-
-    return mv;
+    return invMassVec_;
 }
 
 template <Uint32 n>

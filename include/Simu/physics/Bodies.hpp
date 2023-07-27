@@ -82,7 +82,7 @@ public:
 
 private:
 
-    Dominance dominances_;
+    MassVec invMassVec_;
 };
 
 
