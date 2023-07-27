@@ -30,6 +30,7 @@
 #include "Simu/math/Matrix.hpp"
 
 #include "Simu/physics/PhysicsObject.hpp"
+#include "Simu/physics/BodyTree.hpp"
 #include "Simu/physics/Transform.hpp"
 #include "Simu/physics/Collider.hpp"
 #include "Simu/physics/Material.hpp"
@@ -387,6 +388,7 @@ private:
     float timeImmobile_ = 0.f;
 
     std::vector<Constraint*, Alloc> constraints_;
+    typename BodyTree::iterator treeLocation_;
 
     Transform toWorldSpace_;
 };

@@ -71,7 +71,7 @@ void World::step(float dt)
 
     if (dt > 0.f)
     {
-        Islands islands(bodies(), alloc_);
+        Islands islands(bodies(), miscAlloc_);
         for (Island& island : islands.islands())
             if (island.isAwake())
                 for (Body* body : island.bodies())
@@ -131,13 +131,14 @@ void World::removeContactConflict(const Bodies<2>& bodies)
 }
 
 typename World::ContactFactory World::defaultContactFactory
-    = [](Bodies<2> b, typename World::Alloc& alloc) {
+    = [](Bodies<2> b, typename World::ConstraintAlloc& alloc) {
           return alloc.makeUnique<ContactConstraint>(b);
       };
 
 ContactConstraint* World::makeContactConstraint(Bodies<2> bodies)
 {
-    auto c = makeContactConstraint_(bodies, alloc_);
+    auto c = makeContactConstraint_(bodies, cAlloc_);
+    c->setAllocator(cAlloc_);
     c->onConstruction(*this);
 
     for (Body* body : c->bodies())
@@ -179,17 +180,17 @@ void World::applyForces(float dt)
         }
         else
         {
-            bodies_.forEachIn(force.domain().region, applyForce);
+            bodyTree_.forEachIn(force.domain().region, applyForce);
         }
     }
 }
 
 void World::detectContacts()
 {
-    for (auto it = bodies_.begin(); it != bodies_.end(); ++it)
+    for (auto it = bodyTree_.begin(); it != bodyTree_.end(); ++it)
     {
         auto registerContact = [=, this](BodyTree::iterator other) {
-            Bodies<2> bodies{it->get(), other->get()};
+            Bodies<2> bodies{*it, *other};
             auto      contact = inContacts(bodies);
 
             if (contact == contacts_.end())
@@ -197,7 +198,7 @@ void World::detectContacts()
                     = ContactStatus{0, makeContactConstraint(bodies)};
         };
 
-        bodies_.forEachOverlapping(it, registerContact);
+        bodyTree_.forEachOverlapping(it, registerContact);
     }
 }
 
@@ -289,6 +290,9 @@ void World::cleanup()
         }
     }
 
+    for (auto b : deadBodies)
+        bodyTree_.erase((*b)->treeLocation_);
+
     cleaner.onDestruction(*this, deadConstraints);
     cleaner.onDestruction(*this, deadForces);
     cleaner.onDestruction(*this, deadBodies);
@@ -300,8 +304,8 @@ void World::cleanup()
 
 void World::applyVelocityConstraints(Island& island, float dt)
 {
-    std::vector<ConstraintPtr, typename Alloc::rebind<ConstraintPtr>::other> actives{
-        alloc_};
+    std::vector<Constraint*, typename Alloc::rebind<Constraint*>::other> actives{
+        miscAlloc_};
 
     for (Constraint* constraint : island.constraints())
     {
@@ -356,19 +360,13 @@ void World::updateBodies(float dt)
         }
     }
 
-    std::vector<BodyTree::iterator, typename Alloc::rebind<BodyTree::iterator>::other>
-        toUpdate{alloc_};
-    for (auto it = bodies_.begin(); it != bodies_.end(); ++it)
+    for (const auto& b : bodies_)
     {
-        if (!(*it)->isAsleep()
-            && !it.bounds().contains((*it)->collider().boundingBox()))
-            toUpdate.emplace_back(it);
+        auto treeIt = b->treeLocation_;
+        if (!b->isAsleep()
+            && !treeIt.bounds().contains(b->collider().boundingBox()))
+            bodyTree_.update(treeIt, boundsOf(b.get()));
     }
-
-    // TODO: batch updates of RTree ...
-    // TODO: Modifying the tree while iterating is undefined.
-    for (auto it : toUpdate)
-        bodies_.update(it, boundsOf(it->get()));
 }
 
 

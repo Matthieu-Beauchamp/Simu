@@ -31,7 +31,7 @@
 #include "Simu/utility/View.hpp"
 #include "Simu/utility/Memory.hpp"
 
-#include "Simu/physics/RTree.hpp"
+#include "Simu/physics/BodyTree.hpp"
 #include "Simu/physics/Body.hpp"
 #include "Simu/physics/Bodies.hpp"
 #include "Simu/physics/ForceField.hpp"
@@ -110,21 +110,14 @@ class World
 {
 public:
 
-    typedef Body*       BodyPtr;
-    typedef const Body* ConstBodyPtr;
-
-    typedef Constraint*       ConstraintPtr;
-    typedef const Constraint* ConstConstraintPtr;
-
-    typedef ForceField*       ForceFieldPtr;
-    typedef const ForceField* ConstForceFieldPtr;
-
     typedef typename PhysicsObject::PhysicsAlloc Alloc;
 
     template <class U>
     using UniquePtr = std::unique_ptr<U, typename Alloc::Deleter>;
 
-    typedef std::function<UniquePtr<ContactConstraint>(Bodies<2>, Alloc&)>
+    typedef typename Alloc::rebind<UniquePtr<Constraint>>::other ConstraintAlloc;
+
+    typedef std::function<UniquePtr<ContactConstraint>(Bodies<2>, ConstraintAlloc&)>
         ContactFactory;
 
     static ContactFactory defaultContactFactory;
@@ -173,10 +166,12 @@ public:
     template <std::derived_from<Body> T, class... Args>
     T* makeBody(Args&&... args)
     {
-        auto body = makeObject<T>(std::forward<Args>(args)...);
+        auto body = makeObject<T>(bAlloc_, std::forward<Args>(args)...);
 
         BoundingBox bounds = boundsOf(body.get());
-        return static_cast<T*>(bodies_.emplace(bounds, std::move(body))->get());
+        T* b = static_cast<T*>(bodies_.emplace_back(std::move(body)).get());
+        b->treeLocation_ = bodyTree_.emplace(bounds, b);
+        return b;
     }
     Body* makeBody(const BodyDescriptor& descr)
     {
@@ -192,7 +187,7 @@ public:
     {
         T* c = static_cast<T*>(
             constraints_
-                .emplace_back(makeObject<T>(std::forward<Args>(args)...))
+                .emplace_back(makeObject<T>(cAlloc_, std::forward<Args>(args)...))
                 .get()
         );
 
@@ -214,14 +209,16 @@ public:
     T* makeForceField(Args&&... args)
     {
         T* f = static_cast<T*>(
-            forces_.emplace_back(makeObject<T>(std::forward<Args>(args)...)).get()
+            forces_
+                .emplace_back(makeObject<T>(fAlloc_, std::forward<Args>(args)...))
+                .get()
         );
 
         if (f->domain().type == ForceField::DomainType::global)
             for (Body& body : bodies())
                 body.wake();
         else
-            bodies_.forEachIn(f->domain().region, [](BodyTree::iterator it) {
+            bodyTree_.forEachIn(f->domain().region, [](BodyTree::iterator it) {
                 (*it)->wake();
             });
 
@@ -303,24 +300,28 @@ public:
     template <std::invocable<Body*> F>
     void forEachIn(BoundingBox box, const F& func)
     {
-        bodies_.forEachIn(box, [&](BodyTree::iterator it) { func(it->get()); });
+        bodyTree_.forEachIn(box, [&](BodyTree::iterator it) { func(*it); });
     }
 
     template <std::invocable<Body*> F>
     void forEachAt(Vec2 point, const F& func)
     {
-        bodies_.forEachAt(point, [&](BodyTree::iterator it) { func(it->get()); });
+        bodyTree_.forEachAt(point, [&](BodyTree::iterator it) {
+            func(*it);
+        });
     }
 
 private:
 
+
+
     ContactConstraint* makeContactConstraint(Bodies<2> bodies);
 
-    template <std::derived_from<PhysicsObject> T, class... Args>
-    UniquePtr<T> makeObject(Args&&... args)
+    template <std::derived_from<PhysicsObject> T, class A, class... Args>
+    UniquePtr<T> makeObject(A& alloc, Args&&... args)
     {
-        auto obj = alloc_.makeUnique<T>(std::forward<Args>(args)...);
-        obj->setAllocator(alloc_);
+        auto obj = alloc.makeUnique<T>(std::forward<Args>(args)...);
+        obj->setAllocator(alloc);
         obj->onConstruction(*this);
         return obj;
     }
@@ -338,7 +339,7 @@ private:
     //      applyVelocityConstraints on active constraints
     //      integratePositions
     //      applyPositionConstraints on previously active constraints
-    // 
+    //
     // integrate positions of excluded bodies (structural)
 
     void applyVelocityConstraints(Island& island, float dt);
@@ -348,35 +349,36 @@ private:
     void updateBodies(float dt);
 
 
-    Alloc alloc_{};
+    Alloc miscAlloc_{};
 
 
-    typedef RTree<UniquePtr<Body>, typename Alloc::rebind<UniquePtr<Body>>::other>
-        BodyTree;
+    typedef typename Alloc::rebind<UniquePtr<Body>>::other BodyAlloc;
+    typedef std::list<UniquePtr<Body>, BodyAlloc>          BodyList;
 
-    BodyTree bodies_{alloc_};
-
-
-    typedef std::list<
-        UniquePtr<Constraint>,
-        typename Alloc::rebind<UniquePtr<Constraint>>::other>
-        ConstraintList;
-
-    ConstraintList constraints_{alloc_};
+    BodyAlloc bAlloc_{};
+    BodyList  bodies_{bAlloc_};
 
 
-    typedef std::list<
-        UniquePtr<ForceField>,
-        typename Alloc::rebind<UniquePtr<ForceField>>::other>
-        ForceList;
+    BodyTree bodyTree_{};
 
-    ForceList forces_{alloc_};
+
+    typedef std::list<UniquePtr<Constraint>, ConstraintAlloc> ConstraintList;
+
+    ConstraintAlloc cAlloc_{};
+    ConstraintList  constraints_{cAlloc_};
+
+
+    typedef typename Alloc::rebind<UniquePtr<ForceField>>::other ForceFieldAlloc;
+    typedef std::list<UniquePtr<ForceField>, ForceFieldAlloc> ForceFieldList;
+
+    ForceFieldAlloc fAlloc_{};
+    ForceFieldList  forces_{fAlloc_};
 
 
     struct ContactStatus
     {
-        Int32         nConflictingConstraints = 0;
-        ConstraintPtr existingContact         = nullptr;
+        Int32       nConflictingConstraints = 0;
+        Constraint* existingContact         = nullptr;
     };
 
     // TODO: Use BodyTree::iterator pair...
@@ -388,10 +390,9 @@ private:
         Alloc::rebind<std::pair<const Bodies<2>, ContactStatus>>::other>
         ContactList;
 
-    ContactList contacts_{alloc_};
+    ContactList contacts_{miscAlloc_};
 
-    ContactList::iterator
-    inContacts(Bodies<2> bodies)
+    ContactList::iterator inContacts(Bodies<2> bodies)
     {
         auto asIs = contacts_.find(bodies);
         return (asIs != contacts_.end())
