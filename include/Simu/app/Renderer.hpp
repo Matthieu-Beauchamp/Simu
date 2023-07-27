@@ -29,6 +29,7 @@
 #include "Simu/config.hpp"
 #include "Simu/math/Geometry.hpp"
 #include "Simu/utility/View.hpp"
+#include "Simu/utility/Memory.hpp"
 
 namespace simu
 {
@@ -87,7 +88,17 @@ public:
 
     void drawPoint(Vec2 P, Rgba color, float radius, Uint8 precision = 4);
 
+protected:
+
+    typedef FreeListAllocator<Vec2> Alloc;
+
+    Alloc alloc;
+
 private:
+
+    typedef std::vector<Vec2, Alloc> Vertices;
+
+    Vertices v_;
 
     Mat3 cameraTransform_;
 };
@@ -118,8 +129,9 @@ private:
         Rgba color;
     };
 
-    std::vector<Vertex>      vertices_{};
-    std::vector<Uint16>      indices_{};
+
+    std::vector<Vertex, typename Alloc::rebind<Vertex>::other> vertices_{};
+    std::vector<Uint16, typename Alloc::rebind<Uint16>::other> indices_{};
     static const std::size_t maxVertices_ = 1024;
 
     static const char* const vertexShaderSrc_;

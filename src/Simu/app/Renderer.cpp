@@ -29,6 +29,7 @@
 
 #include "Simu/app/Renderer.hpp"
 #include "Simu/math/Polygon.hpp"
+#include "Simu/physics/Transform.hpp"
 
 namespace simu
 {
@@ -56,18 +57,18 @@ void Renderer::drawContouredPolygon(
 {
     SIMU_ASSERT(contour == Contour::outside, "Not implemented");
 
-    Vertices outer{vertices.begin(), vertices.end()};
+    v_.assign(vertices.begin(), vertices.end());
 
     Uint32 i     = 0;
     auto   edges = edgesOf(vertices);
     for (auto e1 = edges.begin(); e1 != edges.end(); ++e1)
     {
         auto e2 = edges.next(e1);
-        outer[i++]
+        v_[i++]
             += (e1->normalizedNormal() + e2->normalizedNormal()) * contourWidth;
     }
 
-    const Vertices& cOuter = outer;
+    const Vertices& cOuter = v_;
     drawPolygon(
         center,
         makeView(cOuter.data(), cOuter.data() + cOuter.size()),
@@ -88,38 +89,44 @@ void Renderer::drawLine(Vec2 A, Vec2 B, Rgba color, float width, LineTip tip)
 {
     SIMU_ASSERT(any(A != B), "A and B must not be the same point");
 
-    Vertices v;
-    Vec2     n = width * normalized(perp(B - A));
+    v_.clear();
+    Vec2 n = width / 2.f * normalized(perp(B - A));
 
     switch (tip)
     {
         case LineTip::rounded:
         case LineTip::triangle: SIMU_ASSERT(false, "Not implemented"); break;
         default:
-            v.emplace_back(A + n / 2);
-            v.emplace_back(B + n / 2);
-            v.emplace_back(B - n / 2);
-            v.emplace_back(A - n / 2);
+            v_.emplace_back(A + n);
+            v_.emplace_back(B + n);
+            v_.emplace_back(B - n);
+            v_.emplace_back(A - n);
             break;
     }
 
-    Polygon line{v.begin(), v.end()};
-    drawPolygon(line.properties().centroid, line.vertexView(), color);
+    const Vertices& cVert = v_;
+    drawPolygon(
+        (A + B) / 2.f,
+        makeView(cVert.data(), cVert.data() + cVert.size()),
+        color
+    );
 }
 
 void Renderer::drawPoint(Vec2 P, Rgba color, float radius, Uint8 precision)
 {
     SIMU_ASSERT(precision >= 3, "");
 
-    Vertices        v;
+    v_.resize(precision);
     constexpr float pi = std::numbers::pi_v<float>;
+    Rotation        rot{2.f * pi / precision};
+    Vec2            offset = radius * Vec2::i();
     for (Uint8 i = 0; i < precision; ++i)
     {
-        float theta = 2.f * pi * i / precision;
-        v.emplace_back(P + radius* Vertex{std::cos(theta), std::sin(theta)});
+        v_[i]  = P + offset;
+        offset = rot * offset;
     }
 
-    const Vertices& cv = v;
+    const Vertices& cv = v_;
     drawPolygon(P, makeView(cv.data(), cv.data() + cv.size()), color);
 }
 
@@ -318,7 +325,12 @@ void OpenGlRenderer::flush()
         gl::GL_STREAM_DRAW
     );
 
-    gl::glDrawElements(gl::GL_TRIANGLES, indices_.size(), gl::GL_UNSIGNED_SHORT, nullptr);
+    gl::glDrawElements(
+        gl::GL_TRIANGLES,
+        indices_.size(),
+        gl::GL_UNSIGNED_SHORT,
+        nullptr
+    );
 
     gl::glBindVertexArray(0);
 
