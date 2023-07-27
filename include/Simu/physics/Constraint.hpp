@@ -268,6 +268,7 @@ public:
 
     void solvePositions() override
     {
+        updateFrame();
         computeKs(false);
 
         Vec2 C{};
@@ -356,6 +357,16 @@ public:
 
 private:
 
+    void updateFrame()
+    {
+        frame_ = manifold_.frameManifold();
+
+        for (Uint32 b = 0; b < 2; ++b)
+            for (Uint32 c = 0; c < frame_.nContacts; ++c)
+                radius_[b][c]
+                    = frame_.worldContacts[b][c] - bodies_[b]->centroid();
+    }
+
     // frame and manifold will be updated after this call,
     //  until the positions of the bodies change.
     void updateContacts()
@@ -422,10 +433,7 @@ private:
             }
         }
 
-        for (Uint32 b = 0; b < 2; ++b)
-            for (Uint32 c = 0; c < frame_.nContacts; ++c)
-                radius_[b][c]
-                    = frame_.worldContacts[b][c] - bodies_[b]->centroid();
+        updateFrame();
     }
 
     void computeKs(bool computeFrictionK)

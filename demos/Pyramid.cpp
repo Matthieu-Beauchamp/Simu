@@ -79,8 +79,8 @@ public:
 
         // Baumgarte is much more stable for bricked pyramid, NGS needs a LOT of iterations and still falls apart pretty fast.
         auto s = world().settings();
-        // s.nPositionIterations = 4;
-        // s.nVelocityIterations = 20;
+        // s.nPositionIterations = 50;
+        s.nVelocityIterations = 50;
         world().updateSettings(s);
 
         // pause();

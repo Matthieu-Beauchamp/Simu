@@ -56,7 +56,7 @@ Bodies<n>::Bodies(
             d[j++] = body->dominance();
     }
 
-    Uint32 i       = 0;
+    i              = 0;
     Uint32 nthBody = 0;
     for (const Body* body : *this)
     {
@@ -74,7 +74,7 @@ bool Bodies<n>::isBodyStructural(const Body* body) const
 {
     for (Uint32 i = 0; i < n; ++i)
         if (body == (*this)[i])
-            return dominances_[i] == 0.f;
+            return invMassVec_[3 * i] == 0.f;
 
     SIMU_ASSERT(false, "Body is not part of these bodies.");
 }

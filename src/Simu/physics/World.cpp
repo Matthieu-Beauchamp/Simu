@@ -71,8 +71,6 @@ void World::step(float dt)
 
     if (dt > 0.f)
     {
-        // TODO: with some additionnal management code,
-        //  islands can be made to persist between steps, possibly reducing computation.
         Islands islands(bodies(), alloc_);
         for (Island& island : islands.islands())
             if (island.isAwake())
