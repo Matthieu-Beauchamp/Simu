@@ -29,10 +29,11 @@
 #include "Simu/physics/Body.hpp"
 #include "Simu/physics/Constraint.hpp"
 
+
 namespace simu
 {
 
-struct Island
+class Island
 {
 public:
 
@@ -44,29 +45,33 @@ public:
     Island(Body* root, const Alloc& alloc) : bodies_{alloc}, constraints_{alloc}
     {
         addBody(root);
-        expand(root);
-    }
 
-    void expand(Body* root)
-    {
-        if (root->interactsAsStructural())
-            return;
-
-        for (Constraint* constraint : root->constraints())
+        std::size_t current = 0;
+        while (current != bodies_.size())
         {
-            if (constraints_.emplace(constraint).second)
+            root = bodies_[current++];
+
+            if (!root->interactsAsStructural())
             {
-                for (Body* body : constraint->bodies())
+                for (Constraint* constraint : root->constraints())
                 {
-                    if (!body->interactsAsStructural())
-                    {
-                        if (addBody(body))
-                            expand(body);
-                    }
+                    addConstraint(constraint);
                 }
             }
         }
     }
+
+    ~Island()
+    {
+        for (SolverProxy& s : proxies_)
+            s.writeBack();
+
+        for (Constraint* c : constraints_)
+            c->bodies().endSolve();
+    }
+
+    Island(const Island&) = delete;
+    Island(Island&&)      = delete;
 
     bool isAwake() const { return isAwake_; }
     auto bodies() { return makeView(bodies_.begin(), bodies_.end()); }
@@ -75,17 +80,112 @@ public:
         return makeView(constraints_.begin(), constraints_.end());
     }
 
+    void applyVelocityConstraints(Uint32 nIter, float dt)
+    {
+        // must do this after forces are applied...
+        for (SolverProxy& p : proxies_)
+            p.refresh();
+
+        for (Constraint* c : constraints_)
+            c->bodies().startSolve(proxies_.data()); // refresh proxy pointers
+
+
+        for (Constraint* constraint : constraints_)
+            constraint->initSolve();
+
+        for (Constraint* constraint : constraints_)
+            constraint->warmstart(dt);
+
+        for (Uint32 iter = 0; iter < nIter; ++iter)
+        {
+            for (Constraint* constraint : constraints_)
+                constraint->solveVelocities(dt);
+        }
+    }
+
+    void integrateBodies(float dt)
+    {
+        for (SolverProxy& p : proxies_)
+            p.setPosition(
+                p.position() + p.velocity() * dt,
+                p.orientation() + p.angularVelocity() * dt
+            );
+    }
+
+    void applyPositionConstraints(Uint32 nIter)
+    {
+        for (Uint32 iter = 0; iter < nIter; ++iter)
+        {
+            for (Constraint* constraint : constraints_)
+                constraint->solvePositions();
+        }
+    }
+
 private:
 
     bool addBody(Body* body)
     {
-        bool isNew = bodies_.emplace(body).second;
-        isAwake_   = isAwake_ || !body->isAsleep();
+        bool isNew = body->proxyIndex == Body::NO_INDEX;
+
+        if (body->interactsAsStructural())
+            isNew = isNew
+                    || std::find(bodies_.begin(), bodies_.end(), body)
+                           == bodies_.end();
+
+        if (isNew)
+        {
+            bodies_.emplace_back(body);
+            isAwake_ = isAwake_ || !body->isAsleep();
+
+            body->proxyIndex = static_cast<Int32>(proxies_.size());
+            proxies_.emplace_back(body);
+        }
+
         return isNew;
     }
 
-    std::set<Body*, std::less<Body*>, BAlloc>             bodies_;
-    std::set<Constraint*, std::less<Constraint*>, CAlloc> constraints_;
+    bool addConstraint(Constraint* constraint)
+    {
+        if (constraint->bodies().isSolving())
+            return false;
+
+        constraints_.emplace_back(constraint);
+
+        auto b      = constraint->bodies().bodies();
+        bool added1 = addBody(b[0]);
+        bool added2 = addBody(b[1]);
+
+        constraint->bodies().startSolve(proxies_.data());
+
+        if (!constraint->isActive())
+        {
+            if (added2)
+            {
+                b[1]->proxyIndex = Body::NO_INDEX;
+                bodies_.pop_back();
+                proxies_.pop_back();
+            }
+
+            if (added1)
+            {
+                b[0]->proxyIndex = Body::NO_INDEX;
+                bodies_.pop_back();
+                proxies_.pop_back();
+            }
+
+            constraint->bodies().endSolve();
+            constraints_.pop_back();
+            return false;
+        }
+
+        return true;
+    }
+
+    std::vector<Body*, BAlloc>       bodies_;
+    std::vector<Constraint*, CAlloc> constraints_;
+
+    typedef typename Alloc::rebind<SolverProxy>::other ProxyAlloc;
+    std::vector<SolverProxy, ProxyAlloc>               proxies_{};
 
     bool isAwake_ = false;
 };
@@ -119,27 +219,46 @@ public:
 
         while (!bodiesToProcess.empty())
         {
-            if (bodiesToProcess.back()->constraints().empty()
-                || bodiesToProcess.back()->interactsAsStructural())
+            islands_.emplace_back(bodiesToProcess.back(), islands_.get_allocator());
+
+            for (Body* body : islands_.back().bodies())
+                removeBody(body);
+        }
+    }
+
+    void wakeOrSleep()
+    {
+        for (auto it = islands_.begin(); it != islands_.end();)
+        {
+            Island& island = *it;
+
+            if (island.isAwake())
             {
-                bodiesToProcess.pop_back();
+                for (Body* body : island.bodies())
+                    body->wake();
+
+                ++it;
             }
             else
             {
-                Island island{bodiesToProcess.back(), islands_.get_allocator()};
-                for (Body* body : island.bodies())
-                    removeBody(body);
-
-                islands_.emplace_back(std::move(island));
+                it = islands_.erase(it);
             }
         }
     }
 
-    auto islands() { return makeView(islands_.begin(), islands_.end()); }
+    void solve(const World::Settings& s, float dt)
+    {
+        for (Island& island : islands_)
+        {
+            island.applyVelocityConstraints(s.nVelocityIterations, dt);
+            island.integrateBodies(dt);
+            island.applyPositionConstraints(s.nPositionIterations);
+        }
+    }
 
 private:
 
-    std::vector<Island, Alloc> islands_;
+    std::list<Island, Alloc> islands_;
 };
 
 

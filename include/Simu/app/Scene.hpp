@@ -140,7 +140,7 @@ private:
     World makeWorld()
     {
         Renderer* r = this->renderer_;
-        return World([=](Bodies<2>                        bodies,
+        return World([=](Bodies                       bodies,
                          typename World::ConstraintAlloc& alloc) {
             return alloc.makeUnique<VisibleContactConstraint>(bodies, r);
         });

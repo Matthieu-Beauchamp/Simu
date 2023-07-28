@@ -34,7 +34,6 @@
 #include "Simu/physics/Transform.hpp"
 #include "Simu/physics/Collider.hpp"
 #include "Simu/physics/Material.hpp"
-#include "Simu/physics/ConstraintInterfaces.hpp"
 
 #include "Simu/utility/View.hpp"
 
@@ -323,9 +322,10 @@ public:
 
 private:
 
+    friend class Island;
+    friend class SolverProxy;
     friend class World;
 
-    template <Uint32 n>
     friend class Bodies;
 
 
@@ -388,7 +388,10 @@ private:
     float timeImmobile_ = 0.f;
 
     std::vector<Constraint*, Alloc> constraints_;
-    typename BodyTree::iterator treeLocation_;
+    typename BodyTree::iterator     treeLocation_;
+
+    static constexpr Int32 NO_INDEX   = -1;
+    Int32                  proxyIndex = NO_INDEX;
 
     Transform toWorldSpace_;
 };

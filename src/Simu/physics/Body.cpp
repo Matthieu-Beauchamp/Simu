@@ -32,7 +32,7 @@ bool Body::interactsAsStructural() const
 {
     bool isStruct = true;
     for (Constraint* constraint : constraints_)
-        isStruct = isStruct && constraint->isBodyStructural(this);
+        isStruct = isStruct && constraint->bodies().isBodyStructural(this);
 
     return isStruct;
 }

@@ -54,6 +54,9 @@ public:
         freeList_.emplace_back(data_, data_ + sz);
     }
 
+    Block(const Block&) = delete;
+    Block(Block&&)      = delete;
+
     ~Block() { delete[] data_; }
 
     template <class T>
@@ -81,7 +84,7 @@ private:
 
     std::list<FreeBlock> freeList_{};
 
-    Byte*       data_;
+    Byte*       data_ = nullptr;
     std::size_t sz;
 };
 

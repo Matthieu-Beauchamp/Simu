@@ -39,32 +39,31 @@ public:
     typedef EqualityConstraintFunctionBase<2, 1> Base;
 
 
-    DistanceConstraintFunction(
-        const Bodies<nBodies>& bodies,
-        std::array<Vec2, 2>    fixedPoints
-    )
+    DistanceConstraintFunction(const Bodies& bodies, std::array<Vec2, 2> fixedPoints)
         : Base{},
           localFixedPoints_{
-              bodies[0]->toLocalSpace() * fixedPoints[0],
-              bodies[1]->toLocalSpace() * fixedPoints[1]}
+              bodies.bodies()[0]->toLocalSpace() * fixedPoints[0],
+              bodies.bodies()[1]->toLocalSpace() * fixedPoints[1]}
     {
     }
 
-    Value eval(const Bodies<nBodies>& bodies) const
+    Value eval(const Bodies& bodies) const
     {
         return Value{distanceSquared(worldSpaceFixedPoints(bodies))};
     }
 
-    Value bias(const Bodies<nBodies>& /* bodies */) const { return Value{}; }
+    Value bias(const Bodies& /* bodies */) const { return Value{}; }
 
-    Jacobian jacobian(const Bodies<nBodies>& bodies) const
+    Jacobian jacobian(const Bodies& bodies) const
     {
+        auto p = bodies.proxies();
+
         auto worldPoints = worldSpaceFixedPoints(bodies);
         Vec2 d           = worldPoints[0] - worldPoints[1];
 
         std::array<Vec2, 2> fromCentroid{
-            worldPoints[0] - bodies[0]->centroid(),
-            worldPoints[1] - bodies[1]->centroid()};
+            worldPoints[0] - p[0]->centroid(),
+            worldPoints[1] - p[1]->centroid()};
 
         return 2.f
                * Jacobian{
@@ -76,19 +75,23 @@ public:
                    -cross(fromCentroid[1], d)};
     }
 
-    std::array<Vec2, 2> worldSpaceFixedPoints(const Bodies<nBodies>& bodies) const
-    {
-        return {
-            bodies[0]->toWorldSpace() * localFixedPoints_[0],
-            bodies[1]->toWorldSpace() * localFixedPoints_[1]};
-    }
 
     static float distanceSquared(std::array<Vec2, 2> worldPoints)
     {
         return normSquared(worldPoints[0] - worldPoints[1]);
     }
 
+    std::array<Vec2, 2> localFixedPoints() const {return localFixedPoints_;}
+
 private:
+
+    std::array<Vec2, 2> worldSpaceFixedPoints(const Bodies& bodies) const
+    {
+        auto p = bodies.proxies();
+        return {
+            p[0]->toWorldSpace() * localFixedPoints_[0],
+            p[1]->toWorldSpace() * localFixedPoints_[1]};
+    }
 
     std::array<Vec2, 2> localFixedPoints_;
 };
@@ -105,7 +108,7 @@ public:
         Base;
 
     DistanceConstraint(
-        const Bodies<2>&    bodies,
+        const Bodies&       bodies,
         std::array<Vec2, 2> fixedPoints,
         bool                disableContacts = true
     )
@@ -118,7 +121,7 @@ public:
     }
 
     DistanceConstraint(
-        const Bodies<2>&    bodies,
+        const Bodies&       bodies,
         std::array<Vec2, 2> fixedPoints,
         float               distance,
         bool                disableContacts = true
@@ -128,7 +131,7 @@ public:
     }
 
     DistanceConstraint(
-        const Bodies<2>&     bodies,
+        const Bodies&        bodies,
         std::array<Vec2, 2>  fixedPoints,
         std::optional<float> minDistance,
         std::optional<float> maxDistance,

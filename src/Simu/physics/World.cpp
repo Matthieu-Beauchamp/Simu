@@ -72,23 +72,11 @@ void World::step(float dt)
     if (dt > 0.f)
     {
         Islands islands(bodies(), miscAlloc_);
-        for (Island& island : islands.islands())
-            if (island.isAwake())
-                for (Body* body : island.bodies())
-                    body->wake();
-
+        
+        islands.wakeOrSleep();
         applyForces(dt);
-
-        for (Island& island : islands.islands())
-            if (!settings().enableSleeping || island.isAwake())
-                applyVelocityConstraints(island, dt);
-
-        integrateBodies(dt);
-
-        for (Island& island : islands.islands())
-            if (!settings().enableSleeping || island.isAwake())
-                applyPositionConstraints(island);
-
+        islands.solve(settings(), dt);
+        
         updateBodies(dt);
     }
 
@@ -100,7 +88,7 @@ void World::step(float dt)
         f.postStep();
 }
 
-void World::declareContactConflict(const Bodies<2>& bodies)
+void World::declareContactConflict(const Bodies& bodies)
 {
     auto contact = inContacts(bodies);
     if (contact == contacts_.end())
@@ -116,7 +104,7 @@ void World::declareContactConflict(const Bodies<2>& bodies)
 }
 
 
-void World::removeContactConflict(const Bodies<2>& bodies)
+void World::removeContactConflict(const Bodies& bodies)
 {
     auto contact = inContacts(bodies);
     if (contact != contacts_.end())
@@ -131,17 +119,17 @@ void World::removeContactConflict(const Bodies<2>& bodies)
 }
 
 typename World::ContactFactory World::defaultContactFactory
-    = [](Bodies<2> b, typename World::ConstraintAlloc& alloc) {
+    = [](Bodies b, typename World::ConstraintAlloc& alloc) {
           return alloc.makeUnique<ContactConstraint>(b);
       };
 
-ContactConstraint* World::makeContactConstraint(Bodies<2> bodies)
+ContactConstraint* World::makeContactConstraint(Bodies bodies)
 {
     auto c = makeContactConstraint_(bodies, cAlloc_);
     c->setAllocator(cAlloc_);
     c->onConstruction(*this);
 
-    for (Body* body : c->bodies())
+    for (Body* body : c->bodies().bodies())
     {
         body->constraints_.emplace_back(c.get());
         body->wake();
@@ -190,7 +178,7 @@ void World::detectContacts()
     for (auto it = bodyTree_.begin(); it != bodyTree_.end(); ++it)
     {
         auto registerContact = [=, this](BodyTree::iterator other) {
-            Bodies<2> bodies{*it, *other};
+            Bodies bodies{*it, *other};
             auto      contact = inContacts(bodies);
 
             if (contact == contacts_.end())
@@ -260,7 +248,7 @@ void World::cleanup()
         auto& contact = *it;
         if (contact.second.existingContact != nullptr)
         {
-            if (!boundsOf(contact.first[0]).overlaps(boundsOf(contact.first[1])))
+            if (!boundsOf(contact.first.bodies()[0]).overlaps(boundsOf(contact.first.bodies()[0])))
             {
                 contact.second.existingContact->kill();
                 it = contacts_.erase(it);
@@ -278,7 +266,7 @@ void World::cleanup()
 
     for (auto c : deadConstraints)
     {
-        for (Body* body : (*c)->bodies())
+        for (Body* body : (*c)->bodies().bodies())
         {
             body->constraints_.erase(std::find(
                 body->constraints_.begin(),

@@ -96,7 +96,7 @@ class VisibleContactConstraint : public ContactConstraint, public Visible
 {
 public:
 
-    VisibleContactConstraint(Bodies<2> bodies, Renderer* renderer)
+    VisibleContactConstraint(const Bodies& bodies, Renderer* renderer)
         : ContactConstraint{bodies}, Visible{renderer}
     {
     }
@@ -130,7 +130,7 @@ class VisibleDistanceConstraint : public DistanceConstraint, public Visible
 public:
 
     VisibleDistanceConstraint(
-        const Bodies<2>&    bodies,
+        const Bodies&       bodies,
         std::array<Vec2, 2> fixedPoints,
         Renderer*           renderer,
         bool                disableContacts = true
@@ -141,7 +141,7 @@ public:
     }
 
     VisibleDistanceConstraint(
-        const Bodies<2>&    bodies,
+        const Bodies&       bodies,
         std::array<Vec2, 2> fixedPoints,
         float               distance,
         Renderer*           renderer,
@@ -153,7 +153,7 @@ public:
     }
 
     VisibleDistanceConstraint(
-        const Bodies<2>&     bodies,
+        const Bodies&        bodies,
         std::array<Vec2, 2>  fixedPoints,
         std::optional<float> minDistance,
         std::optional<float> maxDistance,
@@ -173,8 +173,16 @@ protected:
     void draw(Renderer& renderer) override
     {
         Rgba turquoise = Rgba{50, 235, 235, 255};
-        auto points    = f.worldSpaceFixedPoints(getBodies());
-        renderer.drawLine(points[0], points[1], turquoise, 0.1f);
+
+        auto points = f.localFixedPoints();
+        auto b      = bodies().bodies();
+
+        renderer.drawLine(
+            b[0]->toWorldSpace() * points[0],
+            b[1]->toWorldSpace() * points[1],
+            turquoise,
+            0.1f
+        );
     }
 };
 

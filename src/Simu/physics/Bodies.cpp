@@ -22,7 +22,6 @@
 //
 ////////////////////////////////////////////////////////////
 
-#pragma once
 
 #include "Simu/physics/Bodies.hpp"
 #include "Simu/physics/Body.hpp"
@@ -30,21 +29,18 @@
 namespace simu
 {
 
-template <Uint32 n>
-Bodies<n>::Bodies(
-    std::initializer_list<Body*> bodies,
-    std::optional<Dominance>     dominances
-)
-    : Base{}
+
+Bodies::Bodies(std::initializer_list<Body*> bodies, std::optional<Dominance> dominances)
 {
     Uint32 i = 0;
     for (auto body : bodies)
     {
         if (i < n)
-            (*this)[i++] = body;
+            bodies_[i++] = body;
         else
             break;
     }
+    SIMU_ASSERT(i == 2, "Incorrect number of bodies in initializer list.");
 
     Dominance d{};
     if (dominances.has_value())
@@ -52,13 +48,13 @@ Bodies<n>::Bodies(
     else
     {
         Uint32 j = 0;
-        for (Body* body : *this)
+        for (Body* body : bodies_)
             d[j++] = body->dominance();
     }
 
     i              = 0;
     Uint32 nthBody = 0;
-    for (const Body* body : *this)
+    for (const Body* body : bodies_)
     {
         float m = d[nthBody] / body->mass();
         float I = d[nthBody++] / body->inertia();
@@ -69,69 +65,67 @@ Bodies<n>::Bodies(
     }
 }
 
-template <Uint32 n>
-bool Bodies<n>::isBodyStructural(const Body* body) const
+
+bool Bodies::isBodyStructural(const Body* body) const
 {
     for (Uint32 i = 0; i < n; ++i)
-        if (body == (*this)[i])
+        if (body == bodies_[i])
             return invMassVec_[3 * i] == 0.f;
 
     SIMU_ASSERT(false, "Body is not part of these bodies.");
 }
 
 
-template <Uint32 n>
-void Bodies<n>::applyImpulse(const Impulse& impulse)
+void Bodies::applyImpulse(const Impulse& impulse)
 {
+    assertHasProxies();
     Velocity dv = elementWiseMul(inverseMassVec(), impulse);
 
     Uint32 i = 0;
-    for (Body* body : *this)
+    for (SolverProxy* p : proxies_)
     {
-        body->setVelocity(body->velocity() + Vec2{dv[i], dv[i + 1]});
-        body->setAngularVelocity(body->angularVelocity() + dv[i + 2]);
+        p->setVelocity(
+            p->velocity() + Vec2{dv[i], dv[i + 1]},
+            p->angularVelocity() + dv[i + 2]
+
+        );
+
         i += 3;
     }
 }
 
-template <Uint32 n>
-void Bodies<n>::applyPositionCorrection(const State& correction)
+
+void Bodies::applyPositionCorrection(const State& correction)
 {
+    assertHasProxies();
     Uint32 i = 0;
-    for (Body* body : *this)
+    for (SolverProxy* p : proxies_)
     {
-        body->position_ += Vec2{correction[i], correction[i + 1]};
-        body->orientation_ += correction[i + 2];
-        body->update();
+        p->setPosition(
+            p->position() + Vec2{correction[i], correction[i + 1]},
+            p->orientation() + correction[i + 2]
+        );
+
         i += 3;
     }
 }
 
-template <Uint32 n>
-typename Bodies<n>::Velocity Bodies<n>::velocity() const
+
+typename Bodies::Velocity Bodies::velocity() const
 {
+    assertHasProxies();
+
     Velocity v{};
     Uint32   i = 0;
-    for (const Body* body : *this)
+    for (const SolverProxy* p : proxies_)
     {
-        v[i++] = body->velocity()[0];
-        v[i++] = body->velocity()[1];
-        v[i++] = body->angularVelocity();
+        v[i++] = p->velocity()[0];
+        v[i++] = p->velocity()[1];
+        v[i++] = p->angularVelocity();
     }
 
     return v;
 }
 
-template <Uint32 n>
-typename Bodies<n>::MassVec Bodies<n>::inverseMassVec() const
-{
-    return invMassVec_;
-}
-
-template <Uint32 n>
-typename Bodies<n>::Mass Bodies<n>::inverseMass() const
-{
-    return Mass::diagonal(inverseMassVec());
-}
 
 } // namespace simu

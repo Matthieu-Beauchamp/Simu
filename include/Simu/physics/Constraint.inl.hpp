@@ -30,27 +30,23 @@
 namespace simu
 {
 
-template <ConstraintFunction F, ConstraintSolver S, std::derived_from<Constraint> B>
-void ConstraintImplementation<F, S, B>::onConstruction(World& world)
+template <ConstraintFunction F, ConstraintSolver S>
+void ConstraintImplementation<F, S>::onConstruction(World& world)
 {
     if (disableContacts_)
     {
-        for (auto first = bodies_.begin(); first != bodies_.end(); ++first)
-            for (auto second = std::next(first); second != bodies_.end();
-                 ++second)
-                world.declareContactConflict(Bodies<2>{*first, *second});
+        auto b = bodies().bodies();
+        world.declareContactConflict(Bodies{b[0], b[1]});
     }
 };
 
-template <ConstraintFunction F, ConstraintSolver S, std::derived_from<Constraint> B>
-void ConstraintImplementation<F, S, B>::onDestruction(World& world)
+template <ConstraintFunction F, ConstraintSolver S>
+void ConstraintImplementation<F, S>::onDestruction(World& world)
 {
     if (disableContacts_)
     {
-        for (auto first = bodies_.begin(); first != bodies_.end(); ++first)
-            for (auto second = std::next(first); second != bodies_.end();
-                 ++second)
-                world.removeContactConflict(Bodies<2>{*first, *second});
+        auto b = bodies().bodies();
+        world.removeContactConflict(Bodies{b[0], b[1]});
     }
 };
 

@@ -50,14 +50,14 @@ public:
     typedef typename F::Value    Value;
     typedef typename F::Jacobian Jacobian;
 
-    typedef typename Bodies<nBodies>::State    State;
-    typedef typename Bodies<nBodies>::Velocity Velocity;
-    typedef typename Bodies<nBodies>::Impulse  Impulse;
+    typedef typename Bodies::State    State;
+    typedef typename Bodies::Velocity Velocity;
+    typedef typename Bodies::Impulse  Impulse;
 
     typedef Matrix<float, dimension, dimension> KMatrix;
 
 
-    ConstraintSolverBase(Bodies<nBodies> /* bodies */, const F& /* f */) {}
+    ConstraintSolverBase(Bodies /* bodies */, const F& /* f */) {}
 
     Value&       restitution() { return restitution_; }
     const Value& restitution() const { return restitution_; }
@@ -65,7 +65,7 @@ public:
     Value&       damping() { return damping_; }
     const Value& damping() const { return damping_; }
 
-    void warmstartDefault(Bodies<nBodies>& bodies, const F& f, float dt)
+    void warmstartDefault(Bodies& bodies, const F& f, float dt)
     {
         Value lambda = getAccumulatedLambda();
         setLambdaHint(Value::filled(0.f));
@@ -74,7 +74,7 @@ public:
     }
 
     KMatrix
-    computeEffectiveMass(const Bodies<nBodies>& bodies, const F& f, bool addDamping)
+    computeEffectiveMass(const Bodies& bodies, const F& f, bool addDamping)
     {
         J_                    = f.jacobian(bodies);
         KMatrix effectiveMass = J_ * bodies.inverseMass() * transpose(J_);
@@ -86,7 +86,7 @@ public:
     }
 
     Value
-    computeRhs(const Bodies<nBodies>& bodies, const F& f, float dt, bool addDamping) const
+    computeRhs(const Bodies& bodies, const F& f, float dt, bool addDamping) const
     {
         Value error = J_ * bodies.velocity();
         Value bias  = f.bias(bodies);
@@ -100,7 +100,7 @@ public:
     }
 
     void
-    updateLambda(Bodies<nBodies>& bodies, const F& f, float dt, Value dLambda)
+    updateLambda(Bodies& bodies, const F& f, float dt, Value dLambda)
     {
         Value oldLambda = lambda_;
         lambda_ += dLambda;
@@ -146,23 +146,23 @@ public:
     typedef Solver<float, Base::dimension> KSolver;
 
 
-    EqualitySolver(const Bodies<nBodies>& bodies, const F& f)
+    EqualitySolver(const Bodies& bodies, const F& f)
         : Base{bodies, f}, solver_{KMatrix{}}
     {
     }
 
-    void initSolve(Bodies<nBodies>& bodies, const F& f)
+    void initSolve(Bodies& bodies, const F& f)
     {
         solver_ = Solver{this->computeEffectiveMass(bodies, f, true)};
         SIMU_ASSERT(solver_.isValid(), "Constraint cannot be solved");
     }
 
-    void warmstart(Bodies<nBodies>& bodies, const F& f, float dt)
+    void warmstart(Bodies& bodies, const F& f, float dt)
     {
         this->warmstartDefault(bodies, f, dt);
     }
 
-    void solveVelocity(Bodies<nBodies>& bodies, const F& f, float dt)
+    void solveVelocity(Bodies& bodies, const F& f, float dt)
     {
         this->updateLambda(
             bodies,
@@ -172,7 +172,7 @@ public:
         );
     }
 
-    void solvePosition(Bodies<nBodies>& bodies, const F& f)
+    void solvePosition(Bodies& bodies, const F& f)
     {
         Value error = f.eval(bodies);
 
@@ -211,22 +211,22 @@ public:
     typedef Solver<float, Base::dimension> KSolver;
 
 
-    InequalitySolver(const Bodies<nBodies>& bodies, const F& f)
+    InequalitySolver(const Bodies& bodies, const F& f)
         : Base{bodies, f}
     {
     }
 
-    void initSolve(Bodies<nBodies>& bodies, const F& f)
+    void initSolve(Bodies& bodies, const F& f)
     {
         effectiveMass_ = this->computeEffectiveMass(bodies, f, true);
     }
 
-    void warmstart(Bodies<nBodies>& bodies, const F& f, float dt)
+    void warmstart(Bodies& bodies, const F& f, float dt)
     {
         this->warmstartDefault(bodies, f, dt);
     }
 
-    void solveVelocity(Bodies<nBodies>& bodies, const F& f, float dt)
+    void solveVelocity(Bodies& bodies, const F& f, float dt)
     {
         // TODO: Incorrect! must not use damping
         Value correctedError = effectiveMass_ * this->getAccumulatedLambda();
@@ -241,7 +241,7 @@ public:
         this->updateLambda(bodies, f, dt, lambda - this->getAccumulatedLambda());
     }
 
-    void solvePosition(Bodies<nBodies>& bodies, const F& f)
+    void solvePosition(Bodies& bodies, const F& f)
     {
         Value error = f.eval(bodies);
 
@@ -310,7 +310,7 @@ public:
     typedef typename Base::KMatrix         KMatrix;
     typedef Solver<float, Base::dimension> KSolver;
 
-    LimitsSolver(Bodies<nBodies> bodies, const F& f) : Base{bodies, f} {}
+    LimitsSolver(Bodies bodies, const F& f) : Base{bodies, f} {}
 
     void setLowerLimit(std::optional<Value> L)
     {
@@ -323,13 +323,13 @@ public:
         assertLimits();
     }
 
-    bool isActive(const Bodies<nBodies>& bodies, const F& f) const
+    bool isActive(const Bodies& bodies, const F& f) const
     {
         return nextFunc(bodies, f) != Func::off;
     }
 
 
-    void initSolve(Bodies<nBodies>& bodies, const F& f)
+    void initSolve(Bodies& bodies, const F& f)
     {
         Func prev     = func_;
         func_         = nextFunc(bodies, f);
@@ -343,7 +343,7 @@ public:
             effectiveMass_ = effMass;
     }
 
-    void warmstart(Bodies<nBodies>& bodies, const F& f, float dt)
+    void warmstart(Bodies& bodies, const F& f, float dt)
     {
         if (canWarmstart_)
         {
@@ -365,7 +365,7 @@ public:
         }
     }
 
-    void solveVelocity(Bodies<nBodies>& bodies, const F& f, float dt)
+    void solveVelocity(Bodies& bodies, const F& f, float dt)
     {
         Value err = rhs(bodies, f, dt);
 
@@ -423,7 +423,7 @@ public:
         }
     }
 
-    void solvePosition(Bodies<nBodies>& bodies, const F& f)
+    void solvePosition(Bodies& bodies, const F& f)
     {
         Value    C       = f.eval(bodies);
         Jacobian J       = f.jacobian(bodies);
@@ -492,7 +492,7 @@ private:
         off
     };
 
-    Func nextFunc(const Bodies<nBodies>& bodies, const F& f) const
+    Func nextFunc(const Bodies& bodies, const F& f) const
     {
         if (!L_.has_value() && !U_.has_value())
             return Func::equality;
@@ -509,7 +509,7 @@ private:
         return Func::off;
     }
 
-    Value rhs(const Bodies<nBodies>& bodies, const F& f, float dt)
+    Value rhs(const Bodies& bodies, const F& f, float dt)
     {
         Jacobian J              = this->getJacobian();
         Value    error          = J * bodies.velocity();

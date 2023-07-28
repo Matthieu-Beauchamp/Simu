@@ -63,7 +63,7 @@ public:
 
     virtual ~PhysicsObject() = default;
 
-    bool isDead() { return killed_ || shouldDie(); }
+    bool isDead() const { return killed_ || shouldDie(); }
     void kill()
     {
         killed_ = true;
@@ -118,7 +118,7 @@ protected:
     ///     a treshold can implement this death condition in shouldDie.
     ///
     ////////////////////////////////////////////////////////////
-    virtual bool shouldDie() { return false; }
+    virtual bool shouldDie() const { return false; }
 
     ////////////////////////////////////////////////////////////
     /// \brief Called at the start of World::step, after dead objects are removed.

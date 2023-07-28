@@ -28,18 +28,10 @@
 #include "Simu/math/Matrix.hpp"
 
 #include "Simu/physics/PhysicsObject.hpp"
-
+#include "Simu/physics/Bodies.hpp"
 
 namespace simu
 {
-
-class Body;
-
-typedef ViewType<Body**>       BodiesView;
-typedef ViewType<Body const**> ConstBodiesView;
-
-template <Uint32 n>
-class Bodies;
 
 ////////////////////////////////////////////////////////////
 /// \brief
@@ -64,8 +56,7 @@ class Bodies;
 ///
 /// for i in range(world.nPositionIterations)
 ///     foreach constraint c:
-///         if c.isActive():
-///             c.solvePositions();
+///         c.solvePositions();
 /// \endcode
 ///
 ///
@@ -74,39 +65,68 @@ class Constraint : public PhysicsObject
 {
 public:
 
+    Constraint(const Bodies& bodies) : bodies_{bodies}
+    {
+        auto b = bodies_.bodies();
+
+        bool tooManyStructural = false;
+        if (b[0] == b[1] && bodies_.isBodyStructural(b[0]))
+            tooManyStructural = true;
+        else if (bodies_.isBodyStructural(b[0]) && bodies_.isBodyStructural(b[1]))
+            tooManyStructural = true;
+
+        SIMU_ASSERT(
+            !tooManyStructural,
+            "Cannot solve a constraint with multiple structural bodies."
+        );
+
+        SIMU_ASSERT(b[0] != nullptr && b[1] != nullptr, "Invalid body");
+    }
+
     ~Constraint() override = default;
+
+    bool shouldDie() const override
+    {
+        for (const Body* body : bodies().bodies())
+            if (body->isDead())
+                return true;
+
+        return false;
+    }
 
     virtual bool isActive() = 0;
 
-    virtual void initSolve() = 0;
+    virtual void initSolve()         = 0;
     virtual void warmstart(float dt) = 0;
 
     virtual void solveVelocities(float dt) = 0;
     virtual void solvePositions()          = 0;
 
 
-    // if a constraint has no bodies (or a nullptr body) or changes its bodies during its lifetime,
-    //  then behavior is undefined.
-    virtual BodiesView      bodies()       = 0;
-    virtual ConstBodiesView bodies() const = 0;
+    Bodies&       bodies() { return bodies_; }
+    const Bodies& bodies() const { return bodies_; }
 
-    virtual bool isBodyStructural(const Body* body) const = 0;
+private:
+
+    Bodies bodies_;
 };
 
 
 template <class F>
 concept ConstraintFunction = requires(
-    F                  f,
-    typename F::Value  lambda,
-    Bodies<F::nBodies> bodies,
-    float              dt
+    F                 f,
+    typename F::Value lambda,
+    Bodies            bodies,
+    float             dt
 ) {
+    requires F::nBodies == 1 || F::nBodies == 2;
+
     // clang-format off
     typename F::Value;
-    std::is_same_v<typename F::Value, Vector<float, F::dimension>>; 
+    requires std::is_same_v<typename F::Value, Vector<float, F::dimension>>; 
     
     typename F::Jacobian;
-    std::is_same_v<typename F::Jacobian, Matrix<float, F::dimension, 3*F::nBodies>>; 
+    requires std::is_same_v<typename F::Jacobian, Matrix<float, F::dimension, 6>>; 
 
     { f.eval(bodies) } -> std::same_as<typename F::Value>;
     { f.bias(bodies) } -> std::same_as<typename F::Value>;
@@ -125,16 +145,14 @@ class ConstraintSolverBase;
 // clang-format off
 template <class S>
 concept ConstraintSolver
-    = requires(S s, Bodies<S::nBodies>& bodies, typename S::F f, float dt) 
+    = requires(S s, Bodies& bodies, typename S::F f, float dt) 
 {
     typename S::F;
     requires ConstraintFunction<typename S::F>;
 
     requires std::derived_from<S, ConstraintSolverBase<typename S::F>>;
 
-    requires std::constructible_from<S, 
-        Bodies<S::nBodies>, 
-        typename S::F>;
+    requires std::constructible_from<S, Bodies, typename S::F>;
 
 
     { s.initSolve(bodies, f) };

@@ -38,26 +38,27 @@ public:
     MouseConstraintFunction(Body* body, Vec2 pos) : Base{}
     {
         localBodyPos_ = body->toLocalSpace() * pos;
-        mousePos_ = pos;
+        mousePos_     = pos;
     }
 
-    Value eval(Bodies<1> body) const
+    Value eval(const Bodies& body) const
     {
-        return body[0]->toWorldSpace() * localBodyPos_ - mousePos_;
+        return worldBodyPos(body) - mousePos_;
     }
 
-    Value bias(Bodies<1> /* body */) const { return Value{}; }
+    Value bias(const Bodies& /* body */) const { return Value{}; }
 
 
-    Jacobian jacobian(Bodies<1> body) const
+    Jacobian jacobian(const Bodies& body) const
     {
-        Vec2 r = body[0]->toWorldSpace() * localBodyPos_
-                 - body[0]->centroid();
+        auto p = body.proxies();
+
+        Vec2 r = worldBodyPos(body) - p[0]->centroid();
 
         // clang-format off
         return Jacobian{
-            1.f, 0.f, -r[1],
-            0.f, 1.f,  r[0],
+            1.f, 0.f, -r[1], 0.f, 0.f, 0.f,
+            0.f, 1.f,  r[0], 0.f, 0.f, 0.f
         };
         // clang-format on
     }
@@ -69,6 +70,12 @@ public:
 
 
 private:
+
+    Vec2 worldBodyPos(const Bodies& bodies) const
+    {
+        auto p = bodies.proxies();
+        return p[0]->toWorldSpace() * localBodyPos_;
+    }
 
     Vec2 mousePos_;
     Vec2 localBodyPos_;
@@ -83,7 +90,7 @@ public:
 
     MouseConstraint(Body* body, Vec2 pos)
         : Base{
-            Bodies<1>{body},
+            Bodies::singleBody(body),
             MouseConstraintFunction{body, pos},
             false
     }
@@ -92,7 +99,10 @@ public:
         solver.damping()     = Value::filled(1.f);
     }
 
-    Vec2 bodyPos() const { return getBodies()[0]->toWorldSpace() * f.localBodyPos(); }
+    Vec2 bodyPos() const
+    {
+        return bodies().bodies()[0]->toWorldSpace() * f.localBodyPos();
+    }
     Vec2 mousePos() const { return f.mousePos(); }
 
     void updateMousePos(Vec2 pos) { f.updateMousePos(pos); }

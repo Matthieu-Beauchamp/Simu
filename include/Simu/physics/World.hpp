@@ -74,11 +74,12 @@ namespace std
 {
 
 template <>
-struct hash<simu::Bodies<2>>
+struct hash<simu::Bodies>
 {
-    size_t operator()(const simu::Bodies<2>& bodies) const
+    size_t operator()(const simu::Bodies& bodies) const
     {
-        return ::details::hash_val(bodies[0], bodies[1]);
+        auto b = bodies.bodies();
+        return ::details::hash_val(b[0], b[1]);
     }
 };
 
@@ -93,7 +94,7 @@ namespace simu
 
 class Constraint;
 class ContactConstraint;
-struct Island;
+class Island;
 
 ////////////////////////////////////////////////////////////
 /// \brief The World class makes the ForceField, Body and Constraint classes interact.
@@ -117,7 +118,7 @@ public:
 
     typedef typename Alloc::rebind<UniquePtr<Constraint>>::other ConstraintAlloc;
 
-    typedef std::function<UniquePtr<ContactConstraint>(Bodies<2>, ConstraintAlloc&)>
+    typedef std::function<UniquePtr<ContactConstraint>(Bodies, ConstraintAlloc&)>
         ContactFactory;
 
     static ContactFactory defaultContactFactory;
@@ -191,7 +192,7 @@ public:
                 .get()
         );
 
-        for (Body* body : c->bodies())
+        for (Body* body : c->bodies().bodies())
         {
             body->constraints_.emplace_back(c);
             body->wake();
@@ -245,14 +246,14 @@ public:
     ///     never collide.
     ///
     ////////////////////////////////////////////////////////////
-    void declareContactConflict(const Bodies<2>& bodies);
+    void declareContactConflict(const Bodies& bodies);
 
     ////////////////////////////////////////////////////////////
     /// \brief Removes a contact conflict between 2 bodies.
     ///
     /// \see declareContactConflict
     ////////////////////////////////////////////////////////////
-    void removeContactConflict(const Bodies<2>& bodies);
+    void removeContactConflict(const Bodies& bodies);
 
     struct Settings
     {
@@ -306,16 +307,13 @@ public:
     template <std::invocable<Body*> F>
     void forEachAt(Vec2 point, const F& func)
     {
-        bodyTree_.forEachAt(point, [&](BodyTree::iterator it) {
-            func(*it);
-        });
+        bodyTree_.forEachAt(point, [&](BodyTree::iterator it) { func(*it); });
     }
 
 private:
 
 
-
-    ContactConstraint* makeContactConstraint(Bodies<2> bodies);
+    ContactConstraint* makeContactConstraint(Bodies bodies);
 
     template <std::derived_from<PhysicsObject> T, class A, class... Args>
     UniquePtr<T> makeObject(A& alloc, Args&&... args)
@@ -381,23 +379,23 @@ private:
         Constraint* existingContact         = nullptr;
     };
 
-    // TODO: Use BodyTree::iterator pair...
     typedef std::unordered_map<
-        Bodies<2>,
+        Bodies,
         ContactStatus,
-        std::hash<Bodies<2>>,
-        std::equal_to<Bodies<2>>,
-        Alloc::rebind<std::pair<const Bodies<2>, ContactStatus>>::other>
+        std::hash<Bodies>,
+        std::equal_to<Bodies>,
+        Alloc::rebind<std::pair<const Bodies, ContactStatus>>::other>
         ContactList;
 
     ContactList contacts_{miscAlloc_};
 
-    ContactList::iterator inContacts(Bodies<2> bodies)
+    ContactList::iterator inContacts(Bodies bodies)
     {
+        auto b    = bodies.bodies();
+
         auto asIs = contacts_.find(bodies);
-        return (asIs != contacts_.end())
-                   ? asIs
-                   : contacts_.find(Bodies<2>{bodies[1], bodies[0]});
+        return (asIs != contacts_.end()) ? asIs
+                                         : contacts_.find(Bodies{b[1], b[0]});
     }
 
     Settings settings_;
@@ -406,7 +404,7 @@ private:
 
     static constexpr float boundsScale = 1.2f;
 
-    static BoundingBox boundsOf(Body* body)
+    static BoundingBox boundsOf(const Body* body)
     {
         return BoundingBox::scaled(body->collider().boundingBox(), boundsScale);
     }

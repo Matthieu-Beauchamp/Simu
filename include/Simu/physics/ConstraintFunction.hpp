@@ -97,21 +97,21 @@ public:
     static constexpr Uint32 nBodies   = details::NBodies<Fs...>::value;
     static constexpr Uint32 dimension = details::Dimension<Fs...>::value;
 
-    typedef Vector<float, dimension>              Value;
-    typedef Matrix<float, dimension, 3 * nBodies> Jacobian;
+    typedef Vector<float, dimension>    Value;
+    typedef Matrix<float, dimension, 6> Jacobian;
 
     ConstraintFunctions(const Fs&... constraints) : constraints{constraints...}
     {
     }
 
-    Value eval(const Bodies<nBodies>& bodies) const
+    Value eval(const Bodies& bodies) const
     {
         Eval e{bodies};
         details::forEach(constraints, e);
         return static_cast<Value>(e.manip);
     }
 
-    Jacobian jacobian(const Bodies<nBodies>& bodies) const
+    Jacobian jacobian(const Bodies& bodies) const
     {
         JacobianBuilder j{bodies};
         details::forEach(constraints, j);
@@ -132,7 +132,7 @@ public:
         return static_cast<Value>(l.manip);
     }
 
-    Value bias(const Bodies<nBodies>& bodies) const
+    Value bias(const Bodies& bodies) const
     {
         Bias b{bodies};
         details::forEach(constraints, b);
@@ -193,7 +193,7 @@ private:
             i += details::Dimension<F>::value;
         }
 
-        const Bodies<nBodies>&      bodies;
+        const Bodies&               bodies;
         MatrixRowManipulator<Value> manip{};
         Uint32                      i = 0;
     };
@@ -239,7 +239,7 @@ private:
             i += details::Dimension<F>::value;
         }
 
-        const Bodies<nBodies>&         bodies;
+        const Bodies&                  bodies;
         MatrixRowManipulator<Jacobian> manip{};
         Uint32                         i = 0;
     };
@@ -253,7 +253,7 @@ private:
             i += details::Dimension<F>::value;
         }
 
-        const Bodies<nBodies>&      bodies;
+        const Bodies&               bodies;
         MatrixRowManipulator<Value> manip{};
         Uint32                      i = 0;
     };
@@ -269,7 +269,7 @@ public:
     static constexpr Uint32 dimension = dimension_;
 
     typedef Vector<float, dimension>              Value;
-    typedef Matrix<float, dimension, 3 * nBodies> Jacobian;
+    typedef Matrix<float, dimension, 6> Jacobian;
 
     EqualityConstraintFunctionBase() = default;
 
@@ -286,7 +286,7 @@ public:
     static constexpr Uint32 dimension = dimension_;
 
     typedef Vector<float, dimension>              Value;
-    typedef Matrix<float, dimension, 3 * nBodies> Jacobian;
+    typedef Matrix<float, dimension, 6> Jacobian;
 
     InequalityConstraintFunctionBase() = default;
 
@@ -312,26 +312,27 @@ public:
     typedef EqualityConstraintFunctionBase<2, 1> Base;
 
 
-    RotationConstraintFunction(const Bodies<nBodies>& bodies)
-        : Base{}, initialAngle_{angleDiff(bodies)}
+    RotationConstraintFunction(const Bodies& bodies)
+        : Base{}, initialAngle_{angleDiff(bodies.bodies())}
     {
     }
 
-    Value eval(const Bodies<nBodies>& bodies) const
+    Value eval(const Bodies& bodies) const
     {
-        return angleDiff(bodies) - initialAngle_;
+        return angleDiff(bodies.proxies()) - initialAngle_;
     }
 
-    Value bias(const Bodies<nBodies>& /* bodies */) const { return Value{}; }
+    Value bias(const Bodies& /* bodies */) const { return Value{}; }
 
-    Jacobian jacobian(const Bodies<nBodies>& /* bodies */) const
+    Jacobian jacobian(const Bodies& /* bodies */) const
     {
         return Jacobian{0, 0, -1, 0, 0, 1};
     }
 
 private:
 
-    Value angleDiff(const Bodies<nBodies>& bodies) const
+    template <class BodiesOrProxies>
+    Value angleDiff(const BodiesOrProxies& bodies) const
     {
         return Value{bodies[1]->orientation() - bodies[0]->orientation()};
     }
@@ -346,33 +347,30 @@ public:
 
     typedef EqualityConstraintFunctionBase<2, 2> Base;
 
-    HingeConstraintFunction(const Bodies<nBodies>& bodies, Vec2 worldSpaceSharedPoint)
+    HingeConstraintFunction(const Bodies& bodies, Vec2 worldSpaceSharedPoint)
         : Base{},
           localSpaceSharedPoint_{
-              bodies[0]->toLocalSpace() * worldSpaceSharedPoint,
-              bodies[1]->toLocalSpace() * worldSpaceSharedPoint}
+              bodies.bodies()[0]->toLocalSpace() * worldSpaceSharedPoint,
+              bodies.bodies()[1]->toLocalSpace() * worldSpaceSharedPoint}
     {
     }
 
-    Value eval(const Bodies<nBodies>& bodies) const
+    Value eval(const Bodies& bodies) const
     {
-        return bodies[1]->toWorldSpace() * localSpaceSharedPoint_[1]
-               - bodies[0]->toWorldSpace() * localSpaceSharedPoint_[0];
+        auto worldPoints = worldSpacePoints(bodies);
+        return worldPoints[1] - worldPoints[0];
     }
 
-    Value bias(const Bodies<nBodies>& /* bodies */) const { return Value{}; }
+    Value bias(const Bodies& /* bodies */) const { return Value{}; }
 
-    Jacobian jacobian(const Bodies<nBodies>& bodies) const
+    Jacobian jacobian(const Bodies& bodies) const
     {
-        std::array<Transform, nBodies> toWorldSpace{
-            bodies[0]->toWorldSpace(),
-            bodies[1]->toWorldSpace()};
+        auto proxies     = bodies.proxies();
+        auto worldPoints = worldSpacePoints(bodies);
 
         std::array<Vec2, nBodies> centroidToSharedPoint{
-            toWorldSpace[0] * localSpaceSharedPoint_[0]
-                - toWorldSpace[0] * bodies[0]->localProperties().centroid,
-            toWorldSpace[1] * localSpaceSharedPoint_[1]
-                - toWorldSpace[1] * bodies[1]->localProperties().centroid,
+            worldPoints[0] - proxies[0]->centroid(),
+            worldPoints[1] - proxies[1]->centroid(),
         };
 
         std::array<Vec2, nBodies> instantRotation{
@@ -388,6 +386,15 @@ public:
     }
 
 private:
+
+    std::array<Vec2, nBodies> worldSpacePoints(const Bodies& bodies) const
+    {
+        auto proxies = bodies.proxies();
+        return {
+            proxies[0]->toWorldSpace() * localSpaceSharedPoint_[0],
+            proxies[1]->toWorldSpace() * localSpaceSharedPoint_[1],
+        };
+    }
 
     std::array<Vec2, nBodies> localSpaceSharedPoint_;
 };

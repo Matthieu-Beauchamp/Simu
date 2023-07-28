@@ -37,90 +37,52 @@
 namespace simu
 {
 
-template <
-    ConstraintFunction            F,
-    ConstraintSolver              S    = EqualitySolver<F>,
-    std::derived_from<Constraint> Base = Constraint>
-class ConstraintImplementation : public Base
+template <ConstraintFunction F, ConstraintSolver S = EqualitySolver<F>>
+class ConstraintImplementation : public Constraint
 {
 public:
 
     typedef typename F::Value Value;
     typedef S                 Solver;
 
-    ConstraintImplementation(
-        const Bodies<F::nBodies>& bodies,
-        const F&                  f,
-        bool                      disableContacts
-    )
-        : Base{},
+    ConstraintImplementation(const Bodies& bodies, const F& f, bool disableContacts)
+        : Constraint{bodies},
           f{f},
           solver{bodies, f},
-          bodies_{bodies},
           disableContacts_{disableContacts}
     {
-        Uint32 howManyStructural = 0;
-        for (Body* body : this->bodies())
-            if (isBodyStructural(body))
-                ++howManyStructural;
 
-        SIMU_ASSERT(
-            howManyStructural <= 1,
-            "Cannot solve a constraint with multiple structural bodies. (also "
-            "breaks island creation..?)"
-        );
     }
 
     void onConstruction(World& world) override;
     void onDestruction(World& world) override;
 
-    bool shouldDie() override
-    {
-        for (Body* body : bodies_)
-            if (body->isDead())
-                return true;
-
-        return false;
-    }
-
     bool isActive() override
     {
         // TODO: Shouldn't something similar be done for inequality constraints?
         if constexpr (std::is_same_v<S, LimitsSolver<F>>)
-            return solver.isActive(bodies_, f);
+            return solver.isActive(bodies(), f);
         else
             return true;
     }
 
-    void initSolve() override { solver.initSolve(bodies_, f); }
-    void warmstart(float dt) override { solver.warmstart(bodies_, f, dt); }
+    void initSolve() override { solver.initSolve(bodies(), f); }
+    void warmstart(float dt) override { solver.warmstart(bodies(), f, dt); }
 
     void solveVelocities(float dt) override
     {
-        solver.solveVelocity(bodies_, f, dt);
+        solver.solveVelocity(bodies(), f, dt);
     }
 
-    void solvePositions() override { solver.solvePosition(bodies_, f); }
+    void solvePositions() override { solver.solvePosition(bodies(), f); }
 
-    BodiesView      bodies() override { return bodies_.view(); }
-    ConstBodiesView bodies() const override { return bodies_.view(); }
-
-    bool isBodyStructural(const Body* body) const override
-    {
-        return bodies_.isBodyStructural(body);
-    }
 
 protected:
 
     F f;
     S solver;
 
-    Bodies<F::nBodies>&       getBodies() { return bodies_; }
-    const Bodies<F::nBodies>& getBodies() const { return bodies_; }
-
 private:
-
-    Bodies<F::nBodies> bodies_;
 
     bool disableContacts_;
 };
@@ -138,7 +100,7 @@ public:
     typedef ConstraintImplementation<RotationConstraintFunction> Base;
     typedef RotationConstraintFunction                           F;
 
-    RotationConstraint(const Bodies<2>& bodies, bool disableContacts = true)
+    RotationConstraint(const Bodies& bodies, bool disableContacts = true)
         : Base{bodies, F{bodies}, disableContacts}
     {
     }
@@ -152,9 +114,9 @@ public:
     typedef HingeConstraintFunction                           F;
 
     HingeConstraint(
-        const Bodies<2>& bodies,
-        Vec2             worldSpaceSharedPoint,
-        bool             disableContacts = true
+        const Bodies& bodies,
+        Vec2          worldSpaceSharedPoint,
+        bool          disableContacts = true
     )
         : Base{
             bodies,
@@ -180,19 +142,20 @@ public:
     typedef ConstraintImplementation<F> Base;
 
 
-    WeldConstraint(const Bodies<2>& bodies, bool disableContacts = true)
+    WeldConstraint(const Bodies& bodies, bool disableContacts = true)
         : Base{bodies, makeWeldFunction(bodies), disableContacts}
     {
     }
 
 private:
 
-    static Vec2 centroidMidPoint(const Bodies<2>& bodies)
+    static Vec2 centroidMidPoint(const Bodies& bodies)
     {
-        return (bodies[0]->centroid() + bodies[1]->centroid()) / 2;
+        auto b = bodies.bodies();
+        return (b[0]->centroid() + b[1]->centroid()) / 2;
     }
 
-    static F makeWeldFunction(const Bodies<2>& bodies)
+    static F makeWeldFunction(const Bodies& bodies)
     {
         return F{
             HingeF{bodies, centroidMidPoint(bodies)},
@@ -216,29 +179,22 @@ class ContactConstraint : public Constraint
 {
 public:
 
-    ContactConstraint(const Bodies<2>& bodies)
-        : bodies_{bodies}, 
-          manifold_{bodies[0], bodies[1]}, 
-          restitutionCoeff_{CombinableProperty{bodies[0]->material().bounciness, 
-                                               bodies[1]->material().bounciness}.value},
-          frictionCoeff_{CombinableProperty{bodies[0]->material().friction, 
-                                            bodies[1]->material().friction}.value}
+    ContactConstraint(const Bodies& bodies)
+        : Constraint{bodies}, 
+          manifold_{bodies.bodies()[0], bodies.bodies()[1]}, 
+          restitutionCoeff_{CombinableProperty{bodies.bodies()[0]->material().bounciness, 
+                                               bodies.bodies()[1]->material().bounciness}.value},
+          frictionCoeff_{CombinableProperty{bodies.bodies()[0]->material().friction, 
+                                            bodies.bodies()[1]->material().friction}.value}
     {
     }
 
-    bool shouldDie() override
-    {
-        for (Body* body : bodies_)
-            if (body->isDead())
-                return true;
-
-        return false;
-    }
+    void preStep() override { updateContacts(); }
 
     bool isActive() override
     {
-        updateContacts();
-        return manifold_.nContacts() != 0;
+        updateFrame();
+        return frame_.nContacts != 0;
     }
 
     void initSolve() override
@@ -257,7 +213,7 @@ public:
     {
         Impulse P = tangentImpulse(tangentLambda_);
         P += normalImpulse(normalLambda_);
-        bodies_.applyImpulse(P);
+        bodies().applyImpulse(P);
     }
 
     void solveVelocities(float /* dt */) override
@@ -296,8 +252,8 @@ public:
             float posLambda = -error[0] / normalK_(0, 0);
             posLambda       = std::max(posLambda, 0.f);
 
-            bodies_.applyPositionCorrection(
-                elementWiseMul(bodies_.inverseMassVec(), normalImpulse(posLambda))
+            bodies().applyPositionCorrection(
+                elementWiseMul(bodies().inverseMassVec(), normalImpulse(posLambda))
             );
         }
         else if (frame_.nContacts == 2)
@@ -323,20 +279,11 @@ public:
             ///////////////////////////////////////
 
 
-            bodies_.applyPositionCorrection(
-                elementWiseMul(bodies_.inverseMassVec(), normalImpulse(posLambda))
+            bodies().applyPositionCorrection(
+                elementWiseMul(bodies().inverseMassVec(), normalImpulse(posLambda))
             );
         }
     }
-
-    BodiesView      bodies() override { return bodies_.view(); }
-    ConstBodiesView bodies() const override { return bodies_.view(); }
-
-    bool isBodyStructural(const Body* body) const override
-    {
-        return body->isStructural();
-    };
-
 
     ContactInfo contactInfo() const
     {
@@ -361,11 +308,12 @@ private:
     {
         frame_ = manifold_.frameManifold();
 
+        auto p = bodies().proxies();
+
         for (Uint32 b = 0; b < 2; ++b)
             for (Uint32 c = 0; c < frame_.nContacts; ++c)
             {
-                radius_[b][c]
-                    = frame_.worldContacts[b][c] - bodies_[b]->centroid();
+                radius_[b][c] = frame_.worldContacts[b][c] - p[b]->centroid();
                 perpRadius_[b][c] = perp(radius_[b][c]);
             }
     }
@@ -401,7 +349,7 @@ private:
             const Uint32 inc = manifold_.incidentIndex();
 
             Vec2 nearestIncident = furthestVertexInDirection(
-                bodies_[inc]->collider(),
+                bodies().bodies()[inc]->collider(),
                 -frame_.normal
             );
 
@@ -435,8 +383,6 @@ private:
                 normalLambda_[1] = 0.f;
             }
         }
-
-        updateFrame();
     }
 
     void computeKs(bool computeFrictionK)
@@ -444,7 +390,7 @@ private:
         const Uint32 ref = manifold_.referenceIndex();
         const Uint32 inc = manifold_.incidentIndex();
 
-        const auto  invMass    = bodies_.inverseMassVec();
+        const auto  invMass    = bodies().inverseMassVec();
         const float refMass    = invMass[3 * ref];
         const float incMass    = invMass[3 * inc];
         const float refInertia = invMass[3 * ref + 2];
@@ -502,8 +448,8 @@ private:
         bounce_ *= restitutionCoeff_;
     }
 
-    typedef typename Bodies<2>::State   State;
-    typedef typename Bodies<2>::Impulse Impulse;
+    typedef typename Bodies::State   State;
+    typedef typename Bodies::Impulse Impulse;
 
     Impulse normalImpulse(float lambda, Uint32 contact = 0) const
     {
@@ -551,15 +497,16 @@ private:
 
     Vec2 relativeVelocity(Uint32 contact) const
     {
+        auto p = bodies().proxies();
+
         const Uint32 ref = manifold_.referenceIndex();
         const Uint32 inc = manifold_.incidentIndex();
 
-        Vec2 linearRelVel = bodies_[inc]->velocity() - bodies_[ref]->velocity();
+        Vec2 linearRelVel = p[inc]->velocity() - p[ref]->velocity();
 
-        Vec2 relVel
-            = linearRelVel
-              + bodies_[inc]->angularVelocity() * perpRadius_[inc][contact]
-              - bodies_[ref]->angularVelocity() * perpRadius_[ref][contact];
+        Vec2 relVel = linearRelVel
+                      + p[inc]->angularVelocity() * perpRadius_[inc][contact]
+                      - p[ref]->angularVelocity() * perpRadius_[ref][contact];
 
 
         return relVel;
@@ -567,18 +514,19 @@ private:
 
     std::array<Vec2, 2> relativeVelocity() const
     {
+        auto p = bodies().proxies();
+
         const Uint32 ref = manifold_.referenceIndex();
         const Uint32 inc = manifold_.incidentIndex();
 
-        Vec2 linearRelVel = bodies_[inc]->velocity() - bodies_[ref]->velocity();
+        Vec2 linearRelVel = p[inc]->velocity() - p[ref]->velocity();
 
         std::array<Vec2, 2> relVel;
         for (Uint32 c = 0; c < frame_.nContacts; ++c)
         {
-            relVel[c]
-                = linearRelVel
-                  + bodies_[inc]->angularVelocity() * perpRadius_[inc][c]
-                  - bodies_[ref]->angularVelocity() * perpRadius_[ref][c];
+            relVel[c] = linearRelVel
+                        + p[inc]->angularVelocity() * perpRadius_[inc][c]
+                        - p[ref]->angularVelocity() * perpRadius_[ref][c];
         }
 
         return relVel;
@@ -614,7 +562,7 @@ private:
             tangentLambda_[c] = clamp(tangentLambda_[c], -bound, bound);
             dTangentLambda    = tangentLambda_[c] - oldTangentLambda;
 
-            bodies_.applyImpulse(tangentImpulse(dTangentLambda, c));
+            bodies().applyImpulse(tangentImpulse(dTangentLambda, c));
         }
     }
 
@@ -632,7 +580,7 @@ private:
             normalLambda_[0] = std::max(0.f, normalLambda_[0]);
             dNormalLambda    = normalLambda_[0] - oldNormalLambda;
 
-            bodies_.applyImpulse(normalImpulse(dNormalLambda));
+            bodies().applyImpulse(normalImpulse(dNormalLambda));
         }
         else if (frame_.nContacts == 2)
         {
@@ -664,11 +612,10 @@ private:
 
             Vec2 dNormalLambda = normalLambda_ - oldNormalLambda;
 
-            bodies_.applyImpulse(normalImpulse(dNormalLambda));
+            bodies().applyImpulse(normalImpulse(dNormalLambda));
         }
     }
 
-    Bodies<2>       bodies_;
     ContactManifold manifold_;
 
     typename ContactManifold::FrameManifold frame_;
