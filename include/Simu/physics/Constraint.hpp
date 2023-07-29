@@ -192,7 +192,7 @@ public:
 
     bool isActive() override
     {
-        updateFrame();
+        frame_ = manifold_.frameManifold();
         return frame_.nContacts != 0;
     }
 
@@ -204,26 +204,96 @@ public:
         // else
         //     contactConstraint_->setRestitution(0.f);
 
+        computeJacobians(true);
         computeKs(true);
         computeBounce();
     }
 
     void warmstart(float /* dt */) override
     {
-        Impulse P = tangentImpulse(tangentLambda_);
-        P += normalImpulse(normalLambda_);
+        Impulse P = transpose(Jf) * tangentLambda_;
+        P += transpose(Jn) * normalLambda_;
         bodies().applyImpulse(P);
     }
 
     void solveVelocities(float /* dt */) override
     {
-        solveFrictionVelocity();
-        solveContactVelocity();
+        auto p = bodies().proxies();
+
+        const auto invMassVec = bodies().inverseMassVec();
+        auto       velocity   = bodies().velocity();
+
+        for (Uint32 c = 0; c < frame_.nContacts; ++c)
+        {
+            auto  J             = tangentJacobian(c);
+            float tangentVel     = (J * velocity)[0];
+            float dTangentLambda = -tangentVel / tangentKs_[c];
+
+            float oldTangentLambda = tangentLambda_[c];
+            tangentLambda_[c] += dTangentLambda;
+            float bound       = frictionCoeff_ * normalLambda_[c];
+            tangentLambda_[c] = clamp(tangentLambda_[c], -bound, bound);
+            dTangentLambda    = tangentLambda_[c] - oldTangentLambda;
+
+            velocity
+                += elementWiseMul(invMassVec, transpose(J) * dTangentLambda);
+        }
+
+        if (frame_.nContacts == 1)
+        {
+            auto  J            = normalJacobian(0);
+            float normalVel     = (J * velocity)[0];
+            float dNormalLambda = -(normalVel + bounce_[0]) / normalK_(0, 0);
+
+            float oldNormalLambda = normalLambda_[0];
+            normalLambda_[0] += dNormalLambda;
+            normalLambda_[0] = std::max(0.f, normalLambda_[0]);
+            dNormalLambda    = normalLambda_[0] - oldNormalLambda;
+
+            velocity
+                += elementWiseMul(invMassVec, transpose(J) * dNormalLambda);
+        }
+        else if (frame_.nContacts == 2)
+        {
+            Vec2 err = Jn * velocity;
+            Vec2 alreadyComputed = normalK_ * normalLambda_;
+
+            Vec2 oldNormalLambda = normalLambda_;
+
+            // PGS ////////////////////////////
+            // normalLambda_ = solveInequalities(
+            //     normalK_,
+            //     -(err - alreadyComputed + bounce_),
+            //     [](const Vec2& lambda, Uint32 i) {
+            //         return std::max(0.f, lambda[i]);
+            //     },
+            //     normalLambda_
+            // );
+            //////////////////////////////////
+
+            // Box2d's LCP solver ////////////
+            auto normalLambda
+                = solveLcp(normalK_, -(err - alreadyComputed + bounce_));
+
+            if (!normalLambda.has_value())
+                return;
+            else
+                normalLambda_ = normalLambda.value();
+            //////////////////////////////////
+
+            Vec2 dNormalLambda = normalLambda_ - oldNormalLambda;
+
+            auto P = transpose(Jn) * dNormalLambda;
+            velocity += elementWiseMul(invMassVec, P);
+        }
+
+        p[0]->setVelocity(Vec2{velocity[0], velocity[1]}, velocity[2]);
+        p[1]->setVelocity(Vec2{velocity[3], velocity[4]}, velocity[5]);
     }
 
     void solvePositions() override
     {
-        updateFrame();
+        computeJacobians(false);
         computeKs(false);
 
         Vec2 C{};
@@ -251,9 +321,10 @@ public:
             float posLambda = -error[0] / normalK_(0, 0);
             posLambda       = std::max(posLambda, 0.f);
 
-            bodies().applyPositionCorrection(
-                elementWiseMul(bodies().inverseMassVec(), normalImpulse(posLambda))
-            );
+            bodies().applyPositionCorrection(elementWiseMul(
+                bodies().inverseMassVec(),
+                transpose(normalJacobian(0)) * posLambda
+            ));
         }
         else if (frame_.nContacts == 2)
         {
@@ -279,7 +350,7 @@ public:
 
 
             bodies().applyPositionCorrection(
-                elementWiseMul(bodies().inverseMassVec(), normalImpulse(posLambda))
+                bodies().inverseMass() * transpose(Jn) * posLambda
             );
         }
     }
@@ -302,20 +373,6 @@ public:
     }
 
 private:
-
-    void updateFrame()
-    {
-        frame_ = manifold_.frameManifold();
-
-        auto p = bodies().proxies();
-
-        for (Uint32 b = 0; b < 2; ++b)
-            for (Uint32 c = 0; c < frame_.nContacts; ++c)
-            {
-                radius_[b][c] = frame_.worldContacts[b][c] - p[b]->centroid();
-                // perpRadius_[b][c] = perp(radius_[b][c]);
-            }
-    }
 
     // frame and manifold will be updated after this call,
     //  until the positions of the bodies change.
@@ -402,30 +459,25 @@ private:
         {
             for (Uint32 c = 0; c < manifold_.nContacts(); ++c)
             {
-                tangentK_[c]
-                    = linearMass * normSquared(frame_.tangent)
-                      + refInertia
-                            * squared(cross(radius_[ref][c], frame_.tangent))
-                      + incInertia
-                            * squared(cross(radius_[inc][c], frame_.tangent));
+                tangentKs_[c] = linearMass * normSquared(frame_.tangent)
+                                + refInertia * squared(Jf(c, 3 * ref + 2))
+                                + incInertia * squared(Jf(c, 3 * inc + 2));
             }
         }
 
         for (Uint32 c = 0; c < manifold_.nContacts(); ++c)
         {
-            normalK_(c, c)
-                = normalMass
-                  + refInertia * squared(cross(radius_[ref][c], frame_.normal))
-                  + incInertia * squared(cross(radius_[inc][c], frame_.normal));
+            normalK_(c, c) = normalMass
+                             + refInertia * squared(Jn(c, 3 * ref + 2))
+                             + incInertia * squared(Jn(c, 3 * inc + 2));
         }
 
         if (manifold_.nContacts() == 2)
         {
-            normalK_(0, 1) = normalMass
-                             + refInertia * cross(radius_[ref][0], frame_.normal)
-                                   * cross(radius_[ref][1], frame_.normal)
-                             + incInertia * cross(radius_[inc][0], frame_.normal)
-                                   * cross(radius_[inc][1], frame_.normal);
+            normalK_(0, 1)
+                = normalMass
+                  + refInertia * Jn(0, 3 * ref + 2) * Jn(1, 3 * ref + 2)
+                  + incInertia * Jn(0, 3 * inc + 2) * Jn(1, 3 * inc + 2);
 
             normalK_(1, 0) = normalK_(0, 1);
         }
@@ -435,128 +487,74 @@ private:
     {
         bounce_ = Vec2{};
 
-        auto relVel = relativeVelocity();
+        Vec2 relVel = Jn * bodies().velocity();
+
         for (Uint32 c = 0; c < manifold_.nContacts(); ++c)
         {
-            bounce_[c] = dot(relVel[c], frame_.normal);
             if (bounce_[c] > -restitutionTreshold)
                 bounce_[c] = 0.f;
         }
 
-        bounce_ = std::min(bounce_, Vec2::filled(0.f));
         bounce_ *= restitutionCoeff_;
     }
 
     typedef typename Bodies::State   State;
     typedef typename Bodies::Impulse Impulse;
 
-    Impulse normalImpulse(float lambda, Uint32 contact = 0) const
+    void computeJacobians(bool computeFriction)
     {
         const Uint32 ref = manifold_.referenceIndex();
         const Uint32 inc = manifold_.incidentIndex();
 
-        Vec2    dir = lambda * frame_.normal;
-        Impulse P;
-        P[3 * inc + 0] = dir[0];
-        P[3 * inc + 1] = dir[1];
-        P[3 * inc + 2] = cross(radius_[inc][contact], dir);
-        P[3 * ref + 0] = -dir[0];
-        P[3 * ref + 1] = -dir[1];
-        P[3 * ref + 2] = -cross(radius_[ref][contact], dir);
-
-        return P;
-    }
-
-    Impulse normalImpulse(Vec2 lambda) const
-    {
-        return normalImpulse(lambda[0], 0) + normalImpulse(lambda[1], 1);
-    }
-
-    Impulse tangentImpulse(float lambda, Uint32 contact = 0) const
-    {
-        const Uint32 ref = manifold_.referenceIndex();
-        const Uint32 inc = manifold_.incidentIndex();
-
-        Vec2    dir = lambda * frame_.tangent;
-        Impulse P;
-        P[3 * inc + 0] = dir[0];
-        P[3 * inc + 1] = dir[1];
-        P[3 * inc + 2] = cross(radius_[inc][contact], dir);
-        P[3 * ref + 0] = -dir[0];
-        P[3 * ref + 1] = -dir[1];
-        P[3 * ref + 2] = -cross(radius_[ref][contact], dir);
-
-        return P;
-    }
-
-    Impulse tangentImpulse(Vec2 lambda) const
-    {
-        return tangentImpulse(lambda[0], 0) + tangentImpulse(lambda[1], 1);
-    }
-
-    Vec2 relativeVelocity(Uint32 contact) const
-    {
         auto p = bodies().proxies();
 
-        const Uint32 ref = manifold_.referenceIndex();
-        const Uint32 inc = manifold_.incidentIndex();
+        std::array<std::array<Vec2, 2>, 2> r{};
+        for (Uint32 b = 0; b < 2; ++b)
+        {
+            Vec2 centroid = p[b]->centroid();
+            for (Uint32 c = 0; c < frame_.nContacts; ++c)
+            {
+                r[b][c] = frame_.worldContacts[b][c] - centroid;
+            }
+        }
 
-        Vec2 linearRelVel = p[inc]->velocity() - p[ref]->velocity();
+        Jf = Jacobian{};
+        Jn = Jacobian{};
 
-        float wi = p[inc]->angularVelocity();
-        Vec2  vi = wi * perp(radius_[inc][contact]);
+        Vec2 n = frame_.normal;
+        Vec2 t = frame_.tangent;
 
-        float wr = p[ref]->angularVelocity();
-        Vec2  vr = wr * perp(radius_[ref][contact]);
+        Uint32 incIndex = 3 * inc;
+        Uint32 refIndex = 3 * ref;
+        for (Uint32 c = 0; c < frame_.nContacts; ++c)
+        {
+            if (computeFriction)
+            {
+                Jf(c, incIndex + 0) = t[0];
+                Jf(c, incIndex + 1) = t[1];
+                Jf(c, incIndex + 2) = cross(r[inc][c], t);
+                Jf(c, refIndex + 0) = -t[0];
+                Jf(c, refIndex + 1) = -t[1];
+                Jf(c, refIndex + 2) = -cross(r[ref][c], t);
+            }
 
-        Vec2 relVel = linearRelVel + vi - vr;
-
-        return relVel;
+            Jn(c, incIndex + 0) = n[0];
+            Jn(c, incIndex + 1) = n[1];
+            Jn(c, incIndex + 2) = cross(r[inc][c], n);
+            Jn(c, refIndex + 0) = -n[0];
+            Jn(c, refIndex + 1) = -n[1];
+            Jn(c, refIndex + 2) = -cross(r[ref][c], n);
+        }
     }
 
-    std::array<Vec2, 2> relativeVelocity() const
+    Matrix<float, 1, 6> normalJacobian(Uint32 contact) const
     {
-        return {relativeVelocity(0), relativeVelocity(1)};
+        return transpose(Jn.asRows()[contact]);
     }
 
-    std::array<float, 2> relativeNormalVelocities()
+    Matrix<float, 1, 6> tangentJacobian(Uint32 contact) const
     {
-        auto p = bodies().proxies();
-
-        const Uint32 ref = manifold_.referenceIndex();
-        const Uint32 inc = manifold_.incidentIndex();
-
-        Vec2  linearRelVel = p[inc]->velocity() - p[ref]->velocity();
-        float vn           = dot(linearRelVel, frame_.normal);
-
-        float wi = p[inc]->angularVelocity();
-        float wr = p[ref]->angularVelocity();
-
-        Vec2 nCrossK = -frame_.tangent;
-
-        float vn0
-            = vn + dot(wi * radius_[inc][0] - wr * radius_[ref][0], nCrossK);
-        float vn1
-            = vn + dot(wi * radius_[inc][1] - wr * radius_[ref][1], nCrossK);
-        return {vn0, vn1};
-    }
-
-    float relativeTangentVelocity(Uint32 c)
-    {
-        auto p = bodies().proxies();
-
-        const Uint32 ref = manifold_.referenceIndex();
-        const Uint32 inc = manifold_.incidentIndex();
-
-        Vec2  linearRelVel = p[inc]->velocity() - p[ref]->velocity();
-        float vt           = dot(linearRelVel, frame_.tangent);
-
-        float wi = p[inc]->angularVelocity();
-        float wr = p[ref]->angularVelocity();
-
-        Vec2 tCrossK = frame_.normal;
-
-        return vt + dot(wi * radius_[inc][c] - wr * radius_[ref][c], tCrossK);
+        return transpose(Jf.asRows()[contact]);
     }
 
     std::array<Vec2, 2> relativePosition() const
@@ -574,79 +572,15 @@ private:
         return relPos;
     }
 
-    void solveFrictionVelocity()
-    {
-        for (Uint32 c = 0; c < frame_.nContacts; ++c)
-        {
-            float tangentVel     = relativeTangentVelocity(c);
-            float dTangentLambda = -tangentVel / tangentK_[c];
-
-            float oldTangentLambda = tangentLambda_[c];
-            tangentLambda_[c] += dTangentLambda;
-            float bound       = frictionCoeff_ * normalLambda_[c];
-            tangentLambda_[c] = clamp(tangentLambda_[c], -bound, bound);
-            dTangentLambda    = tangentLambda_[c] - oldTangentLambda;
-
-            bodies().applyImpulse(tangentImpulse(dTangentLambda, c));
-        }
-    }
-
-    void solveContactVelocity()
-    {
-        auto vn = relativeNormalVelocities();
-        if (frame_.nContacts == 1)
-        {
-            float normalVel     = vn[0];
-            float dNormalLambda = -(normalVel + bounce_[0]) / normalK_(0, 0);
-
-            float oldNormalLambda = normalLambda_[0];
-            normalLambda_[0] += dNormalLambda;
-            normalLambda_[0] = std::max(0.f, normalLambda_[0]);
-            dNormalLambda    = normalLambda_[0] - oldNormalLambda;
-
-            bodies().applyImpulse(normalImpulse(dNormalLambda));
-        }
-        else if (frame_.nContacts == 2)
-        {
-            Vec2 err{vn[0], vn[1]};
-            Vec2 alreadyComputed = normalK_ * normalLambda_;
-
-            Vec2 oldNormalLambda = normalLambda_;
-
-            // PGS ////////////////////////////
-            // normalLambda_ = solveInequalities(
-            //     normalK_,
-            //     -(err - alreadyComputed + bounce_),
-            //     [](const Vec2& lambda, Uint32 i) {
-            //         return std::max(0.f, lambda[i]);
-            //     },
-            //     normalLambda_
-            // );
-            //////////////////////////////////
-
-            // Box2d's LCP solver ////////////
-            auto normalLambda
-                = solveLcp(normalK_, -(err - alreadyComputed + bounce_));
-
-            if (!normalLambda.has_value())
-                return;
-            else
-                normalLambda_ = normalLambda.value();
-            //////////////////////////////////
-
-            Vec2 dNormalLambda = normalLambda_ - oldNormalLambda;
-
-            bodies().applyImpulse(normalImpulse(dNormalLambda));
-        }
-    }
-
     ContactManifold manifold_;
 
     typename ContactManifold::FrameManifold frame_;
-    std::array<std::array<Vec2, 2>, 2>      radius_;
-    // std::array<std::array<Vec2, 2>, 2>      perpRadius_;
 
-    Vec2 tangentK_;
+    typedef Matrix<float, 2, 6> Jacobian;
+    Jacobian                    Jf;
+    Jacobian                    Jn;
+
+    Vec2 tangentKs_;
     Mat2 normalK_;
 
     Vec2 tangentLambda_{};

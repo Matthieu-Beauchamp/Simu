@@ -189,7 +189,12 @@ public:
         SolverProxy const** p = const_cast<SolverProxy const**>(proxies_.data());
         return ArrayView(p, p + size());
     }
-
+    auto proxies()
+    {
+        assertHasProxies();
+        SolverProxy ** p = proxies_.data();
+        return ArrayView(p, p + size());
+    }
 
     bool isBodyStructural(const Body* body) const;
 

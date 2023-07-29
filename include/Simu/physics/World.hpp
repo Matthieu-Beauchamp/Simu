@@ -353,7 +353,7 @@ private:
     typedef typename Alloc::rebind<UniquePtr<Body>>::other BodyAlloc;
     typedef std::list<UniquePtr<Body>, BodyAlloc>          BodyList;
 
-    BodyAlloc bAlloc_{};
+    BodyAlloc bAlloc_{miscAlloc_};
     BodyList  bodies_{bAlloc_};
 
 
@@ -362,7 +362,7 @@ private:
 
     typedef std::list<UniquePtr<Constraint>, ConstraintAlloc> ConstraintList;
 
-    ConstraintAlloc cAlloc_{};
+    ConstraintAlloc cAlloc_{bAlloc_};
     ConstraintList  constraints_{cAlloc_};
 
 
