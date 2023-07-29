@@ -24,6 +24,8 @@
 
 #pragma once
 
+#include <cmath>
+
 #include <array>
 #include <optional>
 #include <ranges>
@@ -64,6 +66,10 @@ public:
 
     void setPosition(Vec2 position, float orientation)
     {
+        SIMU_ASSERT(std::isfinite(position[0]), "");
+        SIMU_ASSERT(std::isfinite(position[1]), "");
+        SIMU_ASSERT(std::isfinite(orientation), "");
+
         position_    = position;
         orientation_ = orientation;
         toWorldSpace_
@@ -72,6 +78,10 @@ public:
 
     void setVelocity(Vec2 velocity, float angularVelocity)
     {
+        SIMU_ASSERT(std::isfinite(velocity[0]), "");
+        SIMU_ASSERT(std::isfinite(velocity[1]), "");
+        SIMU_ASSERT(std::isfinite(angularVelocity), "");
+
         velocity_        = velocity;
         angularVelocity_ = angularVelocity;
     }
@@ -207,7 +217,7 @@ private:
     {
         SIMU_ASSERT(bodies_[0]->proxyIndex != Body::NO_INDEX, "");
         SIMU_ASSERT(bodies_[1]->proxyIndex != Body::NO_INDEX, "");
-        
+
         proxies_[0] = start + bodies_[0]->proxyIndex;
         proxies_[1] = start + bodies_[1]->proxyIndex;
         isSolving_  = true;
