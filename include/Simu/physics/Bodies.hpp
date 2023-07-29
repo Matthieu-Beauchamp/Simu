@@ -148,7 +148,7 @@ public:
     {
         Bodies b{
             {body, body},
-            Dominance{1.f,  0.f }
+            Dominance{1.f,  1.f }
         };
 
         b.isSingleBody = true;

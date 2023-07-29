@@ -179,8 +179,8 @@ public:
 
 private:
 
-    Translation t_;
     Rotation    r_;
+    Translation t_;
 };
 
 

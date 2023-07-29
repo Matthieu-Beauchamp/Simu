@@ -318,7 +318,7 @@ private:
     template <std::derived_from<PhysicsObject> T, class A, class... Args>
     UniquePtr<T> makeObject(A& alloc, Args&&... args)
     {
-        auto obj = alloc.makeUnique<T>(std::forward<Args>(args)...);
+        auto obj = alloc.template makeUnique<T>(std::forward<Args>(args)...);
         obj->setAllocator(alloc);
         obj->onConstruction(*this);
         return obj;
