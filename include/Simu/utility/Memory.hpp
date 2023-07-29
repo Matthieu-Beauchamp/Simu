@@ -44,6 +44,7 @@ void replaceAllocator(Container& c, const A& alloc)
     );
 
     c = Container{c.begin(), c.end(), alloc};
+    SIMU_ASSERT(c.get_allocator() == alloc, "Allocator was not replaced");
 }
 
 // TODO: Could keep track of the biggest available slot to avoid searches when
