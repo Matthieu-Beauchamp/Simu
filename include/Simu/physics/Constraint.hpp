@@ -51,7 +51,6 @@ public:
           solver{bodies, f},
           disableContacts_{disableContacts}
     {
-
     }
 
     void onConstruction(World& world) override;
@@ -314,7 +313,7 @@ private:
             for (Uint32 c = 0; c < frame_.nContacts; ++c)
             {
                 radius_[b][c] = frame_.worldContacts[b][c] - p[b]->centroid();
-                perpRadius_[b][c] = perp(radius_[b][c]);
+                // perpRadius_[b][c] = perp(radius_[b][c]);
             }
     }
 
@@ -456,16 +455,16 @@ private:
         const Uint32 ref = manifold_.referenceIndex();
         const Uint32 inc = manifold_.incidentIndex();
 
-        Vec2    dir = frame_.normal;
-        Impulse J;
-        J[3 * inc + 0] = dir[0];
-        J[3 * inc + 1] = dir[1];
-        J[3 * inc + 2] = cross(radius_[inc][contact], frame_.normal);
-        J[3 * ref + 0] = -dir[0];
-        J[3 * ref + 1] = -dir[1];
-        J[3 * ref + 2] = -cross(radius_[ref][contact], frame_.normal);
+        Vec2    dir = lambda * frame_.normal;
+        Impulse P;
+        P[3 * inc + 0] = dir[0];
+        P[3 * inc + 1] = dir[1];
+        P[3 * inc + 2] = cross(radius_[inc][contact], dir);
+        P[3 * ref + 0] = -dir[0];
+        P[3 * ref + 1] = -dir[1];
+        P[3 * ref + 2] = -cross(radius_[ref][contact], dir);
 
-        return lambda * J;
+        return P;
     }
 
     Impulse normalImpulse(Vec2 lambda) const
@@ -478,16 +477,16 @@ private:
         const Uint32 ref = manifold_.referenceIndex();
         const Uint32 inc = manifold_.incidentIndex();
 
-        Vec2    dir = frame_.tangent;
-        Impulse J;
-        J[3 * inc + 0] = dir[0];
-        J[3 * inc + 1] = dir[1];
-        J[3 * inc + 2] = cross(radius_[inc][contact], frame_.tangent);
-        J[3 * ref + 0] = -dir[0];
-        J[3 * ref + 1] = -dir[1];
-        J[3 * ref + 2] = -cross(radius_[ref][contact], frame_.tangent);
+        Vec2    dir = lambda * frame_.tangent;
+        Impulse P;
+        P[3 * inc + 0] = dir[0];
+        P[3 * inc + 1] = dir[1];
+        P[3 * inc + 2] = cross(radius_[inc][contact], dir);
+        P[3 * ref + 0] = -dir[0];
+        P[3 * ref + 1] = -dir[1];
+        P[3 * ref + 2] = -cross(radius_[ref][contact], dir);
 
-        return lambda * J;
+        return P;
     }
 
     Impulse tangentImpulse(Vec2 lambda) const
@@ -504,32 +503,60 @@ private:
 
         Vec2 linearRelVel = p[inc]->velocity() - p[ref]->velocity();
 
-        Vec2 relVel = linearRelVel
-                      + p[inc]->angularVelocity() * perpRadius_[inc][contact]
-                      - p[ref]->angularVelocity() * perpRadius_[ref][contact];
+        float wi = p[inc]->angularVelocity();
+        Vec2  vi = wi * perp(radius_[inc][contact]);
 
+        float wr = p[ref]->angularVelocity();
+        Vec2  vr = wr * perp(radius_[ref][contact]);
+
+        Vec2 relVel = linearRelVel + vi - vr;
 
         return relVel;
     }
 
     std::array<Vec2, 2> relativeVelocity() const
     {
+        return {relativeVelocity(0), relativeVelocity(1)};
+    }
+
+    std::array<float, 2> relativeNormalVelocities()
+    {
         auto p = bodies().proxies();
 
         const Uint32 ref = manifold_.referenceIndex();
         const Uint32 inc = manifold_.incidentIndex();
 
-        Vec2 linearRelVel = p[inc]->velocity() - p[ref]->velocity();
+        Vec2  linearRelVel = p[inc]->velocity() - p[ref]->velocity();
+        float vn           = dot(linearRelVel, frame_.normal);
 
-        std::array<Vec2, 2> relVel;
-        for (Uint32 c = 0; c < frame_.nContacts; ++c)
-        {
-            relVel[c] = linearRelVel
-                        + p[inc]->angularVelocity() * perpRadius_[inc][c]
-                        - p[ref]->angularVelocity() * perpRadius_[ref][c];
-        }
+        float wi = p[inc]->angularVelocity();
+        float wr = p[ref]->angularVelocity();
 
-        return relVel;
+        Vec2 nCrossK = -frame_.tangent;
+
+        float vn0
+            = vn + dot(wi * radius_[inc][0] - wr * radius_[ref][0], nCrossK);
+        float vn1
+            = vn + dot(wi * radius_[inc][1] - wr * radius_[ref][1], nCrossK);
+        return {vn0, vn1};
+    }
+
+    float relativeTangentVelocity(Uint32 c)
+    {
+        auto p = bodies().proxies();
+
+        const Uint32 ref = manifold_.referenceIndex();
+        const Uint32 inc = manifold_.incidentIndex();
+
+        Vec2  linearRelVel = p[inc]->velocity() - p[ref]->velocity();
+        float vt           = dot(linearRelVel, frame_.tangent);
+
+        float wi = p[inc]->angularVelocity();
+        float wr = p[ref]->angularVelocity();
+
+        Vec2 tCrossK = frame_.normal;
+
+        return vt + dot(wi * radius_[inc][c] - wr * radius_[ref][c], tCrossK);
     }
 
     std::array<Vec2, 2> relativePosition() const
@@ -551,9 +578,7 @@ private:
     {
         for (Uint32 c = 0; c < frame_.nContacts; ++c)
         {
-            Vec2 relVel = relativeVelocity(c);
-
-            float tangentVel     = dot(relVel, frame_.tangent);
+            float tangentVel     = relativeTangentVelocity(c);
             float dTangentLambda = -tangentVel / tangentK_[c];
 
             float oldTangentLambda = tangentLambda_[c];
@@ -568,11 +593,10 @@ private:
 
     void solveContactVelocity()
     {
-        auto relVel = relativeVelocity();
-
+        auto vn = relativeNormalVelocities();
         if (frame_.nContacts == 1)
         {
-            float normalVel     = dot(relVel[0], frame_.normal);
+            float normalVel     = vn[0];
             float dNormalLambda = -(normalVel + bounce_[0]) / normalK_(0, 0);
 
             float oldNormalLambda = normalLambda_[0];
@@ -584,7 +608,7 @@ private:
         }
         else if (frame_.nContacts == 2)
         {
-            Vec2 err{dot(relVel[0], frame_.normal), dot(relVel[1], frame_.normal)};
+            Vec2 err{vn[0], vn[1]};
             Vec2 alreadyComputed = normalK_ * normalLambda_;
 
             Vec2 oldNormalLambda = normalLambda_;
@@ -620,7 +644,7 @@ private:
 
     typename ContactManifold::FrameManifold frame_;
     std::array<std::array<Vec2, 2>, 2>      radius_;
-    std::array<std::array<Vec2, 2>, 2>      perpRadius_;
+    // std::array<std::array<Vec2, 2>, 2>      perpRadius_;
 
     Vec2 tangentK_;
     Mat2 normalK_;

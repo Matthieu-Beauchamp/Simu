@@ -42,7 +42,8 @@ public:
     typedef typename Alloc::rebind<Constraint*>::other CAlloc;
 
 
-    Island(Body* root, const Alloc& alloc) : bodies_{alloc}, constraints_{alloc}
+    Island(Body* root, const Alloc& alloc)
+        : bodies_{alloc}, constraints_{alloc}, proxies_{alloc}
     {
         addBody(root);
 
@@ -189,7 +190,7 @@ private:
     std::vector<Constraint*, CAlloc> constraints_;
 
     typedef typename Alloc::rebind<SolverProxy>::other ProxyAlloc;
-    std::vector<SolverProxy, ProxyAlloc>               proxies_{};
+    std::vector<SolverProxy, ProxyAlloc>               proxies_;
 
     bool isAwake_ = false;
 };
