@@ -1,0 +1,1753 @@
+--------------------------------------------------------------------------------
+Command:            buildRelWithDebInfo/demos/Pyramid
+Massif arguments:   (none)
+ms_print arguments: massif.out.17898
+--------------------------------------------------------------------------------
+
+
+    MB
+13.04^                                                                  #     
+     |                                                :::::::::::@:::::@#:::::
+     |                                ::::::::::::::::: ::: :: ::@:::::@#:: ::
+     |               ::::@:::::::@:::::: : ::::::: :::: ::: :: ::@:::::@#:: ::
+     |   ::@:@@::::::: ::@:: :: :@:: ::: : ::::::: :::: ::: :: ::@:::::@#:: ::
+     |   ::@:@ :: : :: ::@:: :: :@:: ::: : ::::::: :::: ::: :: ::@:::::@#:: ::
+     |   ::@:@ :: : :: ::@:: :: :@:: ::: : ::::::: :::: ::: :: ::@:::::@#:: ::
+     |   ::@:@ :: : :: ::@:: :: :@:: ::: : ::::::: :::: ::: :: ::@:::::@#:: ::
+     |   ::@:@ :: : :: ::@:: :: :@:: ::: : ::::::: :::: ::: :: ::@:::::@#:: ::
+     |   ::@:@ :: : :: ::@:: :: :@:: ::: : ::::::: :::: ::: :: ::@:::::@#:: ::
+     |   ::@:@ :: : :: ::@:: :: :@:: ::: : ::::::: :::: ::: :: ::@:::::@#:: ::
+     |   ::@:@ :: : :: ::@:: :: :@:: ::: : ::::::: :::: ::: :: ::@:::::@#:: ::
+     |   ::@:@ :: : :: ::@:: :: :@:: ::: : ::::::: :::: ::: :: ::@:::::@#:: ::
+     |   ::@:@ :: : :: ::@:: :: :@:: ::: : ::::::: :::: ::: :: ::@:::::@#:: ::
+     |   ::@:@ :: : :: ::@:: :: :@:: ::: : ::::::: :::: ::: :: ::@:::::@#:: ::
+     |   ::@:@ :: : :: ::@:: :: :@:: ::: : ::::::: :::: ::: :: ::@:::::@#:: ::
+     |   ::@:@ :: : :: ::@:: :: :@:: ::: : ::::::: :::: ::: :: ::@:::::@#:: ::
+     |   ::@:@ :: : :: ::@:: :: :@:: ::: : ::::::: :::: ::: :: ::@:::::@#:: ::
+     | ::::@:@ :: : :: ::@:: :: :@:: ::: : ::::::: :::: ::: :: ::@:::::@#:: ::
+     | : ::@:@ :: : :: ::@:: :: :@:: ::: : ::::::: :::: ::: :: ::@:::::@#:: ::
+   0 +----------------------------------------------------------------------->Gi
+     0                                                                   8.732
+
+Number of snapshots: 59
+ Detailed snapshots: [4, 6, 14, 20, 45, 51, 53 (peak)]
+
+--------------------------------------------------------------------------------
+  n        time(i)         total(B)   useful-heap(B) extra-heap(B)    stacks(B)
+--------------------------------------------------------------------------------
+  0              0                0                0             0            0
+  1    153,282,833        1,936,424        1,799,203       137,221            0
+  2    395,189,166       11,074,648       10,450,125       624,523            0
+  3    546,798,682       11,070,272       10,445,933       624,339            0
+  4    700,542,593       11,199,824       10,573,013       626,811            0
+94.40% (10,573,013B) (heap allocation functions) malloc/new/new[], --alloc-fns, etc.
+->57.15% (6,400,992B) 0x5CADAD5: ralloc_size (ralloc.c:117)
+| ->29.36% (3,288,128B) in 1178 places, all below massif's threshold (1.00%)
+| | 
+| ->05.86% (656,832B) 0x601AE61: UnknownInlinedFun (ralloc.c:150)
+| | ->05.86% (656,832B) 0x601AE61: UnknownInlinedFun (list.h:58)
+| |   ->05.86% (656,832B) 0x601AE61: (anonymous namespace)::builtin_builder::new_sig(glsl_type const*, bool (*)(_mesa_glsl_parse_state const*), int, ...) [clone .lto_priv.0] (builtin_functions.cpp:5784)
+| |     ->02.67% (299,136B) in 141 places, all below massif's threshold (1.00%)
+| |     | 
+| |     ->02.13% (238,656B) 0x6E50FE9: (anonymous namespace)::builtin_builder::_texture(ir_texture_opcode, bool (*)(_mesa_glsl_parse_state const*), glsl_type const*, glsl_type const*, glsl_type const*, int) [clone .constprop.0] (builtin_functions.cpp:7203)
+| |     | ->02.13% (238,656B) in 1243 places, all below massif's threshold (1.00%)
+| |     |   
+| |     ->01.06% (119,040B) 0x601C3DC: (anonymous namespace)::builtin_builder::_image_prototype(glsl_type const*, unsigned int, unsigned int) [clone .lto_priv.0] (builtin_functions.cpp:8213)
+| |       ->01.06% (119,040B) 0x6EA25DC: UnknownInlinedFun (builtin_functions.cpp:8317)
+| |         ->01.06% (119,040B) 0x6EA25DC: (anonymous namespace)::builtin_builder::add_image_function(char const*, char const*, ir_function_signature* ((anonymous namespace)::builtin_builder::*)(glsl_type const*, unsigned int, unsigned int), unsigned int, unsigned int, ir_intrinsic_id) [clone .constprop.0] (builtin_functions.cpp:5531)
+| |           ->01.06% (119,040B) in 25 places, all below massif's threshold (1.00%)
+| |             
+| ->02.53% (283,104B) 0x603D845: UnknownInlinedFun (ralloc.c:150)
+| | ->02.53% (283,104B) 0x603D845: UnknownInlinedFun (list.h:58)
+| |   ->02.53% (283,104B) 0x603D845: ir_builder::ret(ir_builder::operand) (ir_builder.cpp:70)
+| |     ->02.53% (283,104B) in 123 places, all below massif's threshold (1.00%)
+| |       
+| ->02.13% (238,656B) 0x6E50F07: UnknownInlinedFun (ralloc.c:150)
+| | ->02.13% (238,656B) 0x6E50F07: UnknownInlinedFun (list.h:58)
+| |   ->02.13% (238,656B) 0x6E50F07: UnknownInlinedFun (builtin_functions.cpp:5659)
+| |     ->02.13% (238,656B) 0x6E50F07: (anonymous namespace)::builtin_builder::_texture(ir_texture_opcode, bool (*)(_mesa_glsl_parse_state const*), glsl_type const*, glsl_type const*, glsl_type const*, int) [clone .constprop.0] (builtin_functions.cpp:7198)
+| |       ->02.13% (238,656B) in 1243 places, all below massif's threshold (1.00%)
+| |         
+| ->02.13% (238,656B) 0x6E50F67: UnknownInlinedFun (ralloc.c:150)
+| | ->02.13% (238,656B) 0x6E50F67: UnknownInlinedFun (list.h:58)
+| |   ->02.13% (238,656B) 0x6E50F67: UnknownInlinedFun (builtin_functions.cpp:5659)
+| |     ->02.13% (238,656B) 0x6E50F67: (anonymous namespace)::builtin_builder::_texture(ir_texture_opcode, bool (*)(_mesa_glsl_parse_state const*), glsl_type const*, glsl_type const*, glsl_type const*, int) [clone .constprop.0] (builtin_functions.cpp:7199)
+| |       ->02.13% (238,656B) in 1243 places, all below massif's threshold (1.00%)
+| |         
+| ->02.04% (228,976B) 0x6E83589: UnknownInlinedFun (ralloc.c:775)
+| | ->02.04% (228,976B) 0x6E83589: gc_alloc_size.constprop.0 (ralloc.c:811)
+| |   ->02.04% (228,976B) in 4 places, all below massif's threshold (1.00%)
+| |     
+| ->01.95% (218,768B) 0x6E5101B: UnknownInlinedFun (ralloc.c:150)
+| | ->01.95% (218,768B) 0x6E5101B: UnknownInlinedFun (list.h:58)
+| |   ->01.95% (218,768B) 0x6E5101B: (anonymous namespace)::builtin_builder::_texture(ir_texture_opcode, bool (*)(_mesa_glsl_parse_state const*), glsl_type const*, glsl_type const*, glsl_type const*, int) [clone .constprop.0] (builtin_functions.cpp:7205)
+| |     ->01.95% (218,768B) in 1243 places, all below massif's threshold (1.00%)
+| |       
+| ->01.68% (188,160B) 0x603E628: UnknownInlinedFun (ralloc.c:150)
+| | ->01.68% (188,160B) 0x603E628: UnknownInlinedFun (list.h:58)
+| |   ->01.68% (188,160B) 0x603E628: ir_builder::ir_factory::make_temp(glsl_type const*, char const*) (ir_builder.cpp:42)
+| |     ->01.68% (188,160B) in 98 places, all below massif's threshold (1.00%)
+| |       
+| ->01.55% (173,824B) 0x6E54E6F: UnknownInlinedFun (ralloc.c:150)
+| | ->01.55% (173,824B) 0x6E54E6F: UnknownInlinedFun (list.h:58)
+| |   ->01.55% (173,824B) 0x6E54E6F: UnknownInlinedFun (builtin_functions.cpp:5723)
+| |     ->01.55% (173,824B) 0x6E54E6F: (anonymous namespace)::builtin_builder::array_ref(ir_variable*, int) [clone .constprop.0] (builtin_functions.cpp:5755)
+| |       ->01.55% (173,824B) in 320 places, all below massif's threshold (1.00%)
+| |         
+| ->01.46% (163,968B) 0x603D8D7: UnknownInlinedFun (ralloc.c:150)
+| | ->01.46% (163,968B) 0x603D8D7: UnknownInlinedFun (list.h:58)
+| |   ->01.46% (163,968B) 0x603D8D7: ir_builder::swizzle(ir_builder::operand, int, int) (ir_builder.cpp:83)
+| |     ->01.46% (163,968B) in 310 places, all below massif's threshold (1.00%)
+| |       
+| ->01.21% (135,648B) 0x6040A43: UnknownInlinedFun (ralloc.c:150)
+| | ->01.21% (135,648B) 0x6040A43: UnknownInlinedFun (list.h:58)
+| |   ->01.21% (135,648B) 0x6040A43: ir_builder::expr(ir_expression_operation, ir_builder::operand, ir_builder::operand) (ir_builder.cpp:180)
+| |     ->01.21% (135,648B) in 173 places, all below massif's threshold (1.00%)
+| |       
+| ->01.07% (119,328B) 0x6E510AE: UnknownInlinedFun (ralloc.c:150)
+| | ->01.07% (119,328B) 0x6E510AE: UnknownInlinedFun (list.h:58)
+| |   ->01.07% (119,328B) 0x6E510AE: UnknownInlinedFun (builtin_functions.cpp:5749)
+| |     ->01.07% (119,328B) 0x6E510AE: (anonymous namespace)::builtin_builder::_texture(ir_texture_opcode, bool (*)(_mesa_glsl_parse_state const*), glsl_type const*, glsl_type const*, glsl_type const*, int) [clone .constprop.0] (builtin_functions.cpp:7206)
+| |       ->01.07% (119,328B) in 1243 places, all below massif's threshold (1.00%)
+| |         
+| ->01.06% (119,040B) 0x601C2BC: UnknownInlinedFun (ralloc.c:150)
+| | ->01.06% (119,040B) 0x601C2BC: UnknownInlinedFun (list.h:58)
+| |   ->01.06% (119,040B) 0x601C2BC: UnknownInlinedFun (builtin_functions.cpp:5659)
+| |     ->01.06% (119,040B) 0x601C2BC: (anonymous namespace)::builtin_builder::_image_prototype(glsl_type const*, unsigned int, unsigned int) [clone .lto_priv.0] (builtin_functions.cpp:8209)
+| |       ->01.06% (119,040B) 0x6EA25DC: UnknownInlinedFun (builtin_functions.cpp:8317)
+| |         ->01.06% (119,040B) 0x6EA25DC: (anonymous namespace)::builtin_builder::add_image_function(char const*, char const*, ir_function_signature* ((anonymous namespace)::builtin_builder::*)(glsl_type const*, unsigned int, unsigned int), unsigned int, unsigned int, ir_intrinsic_id) [clone .constprop.0] (builtin_functions.cpp:5531)
+| |           ->01.06% (119,040B) in 25 places, all below massif's threshold (1.00%)
+| |             
+| ->01.06% (119,040B) 0x601C329: UnknownInlinedFun (ralloc.c:150)
+| | ->01.06% (119,040B) 0x601C329: UnknownInlinedFun (list.h:58)
+| |   ->01.06% (119,040B) 0x601C329: UnknownInlinedFun (builtin_functions.cpp:5659)
+| |     ->01.06% (119,040B) 0x601C329: (anonymous namespace)::builtin_builder::_image_prototype(glsl_type const*, unsigned int, unsigned int) [clone .lto_priv.0] (builtin_functions.cpp:8210)
+| |       ->01.06% (119,040B) 0x6EA25DC: UnknownInlinedFun (builtin_functions.cpp:8317)
+| |         ->01.06% (119,040B) 0x6EA25DC: (anonymous namespace)::builtin_builder::add_image_function(char const*, char const*, ir_function_signature* ((anonymous namespace)::builtin_builder::*)(glsl_type const*, unsigned int, unsigned int), unsigned int, unsigned int, ir_intrinsic_id) [clone .constprop.0] (builtin_functions.cpp:5531)
+| |           ->01.06% (119,040B) in 25 places, all below massif's threshold (1.00%)
+| |             
+| ->01.04% (115,968B) 0x6058AFD: UnknownInlinedFun (ralloc.c:150)
+| | ->01.04% (115,968B) 0x6058AFD: UnknownInlinedFun (list.h:58)
+| |   ->01.04% (115,968B) 0x6058AFD: ir_dereference_array::ir_dereference_array(ir_variable*, ir_rvalue*) (ir.cpp:1692)
+| |     ->01.04% (115,968B) in 5 places, all below massif's threshold (1.00%)
+| |       
+| ->01.01% (112,896B) 0x603D725: UnknownInlinedFun (ralloc.c:150)
+|   ->01.01% (112,896B) 0x603D725: UnknownInlinedFun (list.h:58)
+|     ->01.01% (112,896B) 0x603D725: UnknownInlinedFun (ir_builder.cpp:61)
+|       ->01.01% (112,896B) 0x603D725: ir_builder::assign(ir_builder::deref, ir_builder::operand) (ir_builder.cpp:51)
+|         ->01.01% (112,896B) in 73 places, all below massif's threshold (1.00%)
+|           
+->17.20% (1,926,192B) in 731 places, all below massif's threshold (1.00%)
+| 
+->07.02% (786,432B) 0x19AE5F: Block (Memory.hpp:50)
+| ->07.02% (786,432B) 0x19AE5F: construct_at<simu::Block, long unsigned int const&> (stl_construct.h:97)
+|   ->07.02% (786,432B) 0x19AE5F: construct<simu::Block, long unsigned int const&> (alloc_traits.h:539)
+|     ->07.02% (786,432B) 0x19AE5F: _M_create_node<long unsigned int const&> (stl_list.h:713)
+|       ->07.02% (786,432B) 0x19AE5F: _M_insert<long unsigned int const&> (stl_list.h:2005)
+|         ->07.02% (786,432B) 0x19AE5F: emplace_back<long unsigned int const&> (stl_list.h:1321)
+|           ->07.02% (786,432B) 0x19AE5F: allocate (Memory.hpp:284)
+|             ->07.02% (786,432B) 0x19AE5F: allocate (Memory.hpp:270)
+|               ->07.02% (786,432B) 0x19AE5F: std::unique_ptr<simu::VisibleBody, std::function<void (void*)> > simu::FreeListAllocator<std::unique_ptr<simu::Body, std::function<void (void*)> >, 32768ul>::makeUnique<simu::VisibleBody, simu::BodyDescriptor&, simu::Matrix<unsigned char, 4u, 1u>, simu::Renderer*>(simu::BodyDescriptor&, simu::Matrix<unsigned char, 4u, 1u>&&, simu::Renderer*&&) (Memory.hpp:148)
+|                 ->07.02% (786,432B) 0x1AF7B5: makeObject<simu::VisibleBody, simu::FreeListAllocator<std::unique_ptr<simu::Body, std::function<void(void*)> >, 32768>, simu::BodyDescriptor&, simu::Matrix<unsigned char, 4, 1>, simu::Renderer*> (World.hpp:321)
+|                   ->07.02% (786,432B) 0x1AF7B5: simu::VisibleBody* simu::World::makeBody<simu::VisibleBody, simu::BodyDescriptor&, simu::Matrix<unsigned char, 4u, 1u>, simu::Renderer*>(simu::BodyDescriptor&, simu::Matrix<unsigned char, 4u, 1u>&&, simu::Renderer*&&) (World.hpp:170)
+|                     ->07.02% (786,432B) 0x1AD203: simu::BoxSpawner::makeBox(simu::Matrix<float, 2u, 1u>, simu::Matrix<float, 2u, 1u>) (Tool.cpp:125)
+|                       ->07.02% (786,432B) 0x19CEF4: Pyramid::init(simu::Renderer&) (Pyramid.cpp:70)
+|                         ->07.02% (786,432B) 0x1A4D1D: simu::Scene::init(simu::Application*) (Scene.cpp:123)
+|                           ->07.02% (786,432B) 0x1A0147: simu::Application::run() (Application.cpp:235)
+|                             ->07.02% (786,432B) 0x162C8B: main (Pyramid.cpp:130)
+|                               
+->02.81% (314,928B) 0x48D6A05: UnknownInlinedFun (imLcPrs.c:674)
+| ->02.81% (314,928B) 0x48D6A05: parsestringfile (imLcPrs.c:739)
+|   ->02.81% (314,928B) 0x48D8C21: UnknownInlinedFun (imLcIm.c:610)
+|     ->02.81% (314,928B) 0x48D8C21: _XimLocalOpenIM (imLcIm.c:700)
+|       ->02.81% (314,928B) 0x48D1E9F: _XimOpenIM (imInt.c:229)
+|         ->02.81% (314,928B) 0x1C317D: _glfwPlatformInit (x11_init.c:1142)
+|           ->02.81% (314,928B) 0x1BC077: glfwInit (init.c:324)
+|             ->02.81% (314,928B) 0x1A0739: simu::Application::Application() (Application.cpp:159)
+|               ->02.81% (314,928B) 0x162C7F: DummyApp (Pyramid.cpp:113)
+|                 ->02.81% (314,928B) 0x162C7F: main (Pyramid.cpp:129)
+|                   
+->02.50% (280,141B) 0x5A7FD85: ???
+| ->02.50% (279,524B) 0x1CF716: operator() (std_function.h:591)
+| | ->02.50% (279,524B) 0x1CF716: glbinding::Binding::resolveFunction(char const*) (Binding.cpp:214)
+| |   ->02.50% (279,524B) 0x1D131B: resolve (State.cpp:18)
+| |     ->02.50% (279,524B) 0x1D131B: glbinding::State::resolve(char const*) (State.cpp:11)
+| |       ->02.50% (279,524B) 0x1CEBD3: glbinding::Binding::resolveFunctions() (Binding.cpp:234)
+| |         ->02.50% (279,524B) 0x1CFFB5: glbinding::Binding::initialize(long long, std::function<void (*(char const*))()>, bool, bool) (Binding.cpp:199)
+| |           ->02.50% (279,524B) 0x1D0250: glbinding::Binding::initialize(std::function<void (*(char const*))()>, bool) (Binding.cpp:157)
+| |             ->02.50% (279,524B) 0x1CE049: glbinding::initialize(std::function<void (*(char const*))()>, bool) (glbinding.cpp:15)
+| |               ->02.50% (279,524B) 0x1A0831: simu::Application::Application() (Application.cpp:178)
+| |                 ->02.50% (279,524B) 0x162C7F: DummyApp (Pyramid.cpp:113)
+| |                   ->02.50% (279,524B) 0x162C7F: main (Pyramid.cpp:129)
+| |                     
+| ->00.01% (617B) in 1+ places, all below ms_print's threshold (01.00%)
+| 
+->02.37% (265,072B) 0x5D64242: UnknownInlinedFun (os_memory_aligned.h:58)
+| ->02.37% (265,072B) 0x5D64242: st_create_context (st_context.c:864)
+|   ->02.37% (265,072B) 0x5CBD39B: UnknownInlinedFun (st_manager.c:992)
+|     ->02.37% (265,072B) 0x5CBD39B: dri_create_context (dri_context.c:177)
+|       ->02.37% (265,072B) 0x5CBFE86: driCreateContextAttribs (dri_util.c:627)
+|         ->02.37% (265,072B) 0x5AE1E4C: ???
+|           ->02.37% (265,072B) 0x5ACAF6F: ???
+|             ->02.37% (265,072B) 0x5A8359B: ???
+|               ->02.37% (265,072B) 0x1CB112: _glfwCreateContextGLX (glx_context.c:581)
+|                 ->02.37% (265,072B) 0x1C7A0F: _glfwPlatformCreateWindow (x11_window.c:2003)
+|                   ->02.37% (265,072B) 0x1C0477: glfwCreateWindow (window.c:218)
+|                     ->02.37% (265,072B) 0x1A0768: simu::Application::Application() (Application.cpp:163)
+|                       ->02.37% (265,072B) 0x162C7F: DummyApp (Pyramid.cpp:113)
+|                         ->02.37% (265,072B) 0x162C7F: main (Pyramid.cpp:129)
+|                           
+->01.91% (213,992B) 0x61F2BDF: threaded_context_create (u_threaded_context.c:4899)
+| ->01.91% (213,992B) 0x5CBD336: UnknownInlinedFun (st_manager.c:981)
+|   ->01.91% (213,992B) 0x5CBD336: dri_create_context (dri_context.c:177)
+|     ->01.91% (213,992B) 0x5CBFE86: driCreateContextAttribs (dri_util.c:627)
+|       ->01.91% (213,992B) 0x5AE1E4C: ???
+|         ->01.91% (213,992B) 0x5ACAF6F: ???
+|           ->01.91% (213,992B) 0x5A8359B: ???
+|             ->01.91% (213,992B) 0x1CB112: _glfwCreateContextGLX (glx_context.c:581)
+|               ->01.91% (213,992B) 0x1C7A0F: _glfwPlatformCreateWindow (x11_window.c:2003)
+|                 ->01.91% (213,992B) 0x1C0477: glfwCreateWindow (window.c:218)
+|                   ->01.91% (213,992B) 0x1A0768: simu::Application::Application() (Application.cpp:163)
+|                     ->01.91% (213,992B) 0x162C7F: DummyApp (Pyramid.cpp:113)
+|                       ->01.91% (213,992B) 0x162C7F: main (Pyramid.cpp:129)
+|                         
+->01.89% (211,584B) 0x5ACC423: ???
+| ->01.19% (133,632B) 0x5AEE92A: ???
+| | ->01.19% (133,632B) 0x5AD20F8: ???
+| |   ->01.19% (133,632B) 0x5AD26B3: ???
+| |     ->01.19% (133,632B) 0x5AD8FD2: ???
+| |       ->01.19% (133,632B) 0x1CAB28: extensionSupportedGLX (glx_context.c:212)
+| |         ->01.19% (133,632B) 0x1CAB28: _glfwInitGLX (glx_context.c:362)
+| |           ->01.19% (133,632B) 0x1C783C: _glfwPlatformCreateWindow (x11_window.c:1971)
+| |             ->01.19% (133,632B) 0x1C0477: glfwCreateWindow (window.c:218)
+| |               ->01.19% (133,632B) 0x1A0768: simu::Application::Application() (Application.cpp:163)
+| |                 ->01.19% (133,632B) 0x162C7F: DummyApp (Pyramid.cpp:113)
+| |                   ->01.19% (133,632B) 0x162C7F: main (Pyramid.cpp:129)
+| |                     
+| ->00.70% (77,952B) in 1+ places, all below ms_print's threshold (01.00%)
+| 
+->01.55% (173,680B) 0x4D738DF: __new_exitfn (cxa_atexit.c:112)
+  ->01.55% (173,680B) 0x4D7396B: __internal_atexit (cxa_atexit.c:44)
+    ->01.55% (173,680B) in 154 places, all below massif's threshold (1.00%)
+      
+--------------------------------------------------------------------------------
+  n        time(i)         total(B)   useful-heap(B) extra-heap(B)    stacks(B)
+--------------------------------------------------------------------------------
+  5    845,198,297       11,260,704       10,631,917       628,787            0
+  6  1,005,640,455       11,316,152       10,685,917       630,235            0
+94.43% (10,685,917B) (heap allocation functions) malloc/new/new[], --alloc-fns, etc.
+->56.57% (6,400,992B) 0x5CADAD5: ralloc_size (ralloc.c:117)
+| ->30.05% (3,401,024B) in 1179 places, all below massif's threshold (1.00%)
+| | 
+| ->05.80% (656,832B) 0x601AE61: UnknownInlinedFun (ralloc.c:150)
+| | ->05.80% (656,832B) 0x601AE61: UnknownInlinedFun (list.h:58)
+| |   ->05.80% (656,832B) 0x601AE61: (anonymous namespace)::builtin_builder::new_sig(glsl_type const*, bool (*)(_mesa_glsl_parse_state const*), int, ...) [clone .lto_priv.0] (builtin_functions.cpp:5784)
+| |     ->02.64% (299,136B) in 141 places, all below massif's threshold (1.00%)
+| |     | 
+| |     ->02.11% (238,656B) 0x6E50FE9: (anonymous namespace)::builtin_builder::_texture(ir_texture_opcode, bool (*)(_mesa_glsl_parse_state const*), glsl_type const*, glsl_type const*, glsl_type const*, int) [clone .constprop.0] (builtin_functions.cpp:7203)
+| |     | ->02.11% (238,656B) in 1243 places, all below massif's threshold (1.00%)
+| |     |   
+| |     ->01.05% (119,040B) 0x601C3DC: (anonymous namespace)::builtin_builder::_image_prototype(glsl_type const*, unsigned int, unsigned int) [clone .lto_priv.0] (builtin_functions.cpp:8213)
+| |       ->01.05% (119,040B) 0x6EA25DC: UnknownInlinedFun (builtin_functions.cpp:8317)
+| |         ->01.05% (119,040B) 0x6EA25DC: (anonymous namespace)::builtin_builder::add_image_function(char const*, char const*, ir_function_signature* ((anonymous namespace)::builtin_builder::*)(glsl_type const*, unsigned int, unsigned int), unsigned int, unsigned int, ir_intrinsic_id) [clone .constprop.0] (builtin_functions.cpp:5531)
+| |           ->01.05% (119,040B) in 25 places, all below massif's threshold (1.00%)
+| |             
+| ->02.50% (283,104B) 0x603D845: UnknownInlinedFun (ralloc.c:150)
+| | ->02.50% (283,104B) 0x603D845: UnknownInlinedFun (list.h:58)
+| |   ->02.50% (283,104B) 0x603D845: ir_builder::ret(ir_builder::operand) (ir_builder.cpp:70)
+| |     ->02.50% (283,104B) in 123 places, all below massif's threshold (1.00%)
+| |       
+| ->02.11% (238,656B) 0x6E50F07: UnknownInlinedFun (ralloc.c:150)
+| | ->02.11% (238,656B) 0x6E50F07: UnknownInlinedFun (list.h:58)
+| |   ->02.11% (238,656B) 0x6E50F07: UnknownInlinedFun (builtin_functions.cpp:5659)
+| |     ->02.11% (238,656B) 0x6E50F07: (anonymous namespace)::builtin_builder::_texture(ir_texture_opcode, bool (*)(_mesa_glsl_parse_state const*), glsl_type const*, glsl_type const*, glsl_type const*, int) [clone .constprop.0] (builtin_functions.cpp:7198)
+| |       ->02.11% (238,656B) in 1243 places, all below massif's threshold (1.00%)
+| |         
+| ->02.11% (238,656B) 0x6E50F67: UnknownInlinedFun (ralloc.c:150)
+| | ->02.11% (238,656B) 0x6E50F67: UnknownInlinedFun (list.h:58)
+| |   ->02.11% (238,656B) 0x6E50F67: UnknownInlinedFun (builtin_functions.cpp:5659)
+| |     ->02.11% (238,656B) 0x6E50F67: (anonymous namespace)::builtin_builder::_texture(ir_texture_opcode, bool (*)(_mesa_glsl_parse_state const*), glsl_type const*, glsl_type const*, glsl_type const*, int) [clone .constprop.0] (builtin_functions.cpp:7199)
+| |       ->02.11% (238,656B) in 1243 places, all below massif's threshold (1.00%)
+| |         
+| ->02.02% (228,976B) 0x6E83589: UnknownInlinedFun (ralloc.c:775)
+| | ->02.02% (228,976B) 0x6E83589: gc_alloc_size.constprop.0 (ralloc.c:811)
+| |   ->02.02% (228,976B) in 4 places, all below massif's threshold (1.00%)
+| |     
+| ->01.93% (218,768B) 0x6E5101B: UnknownInlinedFun (ralloc.c:150)
+| | ->01.93% (218,768B) 0x6E5101B: UnknownInlinedFun (list.h:58)
+| |   ->01.93% (218,768B) 0x6E5101B: (anonymous namespace)::builtin_builder::_texture(ir_texture_opcode, bool (*)(_mesa_glsl_parse_state const*), glsl_type const*, glsl_type const*, glsl_type const*, int) [clone .constprop.0] (builtin_functions.cpp:7205)
+| |     ->01.93% (218,768B) in 1243 places, all below massif's threshold (1.00%)
+| |       
+| ->01.66% (188,160B) 0x603E628: UnknownInlinedFun (ralloc.c:150)
+| | ->01.66% (188,160B) 0x603E628: UnknownInlinedFun (list.h:58)
+| |   ->01.66% (188,160B) 0x603E628: ir_builder::ir_factory::make_temp(glsl_type const*, char const*) (ir_builder.cpp:42)
+| |     ->01.66% (188,160B) in 98 places, all below massif's threshold (1.00%)
+| |       
+| ->01.54% (173,824B) 0x6E54E6F: UnknownInlinedFun (ralloc.c:150)
+| | ->01.54% (173,824B) 0x6E54E6F: UnknownInlinedFun (list.h:58)
+| |   ->01.54% (173,824B) 0x6E54E6F: UnknownInlinedFun (builtin_functions.cpp:5723)
+| |     ->01.54% (173,824B) 0x6E54E6F: (anonymous namespace)::builtin_builder::array_ref(ir_variable*, int) [clone .constprop.0] (builtin_functions.cpp:5755)
+| |       ->01.54% (173,824B) in 320 places, all below massif's threshold (1.00%)
+| |         
+| ->01.45% (163,968B) 0x603D8D7: UnknownInlinedFun (ralloc.c:150)
+| | ->01.45% (163,968B) 0x603D8D7: UnknownInlinedFun (list.h:58)
+| |   ->01.45% (163,968B) 0x603D8D7: ir_builder::swizzle(ir_builder::operand, int, int) (ir_builder.cpp:83)
+| |     ->01.45% (163,968B) in 310 places, all below massif's threshold (1.00%)
+| |       
+| ->01.20% (135,648B) 0x6040A43: UnknownInlinedFun (ralloc.c:150)
+| | ->01.20% (135,648B) 0x6040A43: UnknownInlinedFun (list.h:58)
+| |   ->01.20% (135,648B) 0x6040A43: ir_builder::expr(ir_expression_operation, ir_builder::operand, ir_builder::operand) (ir_builder.cpp:180)
+| |     ->01.20% (135,648B) in 173 places, all below massif's threshold (1.00%)
+| |       
+| ->01.05% (119,328B) 0x6E510AE: UnknownInlinedFun (ralloc.c:150)
+| | ->01.05% (119,328B) 0x6E510AE: UnknownInlinedFun (list.h:58)
+| |   ->01.05% (119,328B) 0x6E510AE: UnknownInlinedFun (builtin_functions.cpp:5749)
+| |     ->01.05% (119,328B) 0x6E510AE: (anonymous namespace)::builtin_builder::_texture(ir_texture_opcode, bool (*)(_mesa_glsl_parse_state const*), glsl_type const*, glsl_type const*, glsl_type const*, int) [clone .constprop.0] (builtin_functions.cpp:7206)
+| |       ->01.05% (119,328B) in 1243 places, all below massif's threshold (1.00%)
+| |         
+| ->01.05% (119,040B) 0x601C2BC: UnknownInlinedFun (ralloc.c:150)
+| | ->01.05% (119,040B) 0x601C2BC: UnknownInlinedFun (list.h:58)
+| |   ->01.05% (119,040B) 0x601C2BC: UnknownInlinedFun (builtin_functions.cpp:5659)
+| |     ->01.05% (119,040B) 0x601C2BC: (anonymous namespace)::builtin_builder::_image_prototype(glsl_type const*, unsigned int, unsigned int) [clone .lto_priv.0] (builtin_functions.cpp:8209)
+| |       ->01.05% (119,040B) 0x6EA25DC: UnknownInlinedFun (builtin_functions.cpp:8317)
+| |         ->01.05% (119,040B) 0x6EA25DC: (anonymous namespace)::builtin_builder::add_image_function(char const*, char const*, ir_function_signature* ((anonymous namespace)::builtin_builder::*)(glsl_type const*, unsigned int, unsigned int), unsigned int, unsigned int, ir_intrinsic_id) [clone .constprop.0] (builtin_functions.cpp:5531)
+| |           ->01.05% (119,040B) in 25 places, all below massif's threshold (1.00%)
+| |             
+| ->01.05% (119,040B) 0x601C329: UnknownInlinedFun (ralloc.c:150)
+| | ->01.05% (119,040B) 0x601C329: UnknownInlinedFun (list.h:58)
+| |   ->01.05% (119,040B) 0x601C329: UnknownInlinedFun (builtin_functions.cpp:5659)
+| |     ->01.05% (119,040B) 0x601C329: (anonymous namespace)::builtin_builder::_image_prototype(glsl_type const*, unsigned int, unsigned int) [clone .lto_priv.0] (builtin_functions.cpp:8210)
+| |       ->01.05% (119,040B) 0x6EA25DC: UnknownInlinedFun (builtin_functions.cpp:8317)
+| |         ->01.05% (119,040B) 0x6EA25DC: (anonymous namespace)::builtin_builder::add_image_function(char const*, char const*, ir_function_signature* ((anonymous namespace)::builtin_builder::*)(glsl_type const*, unsigned int, unsigned int), unsigned int, unsigned int, ir_intrinsic_id) [clone .constprop.0] (builtin_functions.cpp:5531)
+| |           ->01.05% (119,040B) in 25 places, all below massif's threshold (1.00%)
+| |             
+| ->01.02% (115,968B) 0x6058AFD: UnknownInlinedFun (ralloc.c:150)
+|   ->01.02% (115,968B) 0x6058AFD: UnknownInlinedFun (list.h:58)
+|     ->01.02% (115,968B) 0x6058AFD: ir_dereference_array::ir_dereference_array(ir_variable*, ir_rvalue*) (ir.cpp:1692)
+|       ->01.02% (115,968B) in 5 places, all below massif's threshold (1.00%)
+|         
+->18.02% (2,039,096B) in 737 places, all below massif's threshold (1.00%)
+| 
+->06.95% (786,432B) 0x19AE5F: Block (Memory.hpp:50)
+| ->06.95% (786,432B) 0x19AE5F: construct_at<simu::Block, long unsigned int const&> (stl_construct.h:97)
+|   ->06.95% (786,432B) 0x19AE5F: construct<simu::Block, long unsigned int const&> (alloc_traits.h:539)
+|     ->06.95% (786,432B) 0x19AE5F: _M_create_node<long unsigned int const&> (stl_list.h:713)
+|       ->06.95% (786,432B) 0x19AE5F: _M_insert<long unsigned int const&> (stl_list.h:2005)
+|         ->06.95% (786,432B) 0x19AE5F: emplace_back<long unsigned int const&> (stl_list.h:1321)
+|           ->06.95% (786,432B) 0x19AE5F: allocate (Memory.hpp:284)
+|             ->06.95% (786,432B) 0x19AE5F: allocate (Memory.hpp:270)
+|               ->06.95% (786,432B) 0x19AE5F: std::unique_ptr<simu::VisibleBody, std::function<void (void*)> > simu::FreeListAllocator<std::unique_ptr<simu::Body, std::function<void (void*)> >, 32768ul>::makeUnique<simu::VisibleBody, simu::BodyDescriptor&, simu::Matrix<unsigned char, 4u, 1u>, simu::Renderer*>(simu::BodyDescriptor&, simu::Matrix<unsigned char, 4u, 1u>&&, simu::Renderer*&&) (Memory.hpp:148)
+|                 ->06.95% (786,432B) 0x1AF7B5: makeObject<simu::VisibleBody, simu::FreeListAllocator<std::unique_ptr<simu::Body, std::function<void(void*)> >, 32768>, simu::BodyDescriptor&, simu::Matrix<unsigned char, 4, 1>, simu::Renderer*> (World.hpp:321)
+|                   ->06.95% (786,432B) 0x1AF7B5: simu::VisibleBody* simu::World::makeBody<simu::VisibleBody, simu::BodyDescriptor&, simu::Matrix<unsigned char, 4u, 1u>, simu::Renderer*>(simu::BodyDescriptor&, simu::Matrix<unsigned char, 4u, 1u>&&, simu::Renderer*&&) (World.hpp:170)
+|                     ->06.95% (786,432B) 0x1AD203: simu::BoxSpawner::makeBox(simu::Matrix<float, 2u, 1u>, simu::Matrix<float, 2u, 1u>) (Tool.cpp:125)
+|                       ->06.95% (786,432B) 0x19CEF4: Pyramid::init(simu::Renderer&) (Pyramid.cpp:70)
+|                         ->06.95% (786,432B) 0x1A4D1D: simu::Scene::init(simu::Application*) (Scene.cpp:123)
+|                           ->06.95% (786,432B) 0x1A0147: simu::Application::run() (Application.cpp:235)
+|                             ->06.95% (786,432B) 0x162C8B: main (Pyramid.cpp:130)
+|                               
+->02.78% (314,928B) 0x48D6A05: UnknownInlinedFun (imLcPrs.c:674)
+| ->02.78% (314,928B) 0x48D6A05: parsestringfile (imLcPrs.c:739)
+|   ->02.78% (314,928B) 0x48D8C21: UnknownInlinedFun (imLcIm.c:610)
+|     ->02.78% (314,928B) 0x48D8C21: _XimLocalOpenIM (imLcIm.c:700)
+|       ->02.78% (314,928B) 0x48D1E9F: _XimOpenIM (imInt.c:229)
+|         ->02.78% (314,928B) 0x1C317D: _glfwPlatformInit (x11_init.c:1142)
+|           ->02.78% (314,928B) 0x1BC077: glfwInit (init.c:324)
+|             ->02.78% (314,928B) 0x1A0739: simu::Application::Application() (Application.cpp:159)
+|               ->02.78% (314,928B) 0x162C7F: DummyApp (Pyramid.cpp:113)
+|                 ->02.78% (314,928B) 0x162C7F: main (Pyramid.cpp:129)
+|                   
+->02.48% (280,141B) 0x5A7FD85: ???
+| ->02.47% (279,524B) 0x1CF716: operator() (std_function.h:591)
+| | ->02.47% (279,524B) 0x1CF716: glbinding::Binding::resolveFunction(char const*) (Binding.cpp:214)
+| |   ->02.47% (279,524B) 0x1D131B: resolve (State.cpp:18)
+| |     ->02.47% (279,524B) 0x1D131B: glbinding::State::resolve(char const*) (State.cpp:11)
+| |       ->02.47% (279,524B) 0x1CEBD3: glbinding::Binding::resolveFunctions() (Binding.cpp:234)
+| |         ->02.47% (279,524B) 0x1CFFB5: glbinding::Binding::initialize(long long, std::function<void (*(char const*))()>, bool, bool) (Binding.cpp:199)
+| |           ->02.47% (279,524B) 0x1D0250: glbinding::Binding::initialize(std::function<void (*(char const*))()>, bool) (Binding.cpp:157)
+| |             ->02.47% (279,524B) 0x1CE049: glbinding::initialize(std::function<void (*(char const*))()>, bool) (glbinding.cpp:15)
+| |               ->02.47% (279,524B) 0x1A0831: simu::Application::Application() (Application.cpp:178)
+| |                 ->02.47% (279,524B) 0x162C7F: DummyApp (Pyramid.cpp:113)
+| |                   ->02.47% (279,524B) 0x162C7F: main (Pyramid.cpp:129)
+| |                     
+| ->00.01% (617B) in 1+ places, all below ms_print's threshold (01.00%)
+| 
+->02.34% (265,072B) 0x5D64242: UnknownInlinedFun (os_memory_aligned.h:58)
+| ->02.34% (265,072B) 0x5D64242: st_create_context (st_context.c:864)
+|   ->02.34% (265,072B) 0x5CBD39B: UnknownInlinedFun (st_manager.c:992)
+|     ->02.34% (265,072B) 0x5CBD39B: dri_create_context (dri_context.c:177)
+|       ->02.34% (265,072B) 0x5CBFE86: driCreateContextAttribs (dri_util.c:627)
+|         ->02.34% (265,072B) 0x5AE1E4C: ???
+|           ->02.34% (265,072B) 0x5ACAF6F: ???
+|             ->02.34% (265,072B) 0x5A8359B: ???
+|               ->02.34% (265,072B) 0x1CB112: _glfwCreateContextGLX (glx_context.c:581)
+|                 ->02.34% (265,072B) 0x1C7A0F: _glfwPlatformCreateWindow (x11_window.c:2003)
+|                   ->02.34% (265,072B) 0x1C0477: glfwCreateWindow (window.c:218)
+|                     ->02.34% (265,072B) 0x1A0768: simu::Application::Application() (Application.cpp:163)
+|                       ->02.34% (265,072B) 0x162C7F: DummyApp (Pyramid.cpp:113)
+|                         ->02.34% (265,072B) 0x162C7F: main (Pyramid.cpp:129)
+|                           
+->01.89% (213,992B) 0x61F2BDF: threaded_context_create (u_threaded_context.c:4899)
+| ->01.89% (213,992B) 0x5CBD336: UnknownInlinedFun (st_manager.c:981)
+|   ->01.89% (213,992B) 0x5CBD336: dri_create_context (dri_context.c:177)
+|     ->01.89% (213,992B) 0x5CBFE86: driCreateContextAttribs (dri_util.c:627)
+|       ->01.89% (213,992B) 0x5AE1E4C: ???
+|         ->01.89% (213,992B) 0x5ACAF6F: ???
+|           ->01.89% (213,992B) 0x5A8359B: ???
+|             ->01.89% (213,992B) 0x1CB112: _glfwCreateContextGLX (glx_context.c:581)
+|               ->01.89% (213,992B) 0x1C7A0F: _glfwPlatformCreateWindow (x11_window.c:2003)
+|                 ->01.89% (213,992B) 0x1C0477: glfwCreateWindow (window.c:218)
+|                   ->01.89% (213,992B) 0x1A0768: simu::Application::Application() (Application.cpp:163)
+|                     ->01.89% (213,992B) 0x162C7F: DummyApp (Pyramid.cpp:113)
+|                       ->01.89% (213,992B) 0x162C7F: main (Pyramid.cpp:129)
+|                         
+->01.87% (211,584B) 0x5ACC423: ???
+| ->01.18% (133,632B) 0x5AEE92A: ???
+| | ->01.18% (133,632B) 0x5AD20F8: ???
+| |   ->01.18% (133,632B) 0x5AD26B3: ???
+| |     ->01.18% (133,632B) 0x5AD8FD2: ???
+| |       ->01.18% (133,632B) 0x1CAB28: extensionSupportedGLX (glx_context.c:212)
+| |         ->01.18% (133,632B) 0x1CAB28: _glfwInitGLX (glx_context.c:362)
+| |           ->01.18% (133,632B) 0x1C783C: _glfwPlatformCreateWindow (x11_window.c:1971)
+| |             ->01.18% (133,632B) 0x1C0477: glfwCreateWindow (window.c:218)
+| |               ->01.18% (133,632B) 0x1A0768: simu::Application::Application() (Application.cpp:163)
+| |                 ->01.18% (133,632B) 0x162C7F: DummyApp (Pyramid.cpp:113)
+| |                   ->01.18% (133,632B) 0x162C7F: main (Pyramid.cpp:129)
+| |                     
+| ->00.69% (77,952B) in 1+ places, all below ms_print's threshold (01.00%)
+| 
+->01.53% (173,680B) 0x4D738DF: __new_exitfn (cxa_atexit.c:112)
+  ->01.53% (173,680B) 0x4D7396B: __internal_atexit (cxa_atexit.c:44)
+    ->01.53% (173,680B) in 154 places, all below massif's threshold (1.00%)
+      
+--------------------------------------------------------------------------------
+  n        time(i)         total(B)   useful-heap(B) extra-heap(B)    stacks(B)
+--------------------------------------------------------------------------------
+  7  1,253,544,950       11,347,088       10,715,229       631,859            0
+  8  1,414,916,177       11,436,904       10,803,429       633,475            0
+  9  1,647,655,066       11,503,624       10,868,869       634,755            0
+ 10  1,892,985,889       11,621,600       10,983,725       637,875            0
+ 11  2,067,067,883       11,661,680       11,022,197       639,483            0
+ 12  2,216,249,872       11,646,080       11,006,573       639,507            0
+ 13  2,438,011,199       11,772,480       11,130,037       642,443            0
+ 14  2,559,522,454       11,840,256       11,196,125       644,131            0
+94.56% (11,196,125B) (heap allocation functions) malloc/new/new[], --alloc-fns, etc.
+->54.06% (6,400,992B) 0x5CADAD5: ralloc_size (ralloc.c:117)
+| ->29.70% (3,516,992B) in 1180 places, all below massif's threshold (1.00%)
+| | 
+| ->05.55% (656,832B) 0x601AE61: UnknownInlinedFun (ralloc.c:150)
+| | ->05.55% (656,832B) 0x601AE61: UnknownInlinedFun (list.h:58)
+| |   ->05.55% (656,832B) 0x601AE61: (anonymous namespace)::builtin_builder::new_sig(glsl_type const*, bool (*)(_mesa_glsl_parse_state const*), int, ...) [clone .lto_priv.0] (builtin_functions.cpp:5784)
+| |     ->02.53% (299,136B) in 141 places, all below massif's threshold (1.00%)
+| |     | 
+| |     ->02.02% (238,656B) 0x6E50FE9: (anonymous namespace)::builtin_builder::_texture(ir_texture_opcode, bool (*)(_mesa_glsl_parse_state const*), glsl_type const*, glsl_type const*, glsl_type const*, int) [clone .constprop.0] (builtin_functions.cpp:7203)
+| |     | ->02.02% (238,656B) in 1243 places, all below massif's threshold (1.00%)
+| |     |   
+| |     ->01.01% (119,040B) 0x601C3DC: (anonymous namespace)::builtin_builder::_image_prototype(glsl_type const*, unsigned int, unsigned int) [clone .lto_priv.0] (builtin_functions.cpp:8213)
+| |       ->01.01% (119,040B) 0x6EA25DC: UnknownInlinedFun (builtin_functions.cpp:8317)
+| |         ->01.01% (119,040B) 0x6EA25DC: (anonymous namespace)::builtin_builder::add_image_function(char const*, char const*, ir_function_signature* ((anonymous namespace)::builtin_builder::*)(glsl_type const*, unsigned int, unsigned int), unsigned int, unsigned int, ir_intrinsic_id) [clone .constprop.0] (builtin_functions.cpp:5531)
+| |           ->01.01% (119,040B) in 25 places, all below massif's threshold (1.00%)
+| |             
+| ->02.39% (283,104B) 0x603D845: UnknownInlinedFun (ralloc.c:150)
+| | ->02.39% (283,104B) 0x603D845: UnknownInlinedFun (list.h:58)
+| |   ->02.39% (283,104B) 0x603D845: ir_builder::ret(ir_builder::operand) (ir_builder.cpp:70)
+| |     ->02.39% (283,104B) in 123 places, all below massif's threshold (1.00%)
+| |       
+| ->02.02% (238,656B) 0x6E50F07: UnknownInlinedFun (ralloc.c:150)
+| | ->02.02% (238,656B) 0x6E50F07: UnknownInlinedFun (list.h:58)
+| |   ->02.02% (238,656B) 0x6E50F07: UnknownInlinedFun (builtin_functions.cpp:5659)
+| |     ->02.02% (238,656B) 0x6E50F07: (anonymous namespace)::builtin_builder::_texture(ir_texture_opcode, bool (*)(_mesa_glsl_parse_state const*), glsl_type const*, glsl_type const*, glsl_type const*, int) [clone .constprop.0] (builtin_functions.cpp:7198)
+| |       ->02.02% (238,656B) in 1243 places, all below massif's threshold (1.00%)
+| |         
+| ->02.02% (238,656B) 0x6E50F67: UnknownInlinedFun (ralloc.c:150)
+| | ->02.02% (238,656B) 0x6E50F67: UnknownInlinedFun (list.h:58)
+| |   ->02.02% (238,656B) 0x6E50F67: UnknownInlinedFun (builtin_functions.cpp:5659)
+| |     ->02.02% (238,656B) 0x6E50F67: (anonymous namespace)::builtin_builder::_texture(ir_texture_opcode, bool (*)(_mesa_glsl_parse_state const*), glsl_type const*, glsl_type const*, glsl_type const*, int) [clone .constprop.0] (builtin_functions.cpp:7199)
+| |       ->02.02% (238,656B) in 1243 places, all below massif's threshold (1.00%)
+| |         
+| ->01.93% (228,976B) 0x6E83589: UnknownInlinedFun (ralloc.c:775)
+| | ->01.93% (228,976B) 0x6E83589: gc_alloc_size.constprop.0 (ralloc.c:811)
+| |   ->01.93% (228,976B) in 4 places, all below massif's threshold (1.00%)
+| |     
+| ->01.85% (218,768B) 0x6E5101B: UnknownInlinedFun (ralloc.c:150)
+| | ->01.85% (218,768B) 0x6E5101B: UnknownInlinedFun (list.h:58)
+| |   ->01.85% (218,768B) 0x6E5101B: (anonymous namespace)::builtin_builder::_texture(ir_texture_opcode, bool (*)(_mesa_glsl_parse_state const*), glsl_type const*, glsl_type const*, glsl_type const*, int) [clone .constprop.0] (builtin_functions.cpp:7205)
+| |     ->01.85% (218,768B) in 1243 places, all below massif's threshold (1.00%)
+| |       
+| ->01.59% (188,160B) 0x603E628: UnknownInlinedFun (ralloc.c:150)
+| | ->01.59% (188,160B) 0x603E628: UnknownInlinedFun (list.h:58)
+| |   ->01.59% (188,160B) 0x603E628: ir_builder::ir_factory::make_temp(glsl_type const*, char const*) (ir_builder.cpp:42)
+| |     ->01.59% (188,160B) in 98 places, all below massif's threshold (1.00%)
+| |       
+| ->01.47% (173,824B) 0x6E54E6F: UnknownInlinedFun (ralloc.c:150)
+| | ->01.47% (173,824B) 0x6E54E6F: UnknownInlinedFun (list.h:58)
+| |   ->01.47% (173,824B) 0x6E54E6F: UnknownInlinedFun (builtin_functions.cpp:5723)
+| |     ->01.47% (173,824B) 0x6E54E6F: (anonymous namespace)::builtin_builder::array_ref(ir_variable*, int) [clone .constprop.0] (builtin_functions.cpp:5755)
+| |       ->01.47% (173,824B) in 320 places, all below massif's threshold (1.00%)
+| |         
+| ->01.38% (163,968B) 0x603D8D7: UnknownInlinedFun (ralloc.c:150)
+| | ->01.38% (163,968B) 0x603D8D7: UnknownInlinedFun (list.h:58)
+| |   ->01.38% (163,968B) 0x603D8D7: ir_builder::swizzle(ir_builder::operand, int, int) (ir_builder.cpp:83)
+| |     ->01.38% (163,968B) in 310 places, all below massif's threshold (1.00%)
+| |       
+| ->01.15% (135,648B) 0x6040A43: UnknownInlinedFun (ralloc.c:150)
+| | ->01.15% (135,648B) 0x6040A43: UnknownInlinedFun (list.h:58)
+| |   ->01.15% (135,648B) 0x6040A43: ir_builder::expr(ir_expression_operation, ir_builder::operand, ir_builder::operand) (ir_builder.cpp:180)
+| |     ->01.15% (135,648B) in 173 places, all below massif's threshold (1.00%)
+| |       
+| ->01.01% (119,328B) 0x6E510AE: UnknownInlinedFun (ralloc.c:150)
+| | ->01.01% (119,328B) 0x6E510AE: UnknownInlinedFun (list.h:58)
+| |   ->01.01% (119,328B) 0x6E510AE: UnknownInlinedFun (builtin_functions.cpp:5749)
+| |     ->01.01% (119,328B) 0x6E510AE: (anonymous namespace)::builtin_builder::_texture(ir_texture_opcode, bool (*)(_mesa_glsl_parse_state const*), glsl_type const*, glsl_type const*, glsl_type const*, int) [clone .constprop.0] (builtin_functions.cpp:7206)
+| |       ->01.01% (119,328B) in 1243 places, all below massif's threshold (1.00%)
+| |         
+| ->01.01% (119,040B) 0x601C2BC: UnknownInlinedFun (ralloc.c:150)
+| | ->01.01% (119,040B) 0x601C2BC: UnknownInlinedFun (list.h:58)
+| |   ->01.01% (119,040B) 0x601C2BC: UnknownInlinedFun (builtin_functions.cpp:5659)
+| |     ->01.01% (119,040B) 0x601C2BC: (anonymous namespace)::builtin_builder::_image_prototype(glsl_type const*, unsigned int, unsigned int) [clone .lto_priv.0] (builtin_functions.cpp:8209)
+| |       ->01.01% (119,040B) 0x6EA25DC: UnknownInlinedFun (builtin_functions.cpp:8317)
+| |         ->01.01% (119,040B) 0x6EA25DC: (anonymous namespace)::builtin_builder::add_image_function(char const*, char const*, ir_function_signature* ((anonymous namespace)::builtin_builder::*)(glsl_type const*, unsigned int, unsigned int), unsigned int, unsigned int, ir_intrinsic_id) [clone .constprop.0] (builtin_functions.cpp:5531)
+| |           ->01.01% (119,040B) in 25 places, all below massif's threshold (1.00%)
+| |             
+| ->01.01% (119,040B) 0x601C329: UnknownInlinedFun (ralloc.c:150)
+|   ->01.01% (119,040B) 0x601C329: UnknownInlinedFun (list.h:58)
+|     ->01.01% (119,040B) 0x601C329: UnknownInlinedFun (builtin_functions.cpp:5659)
+|       ->01.01% (119,040B) 0x601C329: (anonymous namespace)::builtin_builder::_image_prototype(glsl_type const*, unsigned int, unsigned int) [clone .lto_priv.0] (builtin_functions.cpp:8210)
+|         ->01.01% (119,040B) 0x6EA25DC: UnknownInlinedFun (builtin_functions.cpp:8317)
+|           ->01.01% (119,040B) 0x6EA25DC: (anonymous namespace)::builtin_builder::add_image_function(char const*, char const*, ir_function_signature* ((anonymous namespace)::builtin_builder::*)(glsl_type const*, unsigned int, unsigned int), unsigned int, unsigned int, ir_intrinsic_id) [clone .constprop.0] (builtin_functions.cpp:5531)
+|             ->01.01% (119,040B) in 25 places, all below massif's threshold (1.00%)
+|               
+->16.55% (1,959,480B) in 736 places, all below massif's threshold (1.00%)
+| 
+->06.64% (786,432B) 0x19AE5F: Block (Memory.hpp:50)
+| ->06.64% (786,432B) 0x19AE5F: construct_at<simu::Block, long unsigned int const&> (stl_construct.h:97)
+|   ->06.64% (786,432B) 0x19AE5F: construct<simu::Block, long unsigned int const&> (alloc_traits.h:539)
+|     ->06.64% (786,432B) 0x19AE5F: _M_create_node<long unsigned int const&> (stl_list.h:713)
+|       ->06.64% (786,432B) 0x19AE5F: _M_insert<long unsigned int const&> (stl_list.h:2005)
+|         ->06.64% (786,432B) 0x19AE5F: emplace_back<long unsigned int const&> (stl_list.h:1321)
+|           ->06.64% (786,432B) 0x19AE5F: allocate (Memory.hpp:284)
+|             ->06.64% (786,432B) 0x19AE5F: allocate (Memory.hpp:270)
+|               ->06.64% (786,432B) 0x19AE5F: std::unique_ptr<simu::VisibleBody, std::function<void (void*)> > simu::FreeListAllocator<std::unique_ptr<simu::Body, std::function<void (void*)> >, 32768ul>::makeUnique<simu::VisibleBody, simu::BodyDescriptor&, simu::Matrix<unsigned char, 4u, 1u>, simu::Renderer*>(simu::BodyDescriptor&, simu::Matrix<unsigned char, 4u, 1u>&&, simu::Renderer*&&) (Memory.hpp:148)
+|                 ->06.64% (786,432B) 0x1AF7B5: makeObject<simu::VisibleBody, simu::FreeListAllocator<std::unique_ptr<simu::Body, std::function<void(void*)> >, 32768>, simu::BodyDescriptor&, simu::Matrix<unsigned char, 4, 1>, simu::Renderer*> (World.hpp:321)
+|                   ->06.64% (786,432B) 0x1AF7B5: simu::VisibleBody* simu::World::makeBody<simu::VisibleBody, simu::BodyDescriptor&, simu::Matrix<unsigned char, 4u, 1u>, simu::Renderer*>(simu::BodyDescriptor&, simu::Matrix<unsigned char, 4u, 1u>&&, simu::Renderer*&&) (World.hpp:170)
+|                     ->06.64% (786,432B) 0x1AD203: simu::BoxSpawner::makeBox(simu::Matrix<float, 2u, 1u>, simu::Matrix<float, 2u, 1u>) (Tool.cpp:125)
+|                       ->06.64% (786,432B) 0x19CEF4: Pyramid::init(simu::Renderer&) (Pyramid.cpp:70)
+|                         ->06.64% (786,432B) 0x1A4D1D: simu::Scene::init(simu::Application*) (Scene.cpp:123)
+|                           ->06.64% (786,432B) 0x1A0147: simu::Application::run() (Application.cpp:235)
+|                             ->06.64% (786,432B) 0x162C8B: main (Pyramid.cpp:130)
+|                               
+->02.66% (314,928B) 0x48D6A05: UnknownInlinedFun (imLcPrs.c:674)
+| ->02.66% (314,928B) 0x48D6A05: parsestringfile (imLcPrs.c:739)
+|   ->02.66% (314,928B) 0x48D8C21: UnknownInlinedFun (imLcIm.c:610)
+|     ->02.66% (314,928B) 0x48D8C21: _XimLocalOpenIM (imLcIm.c:700)
+|       ->02.66% (314,928B) 0x48D1E9F: _XimOpenIM (imInt.c:229)
+|         ->02.66% (314,928B) 0x1C317D: _glfwPlatformInit (x11_init.c:1142)
+|           ->02.66% (314,928B) 0x1BC077: glfwInit (init.c:324)
+|             ->02.66% (314,928B) 0x1A0739: simu::Application::Application() (Application.cpp:159)
+|               ->02.66% (314,928B) 0x162C7F: DummyApp (Pyramid.cpp:113)
+|                 ->02.66% (314,928B) 0x162C7F: main (Pyramid.cpp:129)
+|                   
+->02.49% (294,912B) 0x1A99DF: Block (Memory.hpp:50)
+| ->02.49% (294,912B) 0x1A99DF: construct_at<simu::Block, long unsigned int const&> (stl_construct.h:97)
+|   ->02.49% (294,912B) 0x1A99DF: construct<simu::Block, long unsigned int const&> (alloc_traits.h:539)
+|     ->02.49% (294,912B) 0x1A99DF: _M_create_node<long unsigned int const&> (stl_list.h:713)
+|       ->02.49% (294,912B) 0x1A99DF: _M_insert<long unsigned int const&> (stl_list.h:2005)
+|         ->02.49% (294,912B) 0x1A99DF: emplace_back<long unsigned int const&> (stl_list.h:1321)
+|           ->02.49% (294,912B) 0x1A99DF: allocate (Memory.hpp:284)
+|             ->02.49% (294,912B) 0x1A99DF: allocate (Memory.hpp:270)
+|               ->02.49% (294,912B) 0x1A99DF: std::unique_ptr<simu::VisibleContactConstraint, std::function<void (void*)> > simu::FreeListAllocator<std::unique_ptr<simu::Constraint, std::function<void (void*)> >, 32768ul>::makeUnique<simu::VisibleContactConstraint, simu::Bodies&, simu::Renderer* const&>(simu::Bodies&, simu::Renderer* const&) (Memory.hpp:148)
+|                 ->02.49% (294,912B) 0x1A9C54: operator() (Scene.hpp:145)
+|                   ->02.49% (294,912B) 0x1A9C54: __invoke_impl<std::unique_ptr<simu::VisibleContactConstraint, std::function<void(void*)> >, simu::Scene::makeWorld()::<lambda(simu::Bodies, simu::World::ConstraintAlloc&)>&, simu::Bodies, simu::FreeListAllocator<std::unique_ptr<simu::Constraint, std::function<void(void*)> >, 32768>&> (invoke.h:61)
+|                     ->02.49% (294,912B) 0x1A9C54: __invoke_r<std::unique_ptr<simu::ContactConstraint, std::function<void(void*)> >, simu::Scene::makeWorld()::<lambda(simu::Bodies, simu::World::ConstraintAlloc&)>&, simu::Bodies, simu::FreeListAllocator<std::unique_ptr<simu::Constraint, std::function<void(void*)> >, 32768>&> (invoke.h:116)
+|                       ->02.49% (294,912B) 0x1A9C54: std::_Function_handler<std::unique_ptr<simu::ContactConstraint, std::function<void (void*)> > (simu::Bodies, simu::FreeListAllocator<std::unique_ptr<simu::Constraint, std::function<void (void*)> >, 32768ul>&), simu::Scene::makeWorld()::{lambda(simu::Bodies, simu::FreeListAllocator<std::unique_ptr<simu::Constraint, std::function<void (void*)> >, 32768ul>&)
+|                         ->02.49% (294,912B) 0x1B544C: operator() (std_function.h:591)
+|                           ->02.49% (294,912B) 0x1B544C: simu::World::makeContactConstraint(simu::Bodies) (World.cpp:132)
+|                             ->02.21% (262,144B) 0x1B5C48: operator() (World.cpp:190)
+|                             | ->02.21% (262,144B) 0x1B5C48: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                             |   ->01.94% (229,376B) 0x1B5B2D: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                             |   | ->01.38% (163,840B) 0x1B5B2D: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                             |   | | ->01.11% (131,072B) 0x1B5B2D: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                             |   | | | ->01.11% (131,072B) in 2 places, all below massif's threshold (1.00%)
+|                             |   | | |   
+|                             |   | | ->00.28% (32,768B) in 1+ places, all below ms_print's threshold (01.00%)
+|                             |   | | 
+|                             |   | ->00.55% (65,536B) in 1+ places, all below ms_print's threshold (01.00%)
+|                             |   | 
+|                             |   ->00.28% (32,768B) in 1+ places, all below ms_print's threshold (01.00%)
+|                             |   
+|                             ->00.28% (32,768B) in 1+ places, all below ms_print's threshold (01.00%)
+|                             
+->02.37% (280,141B) 0x5A7FD85: ???
+| ->02.36% (279,524B) 0x1CF716: operator() (std_function.h:591)
+| | ->02.36% (279,524B) 0x1CF716: glbinding::Binding::resolveFunction(char const*) (Binding.cpp:214)
+| |   ->02.36% (279,524B) 0x1D131B: resolve (State.cpp:18)
+| |     ->02.36% (279,524B) 0x1D131B: glbinding::State::resolve(char const*) (State.cpp:11)
+| |       ->02.36% (279,524B) 0x1CEBD3: glbinding::Binding::resolveFunctions() (Binding.cpp:234)
+| |         ->02.36% (279,524B) 0x1CFFB5: glbinding::Binding::initialize(long long, std::function<void (*(char const*))()>, bool, bool) (Binding.cpp:199)
+| |           ->02.36% (279,524B) 0x1D0250: glbinding::Binding::initialize(std::function<void (*(char const*))()>, bool) (Binding.cpp:157)
+| |             ->02.36% (279,524B) 0x1CE049: glbinding::initialize(std::function<void (*(char const*))()>, bool) (glbinding.cpp:15)
+| |               ->02.36% (279,524B) 0x1A0831: simu::Application::Application() (Application.cpp:178)
+| |                 ->02.36% (279,524B) 0x162C7F: DummyApp (Pyramid.cpp:113)
+| |                   ->02.36% (279,524B) 0x162C7F: main (Pyramid.cpp:129)
+| |                     
+| ->00.01% (617B) in 1+ places, all below ms_print's threshold (01.00%)
+| 
+->02.24% (265,072B) 0x5D64242: UnknownInlinedFun (os_memory_aligned.h:58)
+| ->02.24% (265,072B) 0x5D64242: st_create_context (st_context.c:864)
+|   ->02.24% (265,072B) 0x5CBD39B: UnknownInlinedFun (st_manager.c:992)
+|     ->02.24% (265,072B) 0x5CBD39B: dri_create_context (dri_context.c:177)
+|       ->02.24% (265,072B) 0x5CBFE86: driCreateContextAttribs (dri_util.c:627)
+|         ->02.24% (265,072B) 0x5AE1E4C: ???
+|           ->02.24% (265,072B) 0x5ACAF6F: ???
+|             ->02.24% (265,072B) 0x5A8359B: ???
+|               ->02.24% (265,072B) 0x1CB112: _glfwCreateContextGLX (glx_context.c:581)
+|                 ->02.24% (265,072B) 0x1C7A0F: _glfwPlatformCreateWindow (x11_window.c:2003)
+|                   ->02.24% (265,072B) 0x1C0477: glfwCreateWindow (window.c:218)
+|                     ->02.24% (265,072B) 0x1A0768: simu::Application::Application() (Application.cpp:163)
+|                       ->02.24% (265,072B) 0x162C7F: DummyApp (Pyramid.cpp:113)
+|                         ->02.24% (265,072B) 0x162C7F: main (Pyramid.cpp:129)
+|                           
+->01.81% (213,992B) 0x61F2BDF: threaded_context_create (u_threaded_context.c:4899)
+| ->01.81% (213,992B) 0x5CBD336: UnknownInlinedFun (st_manager.c:981)
+|   ->01.81% (213,992B) 0x5CBD336: dri_create_context (dri_context.c:177)
+|     ->01.81% (213,992B) 0x5CBFE86: driCreateContextAttribs (dri_util.c:627)
+|       ->01.81% (213,992B) 0x5AE1E4C: ???
+|         ->01.81% (213,992B) 0x5ACAF6F: ???
+|           ->01.81% (213,992B) 0x5A8359B: ???
+|             ->01.81% (213,992B) 0x1CB112: _glfwCreateContextGLX (glx_context.c:581)
+|               ->01.81% (213,992B) 0x1C7A0F: _glfwPlatformCreateWindow (x11_window.c:2003)
+|                 ->01.81% (213,992B) 0x1C0477: glfwCreateWindow (window.c:218)
+|                   ->01.81% (213,992B) 0x1A0768: simu::Application::Application() (Application.cpp:163)
+|                     ->01.81% (213,992B) 0x162C7F: DummyApp (Pyramid.cpp:113)
+|                       ->01.81% (213,992B) 0x162C7F: main (Pyramid.cpp:129)
+|                         
+->01.79% (211,584B) 0x5ACC423: ???
+| ->01.13% (133,632B) 0x5AEE92A: ???
+| | ->01.13% (133,632B) 0x5AD20F8: ???
+| |   ->01.13% (133,632B) 0x5AD26B3: ???
+| |     ->01.13% (133,632B) 0x5AD8FD2: ???
+| |       ->01.13% (133,632B) 0x1CAB28: extensionSupportedGLX (glx_context.c:212)
+| |         ->01.13% (133,632B) 0x1CAB28: _glfwInitGLX (glx_context.c:362)
+| |           ->01.13% (133,632B) 0x1C783C: _glfwPlatformCreateWindow (x11_window.c:1971)
+| |             ->01.13% (133,632B) 0x1C0477: glfwCreateWindow (window.c:218)
+| |               ->01.13% (133,632B) 0x1A0768: simu::Application::Application() (Application.cpp:163)
+| |                 ->01.13% (133,632B) 0x162C7F: DummyApp (Pyramid.cpp:113)
+| |                   ->01.13% (133,632B) 0x162C7F: main (Pyramid.cpp:129)
+| |                     
+| ->00.66% (77,952B) in 1+ places, all below ms_print's threshold (01.00%)
+| 
+->01.47% (173,680B) 0x4D738DF: __new_exitfn (cxa_atexit.c:112)
+| ->01.47% (173,680B) 0x4D7396B: __internal_atexit (cxa_atexit.c:44)
+|   ->01.47% (173,680B) in 154 places, all below massif's threshold (1.00%)
+|     
+->01.38% (163,840B) 0x1B92A3: Block (Memory.hpp:50)
+| ->01.38% (163,840B) 0x1B92A3: construct_at<simu::Block, long unsigned int const&> (stl_construct.h:97)
+|   ->01.38% (163,840B) 0x1B92A3: construct<simu::Block, long unsigned int const&> (alloc_traits.h:539)
+|     ->01.38% (163,840B) 0x1B92A3: _M_create_node<long unsigned int const&> (stl_list.h:713)
+|       ->01.38% (163,840B) 0x1B92A3: _M_insert<long unsigned int const&> (stl_list.h:2005)
+|         ->01.38% (163,840B) 0x1B92A3: emplace_back<long unsigned int const&> (stl_list.h:1321)
+|           ->01.38% (163,840B) 0x1B92A3: allocate (Memory.hpp:284)
+|             ->01.38% (163,840B) 0x1B92A3: allocate (Memory.hpp:270)
+|               ->01.38% (163,840B) 0x1B92A3: allocate (alloc_traits.h:333)
+|                 ->01.38% (163,840B) 0x1B92A3: _M_allocate_node<const std::piecewise_construct_t&, std::tuple<const simu::Bodies&>, std::tuple<> > (hashtable_policy.h:1999)
+|                   ->01.38% (163,840B) 0x1B92A3: _Scoped_node<const std::piecewise_construct_t&, std::tuple<const simu::Bodies&>, std::tuple<> > (hashtable.h:307)
+|                     ->01.38% (163,840B) 0x1B92A3: std::__detail::_Map_base<simu::Bodies, std::pair<simu::Bodies const, simu::World::ContactStatus>, simu::FreeListAllocator<std::pair<simu::Bodies const, simu::World::ContactStatus>, 32768ul>, std::__detail::_Select1st, std::equal_to<simu::Bodies>, std::hash<simu::Bodies>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<true, false, true>, true>::operator[](simu::Bodies const&) (hashtable_policy.h:814)
+|                       ->01.11% (131,072B) 0x1B5C04: operator[] (unordered_map.h:987)
+|                       | ->01.11% (131,072B) 0x1B5C04: operator() (World.cpp:189)
+|                       |   ->01.11% (131,072B) 0x1B5C04: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                       |     ->01.11% (131,072B) 0x1B5B2D: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                       |       ->01.11% (131,072B) in 2 places, all below massif's threshold (1.00%)
+|                       |         
+|                       ->00.28% (32,768B) in 1+ places, all below ms_print's threshold (01.00%)
+|                       
+->01.11% (131,072B) 0x1B2D92: Block (Memory.hpp:50)
+  ->01.11% (131,072B) 0x1B2D92: construct_at<simu::Block, long unsigned int const&> (stl_construct.h:97)
+    ->01.11% (131,072B) 0x1B2D92: construct<simu::Block, long unsigned int const&> (alloc_traits.h:539)
+      ->01.11% (131,072B) 0x1B2D92: _M_create_node<long unsigned int const&> (stl_list.h:713)
+        ->01.11% (131,072B) 0x1B2D92: _M_insert<long unsigned int const&> (stl_list.h:2005)
+          ->01.11% (131,072B) 0x1B2D92: emplace_back<long unsigned int const&> (stl_list.h:1321)
+            ->01.11% (131,072B) 0x1B2D92: simu::FreeListAllocator<simu::Body*, 32768ul>::allocate(unsigned long) [clone .part.0] (Memory.hpp:284)
+              ->01.11% (131,072B) in 4 places, all below massif's threshold (1.00%)
+                
+--------------------------------------------------------------------------------
+  n        time(i)         total(B)   useful-heap(B) extra-heap(B)    stacks(B)
+--------------------------------------------------------------------------------
+ 15  2,732,452,130       11,881,320       11,235,949       645,371            0
+ 16  2,861,857,995       11,950,168       11,303,225       646,943            0
+ 17  3,069,809,360       11,973,240       11,325,085       648,155            0
+ 18  3,249,949,215       12,006,520       11,357,109       649,411            0
+ 19  3,463,484,025       12,164,456       11,512,493       651,963            0
+ 20  3,585,782,083       12,152,920       11,500,789       652,131            0
+94.63% (11,500,789B) (heap allocation functions) malloc/new/new[], --alloc-fns, etc.
+->52.67% (6,400,992B) 0x5CADAD5: ralloc_size (ralloc.c:117)
+| ->31.88% (3,874,400B) in 1183 places, all below massif's threshold (1.00%)
+| | 
+| ->05.40% (656,832B) 0x601AE61: UnknownInlinedFun (ralloc.c:150)
+| | ->05.40% (656,832B) 0x601AE61: UnknownInlinedFun (list.h:58)
+| |   ->05.40% (656,832B) 0x601AE61: (anonymous namespace)::builtin_builder::new_sig(glsl_type const*, bool (*)(_mesa_glsl_parse_state const*), int, ...) [clone .lto_priv.0] (builtin_functions.cpp:5784)
+| |     ->03.44% (418,176B) in 142 places, all below massif's threshold (1.00%)
+| |     | 
+| |     ->01.96% (238,656B) 0x6E50FE9: (anonymous namespace)::builtin_builder::_texture(ir_texture_opcode, bool (*)(_mesa_glsl_parse_state const*), glsl_type const*, glsl_type const*, glsl_type const*, int) [clone .constprop.0] (builtin_functions.cpp:7203)
+| |       ->01.96% (238,656B) in 1243 places, all below massif's threshold (1.00%)
+| |         
+| ->02.33% (283,104B) 0x603D845: UnknownInlinedFun (ralloc.c:150)
+| | ->02.33% (283,104B) 0x603D845: UnknownInlinedFun (list.h:58)
+| |   ->02.33% (283,104B) 0x603D845: ir_builder::ret(ir_builder::operand) (ir_builder.cpp:70)
+| |     ->02.33% (283,104B) in 123 places, all below massif's threshold (1.00%)
+| |       
+| ->01.96% (238,656B) 0x6E50F07: UnknownInlinedFun (ralloc.c:150)
+| | ->01.96% (238,656B) 0x6E50F07: UnknownInlinedFun (list.h:58)
+| |   ->01.96% (238,656B) 0x6E50F07: UnknownInlinedFun (builtin_functions.cpp:5659)
+| |     ->01.96% (238,656B) 0x6E50F07: (anonymous namespace)::builtin_builder::_texture(ir_texture_opcode, bool (*)(_mesa_glsl_parse_state const*), glsl_type const*, glsl_type const*, glsl_type const*, int) [clone .constprop.0] (builtin_functions.cpp:7198)
+| |       ->01.96% (238,656B) in 1243 places, all below massif's threshold (1.00%)
+| |         
+| ->01.96% (238,656B) 0x6E50F67: UnknownInlinedFun (ralloc.c:150)
+| | ->01.96% (238,656B) 0x6E50F67: UnknownInlinedFun (list.h:58)
+| |   ->01.96% (238,656B) 0x6E50F67: UnknownInlinedFun (builtin_functions.cpp:5659)
+| |     ->01.96% (238,656B) 0x6E50F67: (anonymous namespace)::builtin_builder::_texture(ir_texture_opcode, bool (*)(_mesa_glsl_parse_state const*), glsl_type const*, glsl_type const*, glsl_type const*, int) [clone .constprop.0] (builtin_functions.cpp:7199)
+| |       ->01.96% (238,656B) in 1243 places, all below massif's threshold (1.00%)
+| |         
+| ->01.88% (228,976B) 0x6E83589: UnknownInlinedFun (ralloc.c:775)
+| | ->01.88% (228,976B) 0x6E83589: gc_alloc_size.constprop.0 (ralloc.c:811)
+| |   ->01.88% (228,976B) in 4 places, all below massif's threshold (1.00%)
+| |     
+| ->01.80% (218,768B) 0x6E5101B: UnknownInlinedFun (ralloc.c:150)
+| | ->01.80% (218,768B) 0x6E5101B: UnknownInlinedFun (list.h:58)
+| |   ->01.80% (218,768B) 0x6E5101B: (anonymous namespace)::builtin_builder::_texture(ir_texture_opcode, bool (*)(_mesa_glsl_parse_state const*), glsl_type const*, glsl_type const*, glsl_type const*, int) [clone .constprop.0] (builtin_functions.cpp:7205)
+| |     ->01.80% (218,768B) in 1243 places, all below massif's threshold (1.00%)
+| |       
+| ->01.55% (188,160B) 0x603E628: UnknownInlinedFun (ralloc.c:150)
+| | ->01.55% (188,160B) 0x603E628: UnknownInlinedFun (list.h:58)
+| |   ->01.55% (188,160B) 0x603E628: ir_builder::ir_factory::make_temp(glsl_type const*, char const*) (ir_builder.cpp:42)
+| |     ->01.55% (188,160B) in 98 places, all below massif's threshold (1.00%)
+| |       
+| ->01.43% (173,824B) 0x6E54E6F: UnknownInlinedFun (ralloc.c:150)
+| | ->01.43% (173,824B) 0x6E54E6F: UnknownInlinedFun (list.h:58)
+| |   ->01.43% (173,824B) 0x6E54E6F: UnknownInlinedFun (builtin_functions.cpp:5723)
+| |     ->01.43% (173,824B) 0x6E54E6F: (anonymous namespace)::builtin_builder::array_ref(ir_variable*, int) [clone .constprop.0] (builtin_functions.cpp:5755)
+| |       ->01.43% (173,824B) in 320 places, all below massif's threshold (1.00%)
+| |         
+| ->01.35% (163,968B) 0x603D8D7: UnknownInlinedFun (ralloc.c:150)
+| | ->01.35% (163,968B) 0x603D8D7: UnknownInlinedFun (list.h:58)
+| |   ->01.35% (163,968B) 0x603D8D7: ir_builder::swizzle(ir_builder::operand, int, int) (ir_builder.cpp:83)
+| |     ->01.35% (163,968B) in 310 places, all below massif's threshold (1.00%)
+| |       
+| ->01.12% (135,648B) 0x6040A43: UnknownInlinedFun (ralloc.c:150)
+|   ->01.12% (135,648B) 0x6040A43: UnknownInlinedFun (list.h:58)
+|     ->01.12% (135,648B) 0x6040A43: ir_builder::expr(ir_expression_operation, ir_builder::operand, ir_builder::operand) (ir_builder.cpp:180)
+|       ->01.12% (135,648B) in 173 places, all below massif's threshold (1.00%)
+|         
+->16.20% (1,969,232B) in 739 places, all below massif's threshold (1.00%)
+| 
+->06.47% (786,432B) 0x19AE5F: Block (Memory.hpp:50)
+| ->06.47% (786,432B) 0x19AE5F: construct_at<simu::Block, long unsigned int const&> (stl_construct.h:97)
+|   ->06.47% (786,432B) 0x19AE5F: construct<simu::Block, long unsigned int const&> (alloc_traits.h:539)
+|     ->06.47% (786,432B) 0x19AE5F: _M_create_node<long unsigned int const&> (stl_list.h:713)
+|       ->06.47% (786,432B) 0x19AE5F: _M_insert<long unsigned int const&> (stl_list.h:2005)
+|         ->06.47% (786,432B) 0x19AE5F: emplace_back<long unsigned int const&> (stl_list.h:1321)
+|           ->06.47% (786,432B) 0x19AE5F: allocate (Memory.hpp:284)
+|             ->06.47% (786,432B) 0x19AE5F: allocate (Memory.hpp:270)
+|               ->06.47% (786,432B) 0x19AE5F: std::unique_ptr<simu::VisibleBody, std::function<void (void*)> > simu::FreeListAllocator<std::unique_ptr<simu::Body, std::function<void (void*)> >, 32768ul>::makeUnique<simu::VisibleBody, simu::BodyDescriptor&, simu::Matrix<unsigned char, 4u, 1u>, simu::Renderer*>(simu::BodyDescriptor&, simu::Matrix<unsigned char, 4u, 1u>&&, simu::Renderer*&&) (Memory.hpp:148)
+|                 ->06.47% (786,432B) 0x1AF7B5: makeObject<simu::VisibleBody, simu::FreeListAllocator<std::unique_ptr<simu::Body, std::function<void(void*)> >, 32768>, simu::BodyDescriptor&, simu::Matrix<unsigned char, 4, 1>, simu::Renderer*> (World.hpp:321)
+|                   ->06.47% (786,432B) 0x1AF7B5: simu::VisibleBody* simu::World::makeBody<simu::VisibleBody, simu::BodyDescriptor&, simu::Matrix<unsigned char, 4u, 1u>, simu::Renderer*>(simu::BodyDescriptor&, simu::Matrix<unsigned char, 4u, 1u>&&, simu::Renderer*&&) (World.hpp:170)
+|                     ->06.47% (786,432B) 0x1AD203: simu::BoxSpawner::makeBox(simu::Matrix<float, 2u, 1u>, simu::Matrix<float, 2u, 1u>) (Tool.cpp:125)
+|                       ->06.47% (786,432B) 0x19CEF4: Pyramid::init(simu::Renderer&) (Pyramid.cpp:70)
+|                         ->06.47% (786,432B) 0x1A4D1D: simu::Scene::init(simu::Application*) (Scene.cpp:123)
+|                           ->06.47% (786,432B) 0x1A0147: simu::Application::run() (Application.cpp:235)
+|                             ->06.47% (786,432B) 0x162C8B: main (Pyramid.cpp:130)
+|                               
+->03.77% (458,752B) 0x1A99DF: Block (Memory.hpp:50)
+| ->03.77% (458,752B) 0x1A99DF: construct_at<simu::Block, long unsigned int const&> (stl_construct.h:97)
+|   ->03.77% (458,752B) 0x1A99DF: construct<simu::Block, long unsigned int const&> (alloc_traits.h:539)
+|     ->03.77% (458,752B) 0x1A99DF: _M_create_node<long unsigned int const&> (stl_list.h:713)
+|       ->03.77% (458,752B) 0x1A99DF: _M_insert<long unsigned int const&> (stl_list.h:2005)
+|         ->03.77% (458,752B) 0x1A99DF: emplace_back<long unsigned int const&> (stl_list.h:1321)
+|           ->03.77% (458,752B) 0x1A99DF: allocate (Memory.hpp:284)
+|             ->03.77% (458,752B) 0x1A99DF: allocate (Memory.hpp:270)
+|               ->03.77% (458,752B) 0x1A99DF: std::unique_ptr<simu::VisibleContactConstraint, std::function<void (void*)> > simu::FreeListAllocator<std::unique_ptr<simu::Constraint, std::function<void (void*)> >, 32768ul>::makeUnique<simu::VisibleContactConstraint, simu::Bodies&, simu::Renderer* const&>(simu::Bodies&, simu::Renderer* const&) (Memory.hpp:148)
+|                 ->03.77% (458,752B) 0x1A9C54: operator() (Scene.hpp:145)
+|                   ->03.77% (458,752B) 0x1A9C54: __invoke_impl<std::unique_ptr<simu::VisibleContactConstraint, std::function<void(void*)> >, simu::Scene::makeWorld()::<lambda(simu::Bodies, simu::World::ConstraintAlloc&)>&, simu::Bodies, simu::FreeListAllocator<std::unique_ptr<simu::Constraint, std::function<void(void*)> >, 32768>&> (invoke.h:61)
+|                     ->03.77% (458,752B) 0x1A9C54: __invoke_r<std::unique_ptr<simu::ContactConstraint, std::function<void(void*)> >, simu::Scene::makeWorld()::<lambda(simu::Bodies, simu::World::ConstraintAlloc&)>&, simu::Bodies, simu::FreeListAllocator<std::unique_ptr<simu::Constraint, std::function<void(void*)> >, 32768>&> (invoke.h:116)
+|                       ->03.77% (458,752B) 0x1A9C54: std::_Function_handler<std::unique_ptr<simu::ContactConstraint, std::function<void (void*)> > (simu::Bodies, simu::FreeListAllocator<std::unique_ptr<simu::Constraint, std::function<void (void*)> >, 32768ul>&), simu::Scene::makeWorld()::{lambda(simu::Bodies, simu::FreeListAllocator<std::unique_ptr<simu::Constraint, std::function<void (void*)> >, 32768ul>&)
+|                         ->03.77% (458,752B) 0x1B544C: operator() (std_function.h:591)
+|                           ->03.77% (458,752B) 0x1B544C: simu::World::makeContactConstraint(simu::Bodies) (World.cpp:132)
+|                             ->03.24% (393,216B) 0x1B5C48: operator() (World.cpp:190)
+|                             | ->03.24% (393,216B) 0x1B5C48: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                             |   ->02.97% (360,448B) 0x1B5B2D: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                             |   | ->02.16% (262,144B) 0x1B5B2D: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                             |   | | ->01.62% (196,608B) 0x1B5B2D: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                             |   | | | ->01.62% (196,608B) in 2 places, all below massif's threshold (1.00%)
+|                             |   | | |   
+|                             |   | | ->00.54% (65,536B) in 1+ places, all below ms_print's threshold (01.00%)
+|                             |   | | 
+|                             |   | ->00.81% (98,304B) in 1+ places, all below ms_print's threshold (01.00%)
+|                             |   | 
+|                             |   ->00.27% (32,768B) in 1+ places, all below ms_print's threshold (01.00%)
+|                             |   
+|                             ->00.54% (65,536B) in 1+ places, all below ms_print's threshold (01.00%)
+|                             
+->02.59% (314,928B) 0x48D6A05: UnknownInlinedFun (imLcPrs.c:674)
+| ->02.59% (314,928B) 0x48D6A05: parsestringfile (imLcPrs.c:739)
+|   ->02.59% (314,928B) 0x48D8C21: UnknownInlinedFun (imLcIm.c:610)
+|     ->02.59% (314,928B) 0x48D8C21: _XimLocalOpenIM (imLcIm.c:700)
+|       ->02.59% (314,928B) 0x48D1E9F: _XimOpenIM (imInt.c:229)
+|         ->02.59% (314,928B) 0x1C317D: _glfwPlatformInit (x11_init.c:1142)
+|           ->02.59% (314,928B) 0x1BC077: glfwInit (init.c:324)
+|             ->02.59% (314,928B) 0x1A0739: simu::Application::Application() (Application.cpp:159)
+|               ->02.59% (314,928B) 0x162C7F: DummyApp (Pyramid.cpp:113)
+|                 ->02.59% (314,928B) 0x162C7F: main (Pyramid.cpp:129)
+|                   
+->02.31% (280,141B) 0x5A7FD85: ???
+| ->02.30% (279,524B) 0x1CF716: operator() (std_function.h:591)
+| | ->02.30% (279,524B) 0x1CF716: glbinding::Binding::resolveFunction(char const*) (Binding.cpp:214)
+| |   ->02.30% (279,524B) 0x1D131B: resolve (State.cpp:18)
+| |     ->02.30% (279,524B) 0x1D131B: glbinding::State::resolve(char const*) (State.cpp:11)
+| |       ->02.30% (279,524B) 0x1CEBD3: glbinding::Binding::resolveFunctions() (Binding.cpp:234)
+| |         ->02.30% (279,524B) 0x1CFFB5: glbinding::Binding::initialize(long long, std::function<void (*(char const*))()>, bool, bool) (Binding.cpp:199)
+| |           ->02.30% (279,524B) 0x1D0250: glbinding::Binding::initialize(std::function<void (*(char const*))()>, bool) (Binding.cpp:157)
+| |             ->02.30% (279,524B) 0x1CE049: glbinding::initialize(std::function<void (*(char const*))()>, bool) (glbinding.cpp:15)
+| |               ->02.30% (279,524B) 0x1A0831: simu::Application::Application() (Application.cpp:178)
+| |                 ->02.30% (279,524B) 0x162C7F: DummyApp (Pyramid.cpp:113)
+| |                   ->02.30% (279,524B) 0x162C7F: main (Pyramid.cpp:129)
+| |                     
+| ->00.01% (617B) in 1+ places, all below ms_print's threshold (01.00%)
+| 
+->02.18% (265,072B) 0x5D64242: UnknownInlinedFun (os_memory_aligned.h:58)
+| ->02.18% (265,072B) 0x5D64242: st_create_context (st_context.c:864)
+|   ->02.18% (265,072B) 0x5CBD39B: UnknownInlinedFun (st_manager.c:992)
+|     ->02.18% (265,072B) 0x5CBD39B: dri_create_context (dri_context.c:177)
+|       ->02.18% (265,072B) 0x5CBFE86: driCreateContextAttribs (dri_util.c:627)
+|         ->02.18% (265,072B) 0x5AE1E4C: ???
+|           ->02.18% (265,072B) 0x5ACAF6F: ???
+|             ->02.18% (265,072B) 0x5A8359B: ???
+|               ->02.18% (265,072B) 0x1CB112: _glfwCreateContextGLX (glx_context.c:581)
+|                 ->02.18% (265,072B) 0x1C7A0F: _glfwPlatformCreateWindow (x11_window.c:2003)
+|                   ->02.18% (265,072B) 0x1C0477: glfwCreateWindow (window.c:218)
+|                     ->02.18% (265,072B) 0x1A0768: simu::Application::Application() (Application.cpp:163)
+|                       ->02.18% (265,072B) 0x162C7F: DummyApp (Pyramid.cpp:113)
+|                         ->02.18% (265,072B) 0x162C7F: main (Pyramid.cpp:129)
+|                           
+->01.89% (229,376B) 0x1B2D92: Block (Memory.hpp:50)
+| ->01.89% (229,376B) 0x1B2D92: construct_at<simu::Block, long unsigned int const&> (stl_construct.h:97)
+|   ->01.89% (229,376B) 0x1B2D92: construct<simu::Block, long unsigned int const&> (alloc_traits.h:539)
+|     ->01.89% (229,376B) 0x1B2D92: _M_create_node<long unsigned int const&> (stl_list.h:713)
+|       ->01.89% (229,376B) 0x1B2D92: _M_insert<long unsigned int const&> (stl_list.h:2005)
+|         ->01.89% (229,376B) 0x1B2D92: emplace_back<long unsigned int const&> (stl_list.h:1321)
+|           ->01.89% (229,376B) 0x1B2D92: simu::FreeListAllocator<simu::Body*, 32768ul>::allocate(unsigned long) [clone .part.0] (Memory.hpp:284)
+|             ->01.89% (229,376B) in 4 places, all below massif's threshold (1.00%)
+|               
+->01.76% (213,992B) 0x61F2BDF: threaded_context_create (u_threaded_context.c:4899)
+| ->01.76% (213,992B) 0x5CBD336: UnknownInlinedFun (st_manager.c:981)
+|   ->01.76% (213,992B) 0x5CBD336: dri_create_context (dri_context.c:177)
+|     ->01.76% (213,992B) 0x5CBFE86: driCreateContextAttribs (dri_util.c:627)
+|       ->01.76% (213,992B) 0x5AE1E4C: ???
+|         ->01.76% (213,992B) 0x5ACAF6F: ???
+|           ->01.76% (213,992B) 0x5A8359B: ???
+|             ->01.76% (213,992B) 0x1CB112: _glfwCreateContextGLX (glx_context.c:581)
+|               ->01.76% (213,992B) 0x1C7A0F: _glfwPlatformCreateWindow (x11_window.c:2003)
+|                 ->01.76% (213,992B) 0x1C0477: glfwCreateWindow (window.c:218)
+|                   ->01.76% (213,992B) 0x1A0768: simu::Application::Application() (Application.cpp:163)
+|                     ->01.76% (213,992B) 0x162C7F: DummyApp (Pyramid.cpp:113)
+|                       ->01.76% (213,992B) 0x162C7F: main (Pyramid.cpp:129)
+|                         
+->01.74% (211,584B) 0x5ACC423: ???
+| ->01.10% (133,632B) 0x5AEE92A: ???
+| | ->01.10% (133,632B) 0x5AD20F8: ???
+| |   ->01.10% (133,632B) 0x5AD26B3: ???
+| |     ->01.10% (133,632B) 0x5AD8FD2: ???
+| |       ->01.10% (133,632B) 0x1CAB28: extensionSupportedGLX (glx_context.c:212)
+| |         ->01.10% (133,632B) 0x1CAB28: _glfwInitGLX (glx_context.c:362)
+| |           ->01.10% (133,632B) 0x1C783C: _glfwPlatformCreateWindow (x11_window.c:1971)
+| |             ->01.10% (133,632B) 0x1C0477: glfwCreateWindow (window.c:218)
+| |               ->01.10% (133,632B) 0x1A0768: simu::Application::Application() (Application.cpp:163)
+| |                 ->01.10% (133,632B) 0x162C7F: DummyApp (Pyramid.cpp:113)
+| |                   ->01.10% (133,632B) 0x162C7F: main (Pyramid.cpp:129)
+| |                     
+| ->00.64% (77,952B) in 1+ places, all below ms_print's threshold (01.00%)
+| 
+->01.62% (196,608B) 0x1B92A3: Block (Memory.hpp:50)
+| ->01.62% (196,608B) 0x1B92A3: construct_at<simu::Block, long unsigned int const&> (stl_construct.h:97)
+|   ->01.62% (196,608B) 0x1B92A3: construct<simu::Block, long unsigned int const&> (alloc_traits.h:539)
+|     ->01.62% (196,608B) 0x1B92A3: _M_create_node<long unsigned int const&> (stl_list.h:713)
+|       ->01.62% (196,608B) 0x1B92A3: _M_insert<long unsigned int const&> (stl_list.h:2005)
+|         ->01.62% (196,608B) 0x1B92A3: emplace_back<long unsigned int const&> (stl_list.h:1321)
+|           ->01.62% (196,608B) 0x1B92A3: allocate (Memory.hpp:284)
+|             ->01.62% (196,608B) 0x1B92A3: allocate (Memory.hpp:270)
+|               ->01.62% (196,608B) 0x1B92A3: allocate (alloc_traits.h:333)
+|                 ->01.62% (196,608B) 0x1B92A3: _M_allocate_node<const std::piecewise_construct_t&, std::tuple<const simu::Bodies&>, std::tuple<> > (hashtable_policy.h:1999)
+|                   ->01.62% (196,608B) 0x1B92A3: _Scoped_node<const std::piecewise_construct_t&, std::tuple<const simu::Bodies&>, std::tuple<> > (hashtable.h:307)
+|                     ->01.62% (196,608B) 0x1B92A3: std::__detail::_Map_base<simu::Bodies, std::pair<simu::Bodies const, simu::World::ContactStatus>, simu::FreeListAllocator<std::pair<simu::Bodies const, simu::World::ContactStatus>, 32768ul>, std::__detail::_Select1st, std::equal_to<simu::Bodies>, std::hash<simu::Bodies>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<true, false, true>, true>::operator[](simu::Bodies const&) (hashtable_policy.h:814)
+|                       ->01.35% (163,840B) 0x1B5C04: operator[] (unordered_map.h:987)
+|                       | ->01.35% (163,840B) 0x1B5C04: operator() (World.cpp:189)
+|                       |   ->01.35% (163,840B) 0x1B5C04: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                       |     ->01.35% (163,840B) 0x1B5B2D: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                       |       ->01.08% (131,072B) 0x1B5B2D: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                       |       | ->01.08% (131,072B) in 2 places, all below massif's threshold (1.00%)
+|                       |       |   
+|                       |       ->00.27% (32,768B) in 1+ places, all below ms_print's threshold (01.00%)
+|                       |       
+|                       ->00.27% (32,768B) in 1+ places, all below ms_print's threshold (01.00%)
+|                       
+->01.43% (173,680B) 0x4D738DF: __new_exitfn (cxa_atexit.c:112)
+  ->01.43% (173,680B) 0x4D7396B: __internal_atexit (cxa_atexit.c:44)
+    ->01.43% (173,680B) in 154 places, all below massif's threshold (1.00%)
+      
+--------------------------------------------------------------------------------
+  n        time(i)         total(B)   useful-heap(B) extra-heap(B)    stacks(B)
+--------------------------------------------------------------------------------
+ 21  3,748,186,807       12,217,560       11,563,101       654,459            0
+ 22  3,876,858,898       12,211,040       11,556,693       654,347            0
+ 23  4,058,700,985       12,272,064       11,615,413       656,651            0
+ 24  4,223,621,060       12,391,000       11,733,188       657,812            0
+ 25  4,389,203,528       12,412,648       11,752,960       659,688            0
+ 26  4,620,659,558       12,546,224       11,884,383       661,841            0
+ 27  4,851,557,327       12,580,504       11,916,416       664,088            0
+ 28  5,025,344,856       12,666,128       12,000,783       665,345            0
+ 29  5,161,887,685       12,706,720       12,040,367       666,353            0
+ 30  5,325,891,168       12,698,872       12,031,128       667,744            0
+ 31  5,441,073,966       12,733,456       12,064,688       668,768            0
+ 32  5,576,146,863       12,813,208       12,143,599       669,609            0
+ 33  5,716,110,318       12,847,504       12,177,055       670,449            0
+ 34  5,928,155,488       12,887,128       12,215,367       671,761            0
+ 35  6,070,788,976       12,961,136       12,288,231       672,905            0
+ 36  6,214,071,746       12,970,912       12,296,943       673,969            0
+ 37  6,357,763,188       13,002,264       12,327,231       675,033            0
+ 38  6,574,563,675       13,070,904       12,394,047       676,857            0
+ 39  6,719,536,837       13,105,224       12,427,503       677,721            0
+ 40  6,865,091,813       13,146,304       12,467,183       679,121            0
+ 41  7,032,668,245       13,099,144       12,419,272       679,872            0
+ 42  7,230,380,952       13,218,496       12,537,207       681,289            0
+ 43  7,450,887,046       13,253,336       12,570,319       683,017            0
+ 44  7,597,723,765       13,289,120       12,605,311       683,809            0
+ 45  7,705,613,412       13,524,696       12,840,398       684,298            0
+94.94% (12,840,398B) (heap allocation functions) malloc/new/new[], --alloc-fns, etc.
+->47.33% (6,400,992B) 0x5CADAD5: ralloc_size (ralloc.c:117)
+| ->28.65% (3,874,400B) in 1183 places, all below massif's threshold (1.00%)
+| | 
+| ->04.86% (656,832B) 0x601AE61: UnknownInlinedFun (ralloc.c:150)
+| | ->04.86% (656,832B) 0x601AE61: UnknownInlinedFun (list.h:58)
+| |   ->04.86% (656,832B) 0x601AE61: (anonymous namespace)::builtin_builder::new_sig(glsl_type const*, bool (*)(_mesa_glsl_parse_state const*), int, ...) [clone .lto_priv.0] (builtin_functions.cpp:5784)
+| |     ->03.09% (418,176B) in 142 places, all below massif's threshold (1.00%)
+| |     | 
+| |     ->01.76% (238,656B) 0x6E50FE9: (anonymous namespace)::builtin_builder::_texture(ir_texture_opcode, bool (*)(_mesa_glsl_parse_state const*), glsl_type const*, glsl_type const*, glsl_type const*, int) [clone .constprop.0] (builtin_functions.cpp:7203)
+| |       ->01.76% (238,656B) in 1243 places, all below massif's threshold (1.00%)
+| |         
+| ->02.09% (283,104B) 0x603D845: UnknownInlinedFun (ralloc.c:150)
+| | ->02.09% (283,104B) 0x603D845: UnknownInlinedFun (list.h:58)
+| |   ->02.09% (283,104B) 0x603D845: ir_builder::ret(ir_builder::operand) (ir_builder.cpp:70)
+| |     ->02.09% (283,104B) in 123 places, all below massif's threshold (1.00%)
+| |       
+| ->01.76% (238,656B) 0x6E50F07: UnknownInlinedFun (ralloc.c:150)
+| | ->01.76% (238,656B) 0x6E50F07: UnknownInlinedFun (list.h:58)
+| |   ->01.76% (238,656B) 0x6E50F07: UnknownInlinedFun (builtin_functions.cpp:5659)
+| |     ->01.76% (238,656B) 0x6E50F07: (anonymous namespace)::builtin_builder::_texture(ir_texture_opcode, bool (*)(_mesa_glsl_parse_state const*), glsl_type const*, glsl_type const*, glsl_type const*, int) [clone .constprop.0] (builtin_functions.cpp:7198)
+| |       ->01.76% (238,656B) in 1243 places, all below massif's threshold (1.00%)
+| |         
+| ->01.76% (238,656B) 0x6E50F67: UnknownInlinedFun (ralloc.c:150)
+| | ->01.76% (238,656B) 0x6E50F67: UnknownInlinedFun (list.h:58)
+| |   ->01.76% (238,656B) 0x6E50F67: UnknownInlinedFun (builtin_functions.cpp:5659)
+| |     ->01.76% (238,656B) 0x6E50F67: (anonymous namespace)::builtin_builder::_texture(ir_texture_opcode, bool (*)(_mesa_glsl_parse_state const*), glsl_type const*, glsl_type const*, glsl_type const*, int) [clone .constprop.0] (builtin_functions.cpp:7199)
+| |       ->01.76% (238,656B) in 1243 places, all below massif's threshold (1.00%)
+| |         
+| ->01.69% (228,976B) 0x6E83589: UnknownInlinedFun (ralloc.c:775)
+| | ->01.69% (228,976B) 0x6E83589: gc_alloc_size.constprop.0 (ralloc.c:811)
+| |   ->01.69% (228,976B) in 4 places, all below massif's threshold (1.00%)
+| |     
+| ->01.62% (218,768B) 0x6E5101B: UnknownInlinedFun (ralloc.c:150)
+| | ->01.62% (218,768B) 0x6E5101B: UnknownInlinedFun (list.h:58)
+| |   ->01.62% (218,768B) 0x6E5101B: (anonymous namespace)::builtin_builder::_texture(ir_texture_opcode, bool (*)(_mesa_glsl_parse_state const*), glsl_type const*, glsl_type const*, glsl_type const*, int) [clone .constprop.0] (builtin_functions.cpp:7205)
+| |     ->01.62% (218,768B) in 1243 places, all below massif's threshold (1.00%)
+| |       
+| ->01.39% (188,160B) 0x603E628: UnknownInlinedFun (ralloc.c:150)
+| | ->01.39% (188,160B) 0x603E628: UnknownInlinedFun (list.h:58)
+| |   ->01.39% (188,160B) 0x603E628: ir_builder::ir_factory::make_temp(glsl_type const*, char const*) (ir_builder.cpp:42)
+| |     ->01.39% (188,160B) in 98 places, all below massif's threshold (1.00%)
+| |       
+| ->01.29% (173,824B) 0x6E54E6F: UnknownInlinedFun (ralloc.c:150)
+| | ->01.29% (173,824B) 0x6E54E6F: UnknownInlinedFun (list.h:58)
+| |   ->01.29% (173,824B) 0x6E54E6F: UnknownInlinedFun (builtin_functions.cpp:5723)
+| |     ->01.29% (173,824B) 0x6E54E6F: (anonymous namespace)::builtin_builder::array_ref(ir_variable*, int) [clone .constprop.0] (builtin_functions.cpp:5755)
+| |       ->01.29% (173,824B) in 320 places, all below massif's threshold (1.00%)
+| |         
+| ->01.21% (163,968B) 0x603D8D7: UnknownInlinedFun (ralloc.c:150)
+| | ->01.21% (163,968B) 0x603D8D7: UnknownInlinedFun (list.h:58)
+| |   ->01.21% (163,968B) 0x603D8D7: ir_builder::swizzle(ir_builder::operand, int, int) (ir_builder.cpp:83)
+| |     ->01.21% (163,968B) in 310 places, all below massif's threshold (1.00%)
+| |       
+| ->01.00% (135,648B) 0x6040A43: UnknownInlinedFun (ralloc.c:150)
+|   ->01.00% (135,648B) 0x6040A43: UnknownInlinedFun (list.h:58)
+|     ->01.00% (135,648B) 0x6040A43: ir_builder::expr(ir_expression_operation, ir_builder::operand, ir_builder::operand) (ir_builder.cpp:180)
+|       ->01.00% (135,648B) in 173 places, all below massif's threshold (1.00%)
+|         
+->15.44% (2,088,476B) in 744 places, all below massif's threshold (1.00%)
+| 
+->08.48% (1,146,880B) 0x1A99DF: Block (Memory.hpp:50)
+| ->08.48% (1,146,880B) 0x1A99DF: construct_at<simu::Block, long unsigned int const&> (stl_construct.h:97)
+|   ->08.48% (1,146,880B) 0x1A99DF: construct<simu::Block, long unsigned int const&> (alloc_traits.h:539)
+|     ->08.48% (1,146,880B) 0x1A99DF: _M_create_node<long unsigned int const&> (stl_list.h:713)
+|       ->08.48% (1,146,880B) 0x1A99DF: _M_insert<long unsigned int const&> (stl_list.h:2005)
+|         ->08.48% (1,146,880B) 0x1A99DF: emplace_back<long unsigned int const&> (stl_list.h:1321)
+|           ->08.48% (1,146,880B) 0x1A99DF: allocate (Memory.hpp:284)
+|             ->08.48% (1,146,880B) 0x1A99DF: allocate (Memory.hpp:270)
+|               ->08.48% (1,146,880B) 0x1A99DF: std::unique_ptr<simu::VisibleContactConstraint, std::function<void (void*)> > simu::FreeListAllocator<std::unique_ptr<simu::Constraint, std::function<void (void*)> >, 32768ul>::makeUnique<simu::VisibleContactConstraint, simu::Bodies&, simu::Renderer* const&>(simu::Bodies&, simu::Renderer* const&) (Memory.hpp:148)
+|                 ->08.48% (1,146,880B) 0x1A9C54: operator() (Scene.hpp:145)
+|                   ->08.48% (1,146,880B) 0x1A9C54: __invoke_impl<std::unique_ptr<simu::VisibleContactConstraint, std::function<void(void*)> >, simu::Scene::makeWorld()::<lambda(simu::Bodies, simu::World::ConstraintAlloc&)>&, simu::Bodies, simu::FreeListAllocator<std::unique_ptr<simu::Constraint, std::function<void(void*)> >, 32768>&> (invoke.h:61)
+|                     ->08.48% (1,146,880B) 0x1A9C54: __invoke_r<std::unique_ptr<simu::ContactConstraint, std::function<void(void*)> >, simu::Scene::makeWorld()::<lambda(simu::Bodies, simu::World::ConstraintAlloc&)>&, simu::Bodies, simu::FreeListAllocator<std::unique_ptr<simu::Constraint, std::function<void(void*)> >, 32768>&> (invoke.h:116)
+|                       ->08.48% (1,146,880B) 0x1A9C54: std::_Function_handler<std::unique_ptr<simu::ContactConstraint, std::function<void (void*)> > (simu::Bodies, simu::FreeListAllocator<std::unique_ptr<simu::Constraint, std::function<void (void*)> >, 32768ul>&), simu::Scene::makeWorld()::{lambda(simu::Bodies, simu::FreeListAllocator<std::unique_ptr<simu::Constraint, std::function<void (void*)> >, 32768ul>&)
+|                         ->08.48% (1,146,880B) 0x1B544C: operator() (std_function.h:591)
+|                           ->08.48% (1,146,880B) 0x1B544C: simu::World::makeContactConstraint(simu::Bodies) (World.cpp:132)
+|                             ->06.78% (917,504B) 0x1B5C48: operator() (World.cpp:190)
+|                             | ->06.78% (917,504B) 0x1B5C48: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                             |   ->06.30% (851,968B) 0x1B5B2D: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                             |   | ->04.85% (655,360B) 0x1B5B2D: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                             |   | | ->02.67% (360,448B) 0x1B5B2D: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                             |   | | | ->01.70% (229,376B) 0x1B5B2D: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                             |   | | | | ->01.21% (163,840B) 0x1B5B2D: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                             |   | | | | | ->01.21% (163,840B) in 2 places, all below massif's threshold (1.00%)
+|                             |   | | | | |   
+|                             |   | | | | ->00.48% (65,536B) in 1+ places, all below ms_print's threshold (01.00%)
+|                             |   | | | | 
+|                             |   | | | ->00.97% (131,072B) in 1+ places, all below ms_print's threshold (01.00%)
+|                             |   | | | 
+|                             |   | | ->02.18% (294,912B) 0x1B5D76: forEachIn<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:418)
+|                             |   | |   ->02.18% (294,912B) 0x1B5D76: forEachOverlapping<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:434)
+|                             |   | |     ->02.18% (294,912B) 0x1B5D76: forEachOverlapping<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:94)
+|                             |   | |       ->02.18% (294,912B) 0x1B5D76: simu::World::detectContacts() (World.cpp:193)
+|                             |   | |         ->02.18% (294,912B) 0x1B6058: simu::World::step(float) (World.cpp:61)
+|                             |   | |           ->02.18% (294,912B) 0x19FFCD: step (Scene.hpp:81)
+|                             |   | |             ->02.18% (294,912B) 0x19FFCD: simu::Application::run() (Application.cpp:216)
+|                             |   | |               ->02.18% (294,912B) 0x162C8B: main (Pyramid.cpp:130)
+|                             |   | |                 
+|                             |   | ->01.45% (196,608B) 0x1B5D76: forEachIn<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:418)
+|                             |   |   ->01.45% (196,608B) 0x1B5D76: forEachOverlapping<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:434)
+|                             |   |     ->01.45% (196,608B) 0x1B5D76: forEachOverlapping<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:94)
+|                             |   |       ->01.45% (196,608B) 0x1B5D76: simu::World::detectContacts() (World.cpp:193)
+|                             |   |         ->01.45% (196,608B) 0x1B6058: simu::World::step(float) (World.cpp:61)
+|                             |   |           ->01.45% (196,608B) 0x19FFCD: step (Scene.hpp:81)
+|                             |   |             ->01.45% (196,608B) 0x19FFCD: simu::Application::run() (Application.cpp:216)
+|                             |   |               ->01.45% (196,608B) 0x162C8B: main (Pyramid.cpp:130)
+|                             |   |                 
+|                             |   ->00.48% (65,536B) in 1+ places, all below ms_print's threshold (01.00%)
+|                             |   
+|                             ->01.70% (229,376B) 0x1B5F40: operator() (World.cpp:190)
+|                               ->01.70% (229,376B) 0x1B5F40: forEachIn<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:415)
+|                                 ->01.70% (229,376B) 0x1B5F40: forEachOverlapping<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:434)
+|                                   ->01.70% (229,376B) 0x1B5F40: forEachOverlapping<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:94)
+|                                     ->01.70% (229,376B) 0x1B5F40: simu::World::detectContacts() (World.cpp:193)
+|                                       ->01.70% (229,376B) 0x1B6058: simu::World::step(float) (World.cpp:61)
+|                                         ->01.70% (229,376B) 0x19FFCD: step (Scene.hpp:81)
+|                                           ->01.70% (229,376B) 0x19FFCD: simu::Application::run() (Application.cpp:216)
+|                                             ->01.70% (229,376B) 0x162C8B: main (Pyramid.cpp:130)
+|                                               
+->05.81% (786,432B) 0x19AE5F: Block (Memory.hpp:50)
+| ->05.81% (786,432B) 0x19AE5F: construct_at<simu::Block, long unsigned int const&> (stl_construct.h:97)
+|   ->05.81% (786,432B) 0x19AE5F: construct<simu::Block, long unsigned int const&> (alloc_traits.h:539)
+|     ->05.81% (786,432B) 0x19AE5F: _M_create_node<long unsigned int const&> (stl_list.h:713)
+|       ->05.81% (786,432B) 0x19AE5F: _M_insert<long unsigned int const&> (stl_list.h:2005)
+|         ->05.81% (786,432B) 0x19AE5F: emplace_back<long unsigned int const&> (stl_list.h:1321)
+|           ->05.81% (786,432B) 0x19AE5F: allocate (Memory.hpp:284)
+|             ->05.81% (786,432B) 0x19AE5F: allocate (Memory.hpp:270)
+|               ->05.81% (786,432B) 0x19AE5F: std::unique_ptr<simu::VisibleBody, std::function<void (void*)> > simu::FreeListAllocator<std::unique_ptr<simu::Body, std::function<void (void*)> >, 32768ul>::makeUnique<simu::VisibleBody, simu::BodyDescriptor&, simu::Matrix<unsigned char, 4u, 1u>, simu::Renderer*>(simu::BodyDescriptor&, simu::Matrix<unsigned char, 4u, 1u>&&, simu::Renderer*&&) (Memory.hpp:148)
+|                 ->05.81% (786,432B) 0x1AF7B5: makeObject<simu::VisibleBody, simu::FreeListAllocator<std::unique_ptr<simu::Body, std::function<void(void*)> >, 32768>, simu::BodyDescriptor&, simu::Matrix<unsigned char, 4, 1>, simu::Renderer*> (World.hpp:321)
+|                   ->05.81% (786,432B) 0x1AF7B5: simu::VisibleBody* simu::World::makeBody<simu::VisibleBody, simu::BodyDescriptor&, simu::Matrix<unsigned char, 4u, 1u>, simu::Renderer*>(simu::BodyDescriptor&, simu::Matrix<unsigned char, 4u, 1u>&&, simu::Renderer*&&) (World.hpp:170)
+|                     ->05.81% (786,432B) 0x1AD203: simu::BoxSpawner::makeBox(simu::Matrix<float, 2u, 1u>, simu::Matrix<float, 2u, 1u>) (Tool.cpp:125)
+|                       ->05.81% (786,432B) 0x19CEF4: Pyramid::init(simu::Renderer&) (Pyramid.cpp:70)
+|                         ->05.81% (786,432B) 0x1A4D1D: simu::Scene::init(simu::Application*) (Scene.cpp:123)
+|                           ->05.81% (786,432B) 0x1A0147: simu::Application::run() (Application.cpp:235)
+|                             ->05.81% (786,432B) 0x162C8B: main (Pyramid.cpp:130)
+|                               
+->03.15% (425,984B) 0x1B92A3: Block (Memory.hpp:50)
+| ->03.15% (425,984B) 0x1B92A3: construct_at<simu::Block, long unsigned int const&> (stl_construct.h:97)
+|   ->03.15% (425,984B) 0x1B92A3: construct<simu::Block, long unsigned int const&> (alloc_traits.h:539)
+|     ->03.15% (425,984B) 0x1B92A3: _M_create_node<long unsigned int const&> (stl_list.h:713)
+|       ->03.15% (425,984B) 0x1B92A3: _M_insert<long unsigned int const&> (stl_list.h:2005)
+|         ->03.15% (425,984B) 0x1B92A3: emplace_back<long unsigned int const&> (stl_list.h:1321)
+|           ->03.15% (425,984B) 0x1B92A3: allocate (Memory.hpp:284)
+|             ->03.15% (425,984B) 0x1B92A3: allocate (Memory.hpp:270)
+|               ->03.15% (425,984B) 0x1B92A3: allocate (alloc_traits.h:333)
+|                 ->03.15% (425,984B) 0x1B92A3: _M_allocate_node<const std::piecewise_construct_t&, std::tuple<const simu::Bodies&>, std::tuple<> > (hashtable_policy.h:1999)
+|                   ->03.15% (425,984B) 0x1B92A3: _Scoped_node<const std::piecewise_construct_t&, std::tuple<const simu::Bodies&>, std::tuple<> > (hashtable.h:307)
+|                     ->03.15% (425,984B) 0x1B92A3: std::__detail::_Map_base<simu::Bodies, std::pair<simu::Bodies const, simu::World::ContactStatus>, simu::FreeListAllocator<std::pair<simu::Bodies const, simu::World::ContactStatus>, 32768ul>, std::__detail::_Select1st, std::equal_to<simu::Bodies>, std::hash<simu::Bodies>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<true, false, true>, true>::operator[](simu::Bodies const&) (hashtable_policy.h:814)
+|                       ->02.18% (294,912B) 0x1B5C04: operator[] (unordered_map.h:987)
+|                       | ->02.18% (294,912B) 0x1B5C04: operator() (World.cpp:189)
+|                       |   ->02.18% (294,912B) 0x1B5C04: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                       |     ->01.94% (262,144B) 0x1B5B2D: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                       |     | ->01.45% (196,608B) 0x1B5B2D: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                       |     | | ->01.45% (196,608B) in 2 places, all below massif's threshold (1.00%)
+|                       |     | |   
+|                       |     | ->00.48% (65,536B) in 1+ places, all below ms_print's threshold (01.00%)
+|                       |     | 
+|                       |     ->00.24% (32,768B) in 1+ places, all below ms_print's threshold (01.00%)
+|                       |     
+|                       ->00.97% (131,072B) in 1+ places, all below ms_print's threshold (01.00%)
+|                       
+->02.48% (335,615B) 0x1B2D92: Block (Memory.hpp:50)
+| ->02.48% (335,615B) 0x1B2D92: construct_at<simu::Block, long unsigned int const&> (stl_construct.h:97)
+|   ->02.48% (335,615B) 0x1B2D92: construct<simu::Block, long unsigned int const&> (alloc_traits.h:539)
+|     ->02.48% (335,615B) 0x1B2D92: _M_create_node<long unsigned int const&> (stl_list.h:713)
+|       ->02.48% (335,615B) 0x1B2D92: _M_insert<long unsigned int const&> (stl_list.h:2005)
+|         ->02.48% (335,615B) 0x1B2D92: emplace_back<long unsigned int const&> (stl_list.h:1321)
+|           ->02.48% (335,615B) 0x1B2D92: simu::FreeListAllocator<simu::Body*, 32768ul>::allocate(unsigned long) [clone .part.0] (Memory.hpp:284)
+|             ->01.45% (196,608B) in 3 places, all below massif's threshold (1.00%)
+|             | 
+|             ->01.03% (139,007B) 0x1B8F0A: allocate (hashtable_policy.h:2056)
+|               ->01.03% (139,007B) 0x1B8F0A: allocate (alloc_traits.h:333)
+|                 ->01.03% (139,007B) 0x1B8F0A: std::__detail::_Hashtable_alloc<simu::FreeListAllocator<std::__detail::_Hash_node<std::pair<simu::Bodies const, simu::World::ContactStatus>, true>, 32768ul> >::_M_allocate_buckets(unsigned long) (hashtable_policy.h:2053)
+|                   ->01.03% (139,007B) 0x1B8F95: _M_allocate_buckets (hashtable.h:442)
+|                     ->01.03% (139,007B) 0x1B8F95: _M_rehash_aux (hashtable.h:2571)
+|                       ->01.03% (139,007B) 0x1B8F95: std::_Hashtable<simu::Bodies, std::pair<simu::Bodies const, simu::World::ContactStatus>, simu::FreeListAllocator<std::pair<simu::Bodies const, simu::World::ContactStatus>, 32768ul>, std::__detail::_Select1st, std::equal_to<simu::Bodies>, std::hash<simu::Bodies>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<true, false, true> >::_M_rehash(unsigned long, unsigned long const&) (hashtable.h:2550)
+|                         ->01.03% (139,007B) 0x1B9324: _M_insert_unique_node (hashtable.h:2164)
+|                           ->01.03% (139,007B) 0x1B9324: std::__detail::_Map_base<simu::Bodies, std::pair<simu::Bodies const, simu::World::ContactStatus>, simu::FreeListAllocator<std::pair<simu::Bodies const, simu::World::ContactStatus>, 32768ul>, std::__detail::_Select1st, std::equal_to<simu::Bodies>, std::hash<simu::Bodies>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<true, false, true>, true>::operator[](simu::Bodies const&) (hashtable_policy.h:821)
+|                             ->01.03% (139,007B) 0x1B5C04: operator[] (unordered_map.h:987)
+|                               ->01.03% (139,007B) 0x1B5C04: operator() (World.cpp:189)
+|                                 ->01.03% (139,007B) 0x1B5C04: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                                   ->01.03% (139,007B) 0x1B5B2D: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                                     ->01.03% (139,007B) 0x1B5D76: forEachIn<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:418)
+|                                       ->01.03% (139,007B) 0x1B5D76: forEachOverlapping<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:434)
+|                                         ->01.03% (139,007B) 0x1B5D76: forEachOverlapping<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:94)
+|                                           ->01.03% (139,007B) 0x1B5D76: simu::World::detectContacts() (World.cpp:193)
+|                                             ->01.03% (139,007B) 0x1B6058: simu::World::step(float) (World.cpp:61)
+|                                               ->01.03% (139,007B) 0x19FFCD: step (Scene.hpp:81)
+|                                                 ->01.03% (139,007B) 0x19FFCD: simu::Application::run() (Application.cpp:216)
+|                                                   ->01.03% (139,007B) 0x162C8B: main (Pyramid.cpp:130)
+|                                                     
+->02.33% (314,928B) 0x48D6A05: UnknownInlinedFun (imLcPrs.c:674)
+| ->02.33% (314,928B) 0x48D6A05: parsestringfile (imLcPrs.c:739)
+|   ->02.33% (314,928B) 0x48D8C21: UnknownInlinedFun (imLcIm.c:610)
+|     ->02.33% (314,928B) 0x48D8C21: _XimLocalOpenIM (imLcIm.c:700)
+|       ->02.33% (314,928B) 0x48D1E9F: _XimOpenIM (imInt.c:229)
+|         ->02.33% (314,928B) 0x1C317D: _glfwPlatformInit (x11_init.c:1142)
+|           ->02.33% (314,928B) 0x1BC077: glfwInit (init.c:324)
+|             ->02.33% (314,928B) 0x1A0739: simu::Application::Application() (Application.cpp:159)
+|               ->02.33% (314,928B) 0x162C7F: DummyApp (Pyramid.cpp:113)
+|                 ->02.33% (314,928B) 0x162C7F: main (Pyramid.cpp:129)
+|                   
+->02.07% (280,141B) 0x5A7FD85: ???
+| ->02.07% (279,524B) 0x1CF716: operator() (std_function.h:591)
+| | ->02.07% (279,524B) 0x1CF716: glbinding::Binding::resolveFunction(char const*) (Binding.cpp:214)
+| |   ->02.07% (279,524B) 0x1D131B: resolve (State.cpp:18)
+| |     ->02.07% (279,524B) 0x1D131B: glbinding::State::resolve(char const*) (State.cpp:11)
+| |       ->02.07% (279,524B) 0x1CEBD3: glbinding::Binding::resolveFunctions() (Binding.cpp:234)
+| |         ->02.07% (279,524B) 0x1CFFB5: glbinding::Binding::initialize(long long, std::function<void (*(char const*))()>, bool, bool) (Binding.cpp:199)
+| |           ->02.07% (279,524B) 0x1D0250: glbinding::Binding::initialize(std::function<void (*(char const*))()>, bool) (Binding.cpp:157)
+| |             ->02.07% (279,524B) 0x1CE049: glbinding::initialize(std::function<void (*(char const*))()>, bool) (glbinding.cpp:15)
+| |               ->02.07% (279,524B) 0x1A0831: simu::Application::Application() (Application.cpp:178)
+| |                 ->02.07% (279,524B) 0x162C7F: DummyApp (Pyramid.cpp:113)
+| |                   ->02.07% (279,524B) 0x162C7F: main (Pyramid.cpp:129)
+| |                     
+| ->00.00% (617B) in 1+ places, all below ms_print's threshold (01.00%)
+| 
+->01.96% (265,072B) 0x5D64242: UnknownInlinedFun (os_memory_aligned.h:58)
+| ->01.96% (265,072B) 0x5D64242: st_create_context (st_context.c:864)
+|   ->01.96% (265,072B) 0x5CBD39B: UnknownInlinedFun (st_manager.c:992)
+|     ->01.96% (265,072B) 0x5CBD39B: dri_create_context (dri_context.c:177)
+|       ->01.96% (265,072B) 0x5CBFE86: driCreateContextAttribs (dri_util.c:627)
+|         ->01.96% (265,072B) 0x5AE1E4C: ???
+|           ->01.96% (265,072B) 0x5ACAF6F: ???
+|             ->01.96% (265,072B) 0x5A8359B: ???
+|               ->01.96% (265,072B) 0x1CB112: _glfwCreateContextGLX (glx_context.c:581)
+|                 ->01.96% (265,072B) 0x1C7A0F: _glfwPlatformCreateWindow (x11_window.c:2003)
+|                   ->01.96% (265,072B) 0x1C0477: glfwCreateWindow (window.c:218)
+|                     ->01.96% (265,072B) 0x1A0768: simu::Application::Application() (Application.cpp:163)
+|                       ->01.96% (265,072B) 0x162C7F: DummyApp (Pyramid.cpp:113)
+|                         ->01.96% (265,072B) 0x162C7F: main (Pyramid.cpp:129)
+|                           
+->01.58% (213,992B) 0x61F2BDF: threaded_context_create (u_threaded_context.c:4899)
+| ->01.58% (213,992B) 0x5CBD336: UnknownInlinedFun (st_manager.c:981)
+|   ->01.58% (213,992B) 0x5CBD336: dri_create_context (dri_context.c:177)
+|     ->01.58% (213,992B) 0x5CBFE86: driCreateContextAttribs (dri_util.c:627)
+|       ->01.58% (213,992B) 0x5AE1E4C: ???
+|         ->01.58% (213,992B) 0x5ACAF6F: ???
+|           ->01.58% (213,992B) 0x5A8359B: ???
+|             ->01.58% (213,992B) 0x1CB112: _glfwCreateContextGLX (glx_context.c:581)
+|               ->01.58% (213,992B) 0x1C7A0F: _glfwPlatformCreateWindow (x11_window.c:2003)
+|                 ->01.58% (213,992B) 0x1C0477: glfwCreateWindow (window.c:218)
+|                   ->01.58% (213,992B) 0x1A0768: simu::Application::Application() (Application.cpp:163)
+|                     ->01.58% (213,992B) 0x162C7F: DummyApp (Pyramid.cpp:113)
+|                       ->01.58% (213,992B) 0x162C7F: main (Pyramid.cpp:129)
+|                         
+->01.56% (211,584B) 0x5ACC423: ???
+| ->01.56% (211,584B) in 2 places, all below massif's threshold (1.00%)
+|   
+->01.45% (196,622B) 0x1B78F8: Block (Memory.hpp:50)
+| ->01.45% (196,622B) 0x1B78F8: construct_at<simu::Block, long unsigned int const&> (stl_construct.h:97)
+|   ->01.45% (196,622B) 0x1B78F8: construct<simu::Block, long unsigned int const&> (alloc_traits.h:539)
+|     ->01.45% (196,622B) 0x1B78F8: _M_create_node<long unsigned int const&> (stl_list.h:713)
+|       ->01.45% (196,622B) 0x1B78F8: _M_insert<long unsigned int const&> (stl_list.h:2005)
+|         ->01.45% (196,622B) 0x1B78F8: emplace_back<long unsigned int const&> (stl_list.h:1321)
+|           ->01.45% (196,622B) 0x1B78F8: allocate (Memory.hpp:284)
+|             ->01.45% (196,622B) 0x1B78F8: allocate (Memory.hpp:270)
+|               ->01.45% (196,622B) 0x1B78F8: allocate (alloc_traits.h:333)
+|                 ->01.45% (196,622B) 0x1B78F8: _M_allocate (stl_vector.h:378)
+|                   ->01.45% (196,622B) 0x1B78F8: void std::vector<simu::SolverProxy, simu::FreeListAllocator<simu::SolverProxy, 32768ul> >::_M_realloc_insert<simu::Body*&>(__gnu_cxx::__normal_iterator<simu::SolverProxy*, std::vector<simu::SolverProxy, simu::FreeListAllocator<simu::SolverProxy, 32768ul> > >, simu::Body*&) (vector.tcc:459)
+|                     ->01.45% (196,622B) 0x1B7BF0: emplace_back<simu::Body*&> (vector.tcc:123)
+|                       ->01.45% (196,622B) 0x1B7BF0: simu::Island::addBody(simu::Body*) (Island.hpp:144)
+|                         ->01.45% (196,622B) in 2 places, all below massif's threshold (1.00%)
+|                           
+->01.28% (173,680B) 0x4D738DF: __new_exitfn (cxa_atexit.c:112)
+  ->01.28% (173,680B) 0x4D7396B: __internal_atexit (cxa_atexit.c:44)
+    ->01.28% (173,680B) in 154 places, all below massif's threshold (1.00%)
+      
+--------------------------------------------------------------------------------
+  n        time(i)         total(B)   useful-heap(B) extra-heap(B)    stacks(B)
+--------------------------------------------------------------------------------
+ 46  7,820,756,772       13,226,632       12,543,128       683,504            0
+ 47  7,963,917,514       13,357,256       12,671,903       685,353            0
+ 48  8,110,213,123       13,392,128       12,705,911       686,217            0
+ 49  8,255,755,680       13,394,520       12,707,543       686,977            0
+ 50  8,400,633,906       13,424,576       12,737,207       687,369            0
+ 51  8,545,762,213       13,433,296       12,745,343       687,953            0
+94.88% (12,745,343B) (heap allocation functions) malloc/new/new[], --alloc-fns, etc.
+->47.65% (6,400,992B) 0x5CADAD5: ralloc_size (ralloc.c:117)
+| ->28.84% (3,874,400B) in 1183 places, all below massif's threshold (1.00%)
+| | 
+| ->04.89% (656,832B) 0x601AE61: UnknownInlinedFun (ralloc.c:150)
+| | ->04.89% (656,832B) 0x601AE61: UnknownInlinedFun (list.h:58)
+| |   ->04.89% (656,832B) 0x601AE61: (anonymous namespace)::builtin_builder::new_sig(glsl_type const*, bool (*)(_mesa_glsl_parse_state const*), int, ...) [clone .lto_priv.0] (builtin_functions.cpp:5784)
+| |     ->03.11% (418,176B) in 142 places, all below massif's threshold (1.00%)
+| |     | 
+| |     ->01.78% (238,656B) 0x6E50FE9: (anonymous namespace)::builtin_builder::_texture(ir_texture_opcode, bool (*)(_mesa_glsl_parse_state const*), glsl_type const*, glsl_type const*, glsl_type const*, int) [clone .constprop.0] (builtin_functions.cpp:7203)
+| |       ->01.78% (238,656B) in 1243 places, all below massif's threshold (1.00%)
+| |         
+| ->02.11% (283,104B) 0x603D845: UnknownInlinedFun (ralloc.c:150)
+| | ->02.11% (283,104B) 0x603D845: UnknownInlinedFun (list.h:58)
+| |   ->02.11% (283,104B) 0x603D845: ir_builder::ret(ir_builder::operand) (ir_builder.cpp:70)
+| |     ->02.11% (283,104B) in 123 places, all below massif's threshold (1.00%)
+| |       
+| ->01.78% (238,656B) 0x6E50F07: UnknownInlinedFun (ralloc.c:150)
+| | ->01.78% (238,656B) 0x6E50F07: UnknownInlinedFun (list.h:58)
+| |   ->01.78% (238,656B) 0x6E50F07: UnknownInlinedFun (builtin_functions.cpp:5659)
+| |     ->01.78% (238,656B) 0x6E50F07: (anonymous namespace)::builtin_builder::_texture(ir_texture_opcode, bool (*)(_mesa_glsl_parse_state const*), glsl_type const*, glsl_type const*, glsl_type const*, int) [clone .constprop.0] (builtin_functions.cpp:7198)
+| |       ->01.78% (238,656B) in 1243 places, all below massif's threshold (1.00%)
+| |         
+| ->01.78% (238,656B) 0x6E50F67: UnknownInlinedFun (ralloc.c:150)
+| | ->01.78% (238,656B) 0x6E50F67: UnknownInlinedFun (list.h:58)
+| |   ->01.78% (238,656B) 0x6E50F67: UnknownInlinedFun (builtin_functions.cpp:5659)
+| |     ->01.78% (238,656B) 0x6E50F67: (anonymous namespace)::builtin_builder::_texture(ir_texture_opcode, bool (*)(_mesa_glsl_parse_state const*), glsl_type const*, glsl_type const*, glsl_type const*, int) [clone .constprop.0] (builtin_functions.cpp:7199)
+| |       ->01.78% (238,656B) in 1243 places, all below massif's threshold (1.00%)
+| |         
+| ->01.70% (228,976B) 0x6E83589: UnknownInlinedFun (ralloc.c:775)
+| | ->01.70% (228,976B) 0x6E83589: gc_alloc_size.constprop.0 (ralloc.c:811)
+| |   ->01.70% (228,976B) in 4 places, all below massif's threshold (1.00%)
+| |     
+| ->01.63% (218,768B) 0x6E5101B: UnknownInlinedFun (ralloc.c:150)
+| | ->01.63% (218,768B) 0x6E5101B: UnknownInlinedFun (list.h:58)
+| |   ->01.63% (218,768B) 0x6E5101B: (anonymous namespace)::builtin_builder::_texture(ir_texture_opcode, bool (*)(_mesa_glsl_parse_state const*), glsl_type const*, glsl_type const*, glsl_type const*, int) [clone .constprop.0] (builtin_functions.cpp:7205)
+| |     ->01.63% (218,768B) in 1243 places, all below massif's threshold (1.00%)
+| |       
+| ->01.40% (188,160B) 0x603E628: UnknownInlinedFun (ralloc.c:150)
+| | ->01.40% (188,160B) 0x603E628: UnknownInlinedFun (list.h:58)
+| |   ->01.40% (188,160B) 0x603E628: ir_builder::ir_factory::make_temp(glsl_type const*, char const*) (ir_builder.cpp:42)
+| |     ->01.40% (188,160B) in 98 places, all below massif's threshold (1.00%)
+| |       
+| ->01.29% (173,824B) 0x6E54E6F: UnknownInlinedFun (ralloc.c:150)
+| | ->01.29% (173,824B) 0x6E54E6F: UnknownInlinedFun (list.h:58)
+| |   ->01.29% (173,824B) 0x6E54E6F: UnknownInlinedFun (builtin_functions.cpp:5723)
+| |     ->01.29% (173,824B) 0x6E54E6F: (anonymous namespace)::builtin_builder::array_ref(ir_variable*, int) [clone .constprop.0] (builtin_functions.cpp:5755)
+| |       ->01.29% (173,824B) in 320 places, all below massif's threshold (1.00%)
+| |         
+| ->01.22% (163,968B) 0x603D8D7: UnknownInlinedFun (ralloc.c:150)
+| | ->01.22% (163,968B) 0x603D8D7: UnknownInlinedFun (list.h:58)
+| |   ->01.22% (163,968B) 0x603D8D7: ir_builder::swizzle(ir_builder::operand, int, int) (ir_builder.cpp:83)
+| |     ->01.22% (163,968B) in 310 places, all below massif's threshold (1.00%)
+| |       
+| ->01.01% (135,648B) 0x6040A43: UnknownInlinedFun (ralloc.c:150)
+|   ->01.01% (135,648B) 0x6040A43: UnknownInlinedFun (list.h:58)
+|     ->01.01% (135,648B) 0x6040A43: ir_builder::expr(ir_expression_operation, ir_builder::operand, ir_builder::operand) (ir_builder.cpp:180)
+|       ->01.01% (135,648B) in 173 places, all below massif's threshold (1.00%)
+|         
+->15.57% (2,091,732B) in 745 places, all below massif's threshold (1.00%)
+| 
+->09.27% (1,245,184B) 0x1A99DF: Block (Memory.hpp:50)
+| ->09.27% (1,245,184B) 0x1A99DF: construct_at<simu::Block, long unsigned int const&> (stl_construct.h:97)
+|   ->09.27% (1,245,184B) 0x1A99DF: construct<simu::Block, long unsigned int const&> (alloc_traits.h:539)
+|     ->09.27% (1,245,184B) 0x1A99DF: _M_create_node<long unsigned int const&> (stl_list.h:713)
+|       ->09.27% (1,245,184B) 0x1A99DF: _M_insert<long unsigned int const&> (stl_list.h:2005)
+|         ->09.27% (1,245,184B) 0x1A99DF: emplace_back<long unsigned int const&> (stl_list.h:1321)
+|           ->09.27% (1,245,184B) 0x1A99DF: allocate (Memory.hpp:284)
+|             ->09.27% (1,245,184B) 0x1A99DF: allocate (Memory.hpp:270)
+|               ->09.27% (1,245,184B) 0x1A99DF: std::unique_ptr<simu::VisibleContactConstraint, std::function<void (void*)> > simu::FreeListAllocator<std::unique_ptr<simu::Constraint, std::function<void (void*)> >, 32768ul>::makeUnique<simu::VisibleContactConstraint, simu::Bodies&, simu::Renderer* const&>(simu::Bodies&, simu::Renderer* const&) (Memory.hpp:148)
+|                 ->09.27% (1,245,184B) 0x1A9C54: operator() (Scene.hpp:145)
+|                   ->09.27% (1,245,184B) 0x1A9C54: __invoke_impl<std::unique_ptr<simu::VisibleContactConstraint, std::function<void(void*)> >, simu::Scene::makeWorld()::<lambda(simu::Bodies, simu::World::ConstraintAlloc&)>&, simu::Bodies, simu::FreeListAllocator<std::unique_ptr<simu::Constraint, std::function<void(void*)> >, 32768>&> (invoke.h:61)
+|                     ->09.27% (1,245,184B) 0x1A9C54: __invoke_r<std::unique_ptr<simu::ContactConstraint, std::function<void(void*)> >, simu::Scene::makeWorld()::<lambda(simu::Bodies, simu::World::ConstraintAlloc&)>&, simu::Bodies, simu::FreeListAllocator<std::unique_ptr<simu::Constraint, std::function<void(void*)> >, 32768>&> (invoke.h:116)
+|                       ->09.27% (1,245,184B) 0x1A9C54: std::_Function_handler<std::unique_ptr<simu::ContactConstraint, std::function<void (void*)> > (simu::Bodies, simu::FreeListAllocator<std::unique_ptr<simu::Constraint, std::function<void (void*)> >, 32768ul>&), simu::Scene::makeWorld()::{lambda(simu::Bodies, simu::FreeListAllocator<std::unique_ptr<simu::Constraint, std::function<void (void*)> >, 32768ul>&)
+|                         ->09.27% (1,245,184B) 0x1B544C: operator() (std_function.h:591)
+|                           ->09.27% (1,245,184B) 0x1B544C: simu::World::makeContactConstraint(simu::Bodies) (World.cpp:132)
+|                             ->07.07% (950,272B) 0x1B5C48: operator() (World.cpp:190)
+|                             | ->07.07% (950,272B) 0x1B5C48: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                             |   ->06.59% (884,736B) 0x1B5B2D: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                             |   | ->04.88% (655,360B) 0x1B5B2D: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                             |   | | ->02.68% (360,448B) 0x1B5B2D: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                             |   | | | ->01.71% (229,376B) 0x1B5B2D: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                             |   | | | | ->01.22% (163,840B) 0x1B5B2D: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                             |   | | | | | ->01.22% (163,840B) in 2 places, all below massif's threshold (1.00%)
+|                             |   | | | | |   
+|                             |   | | | | ->00.49% (65,536B) in 1+ places, all below ms_print's threshold (01.00%)
+|                             |   | | | | 
+|                             |   | | | ->00.98% (131,072B) in 1+ places, all below ms_print's threshold (01.00%)
+|                             |   | | | 
+|                             |   | | ->02.20% (294,912B) 0x1B5D76: forEachIn<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:418)
+|                             |   | |   ->02.20% (294,912B) 0x1B5D76: forEachOverlapping<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:434)
+|                             |   | |     ->02.20% (294,912B) 0x1B5D76: forEachOverlapping<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:94)
+|                             |   | |       ->02.20% (294,912B) 0x1B5D76: simu::World::detectContacts() (World.cpp:193)
+|                             |   | |         ->02.20% (294,912B) 0x1B6058: simu::World::step(float) (World.cpp:61)
+|                             |   | |           ->02.20% (294,912B) 0x19FFCD: step (Scene.hpp:81)
+|                             |   | |             ->02.20% (294,912B) 0x19FFCD: simu::Application::run() (Application.cpp:216)
+|                             |   | |               ->02.20% (294,912B) 0x162C8B: main (Pyramid.cpp:130)
+|                             |   | |                 
+|                             |   | ->01.71% (229,376B) 0x1B5D76: forEachIn<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:418)
+|                             |   |   ->01.71% (229,376B) 0x1B5D76: forEachOverlapping<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:434)
+|                             |   |     ->01.71% (229,376B) 0x1B5D76: forEachOverlapping<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:94)
+|                             |   |       ->01.71% (229,376B) 0x1B5D76: simu::World::detectContacts() (World.cpp:193)
+|                             |   |         ->01.71% (229,376B) 0x1B6058: simu::World::step(float) (World.cpp:61)
+|                             |   |           ->01.71% (229,376B) 0x19FFCD: step (Scene.hpp:81)
+|                             |   |             ->01.71% (229,376B) 0x19FFCD: simu::Application::run() (Application.cpp:216)
+|                             |   |               ->01.71% (229,376B) 0x162C8B: main (Pyramid.cpp:130)
+|                             |   |                 
+|                             |   ->00.49% (65,536B) in 1+ places, all below ms_print's threshold (01.00%)
+|                             |   
+|                             ->02.20% (294,912B) 0x1B5F40: operator() (World.cpp:190)
+|                               ->02.20% (294,912B) 0x1B5F40: forEachIn<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:415)
+|                                 ->02.20% (294,912B) 0x1B5F40: forEachOverlapping<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:434)
+|                                   ->02.20% (294,912B) 0x1B5F40: forEachOverlapping<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:94)
+|                                     ->02.20% (294,912B) 0x1B5F40: simu::World::detectContacts() (World.cpp:193)
+|                                       ->02.20% (294,912B) 0x1B6058: simu::World::step(float) (World.cpp:61)
+|                                         ->02.20% (294,912B) 0x19FFCD: step (Scene.hpp:81)
+|                                           ->02.20% (294,912B) 0x19FFCD: simu::Application::run() (Application.cpp:216)
+|                                             ->02.20% (294,912B) 0x162C8B: main (Pyramid.cpp:130)
+|                                               
+->05.85% (786,432B) 0x19AE5F: Block (Memory.hpp:50)
+| ->05.85% (786,432B) 0x19AE5F: construct_at<simu::Block, long unsigned int const&> (stl_construct.h:97)
+|   ->05.85% (786,432B) 0x19AE5F: construct<simu::Block, long unsigned int const&> (alloc_traits.h:539)
+|     ->05.85% (786,432B) 0x19AE5F: _M_create_node<long unsigned int const&> (stl_list.h:713)
+|       ->05.85% (786,432B) 0x19AE5F: _M_insert<long unsigned int const&> (stl_list.h:2005)
+|         ->05.85% (786,432B) 0x19AE5F: emplace_back<long unsigned int const&> (stl_list.h:1321)
+|           ->05.85% (786,432B) 0x19AE5F: allocate (Memory.hpp:284)
+|             ->05.85% (786,432B) 0x19AE5F: allocate (Memory.hpp:270)
+|               ->05.85% (786,432B) 0x19AE5F: std::unique_ptr<simu::VisibleBody, std::function<void (void*)> > simu::FreeListAllocator<std::unique_ptr<simu::Body, std::function<void (void*)> >, 32768ul>::makeUnique<simu::VisibleBody, simu::BodyDescriptor&, simu::Matrix<unsigned char, 4u, 1u>, simu::Renderer*>(simu::BodyDescriptor&, simu::Matrix<unsigned char, 4u, 1u>&&, simu::Renderer*&&) (Memory.hpp:148)
+|                 ->05.85% (786,432B) 0x1AF7B5: makeObject<simu::VisibleBody, simu::FreeListAllocator<std::unique_ptr<simu::Body, std::function<void(void*)> >, 32768>, simu::BodyDescriptor&, simu::Matrix<unsigned char, 4, 1>, simu::Renderer*> (World.hpp:321)
+|                   ->05.85% (786,432B) 0x1AF7B5: simu::VisibleBody* simu::World::makeBody<simu::VisibleBody, simu::BodyDescriptor&, simu::Matrix<unsigned char, 4u, 1u>, simu::Renderer*>(simu::BodyDescriptor&, simu::Matrix<unsigned char, 4u, 1u>&&, simu::Renderer*&&) (World.hpp:170)
+|                     ->05.85% (786,432B) 0x1AD203: simu::BoxSpawner::makeBox(simu::Matrix<float, 2u, 1u>, simu::Matrix<float, 2u, 1u>) (Tool.cpp:125)
+|                       ->05.85% (786,432B) 0x19CEF4: Pyramid::init(simu::Renderer&) (Pyramid.cpp:70)
+|                         ->05.85% (786,432B) 0x1A4D1D: simu::Scene::init(simu::Application*) (Scene.cpp:123)
+|                           ->05.85% (786,432B) 0x1A0147: simu::Application::run() (Application.cpp:235)
+|                             ->05.85% (786,432B) 0x162C8B: main (Pyramid.cpp:130)
+|                               
+->03.42% (458,752B) 0x1B92A3: Block (Memory.hpp:50)
+| ->03.42% (458,752B) 0x1B92A3: construct_at<simu::Block, long unsigned int const&> (stl_construct.h:97)
+|   ->03.42% (458,752B) 0x1B92A3: construct<simu::Block, long unsigned int const&> (alloc_traits.h:539)
+|     ->03.42% (458,752B) 0x1B92A3: _M_create_node<long unsigned int const&> (stl_list.h:713)
+|       ->03.42% (458,752B) 0x1B92A3: _M_insert<long unsigned int const&> (stl_list.h:2005)
+|         ->03.42% (458,752B) 0x1B92A3: emplace_back<long unsigned int const&> (stl_list.h:1321)
+|           ->03.42% (458,752B) 0x1B92A3: allocate (Memory.hpp:284)
+|             ->03.42% (458,752B) 0x1B92A3: allocate (Memory.hpp:270)
+|               ->03.42% (458,752B) 0x1B92A3: allocate (alloc_traits.h:333)
+|                 ->03.42% (458,752B) 0x1B92A3: _M_allocate_node<const std::piecewise_construct_t&, std::tuple<const simu::Bodies&>, std::tuple<> > (hashtable_policy.h:1999)
+|                   ->03.42% (458,752B) 0x1B92A3: _Scoped_node<const std::piecewise_construct_t&, std::tuple<const simu::Bodies&>, std::tuple<> > (hashtable.h:307)
+|                     ->03.42% (458,752B) 0x1B92A3: std::__detail::_Map_base<simu::Bodies, std::pair<simu::Bodies const, simu::World::ContactStatus>, simu::FreeListAllocator<std::pair<simu::Bodies const, simu::World::ContactStatus>, 32768ul>, std::__detail::_Select1st, std::equal_to<simu::Bodies>, std::hash<simu::Bodies>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<true, false, true>, true>::operator[](simu::Bodies const&) (hashtable_policy.h:814)
+|                       ->02.20% (294,912B) 0x1B5C04: operator[] (unordered_map.h:987)
+|                       | ->02.20% (294,912B) 0x1B5C04: operator() (World.cpp:189)
+|                       |   ->02.20% (294,912B) 0x1B5C04: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                       |     ->01.95% (262,144B) 0x1B5B2D: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                       |     | ->01.46% (196,608B) 0x1B5B2D: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                       |     | | ->01.46% (196,608B) in 2 places, all below massif's threshold (1.00%)
+|                       |     | |   
+|                       |     | ->00.49% (65,536B) in 1+ places, all below ms_print's threshold (01.00%)
+|                       |     | 
+|                       |     ->00.24% (32,768B) in 1+ places, all below ms_print's threshold (01.00%)
+|                       |     
+|                       ->01.22% (163,840B) 0x1B5EF8: operator[] (unordered_map.h:987)
+|                         ->01.22% (163,840B) 0x1B5EF8: operator() (World.cpp:189)
+|                           ->01.22% (163,840B) 0x1B5EF8: forEachIn<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:415)
+|                             ->01.22% (163,840B) 0x1B5EF8: forEachOverlapping<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:434)
+|                               ->01.22% (163,840B) 0x1B5EF8: forEachOverlapping<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:94)
+|                                 ->01.22% (163,840B) 0x1B5EF8: simu::World::detectContacts() (World.cpp:193)
+|                                   ->01.22% (163,840B) 0x1B6058: simu::World::step(float) (World.cpp:61)
+|                                     ->01.22% (163,840B) 0x19FFCD: step (Scene.hpp:81)
+|                                       ->01.22% (163,840B) 0x19FFCD: simu::Application::run() (Application.cpp:216)
+|                                         ->01.22% (163,840B) 0x162C8B: main (Pyramid.cpp:130)
+|                                           
+->02.34% (314,928B) 0x48D6A05: UnknownInlinedFun (imLcPrs.c:674)
+| ->02.34% (314,928B) 0x48D6A05: parsestringfile (imLcPrs.c:739)
+|   ->02.34% (314,928B) 0x48D8C21: UnknownInlinedFun (imLcIm.c:610)
+|     ->02.34% (314,928B) 0x48D8C21: _XimLocalOpenIM (imLcIm.c:700)
+|       ->02.34% (314,928B) 0x48D1E9F: _XimOpenIM (imInt.c:229)
+|         ->02.34% (314,928B) 0x1C317D: _glfwPlatformInit (x11_init.c:1142)
+|           ->02.34% (314,928B) 0x1BC077: glfwInit (init.c:324)
+|             ->02.34% (314,928B) 0x1A0739: simu::Application::Application() (Application.cpp:159)
+|               ->02.34% (314,928B) 0x162C7F: DummyApp (Pyramid.cpp:113)
+|                 ->02.34% (314,928B) 0x162C7F: main (Pyramid.cpp:129)
+|                   
+->02.25% (302,854B) 0x1B2D92: Block (Memory.hpp:50)
+| ->02.25% (302,854B) 0x1B2D92: construct_at<simu::Block, long unsigned int const&> (stl_construct.h:97)
+|   ->02.25% (302,854B) 0x1B2D92: construct<simu::Block, long unsigned int const&> (alloc_traits.h:539)
+|     ->02.25% (302,854B) 0x1B2D92: _M_create_node<long unsigned int const&> (stl_list.h:713)
+|       ->02.25% (302,854B) 0x1B2D92: _M_insert<long unsigned int const&> (stl_list.h:2005)
+|         ->02.25% (302,854B) 0x1B2D92: emplace_back<long unsigned int const&> (stl_list.h:1321)
+|           ->02.25% (302,854B) 0x1B2D92: simu::FreeListAllocator<simu::Body*, 32768ul>::allocate(unsigned long) [clone .part.0] (Memory.hpp:284)
+|             ->01.22% (163,847B) in 3 places, all below massif's threshold (1.00%)
+|             | 
+|             ->01.03% (139,007B) 0x1B8F0A: allocate (hashtable_policy.h:2056)
+|               ->01.03% (139,007B) 0x1B8F0A: allocate (alloc_traits.h:333)
+|                 ->01.03% (139,007B) 0x1B8F0A: std::__detail::_Hashtable_alloc<simu::FreeListAllocator<std::__detail::_Hash_node<std::pair<simu::Bodies const, simu::World::ContactStatus>, true>, 32768ul> >::_M_allocate_buckets(unsigned long) (hashtable_policy.h:2053)
+|                   ->01.03% (139,007B) 0x1B8F95: _M_allocate_buckets (hashtable.h:442)
+|                     ->01.03% (139,007B) 0x1B8F95: _M_rehash_aux (hashtable.h:2571)
+|                       ->01.03% (139,007B) 0x1B8F95: std::_Hashtable<simu::Bodies, std::pair<simu::Bodies const, simu::World::ContactStatus>, simu::FreeListAllocator<std::pair<simu::Bodies const, simu::World::ContactStatus>, 32768ul>, std::__detail::_Select1st, std::equal_to<simu::Bodies>, std::hash<simu::Bodies>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<true, false, true> >::_M_rehash(unsigned long, unsigned long const&) (hashtable.h:2550)
+|                         ->01.03% (139,007B) 0x1B9324: _M_insert_unique_node (hashtable.h:2164)
+|                           ->01.03% (139,007B) 0x1B9324: std::__detail::_Map_base<simu::Bodies, std::pair<simu::Bodies const, simu::World::ContactStatus>, simu::FreeListAllocator<std::pair<simu::Bodies const, simu::World::ContactStatus>, 32768ul>, std::__detail::_Select1st, std::equal_to<simu::Bodies>, std::hash<simu::Bodies>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<true, false, true>, true>::operator[](simu::Bodies const&) (hashtable_policy.h:821)
+|                             ->01.03% (139,007B) 0x1B5C04: operator[] (unordered_map.h:987)
+|                               ->01.03% (139,007B) 0x1B5C04: operator() (World.cpp:189)
+|                                 ->01.03% (139,007B) 0x1B5C04: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                                   ->01.03% (139,007B) 0x1B5B2D: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                                     ->01.03% (139,007B) 0x1B5D76: forEachIn<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:418)
+|                                       ->01.03% (139,007B) 0x1B5D76: forEachOverlapping<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:434)
+|                                         ->01.03% (139,007B) 0x1B5D76: forEachOverlapping<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:94)
+|                                           ->01.03% (139,007B) 0x1B5D76: simu::World::detectContacts() (World.cpp:193)
+|                                             ->01.03% (139,007B) 0x1B6058: simu::World::step(float) (World.cpp:61)
+|                                               ->01.03% (139,007B) 0x19FFCD: step (Scene.hpp:81)
+|                                                 ->01.03% (139,007B) 0x19FFCD: simu::Application::run() (Application.cpp:216)
+|                                                   ->01.03% (139,007B) 0x162C8B: main (Pyramid.cpp:130)
+|                                                     
+->02.09% (280,141B) 0x5A7FD85: ???
+| ->02.08% (279,524B) 0x1CF716: operator() (std_function.h:591)
+| | ->02.08% (279,524B) 0x1CF716: glbinding::Binding::resolveFunction(char const*) (Binding.cpp:214)
+| |   ->02.08% (279,524B) 0x1D131B: resolve (State.cpp:18)
+| |     ->02.08% (279,524B) 0x1D131B: glbinding::State::resolve(char const*) (State.cpp:11)
+| |       ->02.08% (279,524B) 0x1CEBD3: glbinding::Binding::resolveFunctions() (Binding.cpp:234)
+| |         ->02.08% (279,524B) 0x1CFFB5: glbinding::Binding::initialize(long long, std::function<void (*(char const*))()>, bool, bool) (Binding.cpp:199)
+| |           ->02.08% (279,524B) 0x1D0250: glbinding::Binding::initialize(std::function<void (*(char const*))()>, bool) (Binding.cpp:157)
+| |             ->02.08% (279,524B) 0x1CE049: glbinding::initialize(std::function<void (*(char const*))()>, bool) (glbinding.cpp:15)
+| |               ->02.08% (279,524B) 0x1A0831: simu::Application::Application() (Application.cpp:178)
+| |                 ->02.08% (279,524B) 0x162C7F: DummyApp (Pyramid.cpp:113)
+| |                   ->02.08% (279,524B) 0x162C7F: main (Pyramid.cpp:129)
+| |                     
+| ->00.00% (617B) in 1+ places, all below ms_print's threshold (01.00%)
+| 
+->01.97% (265,072B) 0x5D64242: UnknownInlinedFun (os_memory_aligned.h:58)
+| ->01.97% (265,072B) 0x5D64242: st_create_context (st_context.c:864)
+|   ->01.97% (265,072B) 0x5CBD39B: UnknownInlinedFun (st_manager.c:992)
+|     ->01.97% (265,072B) 0x5CBD39B: dri_create_context (dri_context.c:177)
+|       ->01.97% (265,072B) 0x5CBFE86: driCreateContextAttribs (dri_util.c:627)
+|         ->01.97% (265,072B) 0x5AE1E4C: ???
+|           ->01.97% (265,072B) 0x5ACAF6F: ???
+|             ->01.97% (265,072B) 0x5A8359B: ???
+|               ->01.97% (265,072B) 0x1CB112: _glfwCreateContextGLX (glx_context.c:581)
+|                 ->01.97% (265,072B) 0x1C7A0F: _glfwPlatformCreateWindow (x11_window.c:2003)
+|                   ->01.97% (265,072B) 0x1C0477: glfwCreateWindow (window.c:218)
+|                     ->01.97% (265,072B) 0x1A0768: simu::Application::Application() (Application.cpp:163)
+|                       ->01.97% (265,072B) 0x162C7F: DummyApp (Pyramid.cpp:113)
+|                         ->01.97% (265,072B) 0x162C7F: main (Pyramid.cpp:129)
+|                           
+->01.59% (213,992B) 0x61F2BDF: threaded_context_create (u_threaded_context.c:4899)
+| ->01.59% (213,992B) 0x5CBD336: UnknownInlinedFun (st_manager.c:981)
+|   ->01.59% (213,992B) 0x5CBD336: dri_create_context (dri_context.c:177)
+|     ->01.59% (213,992B) 0x5CBFE86: driCreateContextAttribs (dri_util.c:627)
+|       ->01.59% (213,992B) 0x5AE1E4C: ???
+|         ->01.59% (213,992B) 0x5ACAF6F: ???
+|           ->01.59% (213,992B) 0x5A8359B: ???
+|             ->01.59% (213,992B) 0x1CB112: _glfwCreateContextGLX (glx_context.c:581)
+|               ->01.59% (213,992B) 0x1C7A0F: _glfwPlatformCreateWindow (x11_window.c:2003)
+|                 ->01.59% (213,992B) 0x1C0477: glfwCreateWindow (window.c:218)
+|                   ->01.59% (213,992B) 0x1A0768: simu::Application::Application() (Application.cpp:163)
+|                     ->01.59% (213,992B) 0x162C7F: DummyApp (Pyramid.cpp:113)
+|                       ->01.59% (213,992B) 0x162C7F: main (Pyramid.cpp:129)
+|                         
+->01.58% (211,584B) 0x5ACC423: ???
+| ->01.58% (211,584B) in 2 places, all below massif's threshold (1.00%)
+|   
+->01.29% (173,680B) 0x4D738DF: __new_exitfn (cxa_atexit.c:112)
+  ->01.29% (173,680B) 0x4D7396B: __internal_atexit (cxa_atexit.c:44)
+    ->01.29% (173,680B) in 154 places, all below massif's threshold (1.00%)
+      
+--------------------------------------------------------------------------------
+  n        time(i)         total(B)   useful-heap(B) extra-heap(B)    stacks(B)
+--------------------------------------------------------------------------------
+ 52  8,690,167,854       13,446,896       12,758,551       688,345            0
+ 53  8,722,237,549       13,673,744       12,985,182       688,562            0
+94.96% (12,985,182B) (heap allocation functions) malloc/new/new[], --alloc-fns, etc.
+->46.81% (6,400,992B) 0x5CADAD5: ralloc_size (ralloc.c:117)
+| ->29.33% (4,010,048B) in 1184 places, all below massif's threshold (1.00%)
+| | 
+| ->04.80% (656,832B) 0x601AE61: UnknownInlinedFun (ralloc.c:150)
+| | ->04.80% (656,832B) 0x601AE61: UnknownInlinedFun (list.h:58)
+| |   ->04.80% (656,832B) 0x601AE61: (anonymous namespace)::builtin_builder::new_sig(glsl_type const*, bool (*)(_mesa_glsl_parse_state const*), int, ...) [clone .lto_priv.0] (builtin_functions.cpp:5784)
+| |     ->03.06% (418,176B) in 142 places, all below massif's threshold (1.00%)
+| |     | 
+| |     ->01.75% (238,656B) 0x6E50FE9: (anonymous namespace)::builtin_builder::_texture(ir_texture_opcode, bool (*)(_mesa_glsl_parse_state const*), glsl_type const*, glsl_type const*, glsl_type const*, int) [clone .constprop.0] (builtin_functions.cpp:7203)
+| |       ->01.75% (238,656B) in 1243 places, all below massif's threshold (1.00%)
+| |         
+| ->02.07% (283,104B) 0x603D845: UnknownInlinedFun (ralloc.c:150)
+| | ->02.07% (283,104B) 0x603D845: UnknownInlinedFun (list.h:58)
+| |   ->02.07% (283,104B) 0x603D845: ir_builder::ret(ir_builder::operand) (ir_builder.cpp:70)
+| |     ->02.07% (283,104B) in 123 places, all below massif's threshold (1.00%)
+| |       
+| ->01.75% (238,656B) 0x6E50F07: UnknownInlinedFun (ralloc.c:150)
+| | ->01.75% (238,656B) 0x6E50F07: UnknownInlinedFun (list.h:58)
+| |   ->01.75% (238,656B) 0x6E50F07: UnknownInlinedFun (builtin_functions.cpp:5659)
+| |     ->01.75% (238,656B) 0x6E50F07: (anonymous namespace)::builtin_builder::_texture(ir_texture_opcode, bool (*)(_mesa_glsl_parse_state const*), glsl_type const*, glsl_type const*, glsl_type const*, int) [clone .constprop.0] (builtin_functions.cpp:7198)
+| |       ->01.75% (238,656B) in 1243 places, all below massif's threshold (1.00%)
+| |         
+| ->01.75% (238,656B) 0x6E50F67: UnknownInlinedFun (ralloc.c:150)
+| | ->01.75% (238,656B) 0x6E50F67: UnknownInlinedFun (list.h:58)
+| |   ->01.75% (238,656B) 0x6E50F67: UnknownInlinedFun (builtin_functions.cpp:5659)
+| |     ->01.75% (238,656B) 0x6E50F67: (anonymous namespace)::builtin_builder::_texture(ir_texture_opcode, bool (*)(_mesa_glsl_parse_state const*), glsl_type const*, glsl_type const*, glsl_type const*, int) [clone .constprop.0] (builtin_functions.cpp:7199)
+| |       ->01.75% (238,656B) in 1243 places, all below massif's threshold (1.00%)
+| |         
+| ->01.67% (228,976B) 0x6E83589: UnknownInlinedFun (ralloc.c:775)
+| | ->01.67% (228,976B) 0x6E83589: gc_alloc_size.constprop.0 (ralloc.c:811)
+| |   ->01.67% (228,976B) in 4 places, all below massif's threshold (1.00%)
+| |     
+| ->01.60% (218,768B) 0x6E5101B: UnknownInlinedFun (ralloc.c:150)
+| | ->01.60% (218,768B) 0x6E5101B: UnknownInlinedFun (list.h:58)
+| |   ->01.60% (218,768B) 0x6E5101B: (anonymous namespace)::builtin_builder::_texture(ir_texture_opcode, bool (*)(_mesa_glsl_parse_state const*), glsl_type const*, glsl_type const*, glsl_type const*, int) [clone .constprop.0] (builtin_functions.cpp:7205)
+| |     ->01.60% (218,768B) in 1243 places, all below massif's threshold (1.00%)
+| |       
+| ->01.38% (188,160B) 0x603E628: UnknownInlinedFun (ralloc.c:150)
+| | ->01.38% (188,160B) 0x603E628: UnknownInlinedFun (list.h:58)
+| |   ->01.38% (188,160B) 0x603E628: ir_builder::ir_factory::make_temp(glsl_type const*, char const*) (ir_builder.cpp:42)
+| |     ->01.38% (188,160B) in 98 places, all below massif's threshold (1.00%)
+| |       
+| ->01.27% (173,824B) 0x6E54E6F: UnknownInlinedFun (ralloc.c:150)
+| | ->01.27% (173,824B) 0x6E54E6F: UnknownInlinedFun (list.h:58)
+| |   ->01.27% (173,824B) 0x6E54E6F: UnknownInlinedFun (builtin_functions.cpp:5723)
+| |     ->01.27% (173,824B) 0x6E54E6F: (anonymous namespace)::builtin_builder::array_ref(ir_variable*, int) [clone .constprop.0] (builtin_functions.cpp:5755)
+| |       ->01.27% (173,824B) in 320 places, all below massif's threshold (1.00%)
+| |         
+| ->01.20% (163,968B) 0x603D8D7: UnknownInlinedFun (ralloc.c:150)
+|   ->01.20% (163,968B) 0x603D8D7: UnknownInlinedFun (list.h:58)
+|     ->01.20% (163,968B) 0x603D8D7: ir_builder::swizzle(ir_builder::operand, int, int) (ir_builder.cpp:83)
+|       ->01.20% (163,968B) in 310 places, all below massif's threshold (1.00%)
+|         
+->15.37% (2,102,188B) in 744 places, all below massif's threshold (1.00%)
+| 
+->09.11% (1,245,184B) 0x1A99DF: Block (Memory.hpp:50)
+| ->09.11% (1,245,184B) 0x1A99DF: construct_at<simu::Block, long unsigned int const&> (stl_construct.h:97)
+|   ->09.11% (1,245,184B) 0x1A99DF: construct<simu::Block, long unsigned int const&> (alloc_traits.h:539)
+|     ->09.11% (1,245,184B) 0x1A99DF: _M_create_node<long unsigned int const&> (stl_list.h:713)
+|       ->09.11% (1,245,184B) 0x1A99DF: _M_insert<long unsigned int const&> (stl_list.h:2005)
+|         ->09.11% (1,245,184B) 0x1A99DF: emplace_back<long unsigned int const&> (stl_list.h:1321)
+|           ->09.11% (1,245,184B) 0x1A99DF: allocate (Memory.hpp:284)
+|             ->09.11% (1,245,184B) 0x1A99DF: allocate (Memory.hpp:270)
+|               ->09.11% (1,245,184B) 0x1A99DF: std::unique_ptr<simu::VisibleContactConstraint, std::function<void (void*)> > simu::FreeListAllocator<std::unique_ptr<simu::Constraint, std::function<void (void*)> >, 32768ul>::makeUnique<simu::VisibleContactConstraint, simu::Bodies&, simu::Renderer* const&>(simu::Bodies&, simu::Renderer* const&) (Memory.hpp:148)
+|                 ->09.11% (1,245,184B) 0x1A9C54: operator() (Scene.hpp:145)
+|                   ->09.11% (1,245,184B) 0x1A9C54: __invoke_impl<std::unique_ptr<simu::VisibleContactConstraint, std::function<void(void*)> >, simu::Scene::makeWorld()::<lambda(simu::Bodies, simu::World::ConstraintAlloc&)>&, simu::Bodies, simu::FreeListAllocator<std::unique_ptr<simu::Constraint, std::function<void(void*)> >, 32768>&> (invoke.h:61)
+|                     ->09.11% (1,245,184B) 0x1A9C54: __invoke_r<std::unique_ptr<simu::ContactConstraint, std::function<void(void*)> >, simu::Scene::makeWorld()::<lambda(simu::Bodies, simu::World::ConstraintAlloc&)>&, simu::Bodies, simu::FreeListAllocator<std::unique_ptr<simu::Constraint, std::function<void(void*)> >, 32768>&> (invoke.h:116)
+|                       ->09.11% (1,245,184B) 0x1A9C54: std::_Function_handler<std::unique_ptr<simu::ContactConstraint, std::function<void (void*)> > (simu::Bodies, simu::FreeListAllocator<std::unique_ptr<simu::Constraint, std::function<void (void*)> >, 32768ul>&), simu::Scene::makeWorld()::{lambda(simu::Bodies, simu::FreeListAllocator<std::unique_ptr<simu::Constraint, std::function<void (void*)> >, 32768ul>&)
+|                         ->09.11% (1,245,184B) 0x1B544C: operator() (std_function.h:591)
+|                           ->09.11% (1,245,184B) 0x1B544C: simu::World::makeContactConstraint(simu::Bodies) (World.cpp:132)
+|                             ->06.95% (950,272B) 0x1B5C48: operator() (World.cpp:190)
+|                             | ->06.95% (950,272B) 0x1B5C48: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                             |   ->06.47% (884,736B) 0x1B5B2D: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                             |   | ->04.79% (655,360B) 0x1B5B2D: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                             |   | | ->02.64% (360,448B) 0x1B5B2D: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                             |   | | | ->01.68% (229,376B) 0x1B5B2D: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                             |   | | | | ->01.20% (163,840B) 0x1B5B2D: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                             |   | | | | | ->01.20% (163,840B) in 2 places, all below massif's threshold (1.00%)
+|                             |   | | | | |   
+|                             |   | | | | ->00.48% (65,536B) in 1+ places, all below ms_print's threshold (01.00%)
+|                             |   | | | | 
+|                             |   | | | ->00.96% (131,072B) in 1+ places, all below ms_print's threshold (01.00%)
+|                             |   | | | 
+|                             |   | | ->02.16% (294,912B) 0x1B5D76: forEachIn<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:418)
+|                             |   | |   ->02.16% (294,912B) 0x1B5D76: forEachOverlapping<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:434)
+|                             |   | |     ->02.16% (294,912B) 0x1B5D76: forEachOverlapping<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:94)
+|                             |   | |       ->02.16% (294,912B) 0x1B5D76: simu::World::detectContacts() (World.cpp:193)
+|                             |   | |         ->02.16% (294,912B) 0x1B6058: simu::World::step(float) (World.cpp:61)
+|                             |   | |           ->02.16% (294,912B) 0x19FFCD: step (Scene.hpp:81)
+|                             |   | |             ->02.16% (294,912B) 0x19FFCD: simu::Application::run() (Application.cpp:216)
+|                             |   | |               ->02.16% (294,912B) 0x162C8B: main (Pyramid.cpp:130)
+|                             |   | |                 
+|                             |   | ->01.68% (229,376B) 0x1B5D76: forEachIn<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:418)
+|                             |   |   ->01.68% (229,376B) 0x1B5D76: forEachOverlapping<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:434)
+|                             |   |     ->01.68% (229,376B) 0x1B5D76: forEachOverlapping<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:94)
+|                             |   |       ->01.68% (229,376B) 0x1B5D76: simu::World::detectContacts() (World.cpp:193)
+|                             |   |         ->01.68% (229,376B) 0x1B6058: simu::World::step(float) (World.cpp:61)
+|                             |   |           ->01.68% (229,376B) 0x19FFCD: step (Scene.hpp:81)
+|                             |   |             ->01.68% (229,376B) 0x19FFCD: simu::Application::run() (Application.cpp:216)
+|                             |   |               ->01.68% (229,376B) 0x162C8B: main (Pyramid.cpp:130)
+|                             |   |                 
+|                             |   ->00.48% (65,536B) in 1+ places, all below ms_print's threshold (01.00%)
+|                             |   
+|                             ->02.16% (294,912B) 0x1B5F40: operator() (World.cpp:190)
+|                               ->02.16% (294,912B) 0x1B5F40: forEachIn<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:415)
+|                                 ->02.16% (294,912B) 0x1B5F40: forEachOverlapping<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:434)
+|                                   ->02.16% (294,912B) 0x1B5F40: forEachOverlapping<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:94)
+|                                     ->02.16% (294,912B) 0x1B5F40: simu::World::detectContacts() (World.cpp:193)
+|                                       ->02.16% (294,912B) 0x1B6058: simu::World::step(float) (World.cpp:61)
+|                                         ->02.16% (294,912B) 0x19FFCD: step (Scene.hpp:81)
+|                                           ->02.16% (294,912B) 0x19FFCD: simu::Application::run() (Application.cpp:216)
+|                                             ->02.16% (294,912B) 0x162C8B: main (Pyramid.cpp:130)
+|                                               
+->05.75% (786,432B) 0x19AE5F: Block (Memory.hpp:50)
+| ->05.75% (786,432B) 0x19AE5F: construct_at<simu::Block, long unsigned int const&> (stl_construct.h:97)
+|   ->05.75% (786,432B) 0x19AE5F: construct<simu::Block, long unsigned int const&> (alloc_traits.h:539)
+|     ->05.75% (786,432B) 0x19AE5F: _M_create_node<long unsigned int const&> (stl_list.h:713)
+|       ->05.75% (786,432B) 0x19AE5F: _M_insert<long unsigned int const&> (stl_list.h:2005)
+|         ->05.75% (786,432B) 0x19AE5F: emplace_back<long unsigned int const&> (stl_list.h:1321)
+|           ->05.75% (786,432B) 0x19AE5F: allocate (Memory.hpp:284)
+|             ->05.75% (786,432B) 0x19AE5F: allocate (Memory.hpp:270)
+|               ->05.75% (786,432B) 0x19AE5F: std::unique_ptr<simu::VisibleBody, std::function<void (void*)> > simu::FreeListAllocator<std::unique_ptr<simu::Body, std::function<void (void*)> >, 32768ul>::makeUnique<simu::VisibleBody, simu::BodyDescriptor&, simu::Matrix<unsigned char, 4u, 1u>, simu::Renderer*>(simu::BodyDescriptor&, simu::Matrix<unsigned char, 4u, 1u>&&, simu::Renderer*&&) (Memory.hpp:148)
+|                 ->05.75% (786,432B) 0x1AF7B5: makeObject<simu::VisibleBody, simu::FreeListAllocator<std::unique_ptr<simu::Body, std::function<void(void*)> >, 32768>, simu::BodyDescriptor&, simu::Matrix<unsigned char, 4, 1>, simu::Renderer*> (World.hpp:321)
+|                   ->05.75% (786,432B) 0x1AF7B5: simu::VisibleBody* simu::World::makeBody<simu::VisibleBody, simu::BodyDescriptor&, simu::Matrix<unsigned char, 4u, 1u>, simu::Renderer*>(simu::BodyDescriptor&, simu::Matrix<unsigned char, 4u, 1u>&&, simu::Renderer*&&) (World.hpp:170)
+|                     ->05.75% (786,432B) 0x1AD203: simu::BoxSpawner::makeBox(simu::Matrix<float, 2u, 1u>, simu::Matrix<float, 2u, 1u>) (Tool.cpp:125)
+|                       ->05.75% (786,432B) 0x19CEF4: Pyramid::init(simu::Renderer&) (Pyramid.cpp:70)
+|                         ->05.75% (786,432B) 0x1A4D1D: simu::Scene::init(simu::Application*) (Scene.cpp:123)
+|                           ->05.75% (786,432B) 0x1A0147: simu::Application::run() (Application.cpp:235)
+|                             ->05.75% (786,432B) 0x162C8B: main (Pyramid.cpp:130)
+|                               
+->03.35% (458,752B) 0x1B92A3: Block (Memory.hpp:50)
+| ->03.35% (458,752B) 0x1B92A3: construct_at<simu::Block, long unsigned int const&> (stl_construct.h:97)
+|   ->03.35% (458,752B) 0x1B92A3: construct<simu::Block, long unsigned int const&> (alloc_traits.h:539)
+|     ->03.35% (458,752B) 0x1B92A3: _M_create_node<long unsigned int const&> (stl_list.h:713)
+|       ->03.35% (458,752B) 0x1B92A3: _M_insert<long unsigned int const&> (stl_list.h:2005)
+|         ->03.35% (458,752B) 0x1B92A3: emplace_back<long unsigned int const&> (stl_list.h:1321)
+|           ->03.35% (458,752B) 0x1B92A3: allocate (Memory.hpp:284)
+|             ->03.35% (458,752B) 0x1B92A3: allocate (Memory.hpp:270)
+|               ->03.35% (458,752B) 0x1B92A3: allocate (alloc_traits.h:333)
+|                 ->03.35% (458,752B) 0x1B92A3: _M_allocate_node<const std::piecewise_construct_t&, std::tuple<const simu::Bodies&>, std::tuple<> > (hashtable_policy.h:1999)
+|                   ->03.35% (458,752B) 0x1B92A3: _Scoped_node<const std::piecewise_construct_t&, std::tuple<const simu::Bodies&>, std::tuple<> > (hashtable.h:307)
+|                     ->03.35% (458,752B) 0x1B92A3: std::__detail::_Map_base<simu::Bodies, std::pair<simu::Bodies const, simu::World::ContactStatus>, simu::FreeListAllocator<std::pair<simu::Bodies const, simu::World::ContactStatus>, 32768ul>, std::__detail::_Select1st, std::equal_to<simu::Bodies>, std::hash<simu::Bodies>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<true, false, true>, true>::operator[](simu::Bodies const&) (hashtable_policy.h:814)
+|                       ->02.16% (294,912B) 0x1B5C04: operator[] (unordered_map.h:987)
+|                       | ->02.16% (294,912B) 0x1B5C04: operator() (World.cpp:189)
+|                       |   ->02.16% (294,912B) 0x1B5C04: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                       |     ->01.92% (262,144B) 0x1B5B2D: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                       |     | ->01.44% (196,608B) 0x1B5B2D: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                       |     | | ->01.44% (196,608B) in 2 places, all below massif's threshold (1.00%)
+|                       |     | |   
+|                       |     | ->00.48% (65,536B) in 1+ places, all below ms_print's threshold (01.00%)
+|                       |     | 
+|                       |     ->00.24% (32,768B) in 1+ places, all below ms_print's threshold (01.00%)
+|                       |     
+|                       ->01.20% (163,840B) 0x1B5EF8: operator[] (unordered_map.h:987)
+|                         ->01.20% (163,840B) 0x1B5EF8: operator() (World.cpp:189)
+|                           ->01.20% (163,840B) 0x1B5EF8: forEachIn<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:415)
+|                             ->01.20% (163,840B) 0x1B5EF8: forEachOverlapping<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:434)
+|                               ->01.20% (163,840B) 0x1B5EF8: forEachOverlapping<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:94)
+|                                 ->01.20% (163,840B) 0x1B5EF8: simu::World::detectContacts() (World.cpp:193)
+|                                   ->01.20% (163,840B) 0x1B6058: simu::World::step(float) (World.cpp:61)
+|                                     ->01.20% (163,840B) 0x19FFCD: step (Scene.hpp:81)
+|                                       ->01.20% (163,840B) 0x19FFCD: simu::Application::run() (Application.cpp:216)
+|                                         ->01.20% (163,840B) 0x162C8B: main (Pyramid.cpp:130)
+|                                           
+->02.45% (335,615B) 0x1B2D92: Block (Memory.hpp:50)
+| ->02.45% (335,615B) 0x1B2D92: construct_at<simu::Block, long unsigned int const&> (stl_construct.h:97)
+|   ->02.45% (335,615B) 0x1B2D92: construct<simu::Block, long unsigned int const&> (alloc_traits.h:539)
+|     ->02.45% (335,615B) 0x1B2D92: _M_create_node<long unsigned int const&> (stl_list.h:713)
+|       ->02.45% (335,615B) 0x1B2D92: _M_insert<long unsigned int const&> (stl_list.h:2005)
+|         ->02.45% (335,615B) 0x1B2D92: emplace_back<long unsigned int const&> (stl_list.h:1321)
+|           ->02.45% (335,615B) 0x1B2D92: simu::FreeListAllocator<simu::Body*, 32768ul>::allocate(unsigned long) [clone .part.0] (Memory.hpp:284)
+|             ->01.44% (196,608B) in 3 places, all below massif's threshold (1.00%)
+|             | 
+|             ->01.02% (139,007B) 0x1B8F0A: allocate (hashtable_policy.h:2056)
+|               ->01.02% (139,007B) 0x1B8F0A: allocate (alloc_traits.h:333)
+|                 ->01.02% (139,007B) 0x1B8F0A: std::__detail::_Hashtable_alloc<simu::FreeListAllocator<std::__detail::_Hash_node<std::pair<simu::Bodies const, simu::World::ContactStatus>, true>, 32768ul> >::_M_allocate_buckets(unsigned long) (hashtable_policy.h:2053)
+|                   ->01.02% (139,007B) 0x1B8F95: _M_allocate_buckets (hashtable.h:442)
+|                     ->01.02% (139,007B) 0x1B8F95: _M_rehash_aux (hashtable.h:2571)
+|                       ->01.02% (139,007B) 0x1B8F95: std::_Hashtable<simu::Bodies, std::pair<simu::Bodies const, simu::World::ContactStatus>, simu::FreeListAllocator<std::pair<simu::Bodies const, simu::World::ContactStatus>, 32768ul>, std::__detail::_Select1st, std::equal_to<simu::Bodies>, std::hash<simu::Bodies>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<true, false, true> >::_M_rehash(unsigned long, unsigned long const&) (hashtable.h:2550)
+|                         ->01.02% (139,007B) 0x1B9324: _M_insert_unique_node (hashtable.h:2164)
+|                           ->01.02% (139,007B) 0x1B9324: std::__detail::_Map_base<simu::Bodies, std::pair<simu::Bodies const, simu::World::ContactStatus>, simu::FreeListAllocator<std::pair<simu::Bodies const, simu::World::ContactStatus>, 32768ul>, std::__detail::_Select1st, std::equal_to<simu::Bodies>, std::hash<simu::Bodies>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<true, false, true>, true>::operator[](simu::Bodies const&) (hashtable_policy.h:821)
+|                             ->01.02% (139,007B) 0x1B5C04: operator[] (unordered_map.h:987)
+|                               ->01.02% (139,007B) 0x1B5C04: operator() (World.cpp:189)
+|                                 ->01.02% (139,007B) 0x1B5C04: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                                   ->01.02% (139,007B) 0x1B5B2D: void simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::forEachIn<simu::World::detectContacts()::{lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*, 32768ul> >::Iterator<false>)
+|                                     ->01.02% (139,007B) 0x1B5D76: forEachIn<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:418)
+|                                       ->01.02% (139,007B) 0x1B5D76: forEachOverlapping<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:434)
+|                                         ->01.02% (139,007B) 0x1B5D76: forEachOverlapping<simu::World::detectContacts()::<lambda(simu::RTree<simu::Body*, simu::FreeListAllocator<simu::Body*> >::iterator)> > (RTree.hpp:94)
+|                                           ->01.02% (139,007B) 0x1B5D76: simu::World::detectContacts() (World.cpp:193)
+|                                             ->01.02% (139,007B) 0x1B6058: simu::World::step(float) (World.cpp:61)
+|                                               ->01.02% (139,007B) 0x19FFCD: step (Scene.hpp:81)
+|                                                 ->01.02% (139,007B) 0x19FFCD: simu::Application::run() (Application.cpp:216)
+|                                                   ->01.02% (139,007B) 0x162C8B: main (Pyramid.cpp:130)
+|                                                     
+->02.30% (314,928B) 0x48D6A05: UnknownInlinedFun (imLcPrs.c:674)
+| ->02.30% (314,928B) 0x48D6A05: parsestringfile (imLcPrs.c:739)
+|   ->02.30% (314,928B) 0x48D8C21: UnknownInlinedFun (imLcIm.c:610)
+|     ->02.30% (314,928B) 0x48D8C21: _XimLocalOpenIM (imLcIm.c:700)
+|       ->02.30% (314,928B) 0x48D1E9F: _XimOpenIM (imInt.c:229)
+|         ->02.30% (314,928B) 0x1C317D: _glfwPlatformInit (x11_init.c:1142)
+|           ->02.30% (314,928B) 0x1BC077: glfwInit (init.c:324)
+|             ->02.30% (314,928B) 0x1A0739: simu::Application::Application() (Application.cpp:159)
+|               ->02.30% (314,928B) 0x162C7F: DummyApp (Pyramid.cpp:113)
+|                 ->02.30% (314,928B) 0x162C7F: main (Pyramid.cpp:129)
+|                   
+->02.05% (280,141B) 0x5A7FD85: ???
+| ->02.04% (279,524B) 0x1CF716: operator() (std_function.h:591)
+| | ->02.04% (279,524B) 0x1CF716: glbinding::Binding::resolveFunction(char const*) (Binding.cpp:214)
+| |   ->02.04% (279,524B) 0x1D131B: resolve (State.cpp:18)
+| |     ->02.04% (279,524B) 0x1D131B: glbinding::State::resolve(char const*) (State.cpp:11)
+| |       ->02.04% (279,524B) 0x1CEBD3: glbinding::Binding::resolveFunctions() (Binding.cpp:234)
+| |         ->02.04% (279,524B) 0x1CFFB5: glbinding::Binding::initialize(long long, std::function<void (*(char const*))()>, bool, bool) (Binding.cpp:199)
+| |           ->02.04% (279,524B) 0x1D0250: glbinding::Binding::initialize(std::function<void (*(char const*))()>, bool) (Binding.cpp:157)
+| |             ->02.04% (279,524B) 0x1CE049: glbinding::initialize(std::function<void (*(char const*))()>, bool) (glbinding.cpp:15)
+| |               ->02.04% (279,524B) 0x1A0831: simu::Application::Application() (Application.cpp:178)
+| |                 ->02.04% (279,524B) 0x162C7F: DummyApp (Pyramid.cpp:113)
+| |                   ->02.04% (279,524B) 0x162C7F: main (Pyramid.cpp:129)
+| |                     
+| ->00.00% (617B) in 1+ places, all below ms_print's threshold (01.00%)
+| 
+->01.94% (265,072B) 0x5D64242: UnknownInlinedFun (os_memory_aligned.h:58)
+| ->01.94% (265,072B) 0x5D64242: st_create_context (st_context.c:864)
+|   ->01.94% (265,072B) 0x5CBD39B: UnknownInlinedFun (st_manager.c:992)
+|     ->01.94% (265,072B) 0x5CBD39B: dri_create_context (dri_context.c:177)
+|       ->01.94% (265,072B) 0x5CBFE86: driCreateContextAttribs (dri_util.c:627)
+|         ->01.94% (265,072B) 0x5AE1E4C: ???
+|           ->01.94% (265,072B) 0x5ACAF6F: ???
+|             ->01.94% (265,072B) 0x5A8359B: ???
+|               ->01.94% (265,072B) 0x1CB112: _glfwCreateContextGLX (glx_context.c:581)
+|                 ->01.94% (265,072B) 0x1C7A0F: _glfwPlatformCreateWindow (x11_window.c:2003)
+|                   ->01.94% (265,072B) 0x1C0477: glfwCreateWindow (window.c:218)
+|                     ->01.94% (265,072B) 0x1A0768: simu::Application::Application() (Application.cpp:163)
+|                       ->01.94% (265,072B) 0x162C7F: DummyApp (Pyramid.cpp:113)
+|                         ->01.94% (265,072B) 0x162C7F: main (Pyramid.cpp:129)
+|                           
+->01.56% (213,992B) 0x61F2BDF: threaded_context_create (u_threaded_context.c:4899)
+| ->01.56% (213,992B) 0x5CBD336: UnknownInlinedFun (st_manager.c:981)
+|   ->01.56% (213,992B) 0x5CBD336: dri_create_context (dri_context.c:177)
+|     ->01.56% (213,992B) 0x5CBFE86: driCreateContextAttribs (dri_util.c:627)
+|       ->01.56% (213,992B) 0x5AE1E4C: ???
+|         ->01.56% (213,992B) 0x5ACAF6F: ???
+|           ->01.56% (213,992B) 0x5A8359B: ???
+|             ->01.56% (213,992B) 0x1CB112: _glfwCreateContextGLX (glx_context.c:581)
+|               ->01.56% (213,992B) 0x1C7A0F: _glfwPlatformCreateWindow (x11_window.c:2003)
+|                 ->01.56% (213,992B) 0x1C0477: glfwCreateWindow (window.c:218)
+|                   ->01.56% (213,992B) 0x1A0768: simu::Application::Application() (Application.cpp:163)
+|                     ->01.56% (213,992B) 0x162C7F: DummyApp (Pyramid.cpp:113)
+|                       ->01.56% (213,992B) 0x162C7F: main (Pyramid.cpp:129)
+|                         
+->01.55% (211,584B) 0x5ACC423: ???
+| ->01.55% (211,584B) in 2 places, all below massif's threshold (1.00%)
+|   
+->01.44% (196,622B) 0x1B78F8: Block (Memory.hpp:50)
+| ->01.44% (196,622B) 0x1B78F8: construct_at<simu::Block, long unsigned int const&> (stl_construct.h:97)
+|   ->01.44% (196,622B) 0x1B78F8: construct<simu::Block, long unsigned int const&> (alloc_traits.h:539)
+|     ->01.44% (196,622B) 0x1B78F8: _M_create_node<long unsigned int const&> (stl_list.h:713)
+|       ->01.44% (196,622B) 0x1B78F8: _M_insert<long unsigned int const&> (stl_list.h:2005)
+|         ->01.44% (196,622B) 0x1B78F8: emplace_back<long unsigned int const&> (stl_list.h:1321)
+|           ->01.44% (196,622B) 0x1B78F8: allocate (Memory.hpp:284)
+|             ->01.44% (196,622B) 0x1B78F8: allocate (Memory.hpp:270)
+|               ->01.44% (196,622B) 0x1B78F8: allocate (alloc_traits.h:333)
+|                 ->01.44% (196,622B) 0x1B78F8: _M_allocate (stl_vector.h:378)
+|                   ->01.44% (196,622B) 0x1B78F8: void std::vector<simu::SolverProxy, simu::FreeListAllocator<simu::SolverProxy, 32768ul> >::_M_realloc_insert<simu::Body*&>(__gnu_cxx::__normal_iterator<simu::SolverProxy*, std::vector<simu::SolverProxy, simu::FreeListAllocator<simu::SolverProxy, 32768ul> > >, simu::Body*&) (vector.tcc:459)
+|                     ->01.44% (196,622B) 0x1B7BF0: emplace_back<simu::Body*&> (vector.tcc:123)
+|                       ->01.44% (196,622B) 0x1B7BF0: simu::Island::addBody(simu::Body*) (Island.hpp:144)
+|                         ->01.44% (196,622B) 0x1B8029: addConstraint (Island.hpp:160)
+|                         | ->01.44% (196,622B) 0x1B8029: simu::Island::Island(simu::Body*, simu::FreeListAllocator<simu::PhysicsObject, 32768ul> const&) (Island.hpp:59)
+|                         |   ->01.44% (196,622B) 0x1B3425: void simu::solveIslands<std::ranges::transform_view<std::ranges::subrange<std::_List_iterator<std::unique_ptr<simu::Body, std::function<void (void*)> > >, std::_List_iterator<std::unique_ptr<simu::Body, std::function<void (void*)> > >, (std::ranges::subrange_kind)0>, simu::DoubleDereference>, simu::FreeListAllocator<std::unique_ptr<simu::Constraint, std::function<void (void*)> >, 32768ul> >(std::ranges::transform_view<std::ranges::subrange<std::_List_iterator<std::unique_ptr<simu::Body, std::function<void (void*)> > >, std::_List_iterator<std::unique_ptr<simu::Body, std::function<void (void*)> > >, (std::ranges::subrange_kind)0>, simu::DoubleDereference> const&, simu::FreeListAllocator<std::unique_ptr<simu::Constraint, std::function<void (void*)> >, 32768ul> const&, simu::World::Settings, float) [clone .isra.0] (Island.hpp:222)
+|                         |     ->01.44% (196,622B) 0x1B615B: simu::World::step(float) (World.cpp:82)
+|                         |       ->01.44% (196,622B) 0x19FFCD: step (Scene.hpp:81)
+|                         |         ->01.44% (196,622B) 0x19FFCD: simu::Application::run() (Application.cpp:216)
+|                         |           ->01.44% (196,622B) 0x162C8B: main (Pyramid.cpp:130)
+|                         |             
+|                         ->00.00% (0B) in 1+ places, all below ms_print's threshold (01.00%)
+|                         
+->01.27% (173,680B) 0x4D738DF: __new_exitfn (cxa_atexit.c:112)
+  ->01.27% (173,680B) 0x4D7396B: __internal_atexit (cxa_atexit.c:44)
+    ->01.27% (173,680B) in 154 places, all below massif's threshold (1.00%)
+      
+--------------------------------------------------------------------------------
+  n        time(i)         total(B)   useful-heap(B) extra-heap(B)    stacks(B)
+--------------------------------------------------------------------------------
+ 54  8,833,412,048       13,464,664       12,775,991       688,673            0
+ 55  8,977,018,021       13,465,640       12,776,711       688,929            0
+ 56  9,121,656,754       13,466,168       12,776,955       689,213            0
+ 57  9,267,447,491       13,466,640       12,777,403       689,237            0
+ 58  9,375,386,709       13,598,504       12,909,007       689,497            0

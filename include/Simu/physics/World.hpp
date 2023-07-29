@@ -357,7 +357,7 @@ private:
     BodyList  bodies_{bAlloc_};
 
 
-    BodyTree bodyTree_{};
+    BodyTree bodyTree_{bAlloc_};
 
 
     typedef std::list<UniquePtr<Constraint>, ConstraintAlloc> ConstraintList;
@@ -369,7 +369,7 @@ private:
     typedef typename Alloc::rebind<UniquePtr<ForceField>>::other ForceFieldAlloc;
     typedef std::list<UniquePtr<ForceField>, ForceFieldAlloc> ForceFieldList;
 
-    ForceFieldAlloc fAlloc_{};
+    ForceFieldAlloc fAlloc_{miscAlloc_};
     ForceFieldList  forces_{fAlloc_};
 
 

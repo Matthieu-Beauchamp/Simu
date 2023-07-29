@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include <cstdlib>
 #include <cstddef>
 #include <memory>
 #include <functional>
@@ -37,6 +38,11 @@ namespace simu
 template <class Container, class A>
 void replaceAllocator(Container& c, const A& alloc)
 {
+    static_assert(
+        std::allocator_traits<A>::propagate_on_container_move_assignment::value,
+        "This will not replace the allocator"
+    );
+
     c = Container{c.begin(), c.end(), alloc};
 }
 
@@ -108,13 +114,24 @@ public:
 
     FreeListAllocator();
 
-
     FreeListAllocator(const FreeListAllocator& other) noexcept;
     FreeListAllocator& operator=(const FreeListAllocator& other) noexcept;
 
     template <class U>
     FreeListAllocator(const FreeListAllocator<U, blockSize>& other) noexcept;
 
+
+    FreeListAllocator select_on_container_copy_construction() const noexcept
+    {
+        return *this;
+    }
+
+    typedef std::true_type propagate_on_container_copy_assignment;
+    typedef std::true_type propagate_on_container_move_assignment;
+    typedef std::true_type propagate_on_container_swap;
+
+    pointer allocate(size_type n);
+    void    deallocate(pointer p, size_type n) noexcept;
 
     // otherwise Deleters of derived virtual types cannot be assigned
     //  when moving unique pointers...
@@ -137,14 +154,6 @@ public:
         std::construct_at(obj, std::forward<Args>(args)...);
         return {obj, d};
     }
-
-
-    pointer allocate(size_type n);
-    void    deallocate(pointer p, size_type n) noexcept;
-
-    // msvc's list seems to interpret this as the sum of allocations,
-    //  we meant the maximum single allocation (ie max object size)
-    // constexpr size_type max_size() const noexcept;
 
 
     template <class U>
