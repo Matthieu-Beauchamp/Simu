@@ -210,8 +210,14 @@ public:
 
     void warmstart(float /* dt */) override
     {
-        Impulse P = tangentImpulse(tangentLambda_);
-        P += normalImpulse(normalLambda_);
+        Impulse P{};
+
+        for (Uint32 c = 0; c < frame_.nContacts; ++c)
+        {
+            P += tangentImpulse(tangentLambda_[c], c);
+            P += normalImpulse(normalLambda_[c], c);
+        }
+
         bodies().applyImpulse(P);
     }
 
@@ -310,11 +316,14 @@ private:
         auto p = bodies().proxies();
 
         for (Uint32 b = 0; b < 2; ++b)
+        {
             for (Uint32 c = 0; c < frame_.nContacts; ++c)
             {
                 radius_[b][c] = frame_.worldContacts[b][c] - p[b]->centroid();
                 // perpRadius_[b][c] = perp(radius_[b][c]);
+                SIMU_ASSERT(std::isfinite(radius_[b][c]), "");
             }
+        }
     }
 
     // frame and manifold will be updated after this call,
@@ -464,6 +473,7 @@ private:
         P[3 * ref + 1] = -dir[1];
         P[3 * ref + 2] = -cross(radius_[ref][contact], dir);
 
+        SIMU_ASSERT(std::isfinite(P), "");
         return P;
     }
 
@@ -486,6 +496,7 @@ private:
         P[3 * ref + 1] = -dir[1];
         P[3 * ref + 2] = -cross(radius_[ref][contact], dir);
 
+        SIMU_ASSERT(std::isfinite(P), "");
         return P;
     }
 
