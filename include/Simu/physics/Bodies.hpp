@@ -205,6 +205,9 @@ private:
     friend class Island;
     void startSolve(SolverProxy* start)
     {
+        SIMU_ASSERT(bodies_[0]->proxyIndex != Body::NO_INDEX, "");
+        SIMU_ASSERT(bodies_[1]->proxyIndex != Body::NO_INDEX, "");
+        
         proxies_[0] = start + bodies_[0]->proxyIndex;
         proxies_[1] = start + bodies_[1]->proxyIndex;
         isSolving_  = true;

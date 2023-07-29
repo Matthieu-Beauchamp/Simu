@@ -61,7 +61,10 @@ public:
         }
     }
 
-    ~Island()
+    Island(const Island&) = delete;
+    Island(Island&&)      = delete;
+
+    void endSolve()
     {
         for (SolverProxy& s : proxies_)
             s.writeBack();
@@ -70,9 +73,6 @@ public:
             c->bodies().endSolve();
     }
 
-    Island(const Island&) = delete;
-    Island(Island&&)      = delete;
-
     bool isAwake() const { return isAwake_; }
     auto bodies() { return makeView(bodies_.begin(), bodies_.end()); }
     auto constraints()
@@ -80,7 +80,7 @@ public:
         return makeView(constraints_.begin(), constraints_.end());
     }
 
-    void applyVelocityConstraints(Uint32 nIter, float dt)
+    void refreshProxies()
     {
         // must do this after forces are applied...
         for (SolverProxy& p : proxies_)
@@ -88,8 +88,10 @@ public:
 
         for (Constraint* c : constraints_)
             c->bodies().startSolve(proxies_.data()); // refresh proxy pointers
+    }
 
-
+    void applyVelocityConstraints(Uint32 nIter, float dt)
+    {
         for (Constraint* constraint : constraints_)
             constraint->initSolve();
 
@@ -151,9 +153,11 @@ private:
 
         constraints_.emplace_back(constraint);
 
-        auto b      = constraint->bodies().bodies();
-        bool added1 = addBody(b[0]);
-        bool added2 = addBody(b[1]);
+        auto  b      = constraint->bodies().bodies();
+        Int32 index1 = b[0]->proxyIndex;
+        Int32 index2 = b[1]->proxyIndex;
+        bool  added1 = addBody(b[0]);
+        bool  added2 = addBody(b[1]);
 
         constraint->bodies().startSolve(proxies_.data());
 
@@ -161,14 +165,14 @@ private:
         {
             if (added2)
             {
-                b[1]->proxyIndex = Body::NO_INDEX;
+                b[1]->proxyIndex = index2;
                 bodies_.pop_back();
                 proxies_.pop_back();
             }
 
             if (added1)
             {
-                b[0]->proxyIndex = Body::NO_INDEX;
+                b[0]->proxyIndex = index1;
                 bodies_.pop_back();
                 proxies_.pop_back();
             }
@@ -197,69 +201,51 @@ concept BodyRange = std::ranges::range<T> && requires(T t) {
     // clang-format on
 };
 
-class Islands
+
+template <BodyRange T, class Alloc>
+void solveIslands(const T& bodies, const Alloc& alloc, World::Settings s, float dt)
 {
-public:
+    std::vector<Body*> bodiesToProcess;
+    for (Body& body : bodies)
+        bodiesToProcess.emplace_back(&body);
 
-    typedef typename PhysicsObject::PhysicsAlloc::rebind<Island>::other Alloc;
+    auto removeBody = [&](Body* body) {
+        bodiesToProcess.erase(
+            std::remove(bodiesToProcess.begin(), bodiesToProcess.end(), body),
+            bodiesToProcess.end()
+        );
+    };
 
-    template <BodyRange T>
-    Islands(const T& bodies, const Alloc& alloc) : islands_{alloc}
+    while (!bodiesToProcess.empty())
     {
-        std::vector<Body*> bodiesToProcess;
-        for (Body& body : bodies)
-            bodiesToProcess.emplace_back(&body);
+        Island island(bodiesToProcess.back(), alloc);
 
-        auto removeBody = [&](Body* body) {
-            bodiesToProcess.erase(
-                std::remove(bodiesToProcess.begin(), bodiesToProcess.end(), body),
-                bodiesToProcess.end()
-            );
-        };
+        for (Body* body : island.bodies())
+            removeBody(body);
 
-        while (!bodiesToProcess.empty())
+
+        if (island.isAwake())
         {
-            islands_.emplace_back(bodiesToProcess.back(), islands_.get_allocator());
-
-            for (Body* body : islands_.back().bodies())
-                removeBody(body);
+            for (Body* body : island.bodies())
+                body->wake();
         }
-    }
-
-    void wakeOrSleep()
-    {
-        for (auto it = islands_.begin(); it != islands_.end();)
+        else
         {
-            Island& island = *it;
-
-            if (island.isAwake())
-            {
-                for (Body* body : island.bodies())
-                    body->wake();
-
-                ++it;
-            }
-            else
-            {
-                it = islands_.erase(it);
-            }
+            // reset forces and velocities on all bodies
         }
+
+
+        island.refreshProxies();
+        island.applyVelocityConstraints(s.nVelocityIterations, dt);
+        island.integrateBodies(dt);
+        island.applyPositionConstraints(s.nPositionIterations);
+
+
+        // structural bodies are shared across islands.
+        // -> must not write back before all islands have solved (otherwise body has no index)
+        // -> if the body has a velocity, it will be integrated multiple times...
+        island.endSolve();
     }
-
-    void solve(const World::Settings& s, float dt)
-    {
-        for (Island& island : islands_)
-        {
-            island.applyVelocityConstraints(s.nVelocityIterations, dt);
-            island.integrateBodies(dt);
-            island.applyPositionConstraints(s.nPositionIterations);
-        }
-    }
-
-private:
-
-    std::list<Island, Alloc> islands_;
-};
-
+}
 
 } // namespace simu

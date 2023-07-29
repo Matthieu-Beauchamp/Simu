@@ -71,12 +71,16 @@ void World::step(float dt)
 
     if (dt > 0.f)
     {
-        Islands islands(bodies(), miscAlloc_);
-        
-        islands.wakeOrSleep();
+        // TODO: While sleeping is not fully implemented,
+        //  it currently requires that all islands were computed
+        //  and all Bodies in an island have been waken if one is not sleeping.
+        //
+        // Instead forces can be applied and stored in the Body.
+        //  if an island is sleeping, all its bodies' forces and velocities are set to 0
         applyForces(dt);
-        islands.solve(settings(), dt);
-        
+
+        solveIslands(bodies(), miscAlloc_, settings(), dt);
+
         updateBodies(dt);
     }
 
@@ -179,7 +183,7 @@ void World::detectContacts()
     {
         auto registerContact = [=, this](BodyTree::iterator other) {
             Bodies bodies{*it, *other};
-            auto      contact = inContacts(bodies);
+            auto   contact = inContacts(bodies);
 
             if (contact == contacts_.end())
                 contacts_[bodies]
@@ -248,7 +252,8 @@ void World::cleanup()
         auto& contact = *it;
         if (contact.second.existingContact != nullptr)
         {
-            if (!boundsOf(contact.first.bodies()[0]).overlaps(boundsOf(contact.first.bodies()[0])))
+            if (!boundsOf(contact.first.bodies()[0])
+                     .overlaps(boundsOf(contact.first.bodies()[0])))
             {
                 contact.second.existingContact->kill();
                 it = contacts_.erase(it);
