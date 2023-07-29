@@ -79,7 +79,7 @@ void World::step(float dt)
         //  if an island is sleeping, all its bodies' forces and velocities are set to 0
         applyForces(dt);
 
-        solveIslands(bodies(), miscAlloc_, settings(), dt);
+        solveIslands(bodies(),cAlloc_, settings(), dt);
 
         updateBodies(dt);
     }
@@ -253,7 +253,7 @@ void World::cleanup()
         if (contact.second.existingContact != nullptr)
         {
             if (!boundsOf(contact.first.bodies()[0])
-                     .overlaps(boundsOf(contact.first.bodies()[0])))
+                     .overlaps(boundsOf(contact.first.bodies()[1])))
             {
                 contact.second.existingContact->kill();
                 it = contacts_.erase(it);
