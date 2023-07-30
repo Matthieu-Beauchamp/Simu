@@ -67,7 +67,7 @@ public:
 
         Gjk<Collider> gjk{b[0]->collider(), b[1]->collider(), searchDir};
         Vec2          mtv = gjk.penetration();
-
+        
 
         if (normSquared(mtv) < minPen_ * minPen_)
             return;

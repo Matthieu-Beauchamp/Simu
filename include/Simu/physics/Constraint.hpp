@@ -186,6 +186,7 @@ public:
           frictionCoeff_{CombinableProperty{bodies.bodies()[0]->material().friction, 
                                             bodies.bodies()[1]->material().friction}.value}
     {
+        frame_ = manifold_.frameManifold(this->bodies());
     }
 
     void preStep() override { updateContacts(); }

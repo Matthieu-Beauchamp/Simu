@@ -321,8 +321,6 @@ private:
 
     void applyForces(float dt);
 
-    void detectContacts();
-
     struct Cleaner;
     void cleanup();
 
@@ -370,8 +368,8 @@ private:
 
     struct ContactStatus
     {
-        Int32                 nConflictingConstraints = 0;
-        UniquePtr<Constraint> existingContact         = nullptr;
+        Int32                        nConflictingConstraints = 0;
+        UniquePtr<ContactConstraint> existingContact         = nullptr;
     };
 
     typedef std::unordered_map<

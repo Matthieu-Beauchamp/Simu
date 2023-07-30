@@ -58,8 +58,6 @@ void World::step(float dt)
 
 
     cleanup();
-    detectContacts();
-
 
     for (Body& b : bodies())
         b.preStep();
@@ -181,24 +179,6 @@ void World::applyForces(float dt)
     }
 }
 
-void World::detectContacts()
-{
-    for (auto it = bodyTree_.begin(); it != bodyTree_.end(); ++it)
-    {
-        auto registerContact = [=, this](BodyTree::iterator other) {
-            Bodies bodies{*it, *other};
-            auto   contact = inContacts(bodies);
-
-            if (contact == contacts_.end())
-                contacts_[bodies]
-                    = ContactStatus{0, makeContactConstraint(bodies)};
-        };
-
-        bodyTree_.forEachOverlapping(it, registerContact);
-    }
-}
-
-
 struct World::Cleaner
 {
     template <class Container>
@@ -253,24 +233,20 @@ void World::cleanup()
 {
     for (auto it = contacts_.begin(); it != contacts_.end();)
     {
-        auto& contact = *it;
-        if (contact.second.existingContact != nullptr)
+        ContactConstraint* contact = it->second.existingContact.get();
+        if (contact != nullptr && contact->isDead())
         {
-            if (!boundsOf(contact.first.bodies()[0])
-                     .overlaps(boundsOf(contact.first.bodies()[1])))
-            {
-                contact.second.existingContact->kill();
+            for (Body* b : contact->bodies().bodies())
+                std::erase(b->contacts_, contact);
 
-                for (Body* b : contact.second.existingContact->bodies().bodies())
-                    std::erase(b->contacts_, contact.second.existingContact.get());
-
-                it = contacts_.erase(it);
-
-                continue;
-            }
+            it = contacts_.erase(it);
         }
-        ++it;
+        else
+        {
+            ++it;
+        }
     }
+
 
     Cleaner cleaner{};
 
@@ -321,12 +297,50 @@ void World::updateBodies(float dt)
         }
     }
 
+    typedef typename BodyTree::iterator           BodyIt;
+    std::vector<BodyIt, ReboundTo<Alloc, BodyIt>> toUpdate{miscAlloc_};
+
     for (const auto& b : bodies_)
     {
         auto treeIt = b->treeLocation_;
         if (!b->isAsleep()
             && !treeIt.bounds().contains(b->collider().boundingBox()))
-            bodyTree_.update(treeIt, boundsOf(b.get()));
+            toUpdate.emplace_back(treeIt);
+    }
+
+    // update bounds
+    for (auto it : toUpdate)
+        bodyTree_.update(it, boundsOf(*it));
+
+    // check for new contacts
+    for (auto it : toUpdate)
+    {
+        auto registerContact = [=, this](BodyTree::iterator other) {
+            Bodies bodies{*it, *other};
+            auto   contact = inContacts(bodies);
+
+            if (contact == contacts_.end())
+                contacts_[bodies]
+                    = ContactStatus{0, makeContactConstraint(bodies)};
+        };
+
+        bodyTree_.forEachOverlapping(it, registerContact);
+    }
+
+    // kill outdated contacts
+    for (auto it : toUpdate)
+    {
+        Body* b = *it;
+
+        for (ContactConstraint* c : b->contacts())
+        {
+            if (!c->isDead())
+            {
+                auto bodies = c->bodies().bodies();
+                if (!boundsOf(bodies[0]).overlaps(boundsOf(bodies[1])))
+                    c->kill();
+            }
+        }
     }
 }
 
