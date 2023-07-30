@@ -38,6 +38,8 @@ namespace simu
 //  iterators have reference to tree and an index,
 //  nodes use indices instead of pointers.
 
+// TODO: If root has the same left and right child, we can remove some nullptr checks.
+
 template <class T, class Allocator = std::allocator<T>>
 class RTree
 {
@@ -430,8 +432,7 @@ private:
         {
             Node* sibling = node->sibling();
             if (sibling != nullptr)
-                if (bounds.overlaps(sibling->bounds))
-                    forEachIn(bounds, func, sibling);
+                forEachIn(bounds, func, sibling);
 
             node = node->parent;
         }

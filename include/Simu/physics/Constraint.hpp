@@ -180,7 +180,7 @@ public:
 
     ContactConstraint(const Bodies& bodies)
         : Constraint{bodies}, 
-          manifold_{bodies.bodies()[0], bodies.bodies()[1]}, 
+          manifold_{this->bodies()}, 
           restitutionCoeff_{CombinableProperty{bodies.bodies()[0]->material().bounciness, 
                                                bodies.bodies()[1]->material().bounciness}.value},
           frictionCoeff_{CombinableProperty{bodies.bodies()[0]->material().friction, 
@@ -192,7 +192,7 @@ public:
 
     bool isActive() override
     {
-        frame_ = manifold_.frameManifold();
+        frame_ = manifold_.frameManifold(bodies());
         return frame_.nContacts != 0;
     }
 
@@ -225,7 +225,7 @@ public:
 
         for (Uint32 c = 0; c < frame_.nContacts; ++c)
         {
-            auto  J             = tangentJacobian(c);
+            auto  J              = tangentJacobian(c);
             float tangentVel     = (J * velocity)[0];
             float dTangentLambda = -tangentVel / tangentKs_[c];
 
@@ -241,7 +241,7 @@ public:
 
         if (frame_.nContacts == 1)
         {
-            auto  J            = normalJacobian(0);
+            auto  J             = normalJacobian(0);
             float normalVel     = (J * velocity)[0];
             float dNormalLambda = -(normalVel + bounce_[0]) / normalK_(0, 0);
 
@@ -250,12 +250,11 @@ public:
             normalLambda_[0] = std::max(0.f, normalLambda_[0]);
             dNormalLambda    = normalLambda_[0] - oldNormalLambda;
 
-            velocity
-                += elementWiseMul(invMassVec, transpose(J) * dNormalLambda);
+            velocity += elementWiseMul(invMassVec, transpose(J) * dNormalLambda);
         }
         else if (frame_.nContacts == 2)
         {
-            Vec2 err = Jn * velocity;
+            Vec2 err             = Jn * velocity;
             Vec2 alreadyComputed = normalK_ * normalLambda_;
 
             Vec2 oldNormalLambda = normalLambda_;
@@ -293,6 +292,7 @@ public:
 
     void solvePositions() override
     {
+        frame_ = manifold_.frameManifold(bodies());
         computeJacobians(false);
         computeKs(false);
 
@@ -378,7 +378,7 @@ private:
     //  until the positions of the bodies change.
     void updateContacts()
     {
-        frame_ = manifold_.frameManifold();
+        frame_ = manifold_.frameManifold(bodies());
 
         // TODO: Use vertex matching in contact manifold
         // TODO: All of this goes into contact manifold's update logic
@@ -424,8 +424,8 @@ private:
         {
             Uint32 nPreviousContacts = frame_.nContacts;
 
-            manifold_.update();
-            frame_ = manifold_.frameManifold();
+            manifold_.update(bodies());
+            frame_ = manifold_.frameManifold(bodies());
 
             tangentLambda_ = Vec2{};
 

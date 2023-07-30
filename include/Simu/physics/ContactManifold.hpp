@@ -29,7 +29,7 @@
 
 #include "Simu/math/Gjk.hpp"
 
-#include "Simu/physics/Body.hpp"
+#include "Simu/physics/Bodies.hpp"
 
 namespace simu
 {
@@ -38,38 +38,41 @@ class ContactManifold
 {
 public:
 
-    ContactManifold(const Body* body0, const Body* body1)
-        : bodies_{body0, body1}, 
-          minPen_{CombinableProperty{body0->material().penetration, 
-                                     body1->material().penetration}.value}
+    ContactManifold(const Bodies& bodies)
+        : minPen_{
+            CombinableProperty{
+                               bodies.bodies()[0]->material().penetration,
+                               bodies.bodies()[1]->material().penetration}
+                .value
+    }
     {
-        update();
+        update(bodies);
     }
 
-    void update()
+    void update(const Bodies& bodies)
     {
+        auto b = bodies.bodies();
+
+        Vec2 searchDir = nContacts_ == 0
+                             ? (b[1]->centroid() - b[0]->centroid())
+                             : b[referenceIndex()]->toWorldSpace().rotation()
+                                   * contactNormal_;
+
         nContacts_ = 0;
 
-        if (!bodies_[0]->collider().boundingBox().overlaps(
-                bodies_[1]->collider().boundingBox()
+        if (!b[0]->collider().boundingBox().overlaps(
+                b[1]->collider().boundingBox()
             ))
             return;
 
-        Vec2 searchDir = nContacts_ == 0
-                             ? (bodies_[1]->centroid() - bodies_[0]->centroid())
-                             : contactNormal();
-
-        Gjk<Collider> gjk{
-            bodies_[0]->collider(),
-            bodies_[1]->collider(),
-            searchDir};
-        Vec2 mtv = gjk.penetration();
+        Gjk<Collider> gjk{b[0]->collider(), b[1]->collider(), searchDir};
+        Vec2          mtv = gjk.penetration();
 
 
         if (normSquared(mtv) < minPen_ * minPen_)
             return;
 
-        std::array<Edge, 2> contactEdges = computeContactEdges(mtv);
+        std::array<Edge, 2> contactEdges = computeContactEdges(bodies, mtv);
 
         Vec2 normal1 = contactEdges[0].normalizedNormal();
         Vec2 normal2 = contactEdges[1].normalizedNormal();
@@ -88,15 +91,15 @@ public:
             contactNormal_  = normal2;
         }
 
-        computeContacts(contactEdges);
+        computeContacts(bodies, contactEdges);
 
-        contactNormal_ = bodies_[referenceIndex()]->toLocalSpace().rotation()
-                         * contactNormal_;
+        contactNormal_
+            = b[referenceIndex()]->toLocalSpace().rotation() * contactNormal_;
 
 
-        for (Uint32 b = 0; b < 2; ++b)
+        for (Uint32 i = 0; i < 2; ++i)
             for (Uint32 c = 0; c < nContacts(); ++c)
-                contacts_[b][c] = bodies_[b]->toLocalSpace() * contacts_[b][c];
+                contacts_[i][c] = b[i]->toLocalSpace() * contacts_[i][c];
     }
 
 
@@ -108,39 +111,32 @@ public:
         Vec2                                 tangent;
     };
 
-    FrameManifold frameManifold() const
+    FrameManifold frameManifold(const Bodies& bodies) const
     {
+        Transforms Ts;
+
+        if (bodies.isSolving())
+        {
+            auto p = bodies.proxies();
+            Ts     = {p[0]->toWorldSpace(), p[1]->toWorldSpace()};
+        }
+        else
+        {
+            auto b = bodies.bodies();
+            Ts     = {b[0]->toWorldSpace(), b[1]->toWorldSpace()};
+        }
+
         return FrameManifold{
             nContacts(),
-            contacts(),
-            contactNormal(),
-            contactTangent()};
+            contacts(Ts),
+            contactNormal(Ts),
+            contactTangent(Ts)};
     }
 
 
     // if nContacts() is 0, then other getters will provide undefined results.
     Uint32 nContacts() const { return nContacts_; }
 
-    /// contacts()[referenceIndex()][1] -> second contact point of the reference body
-    std::array<std::array<Vertex, 2>, 2> contacts() const
-    {
-        std::array<std::array<Vertex, 2>, 2> worldContacts;
-
-        for (Uint32 b = 0; b < 2; ++b)
-            for (Uint32 c = 0; c < nContacts(); ++c)
-                worldContacts[b][c]
-                    = bodies_[b]->toWorldSpace() * contacts_[b][c];
-
-        return worldContacts;
-    }
-
-    Vec2 contactNormal() const
-    {
-        return bodies_[referenceIndex()]->toWorldSpace().rotation()
-               * contactNormal_;
-    }
-
-    Vec2 contactTangent() const { return perp(contactNormal()); }
 
     Uint32 referenceIndex() const { return referenceIndex_; }
     Uint32 incidentIndex() const { return (referenceIndex() == 0) ? 1 : 0; }
@@ -151,14 +147,40 @@ public:
 
 private:
 
+    typedef std::array<Transform, 2> Transforms;
+
+    /// contacts()[referenceIndex()][1] -> second contact point of the reference body
+    std::array<std::array<Vertex, 2>, 2> contacts(const Transforms& Ts) const
+    {
+        std::array<std::array<Vertex, 2>, 2> worldContacts;
+
+        for (Uint32 b = 0; b < 2; ++b)
+            for (Uint32 c = 0; c < nContacts(); ++c)
+                worldContacts[b][c] = Ts[b] * contacts_[b][c];
+
+        return worldContacts;
+    }
+
+    Vec2 contactNormal(const Transforms& Ts) const
+    {
+        return Ts[referenceIndex()].rotation() * contactNormal_;
+    }
+
+    Vec2 contactTangent(const Transforms& Ts) const
+    {
+        return perp(contactNormal(Ts));
+    }
+
 
     typedef typename Edges<Collider>::Edge Edge;
 
-    std::array<Edge, 2> computeContactEdges(Vec2 mtv)
+    std::array<Edge, 2> computeContactEdges(const Bodies& bodies, Vec2 mtv)
     {
+        auto b = bodies.bodies();
+
         return {
-            computeContactEdge(bodies_[0]->collider(), mtv),
-            computeContactEdge(bodies_[1]->collider(), -mtv),
+            computeContactEdge(b[0]->collider(), mtv),
+            computeContactEdge(b[1]->collider(), -mtv),
         };
     }
 
@@ -181,12 +203,14 @@ private:
         return *previous;
     }
 
-    void computeContacts(std::array<Edge, 2> contactEdges)
+    void computeContacts(const Bodies& bodies, std::array<Edge, 2> contactEdges)
     {
+        auto b = bodies.bodies();
+
         const Uint32 ref = referenceIndex();
         const Uint32 inc = incidentIndex();
 
-        auto refEdges = edgesOf(bodies_[ref]->collider());
+        auto refEdges = edgesOf(b[ref]->collider());
 
         Edge previousOfRef{*refEdges.previous(contactEdges[ref])};
         Edge nextOfRef{*refEdges.next(contactEdges[ref])};
@@ -212,8 +236,6 @@ private:
                       .closestPoint;
         }
     }
-
-    std::array<const Body*, 2> bodies_;
 
     std::array<std::array<Vertex, 2>, 2> contacts_{};
     Uint32                               nContacts_ = 0;
