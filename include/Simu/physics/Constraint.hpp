@@ -190,13 +190,13 @@ public:
 
     void preStep() override { updateContacts(); }
 
-    bool isActive() override
+    bool isActive() final override
     {
         frame_ = manifold_.frameManifold(bodies());
         return frame_.nContacts != 0;
     }
 
-    void initSolve() override
+    void initSolve() final override
     {
         // TODO: Use baumgarte?
         // if (normSquared(penetration_) >= maxPen_ * maxPen_)
@@ -209,14 +209,15 @@ public:
         computeBounce();
     }
 
-    void warmstart(float /* dt */) override
+    void warmstart(float /* dt */) final override
     {
-        Impulse P = transpose(Jf) * tangentLambda_;
+        Impulse P = transpose(Jf[0]) * tangentLambda_[0]
+                    + transpose(Jf[1]) * tangentLambda_[1];
         P += transpose(Jn) * normalLambda_;
         bodies().applyImpulse(P);
     }
 
-    void solveVelocities(float /* dt */) override
+    void solveVelocities(float /* dt */) final override
     {
         auto p = bodies().proxies();
 
@@ -225,7 +226,7 @@ public:
 
         for (Uint32 c = 0; c < frame_.nContacts; ++c)
         {
-            auto  J              = tangentJacobian(c);
+            auto  J              = Jf[c];
             float tangentVel     = (J * velocity)[0];
             float dTangentLambda = -tangentVel / tangentKs_[c];
 
@@ -290,7 +291,7 @@ public:
         p[1]->setVelocity(Vec2{velocity[3], velocity[4]}, velocity[5]);
     }
 
-    void solvePositions() override
+    void solvePositions() final override
     {
         frame_ = manifold_.frameManifold(bodies());
         computeJacobians(false);
@@ -460,8 +461,8 @@ private:
             for (Uint32 c = 0; c < manifold_.nContacts(); ++c)
             {
                 tangentKs_[c] = linearMass * normSquared(frame_.tangent)
-                                + refInertia * squared(Jf(c, 3 * ref + 2))
-                                + incInertia * squared(Jf(c, 3 * inc + 2));
+                                + refInertia * squared(Jf[c][3 * ref + 2])
+                                + incInertia * squared(Jf[c][3 * inc + 2]);
             }
         }
 
@@ -518,7 +519,7 @@ private:
             }
         }
 
-        Jf = Jacobian{};
+        Jf = JacobianRows{};
         Jn = Jacobian{};
 
         Vec2 n = frame_.normal;
@@ -530,12 +531,12 @@ private:
         {
             if (computeFriction)
             {
-                Jf(c, incIndex + 0) = t[0];
-                Jf(c, incIndex + 1) = t[1];
-                Jf(c, incIndex + 2) = cross(r[inc][c], t);
-                Jf(c, refIndex + 0) = -t[0];
-                Jf(c, refIndex + 1) = -t[1];
-                Jf(c, refIndex + 2) = -cross(r[ref][c], t);
+                Jf[c][incIndex + 0] = t[0];
+                Jf[c][incIndex + 1] = t[1];
+                Jf[c][incIndex + 2] = cross(r[inc][c], t);
+                Jf[c][refIndex + 0] = -t[0];
+                Jf[c][refIndex + 1] = -t[1];
+                Jf[c][refIndex + 2] = -cross(r[ref][c], t);
             }
 
             Jn(c, incIndex + 0) = n[0];
@@ -550,11 +551,6 @@ private:
     Matrix<float, 1, 6> normalJacobian(Uint32 contact) const
     {
         return transpose(Jn.asRows()[contact]);
-    }
-
-    Matrix<float, 1, 6> tangentJacobian(Uint32 contact) const
-    {
-        return transpose(Jf.asRows()[contact]);
     }
 
     std::array<Vec2, 2> relativePosition() const
@@ -576,9 +572,12 @@ private:
 
     typename ContactManifold::FrameManifold frame_;
 
-    typedef Matrix<float, 2, 6> Jacobian;
-    Jacobian                    Jf;
-    Jacobian                    Jn;
+    typedef Matrix<float, 2, 6>        Jacobian;
+    typedef Matrix<float, 1, 6>        JacobianRow;
+    typedef std::array<JacobianRow, 2> JacobianRows;
+
+    JacobianRows Jf;
+    Jacobian     Jn;
 
     Vec2 tangentKs_;
     Mat2 normalK_;

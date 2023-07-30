@@ -111,26 +111,32 @@ public:
         Vec2                                 tangent;
     };
 
-    FrameManifold frameManifold(const Bodies& bodies) const
-    {
-        Transforms Ts;
+    typedef std::array<Transform, 2> Transforms;
 
+    Transforms getTransforms(const Bodies& bodies) const
+    {
         if (bodies.isSolving())
         {
             auto p = bodies.proxies();
-            Ts     = {p[0]->toWorldSpace(), p[1]->toWorldSpace()};
+            return {p[0]->toWorldSpace(), p[1]->toWorldSpace()};
         }
         else
         {
             auto b = bodies.bodies();
-            Ts     = {b[0]->toWorldSpace(), b[1]->toWorldSpace()};
+            return {b[0]->toWorldSpace(), b[1]->toWorldSpace()};
         }
+    }
 
-        return FrameManifold{
-            nContacts(),
-            contacts(Ts),
-            contactNormal(Ts),
-            contactTangent(Ts)};
+    FrameManifold frameManifold(const Bodies& bodies) const
+    {
+        Transforms Ts{getTransforms(bodies)};
+
+        FrameManifold frame;
+        frame.nContacts     = nContacts();
+        frame.worldContacts = contacts(Ts);
+        frame.normal        = contactNormal(Ts);
+        frame.tangent       = contactTangent(Ts);
+        return frame;
     }
 
 
@@ -146,8 +152,6 @@ public:
     float minimumPenetration() const { return minPen_; }
 
 private:
-
-    typedef std::array<Transform, 2> Transforms;
 
     /// contacts()[referenceIndex()][1] -> second contact point of the reference body
     std::array<std::array<Vertex, 2>, 2> contacts(const Transforms& Ts) const

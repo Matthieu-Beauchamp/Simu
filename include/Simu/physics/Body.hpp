@@ -41,6 +41,7 @@ namespace simu
 {
 
 class Constraint;
+class ContactConstraint;
 
 ////////////////////////////////////////////////////////////
 /// \brief Describes a Body for construction
@@ -120,7 +121,7 @@ class Body : public PhysicsObject
 {
 public:
 
-    typedef FreeListAllocator<Constraint*> Alloc;
+    typedef typename PhysicsObject::PhysicsAlloc Alloc;
 
     ////////////////////////////////////////////////////////////
     /// \brief Constructs a Body
@@ -142,6 +143,7 @@ public:
     void setAllocator(const PhysicsAlloc& alloc) override
     {
         replaceAllocator(constraints_, alloc);
+        replaceAllocator(contacts_, alloc);
         collider_.replaceAlloc(alloc);
     }
 
@@ -304,10 +306,7 @@ public:
     /// ie: for (Constraint* c : body.constraints())
     ///
     ////////////////////////////////////////////////////////////
-    auto constraints()
-    {
-        return makeView(constraints_.begin(), constraints_.end());
-    }
+    auto constraints() { return makeView(constraints_); }
 
     ////////////////////////////////////////////////////////////
     /// \brief Returns an iterable view of const Constraint*
@@ -315,10 +314,10 @@ public:
     /// ie: for (const Constraint* c : body.constraints())
     ///
     ////////////////////////////////////////////////////////////
-    auto constraints() const
-    {
-        return makeView(constraints_.begin(), constraints_.end());
-    }
+    auto constraints() const { return makeView(constraints_); }
+
+    auto contacts() { return makeView(contacts_); }
+    auto contacts() const { return makeView(contacts_); }
 
 private:
 
@@ -387,8 +386,9 @@ private:
     bool  isAsleep_     = false;
     float timeImmobile_ = 0.f;
 
-    std::vector<Constraint*, Alloc> constraints_;
-    typename BodyTree::iterator     treeLocation_;
+    std::vector<Constraint*, ReboundTo<Alloc, Constraint*>> constraints_;
+    std::vector<ContactConstraint*, ReboundTo<Alloc, ContactConstraint*>> contacts_;
+    typename BodyTree::iterator treeLocation_;
 
     static constexpr Int32 NO_INDEX   = -1;
     Int32                  proxyIndex = NO_INDEX;

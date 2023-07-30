@@ -37,13 +37,10 @@ class Island
 {
 public:
 
-    typedef typename PhysicsObject::PhysicsAlloc       Alloc;
-    typedef typename Alloc::rebind<Body*>::other       BAlloc;
-    typedef typename Alloc::rebind<Constraint*>::other CAlloc;
-
+    typedef typename PhysicsObject::PhysicsAlloc Alloc;
 
     Island(Body* root, const Alloc& alloc)
-        : bodies_{alloc}, constraints_{alloc}, proxies_{alloc}
+        : bodies_{alloc}, constraints_{alloc}, contacts_{alloc}, proxies_{alloc}
     {
         addBody(root);
 
@@ -56,7 +53,12 @@ public:
             {
                 for (Constraint* constraint : root->constraints())
                 {
-                    addConstraint(constraint);
+                    addConstraint(constraint, constraints_);
+                }
+                
+                for (ContactConstraint* contact : root->contacts())
+                {
+                    addConstraint(contact, contacts_);
                 }
             }
         }
@@ -72,14 +74,12 @@ public:
 
         for (Constraint* c : constraints_)
             c->bodies().endSolve();
+        for (ContactConstraint* c : contacts_)
+            c->bodies().endSolve();
     }
 
     bool isAwake() const { return isAwake_; }
-    auto bodies() { return makeView(bodies_.begin(), bodies_.end()); }
-    auto constraints()
-    {
-        return makeView(constraints_.begin(), constraints_.end());
-    }
+    auto bodies() { return makeView(bodies_); }
 
     void refreshProxies()
     {
@@ -89,19 +89,28 @@ public:
 
         for (Constraint* c : constraints_)
             c->bodies().startSolve(proxies_.data()); // refresh proxy pointers
+
+        for (ContactConstraint* c : contacts_)
+            c->bodies().startSolve(proxies_.data()); // refresh proxy pointers
     }
 
     void applyVelocityConstraints(Uint32 nIter, float dt)
     {
         for (Constraint* constraint : constraints_)
             constraint->initSolve();
+        for (ContactConstraint* constraint : contacts_)
+            constraint->initSolve();
 
         for (Constraint* constraint : constraints_)
+            constraint->warmstart(dt);
+        for (ContactConstraint* constraint : contacts_)
             constraint->warmstart(dt);
 
         for (Uint32 iter = 0; iter < nIter; ++iter)
         {
             for (Constraint* constraint : constraints_)
+                constraint->solveVelocities(dt);
+            for (ContactConstraint* constraint : contacts_)
                 constraint->solveVelocities(dt);
         }
     }
@@ -120,6 +129,8 @@ public:
         for (Uint32 iter = 0; iter < nIter; ++iter)
         {
             for (Constraint* constraint : constraints_)
+                constraint->solvePositions();
+            for (ContactConstraint* constraint : contacts_)
                 constraint->solvePositions();
         }
     }
@@ -147,12 +158,13 @@ private:
         return isNew;
     }
 
-    bool addConstraint(Constraint* constraint)
+    template <class T, class C>
+    bool addConstraint(T* constraint, C& container)
     {
         if (constraint->bodies().isSolving())
             return false;
 
-        constraints_.emplace_back(constraint);
+        container.emplace_back(constraint);
 
         auto  b      = constraint->bodies().bodies();
         Int32 index1 = b[0]->proxyIndex;
@@ -179,18 +191,17 @@ private:
             }
 
             constraint->bodies().endSolve();
-            constraints_.pop_back();
+            container.pop_back();
             return false;
         }
 
         return true;
     }
 
-    std::vector<Body*, BAlloc>       bodies_;
-    std::vector<Constraint*, CAlloc> constraints_;
-
-    typedef typename Alloc::rebind<SolverProxy>::other ProxyAlloc;
-    std::vector<SolverProxy, ProxyAlloc>               proxies_;
+    std::vector<Body*, ReboundTo<Alloc, Body*>>             bodies_;
+    std::vector<Constraint*, ReboundTo<Alloc, Constraint*>> constraints_;
+    std::vector<ContactConstraint*, ReboundTo<Alloc, ContactConstraint*>> contacts_;
+    std::vector<SolverProxy, ReboundTo<Alloc, SolverProxy>> proxies_;
 
     bool isAwake_ = false;
 };
@@ -210,12 +221,7 @@ void solveIslands(const T& bodies, const Alloc& alloc, World::Settings s, float 
     for (Body& body : bodies)
         bodiesToProcess.emplace_back(&body);
 
-    auto removeBody = [&](Body* body) {
-        bodiesToProcess.erase(
-            std::remove(bodiesToProcess.begin(), bodiesToProcess.end(), body),
-            bodiesToProcess.end()
-        );
-    };
+    auto removeBody = [&](Body* body) { std::erase(bodiesToProcess, body); };
 
     while (!bodiesToProcess.empty())
     {

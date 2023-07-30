@@ -65,6 +65,9 @@ void World::step(float dt)
         b.preStep();
     for (Constraint& c : constraints())
         c.preStep();
+    for (auto& c : contacts_)
+        if (c.second.existingContact != nullptr)
+            c.second.existingContact->preStep();
     for (ForceField& f : forceFields())
         f.preStep();
 
@@ -79,7 +82,7 @@ void World::step(float dt)
         //  if an island is sleeping, all its bodies' forces and velocities are set to 0
         applyForces(dt);
 
-        solveIslands(bodies(),cAlloc_, settings(), dt);
+        solveIslands(bodies(), cAlloc_, settings(), dt);
 
         updateBodies(dt);
     }
@@ -88,6 +91,9 @@ void World::step(float dt)
         b.postStep();
     for (Constraint& c : constraints())
         c.postStep();
+    for (auto& c : contacts_)
+        if (c.second.existingContact != nullptr)
+            c.second.existingContact->postStep();
     for (ForceField& f : forceFields())
         f.postStep();
 }
@@ -123,11 +129,11 @@ void World::removeContactConflict(const Bodies& bodies)
 }
 
 typename World::ContactFactory World::defaultContactFactory
-    = [](Bodies b, typename World::ConstraintAlloc& alloc) {
-          return alloc.makeUnique<ContactConstraint>(b);
+    = [](Bodies b, const typename World::ContactAlloc& alloc) {
+          return makeUnique<ContactConstraint>(alloc, b);
       };
 
-ContactConstraint* World::makeContactConstraint(Bodies bodies)
+UniquePtr<ContactConstraint> World::makeContactConstraint(Bodies bodies)
 {
     auto c = makeContactConstraint_(bodies, cAlloc_);
     c->setAllocator(cAlloc_);
@@ -135,13 +141,11 @@ ContactConstraint* World::makeContactConstraint(Bodies bodies)
 
     for (Body* body : c->bodies().bodies())
     {
-        body->constraints_.emplace_back(c.get());
+        body->contacts_.emplace_back(c.get());
         body->wake();
     }
 
-    return static_cast<ContactConstraint*>(
-        constraints_.emplace_back(std::move(c)).get()
-    );
+    return c;
 }
 
 void World::applyForces(float dt)
@@ -256,7 +260,12 @@ void World::cleanup()
                      .overlaps(boundsOf(contact.first.bodies()[1])))
             {
                 contact.second.existingContact->kill();
+
+                for (Body* b : contact.second.existingContact->bodies().bodies())
+                    std::erase(b->contacts_, contact.second.existingContact.get());
+
                 it = contacts_.erase(it);
+
                 continue;
             }
         }
@@ -293,47 +302,6 @@ void World::cleanup()
     cleaner.erase(constraints_, deadConstraints);
     cleaner.erase(forces_, deadForces);
     cleaner.erase(bodies_, deadBodies);
-}
-
-void World::applyVelocityConstraints(Island& island, float dt)
-{
-    std::vector<Constraint*, typename Alloc::rebind<Constraint*>::other> actives{
-        miscAlloc_};
-
-    for (Constraint* constraint : island.constraints())
-    {
-        if (constraint->isActive())
-            actives.emplace_back(constraint);
-    }
-
-    for (Constraint* constraint : actives)
-        constraint->initSolve();
-
-    for (Constraint* constraint : actives)
-        constraint->warmstart(dt);
-
-
-    for (Uint32 iter = 0; iter < settings_.nVelocityIterations; ++iter)
-    {
-        for (Constraint* constraint : actives)
-            constraint->solveVelocities(dt);
-    }
-}
-
-void World::integrateBodies(float dt)
-{
-    for (Body& body : bodies())
-        if (!body.isAsleep())
-            body.step(dt);
-}
-
-void World::applyPositionConstraints(Island& island)
-{
-    for (Uint32 iter = 0; iter < settings_.nPositionIterations; ++iter)
-    {
-        for (auto constraint : island.constraints())
-            constraint->solvePositions();
-    }
 }
 
 void World::updateBodies(float dt)

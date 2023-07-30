@@ -57,12 +57,12 @@ public:
 
         simu::BoxSpawner spawn{*this};
 
-        int  height  =60;
+        int  height  = 60;
         bool bricked = true;
         // only for bricked, otherwise we are only doing stacks.
         float spacing = 0.5f;
 
-        float start = -(w + spacing)*height/2;
+        float start = -(w + spacing) * height / 2;
 
         for (int y = 0; y < height; ++y)
             if (bricked)
@@ -75,12 +75,15 @@ public:
                     );
             else
                 for (int x = y; x < 2 * height - y; ++x)
-                    spawn.makeBox(simu::Vec2{start + w * x, h * y}, simu::Vec2{w, h});
+                    spawn.makeBox(
+                        simu::Vec2{start + w * x, h * y},
+                        simu::Vec2{w, h}
+                    );
 
         // Baumgarte is much more stable for bricked pyramid, NGS needs a LOT of iterations and still falls apart pretty fast.
         auto s = world().settings();
-        // s.nPositionIterations = 50;
-        // s.nVelocityIterations = 50;
+        s.nPositionIterations = 50;
+        s.nVelocityIterations = 50;
         world().updateSettings(s);
 
         // pause();

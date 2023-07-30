@@ -24,9 +24,6 @@
 
 #pragma once
 
-#include <memory>
-#include <functional>
-
 #include "Simu/config.hpp"
 #include "Simu/utility/View.hpp"
 #include "Simu/utility/Memory.hpp"
@@ -113,12 +110,9 @@ public:
 
     typedef typename PhysicsObject::PhysicsAlloc Alloc;
 
-    template <class U>
-    using UniquePtr = std::unique_ptr<U, typename Alloc::Deleter>;
+    typedef ReboundTo<Alloc, UniquePtr<ContactConstraint>> ContactAlloc;
 
-    typedef typename Alloc::rebind<UniquePtr<Constraint>>::other ConstraintAlloc;
-
-    typedef std::function<UniquePtr<ContactConstraint>(Bodies, ConstraintAlloc&)>
+    typedef std::function<UniquePtr<ContactConstraint>(Bodies, const ContactAlloc&)>
         ContactFactory;
 
     static ContactFactory defaultContactFactory;
@@ -313,12 +307,12 @@ public:
 private:
 
 
-    ContactConstraint* makeContactConstraint(Bodies bodies);
+    UniquePtr<ContactConstraint> makeContactConstraint(Bodies bodies);
 
     template <std::derived_from<PhysicsObject> T, class A, class... Args>
     UniquePtr<T> makeObject(A& alloc, Args&&... args)
     {
-        auto obj = alloc.template makeUnique<T>(std::forward<Args>(args)...);
+        auto obj = makeUnique<T>(alloc, std::forward<Args>(args)...);
         obj->setAllocator(alloc);
         obj->onConstruction(*this);
         return obj;
@@ -350,8 +344,8 @@ private:
     Alloc miscAlloc_{};
 
 
-    typedef typename Alloc::rebind<UniquePtr<Body>>::other BodyAlloc;
-    typedef std::list<UniquePtr<Body>, BodyAlloc>          BodyList;
+    typedef ReboundTo<Alloc, UniquePtr<Body>>     BodyAlloc;
+    typedef std::list<UniquePtr<Body>, BodyAlloc> BodyList;
 
     BodyAlloc bAlloc_{miscAlloc_};
     BodyList  bodies_{bAlloc_};
@@ -360,13 +354,14 @@ private:
     BodyTree bodyTree_{bAlloc_};
 
 
+    typedef ReboundTo<Alloc, UniquePtr<Constraint>>           ConstraintAlloc;
     typedef std::list<UniquePtr<Constraint>, ConstraintAlloc> ConstraintList;
 
     ConstraintAlloc cAlloc_{bAlloc_};
     ConstraintList  constraints_{cAlloc_};
 
 
-    typedef typename Alloc::rebind<UniquePtr<ForceField>>::other ForceFieldAlloc;
+    typedef ReboundTo<Alloc, UniquePtr<ForceField>>           ForceFieldAlloc;
     typedef std::list<UniquePtr<ForceField>, ForceFieldAlloc> ForceFieldList;
 
     ForceFieldAlloc fAlloc_{miscAlloc_};
@@ -375,8 +370,8 @@ private:
 
     struct ContactStatus
     {
-        Int32       nConflictingConstraints = 0;
-        Constraint* existingContact         = nullptr;
+        Int32                 nConflictingConstraints = 0;
+        UniquePtr<Constraint> existingContact         = nullptr;
     };
 
     typedef std::unordered_map<
@@ -384,14 +379,14 @@ private:
         ContactStatus,
         std::hash<Bodies>,
         std::equal_to<Bodies>,
-        Alloc::rebind<std::pair<const Bodies, ContactStatus>>::other>
+        ReboundTo<Alloc, std::pair<const Bodies, ContactStatus>>>
         ContactList;
 
     ContactList contacts_{miscAlloc_};
 
     ContactList::iterator inContacts(Bodies bodies)
     {
-        auto b    = bodies.bodies();
+        auto b = bodies.bodies();
 
         auto asIs = contacts_.find(bodies);
         return (asIs != contacts_.end()) ? asIs

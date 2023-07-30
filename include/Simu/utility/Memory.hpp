@@ -35,6 +35,71 @@
 namespace simu
 {
 
+template <class Alloc, class T>
+using ReboundTo = typename std::allocator_traits<Alloc>::template rebind_alloc<T>;
+
+// otherwise Deleters of derived virtual types cannot be assigned
+//  when moving unique pointers...
+typedef std::function<void(void*)> Deleter;
+
+template <class T>
+using UniquePtr = std::unique_ptr<T, Deleter>;
+
+
+// unique pointer may outlive this allocator.
+template <class T, class Alloc, class... Args, std::enable_if_t<!std::is_array_v<T>, bool> = true>
+UniquePtr<T> makeUnique(const Alloc& alloc, Args&&... args)
+{
+    typedef ReboundTo<Alloc, T> A;
+    A                           a{alloc};
+
+    Deleter d = [=](void* obj) mutable {
+        T* typed = static_cast<T*>(obj);
+        std::allocator_traits<A>::destroy(a, typed);
+        std::allocator_traits<A>::deallocate(a, typed, 1);
+    };
+
+    T* obj = std::allocator_traits<A>::allocate(a, 1);
+    std::allocator_traits<A>::construct(a, obj, std::forward<Args>(args)...);
+    return {obj, d};
+}
+
+template <
+    class T,
+    class Alloc,
+    class... Args,
+    std::enable_if_t<std::is_array_v<T> && std::extent_v<T> == 0, bool> = true>
+UniquePtr<T> makeUnique(const Alloc& alloc, std::size_t size)
+{
+    typedef std::remove_extent_t<T> U;
+    typedef ReboundTo<Alloc, U>     A;
+    A                               a{alloc};
+
+    Deleter d = [=](void* arr) mutable {
+        U* typed = static_cast<T*>(arr);
+
+        for (std::size_t i = 0; i < size; ++i)
+            std::allocator_traits<A>::destroy(a, typed + i);
+
+        std::allocator_traits<A>::deallocate(a, typed, size);
+    };
+
+    T* arr = std::allocator_traits<A>::allocate(a, size);
+
+    for (std::size_t i = 0; i < size; ++i)
+        std::allocator_traits<A>::construct(a, arr + i);
+
+    return {arr, d};
+}
+
+template <
+    class T,
+    class Alloc,
+    class... Args,
+    std::enable_if_t<std::is_array_v<T> && std::extent_v<T> != 0, bool> = true>
+UniquePtr<T> makeUnique(const Alloc& alloc, std::size_t size) = delete;
+
+
 template <class Container, class A>
 void replaceAllocator(Container& c, const A& alloc)
 {
@@ -42,6 +107,9 @@ void replaceAllocator(Container& c, const A& alloc)
         std::allocator_traits<A>::propagate_on_container_move_assignment::value,
         "This will not replace the allocator"
     );
+
+    if (alloc == c.get_allocator())
+        return;
 
     c = Container{c.begin(), c.end(), alloc};
     SIMU_ASSERT(c.get_allocator() == alloc, "Allocator was not replaced");
@@ -133,29 +201,6 @@ public:
 
     pointer allocate(size_type n);
     void    deallocate(pointer p, size_type n) noexcept;
-
-    // otherwise Deleters of derived virtual types cannot be assigned
-    //  when moving unique pointers...
-    typedef std::function<void(void*)> Deleter;
-
-    // unique pointer may outlive this allocator.
-    // U may not be an array type (U[]).
-    template <class U, class... Args>
-    std::unique_ptr<U, Deleter> makeUnique(Args&&... args)
-    {
-        typename rebind<U>::other alloc{*this};
-
-        Deleter d = [=](void* obj) mutable {
-            U* typed = static_cast<U*>(obj);
-            typed->~U();
-            alloc.deallocate(typed, 1);
-        };
-
-        U* obj = alloc.allocate(1);
-        std::construct_at(obj, std::forward<Args>(args)...);
-        return {obj, d};
-    }
-
 
     template <class U>
     bool operator==(const FreeListAllocator<U, blockSize>& other) const noexcept;
