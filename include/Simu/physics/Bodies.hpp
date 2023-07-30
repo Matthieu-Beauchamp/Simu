@@ -34,8 +34,24 @@
 
 #include "Simu/physics/Body.hpp"
 
+namespace std
+{
+
+template <class T, simu::Uint32 m, simu::Uint32 n>
+bool isfinite(const simu::Matrix<T, m, n>& mat)
+{
+    bool isFinite = true;
+    for (simu::Uint32 i = 0; i < mat.size(); ++i)
+        isFinite = isFinite && std::isfinite(mat[i]);
+
+    return isFinite;
+}
+
+} // namespace std
+
 namespace simu
 {
+
 
 class SolverProxy
 {
@@ -66,8 +82,7 @@ public:
 
     void setPosition(Vec2 position, float orientation)
     {
-        SIMU_ASSERT(std::isfinite(position[0]), "");
-        SIMU_ASSERT(std::isfinite(position[1]), "");
+        SIMU_ASSERT(std::isfinite(position), "");
         SIMU_ASSERT(std::isfinite(orientation), "");
 
         position_    = position;
@@ -78,8 +93,7 @@ public:
 
     void setVelocity(Vec2 velocity, float angularVelocity)
     {
-        SIMU_ASSERT(std::isfinite(velocity[0]), "");
-        SIMU_ASSERT(std::isfinite(velocity[1]), "");
+        SIMU_ASSERT(std::isfinite(velocity), "");
         SIMU_ASSERT(std::isfinite(angularVelocity), "");
 
         velocity_        = velocity;
