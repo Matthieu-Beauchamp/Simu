@@ -59,10 +59,7 @@
 
 
 #if defined(NDEBUG)
-#    define SIMU_ASSERT(c, m)                                                  \
-        do                                                                     \
-        {                                                                      \
-        } while (false)
+#    define SIMU_ASSERT(c, m) (void)(c)
 #else
 #    define SIMU_ASSERT(cond, msg)                                             \
         if (!(cond))                                                           \

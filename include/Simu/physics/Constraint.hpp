@@ -489,9 +489,7 @@ private:
 
     void computeBounce()
     {
-        bounce_ = Vec2{};
-
-        Vec2 relVel = Jn * bodies().velocity();
+        bounce_ = Jn * bodies().velocity();
 
         for (Uint32 c = 0; c < manifold_.nContacts(); ++c)
         {
