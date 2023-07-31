@@ -229,13 +229,13 @@ public:
         {
             auto  J              = Jf[c];
             float tangentVel     = (J * velocity)[0];
-            float dTangentLambda = -tangentVel / tangentKs_[c];
+            float dTangentLambda = -tangentVel * invTangentKs_[c];
 
-            float oldTangentLambda = tangentLambda_[c];
-            tangentLambda_[c] += dTangentLambda;
-            float bound       = frictionCoeff_ * normalLambda_[c];
-            tangentLambda_[c] = clamp(tangentLambda_[c], -bound, bound);
-            dTangentLambda    = tangentLambda_[c] - oldTangentLambda;
+            float bound = frictionCoeff_ * normalLambda_[c];
+            float tangentLambda
+                = clamp(tangentLambda_[c] + dTangentLambda, -bound, bound);
+            dTangentLambda    = tangentLambda - tangentLambda_[c];
+            tangentLambda_[c] = tangentLambda;
 
             velocity
                 += elementWiseMul(invMassVec, transpose(J) * dTangentLambda);
@@ -245,7 +245,7 @@ public:
         {
             auto  J             = normalJacobian(0);
             float normalVel     = (J * velocity)[0];
-            float dNormalLambda = -(normalVel + bounce_[0]) / normalK_(0, 0);
+            float dNormalLambda = -(normalVel + bounce_[0]) * invNormalK11_;
 
             float oldNormalLambda = normalLambda_[0];
             normalLambda_[0] += dNormalLambda;
@@ -257,7 +257,7 @@ public:
         else if (frame_.nContacts == 2)
         {
             Vec2 err             = Jn * velocity;
-            Vec2 alreadyComputed = normalK_ * normalLambda_;
+            Vec2 alreadyComputed = normalKSolver_.original() * normalLambda_;
 
             Vec2 oldNormalLambda = normalLambda_;
 
@@ -273,13 +273,9 @@ public:
             //////////////////////////////////
 
             // Box2d's LCP solver ////////////
-            auto normalLambda
-                = solveLcp(normalK_, -(err - alreadyComputed + bounce_));
+            Vec2 b        = -(err - alreadyComputed + bounce_);
+            normalLambda_ = normalKSolver_.solve(b);
 
-            if (!normalLambda.has_value())
-                return;
-            else
-                normalLambda_ = normalLambda.value();
             //////////////////////////////////
 
             Vec2 dNormalLambda = normalLambda_ - oldNormalLambda;
@@ -320,7 +316,7 @@ public:
 
         if (frame_.nContacts == 1)
         {
-            float posLambda = -error[0] / normalK_(0, 0);
+            float posLambda = -error[0] * invNormalK11_;
             posLambda       = std::max(posLambda, 0.f);
 
             bodies().applyPositionCorrection(elementWiseMul(
@@ -343,11 +339,8 @@ public:
 
 
             // Box2d's LCP solver /////////////////
-            auto res = solveLcp(normalK_, -error);
-            if (!res.has_value())
-                return;
-            else
-                posLambda = res.value();
+            posLambda = normalKSolver_.solve(-error);
+
             ///////////////////////////////////////
 
 
@@ -461,27 +454,36 @@ private:
         {
             for (Uint32 c = 0; c < manifold_.nContacts(); ++c)
             {
-                tangentKs_[c] = linearMass * normSquared(frame_.tangent)
-                                + refInertia * squared(Jf[c][3 * ref + 2])
-                                + incInertia * squared(Jf[c][3 * inc + 2]);
+                invTangentKs_[c] = linearMass * normSquared(frame_.tangent)
+                                   + refInertia * squared(Jf[c][3 * ref + 2])
+                                   + incInertia * squared(Jf[c][3 * inc + 2]);
+
+                invTangentKs_[c] = 1.f / invTangentKs_[c];
             }
         }
 
+
+        Mat2 normalK;
         for (Uint32 c = 0; c < manifold_.nContacts(); ++c)
         {
-            normalK_(c, c) = normalMass
-                             + refInertia * squared(Jn(c, 3 * ref + 2))
-                             + incInertia * squared(Jn(c, 3 * inc + 2));
+            normalK(c, c) = normalMass + refInertia * squared(Jn(c, 3 * ref + 2))
+                            + incInertia * squared(Jn(c, 3 * inc + 2));
         }
 
-        if (manifold_.nContacts() == 2)
+        if (manifold_.nContacts() == 1)
         {
-            normalK_(0, 1)
+            invNormalK11_ = 1.f / normalK(0, 0);
+        }
+        else if (manifold_.nContacts() == 2)
+        {
+            normalK(0, 1)
                 = normalMass
                   + refInertia * Jn(0, 3 * ref + 2) * Jn(1, 3 * ref + 2)
                   + incInertia * Jn(0, 3 * inc + 2) * Jn(1, 3 * inc + 2);
 
-            normalK_(1, 0) = normalK_(0, 1);
+            normalK(1, 0) = normalK(0, 1);
+
+            normalKSolver_ = LcpSolver<float>(normalK);
         }
     }
 
@@ -580,8 +582,13 @@ private:
     JacobianRows Jf;
     Jacobian     Jn;
 
-    Vec2 tangentKs_;
-    Mat2 normalK_;
+    Vec2 invTangentKs_;
+
+    union
+    {
+        float            invNormalK11_;
+        LcpSolver<float> normalKSolver_;
+    };
 
     Vec2 tangentLambda_{};
     Vec2 normalLambda_{};

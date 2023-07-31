@@ -30,7 +30,7 @@ namespace simu
 
 bool Body::interactsAsStructural() const
 {
-    bool isStruct = true;
+    bool isStruct = all(velocity() == Vec2{}) && angularVelocity() == 0.f;
     for (Constraint* constraint : constraints_)
         isStruct = isStruct && constraint->bodies().isBodyStructural(this);
     for (ContactConstraint* constraint : contacts_)

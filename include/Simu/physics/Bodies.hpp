@@ -162,7 +162,7 @@ public:
     typedef Vector<float, 3 * n>        MassVec;
     typedef Vector<float, 3 * n>        Dominance;
 
-    Bodies(
+    inline Bodies(
         std::initializer_list<Body*> bodies,
         std::optional<Dominance>     dominances = std::nullopt
     );
@@ -210,12 +210,12 @@ public:
         return ArrayView(p, p + size());
     }
 
-    bool isBodyStructural(const Body* body) const;
+    inline bool isBodyStructural(const Body* body) const;
 
-    void applyImpulse(const Impulse& impulse);
-    void applyPositionCorrection(const State& correction);
+    inline void applyImpulse(const Impulse& impulse);
+    inline void applyPositionCorrection(const State& correction);
 
-    Velocity velocity() const;
+    inline Velocity velocity() const;
     Mass     inverseMass() const { return Mass::diagonal(inverseMassVec()); }
     MassVec  inverseMassVec() const { return invMassVec_; }
 
@@ -277,3 +277,5 @@ private:
 
 
 } // namespace simu
+
+#include "Simu/physics/Bodies.inl.hpp"

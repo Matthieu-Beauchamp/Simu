@@ -217,17 +217,17 @@ inline Matrix<T, n, m> transpose(const Matrix<T, m, n>& original);
 ///
 ////////////////////////////////////////////////////////////
 template <class T, class U, Uint32 n>
-Vector<Promoted<T, U>, n> solve(const Matrix<T, n, n>& A, const Vector<U, n>& b);
+inline Vector<Promoted<T, U>, n> solve(const Matrix<T, n, n>& A, const Vector<U, n>& b);
 
 template <class T, Uint32 n>
 class Solver
 {
 public:
 
-    Solver(const Matrix<T, n, n>& A);
+    inline Solver(const Matrix<T, n, n>& A);
 
     template <class U>
-    Vector<Promoted<T, U>, n> solve(const Vector<U, n>& b) const;
+    inline Vector<Promoted<T, U>, n> solve(const Vector<U, n>& b) const;
 
     Matrix<T, n, n> original() const { return transpose(QT_) * R_; }
 
@@ -242,7 +242,7 @@ private:
 
 
 template <class T, Uint32 n>
-Matrix<T, n, n> invert(const Matrix<T, n, n>& mat);
+inline Matrix<T, n, n> invert(const Matrix<T, n, n>& mat);
 
 
 ////////////////////////////////////////////////////////////
@@ -258,7 +258,7 @@ Matrix<T, n, n> invert(const Matrix<T, n, n>& mat);
 /// See A. Enzenhofer's master thesis (McGill): Numerical Solutions of MLCP
 ////////////////////////////////////////////////////////////
 template <class T, Uint32 n, std::invocable<Vector<T, n>, Uint32> Proj>
-Vector<T, n> solveInequalities(
+inline Vector<T, n> solveInequalities(
     const Matrix<T, n, n>& A,
     Vector<T, n>           b,
     Proj                   proj,
@@ -277,7 +277,7 @@ Vector<T, n> solveInequalities(
 /// See A. Enzenhofer's master thesis (McGill): Numerical Solutions of MLCP
 ////////////////////////////////////////////////////////////
 template <class T, Uint32 n, std::invocable<Vector<T, n>> Proj>
-Vector<T, n> solveInequalities(
+inline Vector<T, n> solveInequalities(
     const Matrix<T, n, n>& A,
     Vector<T, n>           b,
     Proj                   proj,
@@ -298,8 +298,10 @@ Vector<T, n> solveInequalities(
 ///
 ////////////////////////////////////////////////////////////
 template <class T>
-std::optional<Vector<T, 2>>
-solveLcp(const Matrix<T, 2, 2>& A, const Vector<T, 2>& b);
+inline Vector<T, 2> solveLcp(const Matrix<T, 2, 2>& A, const Vector<T, 2>& b);
+
+template <class T>
+class LcpSolver;
 
 
 ////////////////////////////////////////////////////////////

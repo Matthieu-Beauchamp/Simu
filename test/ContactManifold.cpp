@@ -226,6 +226,6 @@ TEST_CASE("Contact manifolds")
         Edges<Vertices>::Edge e1{it, it + 1};
         Edges<Vertices>::Edge e2{it + 1, it + 2};
 
-        REQUIRE(e1.distanceToOrigin() < e2.distanceToOrigin());
+        REQUIRE(e1.distanceSquaredToOrigin() < e2.distanceSquaredToOrigin());
     }
 }

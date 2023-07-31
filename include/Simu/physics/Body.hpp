@@ -279,7 +279,7 @@ public:
     bool isStructural() const { return dominance() == 0.f; }
 
     ////////////////////////////////////////////////////////////
-    /// \brief true if the body is structural in all of its constraints
+    /// \brief true if the body is structural in all of its constraints and has no velocity
     ///
     /// This is mostly used internally.
     ///

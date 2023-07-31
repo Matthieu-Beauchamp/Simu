@@ -239,7 +239,7 @@ Matrix<T, m, n> Matrix<T, m, n>::operator-() const
     Matrix<T, m, n> res{*this};
     for (T& x : res)
         x = -x;
-    
+
     return res;
 }
 
@@ -390,6 +390,9 @@ public:
 
 private:
 
+    template <class U>
+    friend class LcpSolver;
+
     Matrix<T, 2, 2> A_;
     T               invDet_;
     bool            isValid_;
@@ -528,27 +531,55 @@ Vector<T, n> solveInequalities(
     );
 }
 
+
 template <class T>
-std::optional<Vector<T, 2>>
+class LcpSolver
+{
+public:
+
+    LcpSolver(const Matrix<T, 2, 2>& A)
+        : solver{A}, invA11{1.f / A(0, 0)}, invA22{1.f / A(1, 1)}
+    {
+        solver.isValid_ = solver.isValid() && A(0, 0) != 0.f && A(1, 1) != 0.f;
+    }
+
+    template <class U>
+    Vector<Promoted<T, U>, 2> solve(const Vector<U, 2>& b) const
+    {
+        Vector<T, 2> x = solver.solve(b);
+        if (all(x >= Vector<T, 2>::filled(0.f)))
+            return x;
+
+        x = Vector<T, 2>{b[0] * invA11, 0.f};
+        if ((x[0] >= 0.f) && (x[0] * solver.A_(1, 0) - b[1] >= 0))
+            return x;
+
+        x = Vector<T, 2>{0.f, b[1] * invA22};
+        if ((x[1] >= 0.f) && (x[1] * solver.A_(0, 1) - b[0] >= 0))
+            return x;
+
+        x = Vector<T, 2>{};
+        if (all(-b >= Vector<T, 2>::filled(0.f)))
+            return x;
+
+        return x; // all null
+    }
+
+    Matrix<T, 2, 2> original() const { return solver.original(); }
+    bool            isValid() const { return solver.isValid(); }
+
+private:
+
+    Solver<T, 2> solver;
+    float        invA11;
+    float        invA22;
+};
+
+template <class T>
+Vector<T, 2>
 solveLcp(const Matrix<T, 2, 2>& A, const Vector<T, 2>& b)
 {
-    Vector<T, 2> x = solve(A, b);
-    if (all(x >= Vector<T, 2>::filled(0.f)))
-        return x;
-
-    x = Vector<T, 2>{b[0] / A(0, 0), 0.f};
-    if ((x[0] >= 0.f) && (x[0] * A(1, 0) - b[1] >= 0))
-        return x;
-
-    x = Vector<T, 2>{0.f, b[1] / A(1, 1)};
-    if ((x[1] >= 0.f) && (x[1] * A(0, 1) - b[0] >= 0))
-        return x;
-
-    x = Vector<T, 2>{};
-    if (all(-b >= Vector<T, 2>::filled(0.f)))
-        return x;
-
-    return std::nullopt;
+    return LcpSolver{A}.solve(b);
 }
 
 

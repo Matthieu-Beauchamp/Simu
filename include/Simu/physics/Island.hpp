@@ -217,7 +217,7 @@ concept BodyRange = std::ranges::range<T> && requires(T t) {
 template <BodyRange T, class Alloc>
 void solveIslands(const T& bodies, const Alloc& alloc, World::Settings s, float dt)
 {
-    std::vector<Body*> bodiesToProcess;
+    std::vector<Body*, ReboundTo<Alloc, Body*>> bodiesToProcess{alloc};
     for (Body& body : bodies)
         bodiesToProcess.emplace_back(&body);
 

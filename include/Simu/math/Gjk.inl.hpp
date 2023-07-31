@@ -103,7 +103,7 @@ Vec2 Gjk<T>::penetration() const
 
         for (const auto& e : edges)
         {
-            if (e.distanceToOrigin() < best.distanceToOrigin())
+            if (e.distanceSquaredToOrigin() < best.distanceSquaredToOrigin())
                 best = e;
         }
 

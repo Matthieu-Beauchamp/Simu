@@ -156,7 +156,8 @@ void Application::mouseScrollCallback(GLFWwindow* window, double x, double y)
 
 Application::Application()
 {
-    SIMU_ASSERT(glfwInit(), "glfw could not be initialised properly");
+    bool glfwIsInit = glfwInit();
+    SIMU_ASSERT(glfwIsInit, "glfw could not be initialised properly");
     glfwSetErrorCallback(glfwErrorCallback);
 
     // TODO: as args

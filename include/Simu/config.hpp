@@ -58,10 +58,16 @@
 #endif
 
 
-#define SIMU_ASSERT(cond, msg)                                                 \
-    if (!(cond))                                                               \
-    throw simu::Exception(msg)
-
+#if defined(NDEBUG)
+#    define SIMU_ASSERT(c, m)                                                  \
+        do                                                                     \
+        {                                                                      \
+        } while (false)
+#else
+#    define SIMU_ASSERT(cond, msg)                                             \
+        if (!(cond))                                                           \
+        throw simu::Exception(msg)
+#endif
 
 namespace simu
 {
@@ -72,7 +78,7 @@ public:
 
 #ifdef SIMU_HAS_SOURCE_LOCATION
     Exception(
-        const std::string &          msg,
+        const std::string&   msg,
         std::source_location loc = std::source_location::current()
     )
         : std::exception{}
@@ -84,7 +90,7 @@ public:
         msg_ = ss.str();
     }
 #else
-    Exception(const std::string & msg) : std::exception{}, msg_{msg} {}
+    Exception(const std::string& msg) : std::exception{}, msg_{msg} {}
 #endif
 
     char const* what() const noexcept override { return msg_.c_str(); }

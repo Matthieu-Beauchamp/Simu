@@ -58,12 +58,12 @@ public:
         Vec2 normal() const { return perp(direction(), true); }
         Vec2 normalizedNormal() const { return normalized(normal()); }
 
-        float distanceToPoint(Vec2 point) const
+        float distanceSquaredToPoint(Vec2 point) const
         {
-            return norm(LineBarycentric{from(), to(), point}.closestPoint - point);
+            return normSquared(LineBarycentric{from(), to(), point}.closestPoint - point);
         };
 
-        float distanceToOrigin() const { return distanceToPoint(Vec2{}); };
+        float distanceSquaredToOrigin() const { return distanceSquaredToPoint(Vec2{}); };
 
         // requires that this is from positively oriented geometry,
         // Here this is considered an infinite line

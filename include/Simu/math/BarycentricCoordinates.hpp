@@ -25,6 +25,7 @@
 #pragma once
 
 #include "Simu/math/Matrix.hpp"
+#include "Simu/utility/Algo.hpp"
 
 namespace simu
 {
@@ -32,10 +33,10 @@ namespace simu
 ////////////////////////////////////////////////////////////
 /// \defgroup BarycentricCoordinates
 /// \ingroup Geometry
-/// 
-/// \brief Barycentric coordinates allows finding the closest point on a 
+///
+/// \brief Barycentric coordinates allows finding the closest point on a
 ///     line or triangle from a point Q.
-/// 
+///
 /// For an intuitive explanation, see Erin Catto's GDC conference,
 /// slides available at https://box2d.org/files/ErinCatto_GJK_GDC2010.pdf
 ///
@@ -51,11 +52,20 @@ namespace simu
 /// The following equation holds if u and v are both greater than 0:
 ///     closestPoint = u*A + v*B;
 ///
-/// \warning coordinates are normalized, they are such that u+v = 1
+/// coordinates are normalized, they are such that u+v = 1
 ////////////////////////////////////////////////////////////
 struct LineBarycentric
 {
-    LineBarycentric(Vec2 A, Vec2 B, Vec2 Q);
+    LineBarycentric(Vec2 A, Vec2 B, Vec2 Q)
+    {
+        Vec2  AB     = B - A;
+        float norm   = normSquared(AB);
+        float t      = (norm == 0.f) ? 0.f : dot(Q - A, AB) / norm;
+        closestPoint = A + clamp(t, 0.f, 1.f) * AB;
+
+        v = t;
+        u = 1.f - t;
+    }
 
     Vec2  closestPoint;
     float u;
@@ -67,7 +77,7 @@ struct LineBarycentric
 ///
 /// ABC can be given in any winding order.
 ///
-/// closestPoint will be on vertices or edges if Q is outside ABC, 
+/// closestPoint will be on vertices or edges if Q is outside ABC,
 ///     else closestPoint = Q.
 ///
 /// \warning coordinates are not normalized, they are such that u+v+w = abs(area(ABC))

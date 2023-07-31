@@ -22,6 +22,7 @@
 //
 ////////////////////////////////////////////////////////////
 
+#pragma once
 
 #include "Simu/physics/Bodies.hpp"
 #include "Simu/physics/Body.hpp"
@@ -73,6 +74,7 @@ bool Bodies::isBodyStructural(const Body* body) const
             return invMassVec_[3 * i] == 0.f;
 
     SIMU_ASSERT(false, "Body is not part of these bodies.");
+    return true;
 }
 
 
