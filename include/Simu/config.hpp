@@ -59,7 +59,7 @@
 
 
 #if defined(NDEBUG)
-#    define SIMU_ASSERT(c, m) (void)(c)
+#    define SIMU_ASSERT(c, m) (void)(c); (void)(m)
 #else
 #    define SIMU_ASSERT(cond, msg)                                             \
         if (!(cond))                                                           \

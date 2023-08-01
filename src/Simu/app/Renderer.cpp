@@ -267,23 +267,25 @@ OpenGlRenderer::~OpenGlRenderer()
 
 void OpenGlRenderer::drawPolygon(Vec2 center, Poly vertices, Rgba color)
 {
+    SIMU_ASSERT(vertices.size() >= 3, "Not enough vertices to make a Polygon.");
+
     Uint16 centerIndex = static_cast<Uint16>(vertices_.size());
 
     vertices_.emplace_back(center, color);
-    for (Vec2 v : vertices)
+    for (const Vec2& v : vertices)
         vertices_.emplace_back(v, color);
 
     Uint16 end = static_cast<Uint16>(vertices_.size());
 
     indices_.emplace_back(centerIndex);
-    indices_.emplace_back(end - 1);
-    indices_.emplace_back(centerIndex + 1);
+    indices_.emplace_back(static_cast<Uint16>(end - 1));
+    indices_.emplace_back(static_cast<Uint16>(centerIndex + 1));
 
     Uint16 index = centerIndex + 2;
     while (index < end)
     {
         indices_.emplace_back(centerIndex);
-        indices_.emplace_back(index - 1);
+        indices_.emplace_back(static_cast<Uint16>(index - 1));
         indices_.emplace_back(index++);
     }
 
@@ -318,19 +320,15 @@ void OpenGlRenderer::flush()
 
     // ebo_ is already rebound?
     gl::glBindBuffer(gl::GL_ELEMENT_ARRAY_BUFFER, ebo_);
+    gl::GLsizei nIndices = static_cast<gl::GLsizei>(indices_.size());
     gl::glBufferData(
         gl::GL_ELEMENT_ARRAY_BUFFER,
-        indices_.size() * sizeof(Uint16),
+        nIndices * sizeof(Uint16),
         indices_.data(),
         gl::GL_STREAM_DRAW
     );
 
-    gl::glDrawElements(
-        gl::GL_TRIANGLES,
-        indices_.size(),
-        gl::GL_UNSIGNED_SHORT,
-        nullptr
-    );
+    gl::glDrawElements(gl::GL_TRIANGLES, nIndices, gl::GL_UNSIGNED_SHORT, nullptr);
 
     gl::glBindVertexArray(0);
 
