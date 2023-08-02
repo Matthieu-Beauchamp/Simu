@@ -222,7 +222,7 @@ public:
     {
         auto p = bodies().proxies();
 
-        const auto invMassVec = bodies().inverseMassVec();
+        const auto invMassVec = bodies().invMassVec();
         auto       velocity   = bodies().velocity();
 
         for (Uint32 c = 0; c < frame_.nContacts; ++c)
@@ -319,10 +319,9 @@ public:
             float posLambda = -error[0] * invNormalK11_;
             posLambda       = std::max(posLambda, 0.f);
 
-            bodies().applyPositionCorrection(elementWiseMul(
-                bodies().inverseMassVec(),
+            bodies().applyPositionCorrection(
                 transpose(normalJacobian(0)) * posLambda
-            ));
+            );
         }
         else if (frame_.nContacts == 2)
         {
@@ -441,7 +440,7 @@ private:
         const Uint32 ref = manifold_.referenceIndex();
         const Uint32 inc = manifold_.incidentIndex();
 
-        const auto  invMass    = bodies().inverseMassVec();
+        const auto  invMass    = bodies().invMassVec();
         const float refMass    = invMass[3 * ref];
         const float incMass    = invMass[3 * inc];
         const float refInertia = invMass[3 * ref + 2];

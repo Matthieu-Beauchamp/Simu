@@ -99,8 +99,7 @@ public:
         return -(error + bias + baumgarteStabilization + previousDamping);
     }
 
-    void
-    updateLambda(Bodies& bodies, const F& f, float dt, Value dLambda)
+    void updateLambda(Bodies& bodies, const F& f, float dt, Value dLambda)
     {
         Value oldLambda = lambda_;
         lambda_ += dLambda;
@@ -179,9 +178,8 @@ public:
         Jacobian J = f.jacobian(bodies);
         solver_    = KSolver{this->computeEffectiveMass(bodies, f, false)};
 
-        Value posLambda = f.clampPositionLambda(solver_.solve(-error));
-        State positionCorrection
-            = bodies.inverseMass() * transpose(J) * posLambda;
+        Value posLambda          = f.clampPositionLambda(solver_.solve(-error));
+        State positionCorrection = transpose(J) * posLambda;
 
         bodies.applyPositionCorrection(positionCorrection);
     }
@@ -211,10 +209,7 @@ public:
     typedef Solver<float, Base::dimension> KSolver;
 
 
-    InequalitySolver(const Bodies& bodies, const F& f)
-        : Base{bodies, f}
-    {
-    }
+    InequalitySolver(const Bodies& bodies, const F& f) : Base{bodies, f} {}
 
     void initSolve(Bodies& bodies, const F& f)
     {
@@ -264,8 +259,7 @@ public:
         Value posLambda = s.solve(-error);
         posLambda       = f.clampPositionLambda(posLambda);
 
-        State positionCorrection
-            = bodies.inverseMass() * transpose(J) * posLambda;
+        State positionCorrection = transpose(J) * posLambda;
 
         bodies.applyPositionCorrection(positionCorrection);
     }
@@ -470,8 +464,7 @@ public:
             default: break;
         }
 
-        State positionCorrection
-            = bodies.inverseMass() * transpose(J) * posLambda;
+        State positionCorrection = transpose(J) * posLambda;
 
         bodies.applyPositionCorrection(positionCorrection);
     }

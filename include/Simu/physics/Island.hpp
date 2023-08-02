@@ -118,7 +118,7 @@ public:
     void integrateBodies(float dt)
     {
         for (SolverProxy& p : proxies_)
-            p.advance(p.velocity() * dt, p.angularVelocity() * dt);
+            p.advancePos(p.velocity() * dt, p.angularVelocity() * dt);
     }
 
     void applyPositionConstraints(Uint32 nIter)

@@ -66,7 +66,7 @@ public:
 
     void writeBack()
     {
-        body_->position_    = position_;
+        body_->position_ = position_;
 
         body_->velocity_        = velocity_;
         body_->angularVelocity_ = angularVelocity_;
@@ -76,12 +76,17 @@ public:
         body_->proxyIndex = Body::NO_INDEX;
     }
 
-    void advance(Vec2 dPos, float dTheta)
+    void advancePos(Vec2 dPos, float dTheta)
     {
         SIMU_ASSERT(std::isfinite(dPos), "");
         SIMU_ASSERT(std::isfinite(dTheta), "");
 
         position_.advance(dPos, dTheta);
+    }
+
+    void incrementVel(Vec2 dv, float dw)
+    {
+        setVelocity(velocity_ + dv, angularVelocity_ + dw);
     }
 
     void setVelocity(Vec2 velocity, float angularVelocity)
@@ -205,8 +210,22 @@ public:
     inline void applyPositionCorrection(const State& correction);
 
     inline Velocity velocity() const;
-    Mass    inverseMass() const { return Mass::diagonal(inverseMassVec()); }
-    MassVec inverseMassVec() const { return invMassVec_; }
+
+    struct InvMasses
+    {
+        float m0;
+        float I0;
+        float m1;
+        float I1;
+    };
+
+    const InvMasses& invMasses() const { return invMasses_; }
+    MassVec          invMassVec() const
+    {
+        const InvMasses& m = invMasses();
+        return MassVec{m.m0, m.m0, m.I0, m.m1, m.m1, m.I1};
+    }
+    Mass inverseMass() const { return Mass::diagonal(invMassVec()); }
 
     bool operator==(const Bodies& other) const
     {
@@ -258,7 +277,7 @@ private:
     std::array<Body*, n>        bodies_;
     std::array<SolverProxy*, n> proxies_{};
 
-    MassVec invMassVec_;
+    InvMasses invMasses_;
 
     bool isSolving_   = false;
     bool isSingleBody = false;

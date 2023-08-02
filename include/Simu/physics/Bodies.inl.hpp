@@ -48,59 +48,43 @@ Bodies::Bodies(std::initializer_list<Body*> bodies, std::optional<Dominance> dom
         Vec2{bodies_[0]->dominance(), bodies_[1]->dominance()}
     );
 
-    i              = 0;
-    Uint32 nthBody = 0;
-    for (const Body* body : bodies_)
-    {
-        float m = d[nthBody] * body->invMass();
-        float I = d[nthBody++] * body->invInertia();
-
-        invMassVec_[i++] = m;
-        invMassVec_[i++] = m;
-        invMassVec_[i++] = I;
-    }
+    invMasses_.m0 = d[0] * bodies_[0]->invMass();
+    invMasses_.I0 = d[0] * bodies_[0]->invInertia();
+    invMasses_.m1 = d[1] * bodies_[1]->invMass();
+    invMasses_.I1 = d[1] * bodies_[1]->invInertia();
 }
 
 
 bool Bodies::isBodyStructural(const Body* body) const
 {
-    for (Uint32 i = 0; i < n; ++i)
-        if (body == bodies_[i])
-            return invMassVec_[3 * i] == 0.f;
+    if (body == bodies_[0])
+        return invMasses_.m0 == 0.f;
+
+    if (body == bodies_[1])
+        return invMasses_.m1 == 0.f;
 
     SIMU_ASSERT(false, "Body is not part of these bodies.");
     return true;
 }
 
 
-void Bodies::applyImpulse(const Impulse& impulse)
+void Bodies::applyImpulse(const Impulse& P)
 {
     assertHasProxies();
-    Velocity dv = elementWiseMul(inverseMassVec(), impulse);
+    const InvMasses& m = invMasses_;
 
-    Uint32 i = 0;
-    for (SolverProxy* p : proxies_)
-    {
-        p->setVelocity(
-            p->velocity() + Vec2{dv[i], dv[i + 1]},
-            p->angularVelocity() + dv[i + 2]
-
-        );
-
-        i += 3;
-    }
+    proxies_[0]->incrementVel(m.m0* Vec2{P[0], P[1]}, m.I0 * P[2]);
+    proxies_[1]->incrementVel(m.m1* Vec2{P[3], P[4]}, m.I1 * P[5]);
 }
 
 
-void Bodies::applyPositionCorrection(const State& correction)
+void Bodies::applyPositionCorrection(const State& S)
 {
     assertHasProxies();
-    Uint32 i = 0;
-    for (SolverProxy* p : proxies_)
-    {
-        p->advance(Vec2{correction[i], correction[i + 1]}, correction[i + 2]);
-        i += 3;
-    }
+    const InvMasses& m = invMasses_;
+
+    proxies_[0]->advancePos(m.m0* Vec2{S[0], S[1]}, m.I0 * S[2]);
+    proxies_[1]->advancePos(m.m1* Vec2{S[3], S[4]}, m.I1 * S[5]);
 }
 
 
