@@ -37,7 +37,6 @@ public:
     explicit Rotation(float theta) { set(theta); }
     explicit operator Mat3() const
     {
-        update();
         // clang-format off
         return Mat3{
             cosine, -sine,   0.f, 
@@ -47,41 +46,53 @@ public:
         // clang-format on
     }
 
+    Rotation inverse() const { return Rotation{-theta(), cosine, -sine}; }
+    
     float theta() const { return theta_; }
     void  set(float theta)
     {
-        theta_  = theta;
-        isDirty = true;
+        theta_ = theta;
+        cosine = std::cos(theta);
+        sine   = std::sin(theta);
     }
 
     Vec2 operator*(const Vec2& v) const
     {
-        update();
         return Vec2{cosine * v[0] - sine * v[1], sine * v[0] + cosine * v[1]};
+    }
+
+    Rotation& operator*=(const Rotation& other)
+    {
+        set(theta() + other.theta());
+        return *this;
+
+        // numerical error accumulates,
+        //  in the Pyramid demo, the pyramid seems to breathe.
+        //
+        // theta_ += other.theta();
+        // float c = cosine * other.cosine - sine * other.sine;
+        // sine    = sine * other.cosine + cosine * other.sine;
+        // cosine  = c;
+        // return *this;
     }
 
     Rotation operator*(const Rotation& other) const
     {
-        return Rotation{theta() + other.theta()};
+        Rotation cpy{*this};
+        cpy *= other;
+        return cpy;
     }
 
 private:
 
-    void update() const
+    Rotation(float theta, float c, float s) : theta_{theta}, cosine{c}, sine{s}
     {
-        if (isDirty)
-        {
-            cosine  = std::cos(theta_);
-            sine    = std::sin(theta_);
-            isDirty = false;
-        }
     }
 
     float theta_;
 
-    mutable float cosine;
-    mutable float sine;
-    mutable bool  isDirty;
+    float cosine;
+    float sine;
 };
 
 
@@ -101,10 +112,18 @@ public:
         // clang-format on
     }
 
+    Translation inverse() const { return Translation{-offset()}; }
+
     Vec2 offset() const { return offset_; }
     void set(Vec2 offset) { offset_ = offset; }
 
     Vec2 operator*(const Vec2& v) const { return v + offset_; }
+
+    Translation operator*=(const Translation& other)
+    {
+        offset_ += other.offset();
+        return *this;
+    }
 
     Translation operator*(const Translation& other) const
     {
@@ -132,6 +151,8 @@ public:
         T(1, 2)    = trans[1];
         return T;
     }
+
+    inline Transform inverse() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief No-op transformation
@@ -165,14 +186,14 @@ public:
     ///
     ////////////////////////////////////////////////////////////
     const Rotation& rotation() const { return r_; }
-    void            setRot(float theta) { r_.set(theta); }
+    Rotation&       rotation() { return r_; }
 
     ////////////////////////////////////////////////////////////
     /// \brief The translation part of this transform
     ///
     ////////////////////////////////////////////////////////////
     const Translation& translation() const { return t_; }
-    void               setTranslation(Vec2 offset) { t_.set(offset); }
+    Translation&       translation() { return t_; }
 
 
     Vec2 operator*(const Vec2& v) const { return r_ * v + t_.offset(); }
@@ -221,10 +242,12 @@ inline Transform operator*(const Rotation& r, const Transform& T)
 inline Transform operator*(const Transform& T1, const Transform& T2)
 {
     Transform T{T1.rotation() * T2};
-    T.setTranslation(T.translation().offset() + T1.translation().offset());
+    T.translation() *= T1.translation();
     return T;
 }
 
+
+Transform Transform::inverse() const { return r_.inverse() * t_.inverse(); }
 
 Transform
 Transform::transformAround(float theta, Vec2 offset, Vec2 transformOrigin)

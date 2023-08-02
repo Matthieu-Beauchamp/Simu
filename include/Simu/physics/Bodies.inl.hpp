@@ -44,10 +44,9 @@ Bodies::Bodies(std::initializer_list<Body*> bodies, std::optional<Dominance> dom
         bodies_[i++] = body;
     }
 
-    Dominance d = dominances.value_or(Vec2{
-        bodies_[0]->dominance(),
-        bodies_[1]->dominance()
-    });
+    Dominance d = dominances.value_or(
+        Vec2{bodies_[0]->dominance(), bodies_[1]->dominance()}
+    );
 
     i              = 0;
     Uint32 nthBody = 0;
@@ -99,11 +98,7 @@ void Bodies::applyPositionCorrection(const State& correction)
     Uint32 i = 0;
     for (SolverProxy* p : proxies_)
     {
-        p->setPosition(
-            p->position() + Vec2{correction[i], correction[i + 1]},
-            p->orientation() + correction[i + 2]
-        );
-
+        p->advance(Vec2{correction[i], correction[i + 1]}, correction[i + 2]);
         i += 3;
     }
 }

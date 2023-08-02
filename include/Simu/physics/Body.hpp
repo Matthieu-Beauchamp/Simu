@@ -130,6 +130,46 @@ private:
 };
 
 
+// TODO: By enforcing that local space geometry has its centroid at {0,0}
+//  we can simplify the toWorldSpace() transform and avoid storing the local centroid
+//
+// This represent a transformation from one frame to another, and provides a way
+//  to access current position in world space.
+class Position
+{
+public:
+
+    Position(Vec2 position, float orientation, Vec2 localSpaceCentroid)
+        : toWorldSpace_{Rotation{orientation}, Translation{position}},
+          localCentroid_{localSpaceCentroid}
+    {
+    }
+
+    Vec2  position() const { return toWorldSpace_.translation().offset(); }
+    float orientation() const { return toWorldSpace_.rotation().theta(); }
+    Vec2  centroid() const { return toWorldSpace() * localCentroid_; }
+
+    void advance(Vec2 dPos, float dTheta)
+    {
+        toWorldSpace_.translation() *= Translation(dPos);
+        toWorldSpace_.rotation() *= Rotation(dTheta);
+    }
+
+    Transform toWorldSpace() const
+    {
+        return Translation{localCentroid_}
+               * toWorldSpace_* Translation{-localCentroid_};
+    }
+
+    Transform toLocalSpace() const { return toWorldSpace().inverse(); }
+
+
+private:
+
+    Transform toWorldSpace_;
+    Vec2      localCentroid_{};
+};
+
 class World;
 
 class Body : public PhysicsObject
@@ -143,9 +183,7 @@ public:
     ///
     ////////////////////////////////////////////////////////////
     Body(const BodyDescriptor& descriptor)
-        : position_{descriptor.position},
-          centroid_{descriptor.polygon.properties().centroid},
-          orientation_{descriptor.orientation},
+        : position_{descriptor.position, descriptor.orientation, descriptor.polygon.properties().centroid},
           material_{descriptor.material},
           mass_{descriptor.polygon.properties(), descriptor.material.density},
           collider_{descriptor.polygon, Transform::identity(), Alloc{}},
@@ -226,7 +264,7 @@ public:
     /// This is an offset of the Body's local space geometry
     ///
     ////////////////////////////////////////////////////////////
-    const Vec2& position() const { return position_; }
+    const Vec2& position() const { return position_.position(); }
 
     ////////////////////////////////////////////////////////////
     /// \brief The Body's world space orientation in radians
@@ -234,7 +272,7 @@ public:
     /// The orientation rotates the Body's local space geometry around its centroid
     ///
     ////////////////////////////////////////////////////////////
-    float orientation() const { return orientation_; }
+    float orientation() const { return position_.orientation(); }
 
     ////////////////////////////////////////////////////////////
     /// \brief Returns a read only reference to the Body's Collider.
@@ -246,18 +284,15 @@ public:
     /// \brief Transformation matrix to convert from the Body's local space to world space
     ///
     ////////////////////////////////////////////////////////////
-    const Transform& toWorldSpace() const { return toWorldSpace_; }
+    Transform toWorldSpace() const { return position_.toWorldSpace(); }
 
     ////////////////////////////////////////////////////////////
     /// \brief Transformation matrix to convert from world space to the Body's local space
     ///
     ////////////////////////////////////////////////////////////
-    Transform toLocalSpace() const
-    {
-        return Transform::transformAround(-orientation_, -position_, centroid());
-    }
+    Transform toLocalSpace() const { return position_.toLocalSpace(); }
 
-    Vec2 centroid() const { return toWorldSpace() * centroid_; }
+    Vec2 centroid() const { return position_.centroid(); }
 
     float invMass() const { return mass_.invMass(); }
     float invInertia() const { return mass_.invInertia(); }
@@ -328,21 +363,7 @@ private:
     friend class Bodies;
 
 
-    void step(float dt)
-    {
-        position_ += velocity_ * dt;
-        orientation_ += angularVelocity_ * dt;
-
-        update();
-    }
-
-    void update()
-    {
-        toWorldSpace_
-            = Transform::transformAround(orientation_, position_, centroid_);
-
-        collider_.update(toWorldSpace());
-    }
+    void update() { collider_.update(toWorldSpace()); }
 
     bool isImmobile(float velocityTreshold, float angularVelocityTreshold) const
     {
@@ -367,11 +388,9 @@ private:
     void sleep() { isAsleep_ = true; }
 
 
-    Vec2 position_;
-    Vec2 centroid_;
-    Vec2 velocity_{};
+    Position position_;
 
-    float orientation_;
+    Vec2  velocity_{};
     float angularVelocity_{};
 
     Material material_;
@@ -390,8 +409,6 @@ private:
 
     static constexpr Int32 NO_INDEX   = -1;
     Int32                  proxyIndex = NO_INDEX;
-
-    Transform toWorldSpace_;
 };
 
 

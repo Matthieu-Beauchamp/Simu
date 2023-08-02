@@ -55,7 +55,7 @@ public:
                 {
                     addConstraint(constraint, constraints_);
                 }
-                
+
                 for (ContactConstraint* contact : root->contacts())
                 {
                     addConstraint(contact, contacts_);
@@ -118,10 +118,7 @@ public:
     void integrateBodies(float dt)
     {
         for (SolverProxy& p : proxies_)
-            p.setPosition(
-                p.position() + p.velocity() * dt,
-                p.orientation() + p.angularVelocity() * dt
-            );
+            p.advance(p.velocity() * dt, p.angularVelocity() * dt);
     }
 
     void applyPositionConstraints(Uint32 nIter)

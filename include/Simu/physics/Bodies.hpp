@@ -57,9 +57,8 @@ class SolverProxy
 {
 public:
 
-    SolverProxy(Body* body) : centroid_{body->centroid_}, body_{body}
+    SolverProxy(Body* body) : position_{body->position_}, body_{body}
     {
-        setPosition(body->position(), body->orientation());
         setVelocity(body->velocity(), body->angularVelocity());
     }
 
@@ -68,26 +67,21 @@ public:
     void writeBack()
     {
         body_->position_    = position_;
-        body_->orientation_ = orientation_;
 
         body_->velocity_        = velocity_;
         body_->angularVelocity_ = angularVelocity_;
 
-        body_->toWorldSpace_ = toWorldSpace_;
-        body_->collider_.update(body_->toWorldSpace_);
+        body_->update();
 
         body_->proxyIndex = Body::NO_INDEX;
     }
 
-    void setPosition(Vec2 position, float orientation)
+    void advance(Vec2 dPos, float dTheta)
     {
-        SIMU_ASSERT(std::isfinite(position), "");
-        SIMU_ASSERT(std::isfinite(orientation), "");
+        SIMU_ASSERT(std::isfinite(dPos), "");
+        SIMU_ASSERT(std::isfinite(dTheta), "");
 
-        position_    = position;
-        orientation_ = orientation;
-        toWorldSpace_
-            = Transform::transformAround(orientation_, position_, centroid_);
+        position_.advance(dPos, dTheta);
     }
 
     void setVelocity(Vec2 velocity, float angularVelocity)
@@ -99,25 +93,21 @@ public:
         angularVelocity_ = angularVelocity;
     }
 
-    Vec2  position() const { return position_; }
-    float orientation() const { return orientation_; }
+    Vec2  position() const { return position_.position(); }
+    float orientation() const { return position_.orientation(); }
 
     Vec2  velocity() const { return velocity_; }
     float angularVelocity() const { return angularVelocity_; }
 
-    Vec2      centroid() const { return toWorldSpace_ * centroid_; }
-    Transform toWorldSpace() const { return toWorldSpace_; }
+    Vec2      centroid() const { return position_.centroid(); }
+    Transform toWorldSpace() const { return position_.toWorldSpace(); }
 
 private:
 
-    Vec2  position_;
-    float orientation_;
+    Position position_;
 
     Vec2  velocity_;
     float angularVelocity_;
-
-    Vec2      centroid_;
-    Transform toWorldSpace_;
 
     Body* body_;
 };
