@@ -57,9 +57,9 @@ class SolverProxy
 {
 public:
 
-    SolverProxy(Body* body) : position_{body->position_}, body_{body}
+    SolverProxy(Body* body)
+        : position_{body->position_}, velocity_{body->velocity_}, body_{body}
     {
-        setVelocity(body->velocity(), body->angularVelocity());
     }
 
     void refresh() { *this = SolverProxy(this->body_); }
@@ -67,9 +67,7 @@ public:
     void writeBack()
     {
         body_->position_ = position_;
-
-        body_->velocity_        = velocity_;
-        body_->angularVelocity_ = angularVelocity_;
+        body_->velocity_ = velocity_;
 
         body_->update();
 
@@ -86,7 +84,7 @@ public:
 
     void incrementVel(Vec2 dv, float dw)
     {
-        setVelocity(velocity_ + dv, angularVelocity_ + dw);
+        setVelocity(velocity() + dv, angularVelocity() + dw);
     }
 
     void setVelocity(Vec2 velocity, float angularVelocity)
@@ -94,15 +92,15 @@ public:
         SIMU_ASSERT(std::isfinite(velocity), "");
         SIMU_ASSERT(std::isfinite(angularVelocity), "");
 
-        velocity_        = velocity;
-        angularVelocity_ = angularVelocity;
+        velocity_.setLinear(velocity);
+        velocity_.setAngular(angularVelocity);
     }
 
     Vec2  position() const { return position_.position(); }
     float orientation() const { return position_.orientation(); }
 
-    Vec2  velocity() const { return velocity_; }
-    float angularVelocity() const { return angularVelocity_; }
+    Vec2  velocity() const { return velocity_.linear(); }
+    float angularVelocity() const { return velocity_.angular(); }
 
     Vec2      centroid() const { return position_.centroid(); }
     Transform toWorldSpace() const { return position_.toWorldSpace(); }
@@ -110,9 +108,7 @@ public:
 private:
 
     Position position_;
-
-    Vec2  velocity_;
-    float angularVelocity_;
+    Velocity velocity_;
 
     Body* body_;
 };

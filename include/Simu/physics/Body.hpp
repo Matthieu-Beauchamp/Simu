@@ -130,6 +130,38 @@ private:
 };
 
 
+class Velocity
+{
+public:
+
+    Velocity() = default;
+    Velocity(Vec2 linear, float angular) : linear_{linear}, angular_{angular} {}
+
+    Vec2 linear() const { return linear_; }
+    void setLinear(Vec2 v) { linear_ = v; }
+
+    float angular() const { return angular_; }
+    void  setAngular(float w) { angular_ = w; }
+
+    void set(Vec2 v, float w)
+    {
+        setLinear(v);
+        setAngular(w);
+    }
+
+    void increment(Vec2 dLinear, float dAngular)
+    {
+        linear_ += dLinear;
+        angular_ += dAngular;
+    }
+
+private:
+
+    Vec2  linear_;
+    float angular_;
+};
+
+
 // TODO: By enforcing that local space geometry has its centroid at {0,0}
 //  we can simplify the toWorldSpace() transform and avoid storing the local centroid
 //
@@ -230,13 +262,13 @@ public:
     /// \brief The Body's current linear velocity
     ///
     ////////////////////////////////////////////////////////////
-    const Vec2& velocity() const { return velocity_; }
+    Vec2 velocity() const { return velocity_.linear(); }
 
     ////////////////////////////////////////////////////////////
     /// \brief The Body's current angular velocity in radians/s
     ///
     ////////////////////////////////////////////////////////////
-    const float& angularVelocity() const { return angularVelocity_; }
+    float angularVelocity() const { return velocity_.angular(); }
 
     ////////////////////////////////////////////////////////////
     /// \brief Change the Body's linear velocity to velocity
@@ -244,7 +276,7 @@ public:
     ////////////////////////////////////////////////////////////
     void setVelocity(Vec2 velocity)
     {
-        velocity_ = velocity;
+        velocity_.setLinear(velocity);
         wake();
     }
 
@@ -254,7 +286,7 @@ public:
     ////////////////////////////////////////////////////////////
     void setAngularVelocity(float angularVelocity)
     {
-        angularVelocity_ = angularVelocity;
+        velocity_.setAngular(angularVelocity);
         wake();
     }
 
@@ -394,9 +426,7 @@ private:
 
 
     Position position_;
-
-    Vec2  velocity_{};
-    float angularVelocity_{};
+    Velocity velocity_{};
 
     Material material_;
 
