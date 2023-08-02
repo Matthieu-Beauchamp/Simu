@@ -33,32 +33,28 @@ namespace simu
 
 Bodies::Bodies(std::initializer_list<Body*> bodies, std::optional<Dominance> dominances)
 {
+    SIMU_ASSERT(
+        bodies.size() == 2,
+        "Incorrect number of bodies in initializer list."
+    );
+
     Uint32 i = 0;
     for (auto body : bodies)
     {
-        if (i < n)
-            bodies_[i++] = body;
-        else
-            break;
+        bodies_[i++] = body;
     }
-    SIMU_ASSERT(i == 2, "Incorrect number of bodies in initializer list.");
 
-    Dominance d{};
-    if (dominances.has_value())
-        d = dominances.value();
-    else
-    {
-        Uint32 j = 0;
-        for (Body* body : bodies_)
-            d[j++] = body->dominance();
-    }
+    Dominance d = dominances.value_or(Vec2{
+        bodies_[0]->dominance(),
+        bodies_[1]->dominance()
+    });
 
     i              = 0;
     Uint32 nthBody = 0;
     for (const Body* body : bodies_)
     {
-        float m = d[nthBody] / body->mass();
-        float I = d[nthBody++] / body->inertia();
+        float m = d[nthBody] * body->invMass();
+        float I = d[nthBody++] * body->invInertia();
 
         invMassVec_[i++] = m;
         invMassVec_[i++] = m;

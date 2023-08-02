@@ -57,8 +57,7 @@
 #    error "Unrecognized OS"
 #endif
 
-
-#if defined(NDEBUG)
+#if defined(NDEBUG) && defined(SIMU_NO_ASSERT)
 #    define SIMU_ASSERT(c, m) (void)(c); (void)(m)
 #else
 #    define SIMU_ASSERT(cond, msg)                                             \

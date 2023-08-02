@@ -98,20 +98,35 @@ struct BodyDescriptor
 /// The mass and inertia are always strictly positive for a Body.
 ///
 ////////////////////////////////////////////////////////////
-struct MassProperties
+class Mass
 {
-    MassProperties() = default;
-    MassProperties(const GeometricProperties& properties, float density)
-        : centroid{properties.centroid},
-          mass{properties.area * density},
-          inertia{properties.momentOfArea * density}
+public:
+
+    Mass() = default;
+
+    Mass(float mass, float inertia)
+        : invMass_{1.f / mass}, invInertia_{1.f / inertia}
+    {
+        SIMU_ASSERT(mass > 0, "Invalid mass");
+        SIMU_ASSERT(inertia > 0, "Invalid inertia");
+    }
+
+    Mass(const GeometricProperties& properties, float density)
+        : Mass(properties.area * density, properties.momentOfArea * density)
     {
         SIMU_ASSERT(density > 0, "Invalid density");
     }
 
-    Vec2  centroid;
-    float mass;
-    float inertia;
+    float invMass() const { return invMass_; }
+    float invInertia() const { return invInertia_; }
+
+    float mass() const { return 1.f / invMass_; }
+    float inertia() const { return 1.f / invInertia_; }
+
+private:
+
+    float invMass_;
+    float invInertia_;
 };
 
 
@@ -129,11 +144,10 @@ public:
     ////////////////////////////////////////////////////////////
     Body(const BodyDescriptor& descriptor)
         : position_{descriptor.position},
+          centroid_{descriptor.polygon.properties().centroid},
           orientation_{descriptor.orientation},
           material_{descriptor.material},
-          properties_{
-              descriptor.polygon.properties(),
-              descriptor.material.density},
+          mass_{descriptor.polygon.properties(), descriptor.material.density},
           collider_{descriptor.polygon, Transform::identity(), Alloc{}},
           dominance_{descriptor.dominance}
     {
@@ -168,10 +182,9 @@ public:
     ////////////////////////////////////////////////////////////
     void applyImpulse(Vec2 impulse, Vec2 whereFromCentroid = Vec2{0, 0})
     {
-        setVelocity(velocity() + impulse / properties_.mass);
+        setVelocity(velocity() + impulse * invMass());
         setAngularVelocity(
-            angularVelocity()
-            + cross(whereFromCentroid, impulse) / properties_.inertia
+            angularVelocity() + cross(whereFromCentroid, impulse) * invInertia()
         );
     }
 
@@ -244,26 +257,13 @@ public:
         return Transform::transformAround(-orientation_, -position_, centroid());
     }
 
-    float mass() const { return properties_.mass; }
-    float inertia() const { return properties_.inertia; }
-    Vec2  centroid() const { return worldProperties().centroid; }
+    Vec2 centroid() const { return toWorldSpace() * centroid_; }
 
-    ////////////////////////////////////////////////////////////
-    /// \brief The MassProperties of the Body with the centroid given in world space
-    ///
-    ////////////////////////////////////////////////////////////
-    MassProperties worldProperties() const
-    {
-        MassProperties transformedProperties{properties_};
-        transformedProperties.centroid = toWorldSpace() * properties_.centroid;
-        return transformedProperties;
-    }
+    float invMass() const { return mass_.invMass(); }
+    float invInertia() const { return mass_.invInertia(); }
 
-    ////////////////////////////////////////////////////////////
-    /// \brief The MassProperties of the Body, ignoring its current world position.
-    ///
-    ////////////////////////////////////////////////////////////
-    MassProperties localProperties() const { return properties_; }
+    float mass() const { return mass_.mass(); }
+    float inertia() const { return mass_.inertia(); }
 
     ////////////////////////////////////////////////////////////
     /// \brief The Body's Material
@@ -338,11 +338,8 @@ private:
 
     void update()
     {
-        toWorldSpace_ = Transform::transformAround(
-            orientation_,
-            position_,
-            localProperties().centroid
-        );
+        toWorldSpace_
+            = Transform::transformAround(orientation_, position_, centroid_);
 
         collider_.update(toWorldSpace());
     }
@@ -371,6 +368,7 @@ private:
 
 
     Vec2 position_;
+    Vec2 centroid_;
     Vec2 velocity_{};
 
     float orientation_;
@@ -378,8 +376,8 @@ private:
 
     Material material_;
 
-    MassProperties properties_;
-    Collider       collider_;
+    Mass     mass_;
+    Collider collider_;
 
     float dominance_;
 

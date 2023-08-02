@@ -57,8 +57,7 @@ class SolverProxy
 {
 public:
 
-    SolverProxy(Body* body)
-        : centroid_{body->localProperties().centroid}, body_{body}
+    SolverProxy(Body* body) : centroid_{body->centroid_}, body_{body}
     {
         setPosition(body->position(), body->orientation());
         setVelocity(body->velocity(), body->angularVelocity());
@@ -160,7 +159,7 @@ public:
 
     typedef Matrix<float, 3 * n, 3 * n> Mass;
     typedef Vector<float, 3 * n>        MassVec;
-    typedef Vector<float, 3 * n>        Dominance;
+    typedef Vec2                        Dominance;
 
     inline Bodies(
         std::initializer_list<Body*> bodies,
@@ -206,7 +205,7 @@ public:
     auto proxies()
     {
         assertHasProxies();
-        SolverProxy ** p = proxies_.data();
+        SolverProxy** p = proxies_.data();
         return ArrayView(p, p + size());
     }
 
@@ -216,8 +215,8 @@ public:
     inline void applyPositionCorrection(const State& correction);
 
     inline Velocity velocity() const;
-    Mass     inverseMass() const { return Mass::diagonal(inverseMassVec()); }
-    MassVec  inverseMassVec() const { return invMassVec_; }
+    Mass    inverseMass() const { return Mass::diagonal(inverseMassVec()); }
+    MassVec inverseMassVec() const { return invMassVec_; }
 
     bool operator==(const Bodies& other) const
     {

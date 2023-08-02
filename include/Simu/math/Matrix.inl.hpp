@@ -150,13 +150,14 @@ Matrix<T, m, n>::Matrix(const MatrixData<T, m, n>& data)
 template <class T, Uint32 m, Uint32 n>
 Matrix<T, m, n>::Matrix(const std::initializer_list<T>& init)
 {
-    auto it = this->begin();
-    for (const T& val : init)
-    {
-        if (it == this->end())
-            return;
+    SIMU_ASSERT(
+        init.size() == this->size(),
+        "Incorrect number of arguments in initializer list"
+    );
 
-        *it++ = val;
+    for (Uint32 i = 0; i < this->size(); ++i)
+    {
+        this->data[i] = init.begin()[i];
     }
 }
 
@@ -576,8 +577,7 @@ private:
 };
 
 template <class T>
-Vector<T, 2>
-solveLcp(const Matrix<T, 2, 2>& A, const Vector<T, 2>& b)
+Vector<T, 2> solveLcp(const Matrix<T, 2, 2>& A, const Vector<T, 2>& b)
 {
     return LcpSolver{A}.solve(b);
 }

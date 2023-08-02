@@ -124,7 +124,7 @@ simu::Body* BoxSpawner::makeBox(simu::Vec2 pos, simu::Vec2 dims)
     descr.material.friction.value   = 0.5f;
     return scene_.world().makeBody<simu::VisibleBody>(
         descr,
-        simu::Rgba{225, 150, 240},
+        simu::Rgba{225, 150, 240, 255},
         scene_.app()->renderer()
     );
 }
