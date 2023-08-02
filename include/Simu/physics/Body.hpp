@@ -354,6 +354,11 @@ public:
     auto contacts() { return makeView(contacts_); }
     auto contacts() const { return makeView(contacts_); }
 
+protected:
+
+    // for VisibleBody...
+    typename BodyTree::iterator treeLocation_;
+
 private:
 
     friend class Island;
@@ -405,7 +410,6 @@ private:
 
     std::vector<Constraint*, ReboundTo<Alloc, Constraint*>> constraints_;
     std::vector<ContactConstraint*, ReboundTo<Alloc, ContactConstraint*>> contacts_;
-    typename BodyTree::iterator treeLocation_;
 
     static constexpr Int32 NO_INDEX   = -1;
     Int32                  proxyIndex = NO_INDEX;

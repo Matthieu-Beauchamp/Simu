@@ -221,6 +221,9 @@ gl::GLuint compileShaderProgram(const char* vSrc, const char* fSrc)
 
 OpenGlRenderer::OpenGlRenderer()
 {
+    gl::glEnable(gl::GL_BLEND);
+    gl::glBlendFunc(gl::GL_SRC_ALPHA, gl::GL_ONE_MINUS_SRC_ALPHA);
+
     programId_ = compileShaderProgram(vertexShaderSrc_, fragmentShaderSrc_);
     cameraTransformBinding_
         = gl::glGetUniformLocation(programId_, "cameraTransform");

@@ -52,7 +52,7 @@ public:
 
         descr.dominance = 0.f;
         auto bar
-            = world().makeBody<simu::VisibleBody>(descr, simu::Rgba{}, &renderer);
+            = world().makeBody<simu::VisibleBody>(descr, simu::Rgba{0, 0, 0, 255}, &renderer);
 
 
         simu::Vertices v{};

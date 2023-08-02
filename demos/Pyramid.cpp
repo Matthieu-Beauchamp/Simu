@@ -53,7 +53,7 @@ public:
 
         descr.dominance               = 0.f;
         descr.material.friction.value = 0.8f;
-        world().makeBody<simu::VisibleBody>(descr, simu::Rgba{}, &renderer);
+        world().makeBody<simu::VisibleBody>(descr, simu::Rgba{0, 0, 0, 255}, &renderer);
 
         simu::BoxSpawner spawn{*this};
 

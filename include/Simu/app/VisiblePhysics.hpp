@@ -73,15 +73,20 @@ protected:
 
     void draw(Renderer& renderer) override
     {
-        // Rgba contourColor = Rgba::filled(255) - color_;
+        BoundingBox bounds = this->treeLocation_.bounds();
 
-        // renderer.drawContouredPolygon(
-        //     properties().centroid,
-        //     collider().vertexView(),
-        //     color_,
-        //     contourColor,
-        //     100 * material().penetration.value
-        // );
+        std::array<const Vec2, 4> box{
+            bounds.min(),
+            Vec2{bounds.max()[0], bounds.min()[1]},
+            bounds.max(),
+            Vec2{bounds.min()[0], bounds.max()[1]}
+        };
+
+        renderer.drawPolygon(
+            bounds.center(),
+            makeView(box.data(), box.data() + box.size()),
+            color_ - Rgba{0, 0, 0, 200}
+        );
 
         renderer.drawPolygon(centroid(), collider().vertexView(), color_);
     }
