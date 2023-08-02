@@ -40,7 +40,11 @@ public:
     typedef typename PhysicsObject::PhysicsAlloc Alloc;
 
     Island(Body* root, const Alloc& alloc)
-        : bodies_{alloc}, constraints_{alloc}, contacts_{alloc}, proxies_{alloc}
+        : bodies_{alloc},
+          constraints_{alloc},
+          contacts_{alloc},
+          positions_{alloc},
+          velocities_{alloc}
     {
         addBody(root);
 
@@ -69,8 +73,13 @@ public:
 
     void endSolve()
     {
-        for (SolverProxy& s : proxies_)
-            s.writeBack();
+        for (Body* b : bodies_)
+        {
+            b->velocity_ = velocities_[b->proxyIndex];
+            b->position_ = positions_[b->proxyIndex];
+            b->update();
+            b->proxyIndex = Body::NO_INDEX;
+        }
 
         for (Constraint* c : constraints_)
             c->bodies().endSolve();
@@ -83,15 +92,26 @@ public:
 
     void refreshProxies()
     {
-        // must do this after forces are applied...
-        for (SolverProxy& p : proxies_)
-            p.refresh();
+        // must do this after forces are applied
+        for (Body* b : bodies_)
+        {
+            velocities_[b->proxyIndex] = b->velocity_;
+
+            // in case of weird force field.
+            positions_[b->proxyIndex] = b->position_;
+        }
 
         for (Constraint* c : constraints_)
-            c->bodies().startSolve(proxies_.data()); // refresh proxy pointers
+            c->bodies().startSolve(
+                positions_.data(),
+                velocities_.data()
+            ); // refresh proxy pointers
 
         for (ContactConstraint* c : contacts_)
-            c->bodies().startSolve(proxies_.data()); // refresh proxy pointers
+            c->bodies().startSolve(
+                positions_.data(),
+                velocities_.data()
+            ); // refresh proxy pointers
     }
 
     void applyVelocityConstraints(Uint32 nIter, float dt)
@@ -117,8 +137,11 @@ public:
 
     void integrateBodies(float dt)
     {
-        for (SolverProxy& p : proxies_)
-            p.advancePos(p.velocity() * dt, p.angularVelocity() * dt);
+        for (std::size_t i = 0; i < positions_.size(); ++i)
+            positions_[i].advance(
+                velocities_[i].linear() * dt,
+                velocities_[i].angular() * dt
+            );
     }
 
     void applyPositionConstraints(Uint32 nIter)
@@ -148,8 +171,14 @@ private:
             bodies_.emplace_back(body);
             isAwake_ = isAwake_ || !body->isAsleep();
 
-            body->proxyIndex = static_cast<Int32>(proxies_.size());
-            proxies_.emplace_back(body);
+            SIMU_ASSERT(
+                positions_.size() < std::numeric_limits<Int32>::max(),
+                "Too many bodies in island"
+            );
+
+            body->proxyIndex = static_cast<Int32>(positions_.size());
+            positions_.emplace_back(body->position_);
+            velocities_.emplace_back(body->velocity_);
         }
 
         return isNew;
@@ -169,7 +198,7 @@ private:
         bool  added1 = addBody(b[0]);
         bool  added2 = addBody(b[1]);
 
-        constraint->bodies().startSolve(proxies_.data());
+        constraint->bodies().startSolve(positions_.data(), velocities_.data());
 
         if (!constraint->isActive())
         {
@@ -177,14 +206,16 @@ private:
             {
                 b[1]->proxyIndex = index2;
                 bodies_.pop_back();
-                proxies_.pop_back();
+                positions_.pop_back();
+                velocities_.pop_back();
             }
 
             if (added1)
             {
                 b[0]->proxyIndex = index1;
                 bodies_.pop_back();
-                proxies_.pop_back();
+                positions_.pop_back();
+                velocities_.pop_back();
             }
 
             constraint->bodies().endSolve();
@@ -198,7 +229,9 @@ private:
     std::vector<Body*, ReboundTo<Alloc, Body*>>             bodies_;
     std::vector<Constraint*, ReboundTo<Alloc, Constraint*>> constraints_;
     std::vector<ContactConstraint*, ReboundTo<Alloc, ContactConstraint*>> contacts_;
-    std::vector<SolverProxy, ReboundTo<Alloc, SolverProxy>> proxies_;
+
+    std::vector<Position, ReboundTo<Alloc, Position>> positions_{};
+    std::vector<Velocity, ReboundTo<Alloc, Velocity>> velocities_{};
 
     bool isAwake_ = false;
 };

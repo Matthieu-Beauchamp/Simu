@@ -88,11 +88,11 @@ void Bodies::applyPositionCorrection(const State& S)
 }
 
 
-typename Bodies::Velocity Bodies::velocity() const
+typename Bodies::VelocityVec Bodies::velocity() const
 {
     assertHasProxies();
 
-    Velocity v{};
+    VelocityVec v{};
     Uint32   i = 0;
     for (const SolverProxy* p : proxies_)
     {

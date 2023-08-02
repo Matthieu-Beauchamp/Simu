@@ -51,7 +51,7 @@ public:
     typedef typename F::Jacobian Jacobian;
 
     typedef typename Bodies::State    State;
-    typedef typename Bodies::Velocity Velocity;
+    typedef typename Bodies::VelocityVec VelocityVec;
     typedef typename Bodies::Impulse  Impulse;
 
     typedef Matrix<float, dimension, dimension> KMatrix;

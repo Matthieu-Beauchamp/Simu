@@ -57,29 +57,27 @@ class SolverProxy
 {
 public:
 
-    SolverProxy(Body* body)
-        : position_{body->position_}, velocity_{body->velocity_}, body_{body}
-    {
-    }
+    SolverProxy() = default;
+    SolverProxy(Position* p, Velocity* v) : position_{p}, velocity_{v} {}
 
-    void refresh() { *this = SolverProxy(this->body_); }
+    // void refresh() { *this = SolverProxy(this->body_); }
 
-    void writeBack()
-    {
-        body_->position_ = position_;
-        body_->velocity_ = velocity_;
+    // void writeBack()
+    // {
+    //     body_->position_ = *position_;
+    //     body_->velocity_ = *velocity_;
 
-        body_->update();
+    //     body_->update();
 
-        body_->proxyIndex = Body::NO_INDEX;
-    }
+    //     body_->proxyIndex = Body::NO_INDEX;
+    // }
 
     void advancePos(Vec2 dPos, float dTheta)
     {
         SIMU_ASSERT(std::isfinite(dPos), "");
         SIMU_ASSERT(std::isfinite(dTheta), "");
 
-        position_.advance(dPos, dTheta);
+        position_->advance(dPos, dTheta);
     }
 
     void incrementVel(Vec2 dv, float dw)
@@ -92,25 +90,23 @@ public:
         SIMU_ASSERT(std::isfinite(velocity), "");
         SIMU_ASSERT(std::isfinite(angularVelocity), "");
 
-        velocity_.setLinear(velocity);
-        velocity_.setAngular(angularVelocity);
+        velocity_->setLinear(velocity);
+        velocity_->setAngular(angularVelocity);
     }
 
-    Vec2  position() const { return position_.position(); }
-    float orientation() const { return position_.orientation(); }
+    Vec2  position() const { return position_->position(); }
+    float orientation() const { return position_->orientation(); }
 
-    Vec2  velocity() const { return velocity_.linear(); }
-    float angularVelocity() const { return velocity_.angular(); }
+    Vec2  velocity() const { return velocity_->linear(); }
+    float angularVelocity() const { return velocity_->angular(); }
 
-    Vec2      centroid() const { return position_.centroid(); }
-    Transform toWorldSpace() const { return position_.toWorldSpace(); }
+    Vec2      centroid() const { return position_->centroid(); }
+    Transform toWorldSpace() const { return position_->toWorldSpace(); }
 
 private:
 
-    Position position_;
-    Velocity velocity_;
-
-    Body* body_;
+    Position* position_ = nullptr;
+    Velocity* velocity_ = nullptr;
 };
 
 template <class T>
@@ -145,7 +141,7 @@ public:
     static constexpr Uint32 n = 2;
 
     typedef Vector<float, 3 * n> State;
-    typedef State                Velocity;
+    typedef State                VelocityVec;
     typedef State                Impulse;
 
     typedef Matrix<float, 3 * n, 3 * n> Mass;
@@ -156,7 +152,6 @@ public:
         std::initializer_list<Body*> bodies,
         std::optional<Dominance>     dominances = std::nullopt
     );
-
 
     static Bodies singleBody(Body* body)
     {
@@ -205,7 +200,7 @@ public:
     inline void applyImpulse(const Impulse& impulse);
     inline void applyPositionCorrection(const State& correction);
 
-    inline Velocity velocity() const;
+    inline VelocityVec velocity() const;
 
     struct InvMasses
     {
@@ -236,21 +231,24 @@ public:
 private:
 
     friend class Island;
-    void startSolve(SolverProxy* start)
+    void startSolve(Position* ps, Velocity* vs)
     {
-        SIMU_ASSERT(bodies_[0]->proxyIndex != Body::NO_INDEX, "");
-        SIMU_ASSERT(bodies_[1]->proxyIndex != Body::NO_INDEX, "");
+        Int32 index0 = bodies_[0]->proxyIndex;
+        Int32 index1 = bodies_[1]->proxyIndex;
 
-        proxies_[0] = start + bodies_[0]->proxyIndex;
-        proxies_[1] = start + bodies_[1]->proxyIndex;
-        isSolving_  = true;
+        SIMU_ASSERT(index0 != Body::NO_INDEX, "");
+        SIMU_ASSERT(index1 != Body::NO_INDEX, "");
+
+        proxiesData_[0] = SolverProxy{ps + index0, vs + index0};
+        proxiesData_[1] = SolverProxy{ps + index1, vs + index1};
+        isSolving_      = true;
     }
 
     void endSolve()
     {
-        proxies_[0] = nullptr;
-        proxies_[1] = nullptr;
-        isSolving_  = false;
+        proxiesData_[0] = SolverProxy{};
+        proxiesData_[1] = SolverProxy{};
+        isSolving_      = false;
     }
 
     void assertNotSolving() const
@@ -264,14 +262,20 @@ private:
 
     void assertHasProxies() const
     {
+        proxies_[0] = proxiesData_.data();
+        proxies_[1] = proxies_[0] + 1;
+
         SIMU_ASSERT(
             isSolving_,
             "No proxies are currently associated with these bodies"
         );
     }
 
-    std::array<Body*, n>        bodies_;
-    std::array<SolverProxy*, n> proxies_{};
+    std::array<Body*, n> bodies_;
+
+    // TODO: Weird stuff, until proxies are no longer handled by Bodies
+    mutable std::array<SolverProxy, n>  proxiesData_{};
+    mutable std::array<SolverProxy*, n> proxies_{};
 
     InvMasses invMasses_;
 
