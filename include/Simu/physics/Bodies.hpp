@@ -142,7 +142,7 @@ public:
         const InvMasses&   masses
     );
 
-    // TODO: Always iterate over 2 proxies, even if they point to the same body
+    // TODO: Always iterates over 2 proxies, even if they point to the same body
     SolverProxy const* begin() const { return proxies_.data(); }
     SolverProxy const* end() const { return proxies_.data() + n; }
 

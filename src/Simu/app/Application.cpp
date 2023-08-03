@@ -183,7 +183,7 @@ Application::Application()
     glfwGetWindowSize(window_, &w, &h);
     renderer_->setViewport(Vec2i{0, 0}, Vec2i{w, h});
 
-    glfwSwapInterval(1);
+    // glfwSwapInterval(1);
 }
 
 Application::~Application()
