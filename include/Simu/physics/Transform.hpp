@@ -24,6 +24,9 @@
 
 #pragma once
 
+#include <cmath>
+#include <numbers>
+
 #include "Simu/config.hpp"
 #include "Simu/math/Matrix.hpp"
 
@@ -47,10 +50,15 @@ public:
     }
 
     Rotation inverse() const { return Rotation{-theta(), cosine, -sine}; }
-    
+
     float theta() const { return theta_; }
     void  set(float theta)
     {
+        constexpr float fullCircle = 2.f * std::numbers::pi_v<float>;
+
+        float nCircles = theta / fullCircle;
+        theta -= std::floor(nCircles) * fullCircle;
+
         theta_ = theta;
         cosine = std::cos(theta);
         sine   = std::sin(theta);
