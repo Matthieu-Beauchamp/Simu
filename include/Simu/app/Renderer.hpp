@@ -86,7 +86,8 @@ public:
     void
     drawLine(Vec2 A, Vec2 B, Rgba color, float width, LineTip tip = LineTip::square);
 
-    void drawPoint(Vec2 P, Rgba color, float radius, Uint8 precision = 4);
+    template<Uint32 precision = 4>
+    void drawPoint(Vec2 P, Rgba color, float radius);
 
 protected:
 
@@ -146,3 +147,5 @@ private:
 };
 
 } // namespace simu
+
+#include "Simu/app/Renderer.inl.hpp"

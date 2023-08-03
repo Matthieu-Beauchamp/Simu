@@ -112,23 +112,6 @@ void Renderer::drawLine(Vec2 A, Vec2 B, Rgba color, float width, LineTip tip)
     );
 }
 
-void Renderer::drawPoint(Vec2 P, Rgba color, float radius, Uint8 precision)
-{
-    SIMU_ASSERT(precision >= 3, "");
-
-    v_.resize(precision);
-    constexpr float pi = std::numbers::pi_v<float>;
-    Rotation        rot{2.f * pi / precision};
-    Vec2            offset = radius * Vec2::i();
-    for (Uint8 i = 0; i < precision; ++i)
-    {
-        v_[i]  = P + offset;
-        offset = rot * offset;
-    }
-
-    const Vertices& cv = v_;
-    drawPolygon(P, makeView(cv.data(), cv.data() + cv.size()), color);
-}
 
 
 ////////////////////////////////////////////////////////////
