@@ -106,7 +106,7 @@ public:
     {
         Uint32                               nContacts;
         std::array<std::array<Vertex, 2>, 2> worldContacts;
-        Vec2                                 normal;
+        Vec2                                 normal; // points out of bodies[1]
         Vec2                                 tangent;
     };
 
@@ -147,6 +147,13 @@ private:
         frame.worldContacts = contacts(Ts);
         frame.normal        = contactNormal(Ts);
         frame.tangent       = contactTangent(Ts);
+
+        if (referenceIndex() == 0)
+        {
+            frame.normal = -frame.normal;
+            frame.tangent = -frame.tangent;
+        }
+
         return frame;
     }
 

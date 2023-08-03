@@ -202,8 +202,6 @@ public:
         ContactInfo info;
         info.nContacts = manifold_.nContacts();
 
-        const Uint32 ref    = manifold_.referenceIndex();
-        const Uint32 inc    = manifold_.incidentIndex();
         info.refContacts[0] = frame_.worldContacts[ref][0];
         info.incContacts[0] = frame_.worldContacts[inc][0];
         info.refContacts[1] = frame_.worldContacts[ref][1];
@@ -399,19 +397,20 @@ private:
                     roseTooHigh = true;
             }
 
-            const Uint32 inc = manifold_.incidentIndex();
+            const Uint32 incident = manifold_.incidentIndex();
 
+            Vec2 refN = (incident == 1) ? -frame_.normal : frame_.normal;
             Vec2 nearestIncident = furthestVertexInDirection(
-                bodies()[inc]->collider(),
-                -frame_.normal
+                bodies()[incident]->collider(),
+                -(refN)
             );
 
             bool hasNewCandidate
-                = any(frame_.worldContacts[inc][0] != nearestIncident);
+                = any(frame_.worldContacts[incident][0] != nearestIncident);
             if (frame_.nContacts == 2)
                 hasNewCandidate
                     = hasNewCandidate
-                      && any(frame_.worldContacts[inc][1] != nearestIncident);
+                      && any(frame_.worldContacts[incident][1] != nearestIncident);
 
             needsNewManifold
                 = tangentDistanceExceeded || roseTooHigh || hasNewCandidate;
@@ -440,9 +439,6 @@ private:
 
     void computeKs(const Proxies& proxies, bool computeFrictionK)
     {
-        const Uint32 ref = manifold_.referenceIndex();
-        const Uint32 inc = manifold_.incidentIndex();
-
         const auto  invMass    = proxies.invMassVec();
         const float refMass    = invMass[3 * ref];
         const float incMass    = invMass[3 * inc];
@@ -507,10 +503,6 @@ private:
 
     void computeJacobians(const Proxies& proxies, bool computeFriction)
     {
-        const Uint32 ref = manifold_.referenceIndex();
-        const Uint32 inc = manifold_.incidentIndex();
-
-
         std::array<std::array<Vec2, 2>, 2> r{};
         for (Uint32 b = 0; b < 2; ++b)
         {
@@ -557,9 +549,6 @@ private:
 
     std::array<Vec2, 2> relativePosition() const
     {
-        const Uint32 ref = manifold_.referenceIndex();
-        const Uint32 inc = manifold_.incidentIndex();
-
         std::array<Vec2, 2> relPos;
         for (Uint32 c = 0; c < frame_.nContacts; ++c)
         {
@@ -596,6 +585,10 @@ private:
 
     float restitutionCoeff_;
     float frictionCoeff_;
+
+    // normal points out of ref.
+    static constexpr Uint32 inc = 0;
+    static constexpr Uint32 ref = 1;
 
     // TODO: Should be modifiable
     static constexpr float restitutionTreshold = 1.f;
