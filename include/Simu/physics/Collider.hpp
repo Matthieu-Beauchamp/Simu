@@ -40,10 +40,8 @@ namespace simu
 ///
 /// All of its geometry is always positively oriented.
 ///
-/// The local space geometry does not need to have its centroid at origin,
-///     but care should be taken to apply the correct transformations
-///     (notably for rotating about the centroid).
-///
+/// The local space geometry will be recentered to have its centroid at origin
+/// 
 ////////////////////////////////////////////////////////////
 class Collider
 {
@@ -57,6 +55,10 @@ public:
     Collider(const Polygon& polygon, const Transform& transform, const Alloc& alloc)
         : local_{polygon.begin(), polygon.end(), alloc}, transformed_{alloc}
     {
+        Vec2 c = polygon.properties().centroid;
+        for (Vec2& v : local_)
+            v -= c;
+
         transformed_.resize(local_.size());
         update(transform);
     }

@@ -171,15 +171,14 @@ class Position
 {
 public:
 
-    Position(Vec2 position, float orientation, Vec2 localSpaceCentroid)
-        : toWorldSpace_{Rotation{orientation}, Translation{position}},
-          localCentroid_{localSpaceCentroid}
+    Position(Vec2 position, float orientation)
+        : toWorldSpace_{Rotation{orientation}, Translation{position}}
     {
     }
 
     Vec2  position() const { return toWorldSpace_.translation().offset(); }
     float orientation() const { return toWorldSpace_.rotation().theta(); }
-    Vec2  centroid() const { return toWorldSpace() * localCentroid_; }
+    Vec2  centroid() const { return position(); }
 
     void advance(Vec2 dPos, float dTheta)
     {
@@ -187,19 +186,13 @@ public:
         toWorldSpace_.rotation() *= Rotation(dTheta);
     }
 
-    Transform toWorldSpace() const
-    {
-        return Translation{localCentroid_}
-               * toWorldSpace_* Translation{-localCentroid_};
-    }
-
+    Transform toWorldSpace() const { return toWorldSpace_; }
     Transform toLocalSpace() const { return toWorldSpace().inverse(); }
 
 
 private:
 
     Transform toWorldSpace_;
-    Vec2      localCentroid_{};
 };
 
 class World;
@@ -215,7 +208,8 @@ public:
     ///
     ////////////////////////////////////////////////////////////
     Body(const BodyDescriptor& descriptor)
-        : position_{descriptor.position, descriptor.orientation, descriptor.polygon.properties().centroid},
+        : position_{descriptor.position + descriptor.polygon.properties().centroid, 
+                    descriptor.orientation},
           material_{descriptor.material},
           mass_{descriptor.polygon.properties(), descriptor.material.density},
           collider_{descriptor.polygon, Transform::identity(), Alloc{}},
