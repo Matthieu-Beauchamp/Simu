@@ -54,10 +54,11 @@ public:
     float theta() const { return theta_; }
     void  set(float theta)
     {
-        constexpr float fullCircle = 2.f * std::numbers::pi_v<float>;
+        // makes Rotation Constraint bug out 
+        // constexpr float fullCircle = 2.f * std::numbers::pi_v<float>;
 
-        float nCircles = theta / fullCircle;
-        theta -= std::floor(nCircles) * fullCircle;
+        // float nCircles = theta / fullCircle;
+        // theta -= std::floor(nCircles) * fullCircle;
 
         theta_ = theta;
         cosine = std::cos(theta);

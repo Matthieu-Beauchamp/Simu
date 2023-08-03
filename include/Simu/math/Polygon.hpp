@@ -58,6 +58,19 @@ public:
     template <VertexIterator2D It>
     Polygon(It begin, It end);
 
+    static Polygon box(Vec2 dim)
+    {
+        float w = dim[0] / 2.f;
+        float h = dim[1] / 2.f;
+
+        return Polygon{
+            simu::Vertex{-w, -h},
+            simu::Vertex{w,  -h},
+            simu::Vertex{w,  h },
+            simu::Vertex{-w, h }
+        };
+    }
+
     Vec2 furthestVertexInDirection(const Vec2& direction) const;
 
     GeometricProperties properties() const { return properties_; }

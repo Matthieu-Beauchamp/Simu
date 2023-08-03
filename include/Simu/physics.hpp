@@ -28,4 +28,5 @@
 
 #include "Simu/physics/World.hpp"
 #include "Simu/physics/Constraint.hpp"
+#include "Simu/physics/Motors.hpp"
 #include "Simu/physics/DistanceConstraint.hpp"

@@ -31,24 +31,24 @@ namespace simu
 {
 
 
-template <Uint32 nBodies_, Uint32 dimension_>
+template <Uint32 dimension_>
 class MotorFunctionBase
 {
 public:
 
-    static constexpr Uint32 nBodies   = nBodies_;
+    static constexpr Uint32 nBodies   = 1;
     static constexpr Uint32 dimension = dimension_;
 
     typedef Vector<float, dimension>              Value;
-    typedef Matrix<float, dimension, 3 * nBodies> Jacobian;
+    typedef Matrix<float, dimension, 6> Jacobian;
 
     MotorFunctionBase(float maxVelocity, float maxForce)
         : maxVelocity_{std::abs(maxVelocity)}, maxForce_{std::abs(maxForce)}
     {
     }
 
-    Value eval(const Bodies<nBodies> /* bodies */) const { return Value{}; }
-    Value bias(const Bodies<nBodies> /* bodies */) const
+    Value eval(const Proxies& /* proxies */) const { return Value{}; }
+    Value bias(const Proxies& /* proxies */) const
     {
         return -maxVelocity_ * direction_;
     }
@@ -91,40 +91,40 @@ private:
 };
 
 
-class RotationMotorFunction : public MotorFunctionBase<1, 1>
+class RotationMotorFunction : public MotorFunctionBase< 1>
 {
 public:
 
-    typedef MotorFunctionBase<1, 1> Base;
+    typedef MotorFunctionBase<1> Base;
 
     RotationMotorFunction(float maxAngularVelocity, float maxTorque)
         : Base{maxAngularVelocity, maxTorque}
     {
     }
 
-    Jacobian jacobian(const Bodies<1>& /* bodies */) const
+    Jacobian jacobian(const Proxies& /* proxies */) const
     {
-        return Jacobian{0, 0, 1};
+        return Jacobian{0, 0, 1, 0, 0, 0};
     }
 };
 
 
-class TranslationMotorFunction : public MotorFunctionBase<1, 2>
+class TranslationMotorFunction : public MotorFunctionBase<2>
 {
 public:
 
-    typedef MotorFunctionBase<1, 2> Base;
+    typedef MotorFunctionBase<2> Base;
 
     TranslationMotorFunction(float maxVelocity, float maxForce)
         : Base{maxVelocity, maxForce}
     {
     }
 
-    Jacobian jacobian(const Bodies<1>& /* bodies */) const
+    Jacobian jacobian(const Proxies& /* proxies */) const
     {
         // clang-format off
-        return Jacobian{1, 0, 0,
-                        0, 1, 0};
+        return Jacobian{1, 0, 0, 0, 0, 0,
+                        0, 1, 0, 0, 0, 0};
         // clang-format on
     }
 };
@@ -177,12 +177,12 @@ public:
         }
 
         float maxAngularVelocity() const { return maxAngularVelocity_; }
-        float maxTorque(const Bodies<1>& body) const
+        float maxTorque(const Bodies& body) const
         {
             if (maxTorque_.has_value())
                 return maxTorque_.value();
 
-            return maxAccel_.value() * body[0]->properties().inertia;
+            return maxAccel_.value() * body[0]->inertia();
         }
 
     private:
@@ -192,7 +192,7 @@ public:
         std::optional<float> maxTorque_{};
     };
 
-    RotationMotor(const Bodies<1>& bodies, Specs specs)
+    RotationMotor(const Bodies& bodies, Specs specs)
         : Base{
             bodies,
             F{specs.maxAngularVelocity(), specs.maxTorque(bodies)},
@@ -255,12 +255,12 @@ public:
         }
 
         float maxVelocity() const { return maxVelocity_; }
-        float maxForce(const Bodies<1>& body) const
+        float maxForce(const Bodies& body) const
         {
             if (maxForce_.has_value())
                 return maxForce_.value();
 
-            return maxAccel_.value() * body[0]->properties().mass;
+            return maxAccel_.value() * body[0]->mass();
         }
 
     private:
@@ -270,7 +270,7 @@ public:
         std::optional<float> maxForce_{};
     };
 
-    TranslationMotor(const Bodies<1>& bodies, Specs specs)
+    TranslationMotor(const Bodies& bodies, Specs specs)
         : Base{
             bodies,
             F{specs.maxVelocity(), specs.maxForce(bodies)},

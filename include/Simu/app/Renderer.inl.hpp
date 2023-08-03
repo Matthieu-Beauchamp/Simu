@@ -36,26 +36,28 @@ void Renderer::drawPoint(Vec2 P, Rgba color, float radius)
     static_assert(precision >= 3, "");
 
     static std::array<Vec2, precision> offsets{};
-    static bool                        firstCall = true;
+    static float                       prevRadius = 1.f;
+    static bool                        firstCall  = true;
 
-    if (firstCall)
+    if (radius != prevRadius || firstCall)
     {
         constexpr float pi = std::numbers::pi_v<float>;
         Rotation        rot{2.f * pi / precision};
-        Vec2            offset = Vec2::i();
+        Vec2            offset = radius * Vec2::i();
         for (Uint8 i = 0; i < precision; ++i)
         {
             offsets[i] = offset;
             offset     = rot * offset;
         }
 
-        firstCall = false;
+        firstCall  = false;
+        prevRadius = radius;
     }
 
     std::array<Vec2, precision> vertices{};
     for (Uint8 i = 0; i < precision; ++i)
     {
-        vertices[i] = P + radius * offsets[i];
+        vertices[i] = P + offsets[i];
     }
 
     const auto& cv = vertices;

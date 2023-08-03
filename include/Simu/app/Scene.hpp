@@ -95,6 +95,8 @@ public:
 
 protected:
 
+    Renderer* getRenderer() const { return renderer_; }
+
     virtual void init(Renderer& renderer) = 0;
 
     virtual void onClear(){};
