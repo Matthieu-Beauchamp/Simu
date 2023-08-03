@@ -41,19 +41,17 @@ public:
         mousePos_     = pos;
     }
 
-    Value eval(const Bodies& body) const
+    Value eval(const Proxies& proxy) const
     {
-        return worldBodyPos(body) - mousePos_;
+        return worldBodyPos(proxy) - mousePos_;
     }
 
-    Value bias(const Bodies& /* body */) const { return Value{}; }
+    Value bias(const Proxies& /* proxy */) const { return Value{}; }
 
 
-    Jacobian jacobian(const Bodies& body) const
+    Jacobian jacobian(const Proxies& proxy) const
     {
-        auto p = body.proxies();
-
-        Vec2 r = worldBodyPos(body) - p[0]->centroid();
+        Vec2 r = worldBodyPos(proxy) - proxy[0].centroid();
 
         // clang-format off
         return Jacobian{
@@ -71,10 +69,9 @@ public:
 
 private:
 
-    Vec2 worldBodyPos(const Bodies& bodies) const
+    Vec2 worldBodyPos(const Proxies& proxy) const
     {
-        auto p = bodies.proxies();
-        return p[0]->toWorldSpace() * localBodyPos_;
+        return proxy[0].toWorldSpace() * localBodyPos_;
     }
 
     Vec2 mousePos_;
@@ -101,13 +98,13 @@ public:
 
     Vec2 bodyPos() const
     {
-        return bodies().bodies()[0]->toWorldSpace() * f.localBodyPos();
+        return bodies()[0]->toWorldSpace() * f.localBodyPos();
     }
     Vec2 mousePos() const { return f.mousePos(); }
 
     void updateMousePos(Vec2 pos) { f.updateMousePos(pos); }
 
-    void solvePositions() override {}
+    void solvePositions(Proxies&) override {}
 };
 
 } // namespace simu

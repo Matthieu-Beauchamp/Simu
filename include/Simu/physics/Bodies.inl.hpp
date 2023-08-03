@@ -31,6 +31,46 @@ namespace simu
 {
 
 
+Proxies::Proxies(const SolverProxy& p0, const SolverProxy& p1, const InvMasses& masses)
+    : proxies_{p0, p1}, invMasses_{masses}
+{
+}
+
+
+void Proxies::applyImpulse(const Impulse& P)
+{
+    const InvMasses& m = invMasses_;
+
+    proxies_[0].incrementVel(m.m0* Vec2{P[0], P[1]}, m.I0 * P[2]);
+    proxies_[1].incrementVel(m.m1* Vec2{P[3], P[4]}, m.I1 * P[5]);
+}
+
+
+void Proxies::applyPositionCorrection(const State& S)
+{
+    const InvMasses& m = invMasses_;
+
+    proxies_[0].advancePos(m.m0* Vec2{S[0], S[1]}, m.I0 * S[2]);
+    proxies_[1].advancePos(m.m1* Vec2{S[3], S[4]}, m.I1 * S[5]);
+}
+
+
+typename Proxies::VelocityVec Proxies::velocity() const
+{
+    VelocityVec v{};
+    Uint32      i = 0;
+    for (const SolverProxy& p : proxies_)
+    {
+        v[i++] = p.velocity()[0];
+        v[i++] = p.velocity()[1];
+        v[i++] = p.angularVelocity();
+    }
+
+    return v;
+}
+
+
+
 Bodies::Bodies(std::initializer_list<Body*> bodies, std::optional<Dominance> dominances)
 {
     SIMU_ASSERT(
@@ -66,43 +106,5 @@ bool Bodies::isBodyStructural(const Body* body) const
     SIMU_ASSERT(false, "Body is not part of these bodies.");
     return true;
 }
-
-
-void Bodies::applyImpulse(const Impulse& P)
-{
-    assertHasProxies();
-    const InvMasses& m = invMasses_;
-
-    proxies_[0]->incrementVel(m.m0* Vec2{P[0], P[1]}, m.I0 * P[2]);
-    proxies_[1]->incrementVel(m.m1* Vec2{P[3], P[4]}, m.I1 * P[5]);
-}
-
-
-void Bodies::applyPositionCorrection(const State& S)
-{
-    assertHasProxies();
-    const InvMasses& m = invMasses_;
-
-    proxies_[0]->advancePos(m.m0* Vec2{S[0], S[1]}, m.I0 * S[2]);
-    proxies_[1]->advancePos(m.m1* Vec2{S[3], S[4]}, m.I1 * S[5]);
-}
-
-
-typename Bodies::VelocityVec Bodies::velocity() const
-{
-    assertHasProxies();
-
-    VelocityVec v{};
-    Uint32   i = 0;
-    for (const SolverProxy* p : proxies_)
-    {
-        v[i++] = p->velocity()[0];
-        v[i++] = p->velocity()[1];
-        v[i++] = p->angularVelocity();
-    }
-
-    return v;
-}
-
 
 } // namespace simu

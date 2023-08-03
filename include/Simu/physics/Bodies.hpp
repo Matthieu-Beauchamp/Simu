@@ -105,36 +105,23 @@ public:
 
 private:
 
+    friend class Bodies;
+    friend class Proxies;
+
     Position* position_ = nullptr;
     Velocity* velocity_ = nullptr;
 };
 
-template <class T>
-class ArrayView
+
+struct InvMasses
 {
-public:
-
-    ArrayView(T* begin, T* end) : begin_{begin}, end_{end} {}
-
-    T*       begin() { return begin_; }
-    const T* begin() const { return begin_; }
-
-    T*       end() { return end_; }
-    const T* end() const { return end_; }
-
-    T&       operator[](std::size_t index) { return *(begin() + index); }
-    const T& operator[](std::size_t index) const { return *(begin() + index); }
-
-    std::size_t size() const { return end() - begin(); }
-
-private:
-
-    T* begin_;
-    T* end_;
+    float m0;
+    float I0;
+    float m1;
+    float I1;
 };
 
-
-class Bodies
+class Proxies
 {
 public:
 
@@ -146,7 +133,60 @@ public:
 
     typedef Matrix<float, 3 * n, 3 * n> Mass;
     typedef Vector<float, 3 * n>        MassVec;
-    typedef Vec2                        Dominance;
+    typedef Vector<float, n>            Dominance;
+
+    Proxies() = default;
+    inline Proxies(
+        const SolverProxy& p0,
+        const SolverProxy& p1,
+        const InvMasses&   masses
+    );
+
+    // TODO: Always iterate over 2 proxies, even if they point to the same body
+    SolverProxy const* begin() const { return proxies_.data(); }
+    SolverProxy const* end() const { return proxies_.data() + n; }
+
+    SolverProxy* begin() { return proxies_.data(); }
+    SolverProxy* end() { return proxies_.data() + n; }
+
+    SolverProxy&       operator[](Uint32 index) { return proxies_[index]; }
+    const SolverProxy& operator[](Uint32 index) const
+    {
+        return proxies_[index];
+    }
+
+
+    inline void applyImpulse(const Impulse& impulse);
+    inline void applyPositionCorrection(const State& correction);
+
+    inline VelocityVec velocity() const;
+
+
+    const InvMasses& invMasses() const { return invMasses_; }
+    MassVec          invMassVec() const
+    {
+        const InvMasses& m = invMasses();
+        return MassVec{m.m0, m.m0, m.I0, m.m1, m.m1, m.I1};
+    }
+    Mass inverseMass() const { return Mass::diagonal(invMassVec()); }
+
+private:
+
+
+    std::array<SolverProxy, 2> proxies_;
+
+    // TODO: This is duplicated
+    InvMasses invMasses_;
+};
+
+
+class Bodies
+{
+public:
+
+    static constexpr Uint32 n = 2;
+
+    typedef Vector<float, n> Dominance;
 
     inline Bodies(
         std::initializer_list<Body*> bodies,
@@ -160,63 +200,33 @@ public:
             Dominance{1.f,  1.f }
         };
 
-        b.isSingleBody = true;
         return b;
     }
 
-    bool   isSolving() const { return isSolving_; }
-    Uint32 size() const { return 2 - static_cast<Uint32>(isSingleBody); }
 
-    // Constraint should never use the bodies() directly, except at construction.
-    //  instead, call proxies() to retrieve the needed information.
-    auto bodies()
+    Body const* const* begin() const
     {
-        assertNotSolving();
-        Body** p = bodies_.data();
-        return ArrayView(p, p + size());
+        return const_cast<Body const* const*>(bodies_.data());
     }
-    auto bodies() const
+    Body const* const* end() const
     {
-        assertNotSolving();
-        Body const** p = const_cast<Body const**>(bodies_.data());
-        return ArrayView(p, p + size());
+        return const_cast<Body const* const*>(bodies_.data() + size());
     }
 
-    auto proxies() const
+    Body* const* begin() { return bodies_.data(); }
+    Body* const* end() { return bodies_.data() + size(); }
+
+    Body*       operator[](Uint32 index) { return bodies_[index]; }
+    const Body* operator[](Uint32 index) const { return bodies_[index]; }
+
+    Uint32 size() const
     {
-        assertHasProxies();
-        SolverProxy const** p = const_cast<SolverProxy const**>(proxies_.data());
-        return ArrayView(p, p + size());
+        return 1 + static_cast<Uint32>(bodies_[0] != bodies_[1]);
     }
-    auto proxies()
-    {
-        assertHasProxies();
-        SolverProxy** p = proxies_.data();
-        return ArrayView(p, p + size());
-    }
+
 
     inline bool isBodyStructural(const Body* body) const;
 
-    inline void applyImpulse(const Impulse& impulse);
-    inline void applyPositionCorrection(const State& correction);
-
-    inline VelocityVec velocity() const;
-
-    struct InvMasses
-    {
-        float m0;
-        float I0;
-        float m1;
-        float I1;
-    };
-
-    const InvMasses& invMasses() const { return invMasses_; }
-    MassVec          invMassVec() const
-    {
-        const InvMasses& m = invMasses();
-        return MassVec{m.m0, m.m0, m.I0, m.m1, m.m1, m.I1};
-    }
-    Mass inverseMass() const { return Mass::diagonal(invMassVec()); }
 
     bool operator==(const Bodies& other) const
     {
@@ -231,6 +241,8 @@ public:
 private:
 
     friend class Island;
+    friend class Constraint;
+
     void startSolve(Position* ps, Velocity* vs)
     {
         Int32 index0 = bodies_[0]->proxyIndex;
@@ -239,48 +251,28 @@ private:
         SIMU_ASSERT(index0 != Body::NO_INDEX, "");
         SIMU_ASSERT(index1 != Body::NO_INDEX, "");
 
-        proxiesData_[0] = SolverProxy{ps + index0, vs + index0};
-        proxiesData_[1] = SolverProxy{ps + index1, vs + index1};
-        isSolving_      = true;
+        proxies_ = Proxies{
+            SolverProxy{ps + index0, vs + index0},
+            SolverProxy{ps + index1, vs + index1},
+            invMasses_
+        };
     }
 
-    void endSolve()
-    {
-        proxiesData_[0] = SolverProxy{};
-        proxiesData_[1] = SolverProxy{};
-        isSolving_      = false;
-    }
+    void endSolve() { proxies_ = Proxies{}; }
 
-    void assertNotSolving() const
-    {
-        SIMU_ASSERT(
-            !isSolving_,
-            "Should not be accessed by constraints while they are being "
-            "solved, use proxies()"
-        );
-    }
+    bool hasProxies() const { return proxies_[0].position_ != nullptr; }
 
-    void assertHasProxies() const
+    Proxies& getProxies()
     {
-        proxies_[0] = proxiesData_.data();
-        proxies_[1] = proxies_[0] + 1;
-
-        SIMU_ASSERT(
-            isSolving_,
-            "No proxies are currently associated with these bodies"
-        );
+        SIMU_ASSERT(hasProxies(), "has no proxies");
+        return proxies_;
     }
 
     std::array<Body*, n> bodies_;
 
-    // TODO: Weird stuff, until proxies are no longer handled by Bodies
-    mutable std::array<SolverProxy, n>  proxiesData_{};
-    mutable std::array<SolverProxy*, n> proxies_{};
+    Proxies proxies_{};
 
     InvMasses invMasses_;
-
-    bool isSolving_   = false;
-    bool isSingleBody = false;
 };
 
 

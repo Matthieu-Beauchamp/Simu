@@ -65,7 +65,7 @@ void World::step(float dt)
         c.preStep();
     for (auto& c : contacts_)
         if (c.second.existingContact != nullptr)
-            c.second.existingContact->preStep();
+            static_cast<Constraint*>(c.second.existingContact.get())->preStep();
     for (ForceField& f : forceFields())
         f.preStep();
 
@@ -137,7 +137,7 @@ UniquePtr<ContactConstraint> World::makeContactConstraint(Bodies bodies)
     c->setAllocator(cAlloc_);
     c->onConstruction(*this);
 
-    for (Body* body : c->bodies().bodies())
+    for (Body* body : c->bodies())
     {
         body->contacts_.emplace_back(c.get());
         body->wake();
@@ -236,7 +236,7 @@ void World::cleanup()
         ContactConstraint* contact = it->second.existingContact.get();
         if (contact != nullptr && contact->isDead())
         {
-            for (Body* b : contact->bodies().bodies())
+            for (Body* b : contact->bodies())
                 std::erase(b->contacts_, contact);
 
             it = contacts_.erase(it);
@@ -256,7 +256,7 @@ void World::cleanup()
 
     for (auto c : deadConstraints)
     {
-        for (Body* body : (*c)->bodies().bodies())
+        for (Body* body : (*c)->bodies())
         {
             body->constraints_.erase(std::find(
                 body->constraints_.begin(),
@@ -336,7 +336,7 @@ void World::updateBodies(float dt)
         {
             if (!c->isDead())
             {
-                auto bodies = c->bodies().bodies();
+                auto bodies = c->bodies();
                 if (!boundsOf(bodies[0]).overlaps(boundsOf(bodies[1])))
                     c->kill();
             }

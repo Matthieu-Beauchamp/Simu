@@ -180,11 +180,10 @@ protected:
         Rgba turquoise = Rgba{50, 235, 235, 255};
 
         auto points = f.localFixedPoints();
-        auto b      = bodies().bodies();
 
         renderer.drawLine(
-            b[0]->toWorldSpace() * points[0],
-            b[1]->toWorldSpace() * points[1],
+            bodies()[0]->toWorldSpace() * points[0],
+            bodies()[1]->toWorldSpace() * points[1],
             turquoise,
             0.1f
         );
@@ -206,7 +205,7 @@ protected:
 
     void draw(Renderer& renderer) override
     {
-        if (this->isActive() && any(bodyPos() != mousePos()))
+        if (any(bodyPos() != mousePos()))
         {
             Rgba purple = Rgba{235, 50, 235, 255};
             renderer.drawLine(bodyPos(), mousePos(), purple, 0.1f);

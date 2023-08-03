@@ -56,24 +56,33 @@ public:
     void onConstruction(World& world) override;
     void onDestruction(World& world) override;
 
-    bool isActive() override
+    bool isActive(const Proxies& proxies) override
     {
         // TODO: Shouldn't something similar be done for inequality constraints?
         if constexpr (std::is_same_v<S, LimitsSolver<F>>)
-            return solver.isActive(bodies(), f);
+            return solver.isActive(proxies, f);
         else
             return true;
     }
 
-    void initSolve() override { solver.initSolve(bodies(), f); }
-    void warmstart(float dt) override { solver.warmstart(bodies(), f, dt); }
-
-    void solveVelocities(float dt) override
+    void initSolve(const Proxies& proxies) override
     {
-        solver.solveVelocity(bodies(), f, dt);
+        solver.initSolve(proxies, f);
+    }
+    void warmstart(Proxies& proxies, float dt) override
+    {
+        solver.warmstart(proxies, f, dt);
     }
 
-    void solvePositions() override { solver.solvePosition(bodies(), f); }
+    void solveVelocities(Proxies& proxies, float dt) override
+    {
+        solver.solveVelocity(proxies, f, dt);
+    }
+
+    void solvePositions(Proxies& proxies) override
+    {
+        solver.solvePosition(proxies, f);
+    }
 
 
 protected:
@@ -150,8 +159,7 @@ private:
 
     static Vec2 centroidMidPoint(const Bodies& bodies)
     {
-        auto b = bodies.bodies();
-        return (b[0]->centroid() + b[1]->centroid()) / 2;
+        return (bodies[0]->centroid() + bodies[1]->centroid()) / 2;
     }
 
     static F makeWeldFunction(const Bodies& bodies)
@@ -181,23 +189,40 @@ public:
     ContactConstraint(const Bodies& bodies)
         : Constraint{bodies}, 
           manifold_{this->bodies()}, 
-          restitutionCoeff_{CombinableProperty{bodies.bodies()[0]->material().bounciness, 
-                                               bodies.bodies()[1]->material().bounciness}.value},
-          frictionCoeff_{CombinableProperty{bodies.bodies()[0]->material().friction, 
-                                            bodies.bodies()[1]->material().friction}.value}
+          restitutionCoeff_{CombinableProperty{bodies[0]->material().bounciness, 
+                                               bodies[1]->material().bounciness}.value},
+          frictionCoeff_{CombinableProperty{bodies[0]->material().friction, 
+                                            bodies[1]->material().friction}.value}
     {
         frame_ = manifold_.frameManifold(this->bodies());
     }
 
+    ContactInfo contactInfo() const
+    {
+        ContactInfo info;
+        info.nContacts = manifold_.nContacts();
+
+        const Uint32 ref    = manifold_.referenceIndex();
+        const Uint32 inc    = manifold_.incidentIndex();
+        info.refContacts[0] = frame_.worldContacts[ref][0];
+        info.incContacts[0] = frame_.worldContacts[inc][0];
+        info.refContacts[1] = frame_.worldContacts[ref][1];
+        info.incContacts[1] = frame_.worldContacts[inc][1];
+
+        info.normal = frame_.normal;
+
+        return info;
+    }
+
     void preStep() override { updateContacts(); }
 
-    bool isActive() final override
+    bool isActive(const Proxies& proxies) final override
     {
-        frame_ = manifold_.frameManifold(bodies());
+        frame_ = manifold_.frameManifold(proxies);
         return frame_.nContacts != 0;
     }
 
-    void initSolve() final override
+    void initSolve(const Proxies& proxies) final override
     {
         // TODO: Use baumgarte?
         // if (normSquared(penetration_) >= maxPen_ * maxPen_)
@@ -205,25 +230,23 @@ public:
         // else
         //     contactConstraint_->setRestitution(0.f);
 
-        computeJacobians(true);
-        computeKs(true);
-        computeBounce();
+        computeJacobians(proxies, true);
+        computeKs(proxies, true);
+        computeBounce(proxies);
     }
 
-    void warmstart(float /* dt */) final override
+    void warmstart(Proxies& proxies, float /* dt */) final override
     {
         Impulse P = transpose(Jf[0]) * tangentLambda_[0]
                     + transpose(Jf[1]) * tangentLambda_[1];
         P += transpose(Jn) * normalLambda_;
-        bodies().applyImpulse(P);
+        proxies.applyImpulse(P);
     }
 
-    void solveVelocities(float /* dt */) final override
+    void solveVelocities(Proxies& proxies, float /* dt */) final override
     {
-        auto p = bodies().proxies();
-
-        const auto invMassVec = bodies().invMassVec();
-        auto       velocity   = bodies().velocity();
+        const auto invMassVec = proxies.invMassVec();
+        auto       velocity   = proxies.velocity();
 
         for (Uint32 c = 0; c < frame_.nContacts; ++c)
         {
@@ -284,15 +307,15 @@ public:
             velocity += elementWiseMul(invMassVec, P);
         }
 
-        p[0]->setVelocity(Vec2{velocity[0], velocity[1]}, velocity[2]);
-        p[1]->setVelocity(Vec2{velocity[3], velocity[4]}, velocity[5]);
+        proxies[0].setVelocity(Vec2{velocity[0], velocity[1]}, velocity[2]);
+        proxies[1].setVelocity(Vec2{velocity[3], velocity[4]}, velocity[5]);
     }
 
-    void solvePositions() final override
+    void solvePositions(Proxies& proxies) final override
     {
-        frame_ = manifold_.frameManifold(bodies());
-        computeJacobians(false);
-        computeKs(false);
+        frame_ = manifold_.frameManifold(proxies);
+        computeJacobians(proxies, false);
+        computeKs(proxies, false);
 
         Vec2 C{};
         auto relPos = relativePosition();
@@ -319,7 +342,7 @@ public:
             float posLambda = -error[0] * invNormalK11_;
             posLambda       = std::max(posLambda, 0.f);
 
-            bodies().applyPositionCorrection(
+            proxies.applyPositionCorrection(
                 transpose(normalJacobian(0)) * posLambda
             );
         }
@@ -342,28 +365,8 @@ public:
 
             ///////////////////////////////////////
 
-
-            bodies().applyPositionCorrection(
-                bodies().inverseMass() * transpose(Jn) * posLambda
-            );
+            proxies.applyPositionCorrection(transpose(Jn) * posLambda);
         }
-    }
-
-    ContactInfo contactInfo() const
-    {
-        ContactInfo info;
-        info.nContacts = manifold_.nContacts();
-
-        const Uint32 ref    = manifold_.referenceIndex();
-        const Uint32 inc    = manifold_.incidentIndex();
-        info.refContacts[0] = frame_.worldContacts[ref][0];
-        info.incContacts[0] = frame_.worldContacts[inc][0];
-        info.refContacts[1] = frame_.worldContacts[ref][1];
-        info.incContacts[1] = frame_.worldContacts[inc][1];
-
-        info.normal = frame_.normal;
-
-        return info;
     }
 
 private:
@@ -399,7 +402,7 @@ private:
             const Uint32 inc = manifold_.incidentIndex();
 
             Vec2 nearestIncident = furthestVertexInDirection(
-                bodies().bodies()[inc]->collider(),
+                bodies()[inc]->collider(),
                 -frame_.normal
             );
 
@@ -435,12 +438,12 @@ private:
         }
     }
 
-    void computeKs(bool computeFrictionK)
+    void computeKs(const Proxies& proxies, bool computeFrictionK)
     {
         const Uint32 ref = manifold_.referenceIndex();
         const Uint32 inc = manifold_.incidentIndex();
 
-        const auto  invMass    = bodies().invMassVec();
+        const auto  invMass    = proxies.invMassVec();
         const float refMass    = invMass[3 * ref];
         const float incMass    = invMass[3 * inc];
         const float refInertia = invMass[3 * ref + 2];
@@ -451,7 +454,7 @@ private:
 
         if (computeFrictionK)
         {
-            for (Uint32 c = 0; c < manifold_.nContacts(); ++c)
+            for (Uint32 c = 0; c < frame_.nContacts; ++c)
             {
                 invTangentKs_[c] = linearMass * normSquared(frame_.tangent)
                                    + refInertia * squared(Jf[c][3 * ref + 2])
@@ -486,9 +489,9 @@ private:
         }
     }
 
-    void computeBounce()
+    void computeBounce(const Proxies& proxies)
     {
-        bounce_ = Jn * bodies().velocity();
+        bounce_ = Jn * proxies.velocity();
 
         for (Uint32 c = 0; c < manifold_.nContacts(); ++c)
         {
@@ -499,20 +502,19 @@ private:
         bounce_ *= restitutionCoeff_;
     }
 
-    typedef typename Bodies::State   State;
-    typedef typename Bodies::Impulse Impulse;
+    typedef typename Proxies::State   State;
+    typedef typename Proxies::Impulse Impulse;
 
-    void computeJacobians(bool computeFriction)
+    void computeJacobians(const Proxies& proxies, bool computeFriction)
     {
         const Uint32 ref = manifold_.referenceIndex();
         const Uint32 inc = manifold_.incidentIndex();
 
-        auto p = bodies().proxies();
 
         std::array<std::array<Vec2, 2>, 2> r{};
         for (Uint32 b = 0; b < 2; ++b)
         {
-            Vec2 centroid = p[b]->centroid();
+            Vec2 centroid = proxies[b].centroid();
             for (Uint32 c = 0; c < frame_.nContacts; ++c)
             {
                 r[b][c] = frame_.worldContacts[b][c] - centroid;

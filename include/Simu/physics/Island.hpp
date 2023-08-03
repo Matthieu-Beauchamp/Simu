@@ -117,21 +117,21 @@ public:
     void applyVelocityConstraints(Uint32 nIter, float dt)
     {
         for (Constraint* constraint : constraints_)
-            constraint->initSolve();
+            constraint->initSolve(constraint->bodies().getProxies());
         for (ContactConstraint* constraint : contacts_)
-            constraint->initSolve();
+            constraint->initSolve(constraint->bodies().getProxies());
 
         for (Constraint* constraint : constraints_)
-            constraint->warmstart(dt);
+            constraint->warmstart(constraint->bodies().getProxies(), dt);
         for (ContactConstraint* constraint : contacts_)
-            constraint->warmstart(dt);
+            constraint->warmstart(constraint->bodies().getProxies(), dt);
 
         for (Uint32 iter = 0; iter < nIter; ++iter)
         {
             for (Constraint* constraint : constraints_)
-                constraint->solveVelocities(dt);
+                constraint->solveVelocities(constraint->bodies().getProxies(), dt);
             for (ContactConstraint* constraint : contacts_)
-                constraint->solveVelocities(dt);
+                constraint->solveVelocities(constraint->bodies().getProxies(), dt);
         }
     }
 
@@ -149,9 +149,9 @@ public:
         for (Uint32 iter = 0; iter < nIter; ++iter)
         {
             for (Constraint* constraint : constraints_)
-                constraint->solvePositions();
+                constraint->solvePositions(constraint->bodies().getProxies());
             for (ContactConstraint* constraint : contacts_)
-                constraint->solvePositions();
+                constraint->solvePositions(constraint->bodies().getProxies());
         }
     }
 
@@ -187,12 +187,12 @@ private:
     template <class T, class C>
     bool addConstraint(T* constraint, C& container)
     {
-        if (constraint->bodies().isSolving())
+        if (constraint->bodies().hasProxies())
             return false;
 
         container.emplace_back(constraint);
 
-        auto  b      = constraint->bodies().bodies();
+        auto& b      = constraint->bodies();
         Int32 index1 = b[0]->proxyIndex;
         Int32 index2 = b[1]->proxyIndex;
         bool  added1 = addBody(b[0]);
@@ -200,7 +200,7 @@ private:
 
         constraint->bodies().startSolve(positions_.data(), velocities_.data());
 
-        if (!constraint->isActive())
+        if (!constraint->isActive(constraint->bodies().getProxies()))
         {
             if (added2)
             {

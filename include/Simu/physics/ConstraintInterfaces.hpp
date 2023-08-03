@@ -67,12 +67,10 @@ public:
 
     Constraint(const Bodies& bodies) : bodies_{bodies}
     {
-        auto b = bodies_.bodies();
-
         bool tooManyStructural = false;
-        if (b[0] == b[1] && bodies_.isBodyStructural(b[0]))
+        if (bodies_[0] == bodies_[1] && bodies_.isBodyStructural(bodies_[0]))
             tooManyStructural = true;
-        else if (bodies_.isBodyStructural(b[0]) && bodies_.isBodyStructural(b[1]))
+        else if (bodies_.isBodyStructural(bodies_[0]) && bodies_.isBodyStructural(bodies_[1]))
             tooManyStructural = true;
 
         SIMU_ASSERT(
@@ -80,33 +78,37 @@ public:
             "Cannot solve a constraint with multiple structural bodies."
         );
 
-        SIMU_ASSERT(b[0] != nullptr && b[1] != nullptr, "Invalid body");
+        SIMU_ASSERT(bodies_[0] != nullptr && bodies_[1] != nullptr, "Invalid body");
     }
 
     ~Constraint() override = default;
 
+    virtual bool isActive(const Proxies& proxies) = 0;
+
+    virtual void initSolve(const Proxies& proxies)     = 0;
+    virtual void warmstart(Proxies& proxies, float dt) = 0;
+
+    virtual void solveVelocities(Proxies& proxies, float dt) = 0;
+    virtual void solvePositions(Proxies& proxies)            = 0;
+
+    Bodies&       bodies() { return bodies_; }
+    const Bodies& bodies() const { return bodies_; }
+
+
+protected:
+
     bool shouldDie() const override
     {
-        for (const Body* body : bodies().bodies())
+        for (const Body* body : bodies())
             if (body->isDead())
                 return true;
 
         return false;
     }
 
-    virtual bool isActive() = 0;
-
-    virtual void initSolve()         = 0;
-    virtual void warmstart(float dt) = 0;
-
-    virtual void solveVelocities(float dt) = 0;
-    virtual void solvePositions()          = 0;
-
-
-    Bodies&       bodies() { return bodies_; }
-    const Bodies& bodies() const { return bodies_; }
-
 private:
+
+    Proxies& proxies() { return bodies().getProxies(); }
 
     Bodies bodies_;
 };
@@ -116,7 +118,7 @@ template <class F>
 concept ConstraintFunction = requires(
     F                 f,
     typename F::Value lambda,
-    Bodies            bodies,
+    const Proxies&    proxies,
     float             dt
 ) {
     requires F::nBodies == 1 || F::nBodies == 2;
@@ -128,10 +130,10 @@ concept ConstraintFunction = requires(
     typename F::Jacobian;
     requires std::is_same_v<typename F::Jacobian, Matrix<float, F::dimension, 6>>; 
 
-    { f.eval(bodies) } -> std::same_as<typename F::Value>;
-    { f.bias(bodies) } -> std::same_as<typename F::Value>;
+    { f.eval(proxies) } -> std::same_as<typename F::Value>;
+    { f.bias(proxies) } -> std::same_as<typename F::Value>;
 
-    { f.jacobian(bodies) } -> std::same_as<typename F::Jacobian>;
+    { f.jacobian(proxies) } -> std::same_as<typename F::Jacobian>;
     
     { f.clampLambda(lambda, dt) } -> std::same_as<typename F::Value>;
     { f.clampPositionLambda(lambda) } -> std::same_as<typename F::Value>;
@@ -142,11 +144,15 @@ concept ConstraintFunction = requires(
 template <ConstraintFunction F>
 class ConstraintSolverBase;
 
-// clang-format off
 template <class S>
-concept ConstraintSolver
-    = requires(S s, Bodies& bodies, typename S::F f, float dt) 
-{
+concept ConstraintSolver = requires(
+    S              s,
+    Proxies&       proxies,
+    const Proxies& cProxies,
+    typename S::F  f,
+    float          dt
+) {
+    // clang-format off
     typename S::F;
     requires ConstraintFunction<typename S::F>;
 
@@ -155,14 +161,13 @@ concept ConstraintSolver
     requires std::constructible_from<S, Bodies, typename S::F>;
 
 
-    { s.initSolve(bodies, f) };
-    { s.warmstart(bodies, f, dt) };
+    { s.initSolve(cProxies, f) };
+    { s.warmstart(proxies, f, dt) };
 
-    { s.solveVelocity(bodies, f, dt) };
-    { s.solvePosition(bodies, f) };
-
+    { s.solveVelocity(proxies, f, dt) };
+    { s.solvePosition(proxies, f) };
+    // clang-format on
 };
-// clang-format on
 
 
 } // namespace simu

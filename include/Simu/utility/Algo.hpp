@@ -28,14 +28,14 @@ namespace simu
 {
 
 template <class T>
-T clamp(T val, T min, T max)
+inline T clamp(T val, T min, T max)
 {
     return std::min(std::max(val, min), max);
 }
 
 
 template <class T>
-T squared(const T& x)
+inline T squared(const T& x)
 {
     return x * x;
 }

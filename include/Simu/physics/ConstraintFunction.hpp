@@ -49,20 +49,20 @@ struct Dimension<F, Fs...>
 };
 
 template <ConstraintFunction... Fs>
-struct NBodies : public std::integral_constant<Uint32, 0>
+struct NProxies : public std::integral_constant<Uint32, 0>
 {
 };
 
 template <ConstraintFunction F>
-struct NBodies<F> : public std::integral_constant<Uint32, F::nBodies>
+struct NProxies<F> : public std::integral_constant<Uint32, F::nBodies>
 {
 };
 
 template <ConstraintFunction F1, ConstraintFunction F2, ConstraintFunction... Fs>
-struct NBodies<F1, F2, Fs...> : public NBodies<F1>
+struct NProxies<F1, F2, Fs...> : public NProxies<F1>
 {
     static_assert(
-        NBodies<F1>::value == NBodies<F2, Fs...>::value,
+        NProxies<F1>::value == NProxies<F2, Fs...>::value,
         "Incompatible constraints"
     );
 };
@@ -94,7 +94,7 @@ class ConstraintFunctions
 {
 public:
 
-    static constexpr Uint32 nBodies   = details::NBodies<Fs...>::value;
+    static constexpr Uint32 nBodies   = details::NProxies<Fs...>::value;
     static constexpr Uint32 dimension = details::Dimension<Fs...>::value;
 
     typedef Vector<float, dimension>    Value;
@@ -104,16 +104,16 @@ public:
     {
     }
 
-    Value eval(const Bodies& bodies) const
+    Value eval(const Proxies& proxies) const
     {
-        Eval e{bodies};
+        Eval e{proxies};
         details::forEach(constraints, e);
         return static_cast<Value>(e.manip);
     }
 
-    Jacobian jacobian(const Bodies& bodies) const
+    Jacobian jacobian(const Proxies& proxies) const
     {
-        JacobianBuilder j{bodies};
+        JacobianBuilder j{proxies};
         details::forEach(constraints, j);
         return static_cast<Jacobian>(j.manip);
     }
@@ -132,9 +132,9 @@ public:
         return static_cast<Value>(l.manip);
     }
 
-    Value bias(const Bodies& bodies) const
+    Value bias(const Proxies& proxies) const
     {
-        Bias b{bodies};
+        Bias b{proxies};
         details::forEach(constraints, b);
         return static_cast<Value>(b.manip);
     }
@@ -189,11 +189,11 @@ private:
         template <ConstraintFunction F>
         void operator()(F f)
         {
-            manip.assign(i, f.bias(bodies));
+            manip.assign(i, f.bias(proxies));
             i += details::Dimension<F>::value;
         }
 
-        const Bodies&               bodies;
+        const Proxies&              proxies;
         MatrixRowManipulator<Value> manip{};
         Uint32                      i = 0;
     };
@@ -235,11 +235,11 @@ private:
         template <ConstraintFunction F>
         void operator()(F f)
         {
-            manip.assign(i, f.jacobian(bodies));
+            manip.assign(i, f.jacobian(proxies));
             i += details::Dimension<F>::value;
         }
 
-        const Bodies&                  bodies;
+        const Proxies&                 proxies;
         MatrixRowManipulator<Jacobian> manip{};
         Uint32                         i = 0;
     };
@@ -249,11 +249,11 @@ private:
         template <ConstraintFunction F>
         void operator()(F f)
         {
-            manip.assign(i, f.eval(bodies));
+            manip.assign(i, f.eval(proxies));
             i += details::Dimension<F>::value;
         }
 
-        const Bodies&               bodies;
+        const Proxies&              proxies;
         MatrixRowManipulator<Value> manip{};
         Uint32                      i = 0;
     };
@@ -268,7 +268,7 @@ public:
     static constexpr Uint32 nBodies   = nBodies_;
     static constexpr Uint32 dimension = dimension_;
 
-    typedef Vector<float, dimension>              Value;
+    typedef Vector<float, dimension>    Value;
     typedef Matrix<float, dimension, 6> Jacobian;
 
     EqualityConstraintFunctionBase() = default;
@@ -285,7 +285,7 @@ public:
     static constexpr Uint32 nBodies   = nBodies_;
     static constexpr Uint32 dimension = dimension_;
 
-    typedef Vector<float, dimension>              Value;
+    typedef Vector<float, dimension>    Value;
     typedef Matrix<float, dimension, 6> Jacobian;
 
     InequalityConstraintFunctionBase() = default;
@@ -313,29 +313,25 @@ public:
 
 
     RotationConstraintFunction(const Bodies& bodies)
-        : Base{}, initialAngle_{angleDiff(bodies.bodies())}
+        : Base{},
+          initialAngle_{bodies[1]->orientation() - bodies[0]->orientation()}
     {
     }
 
-    Value eval(const Bodies& bodies) const
+    Value eval(const Proxies& proxies) const
     {
-        return angleDiff(bodies.proxies()) - initialAngle_;
+        return Value{proxies[1].orientation() - proxies[0].orientation()}
+               - initialAngle_;
     }
 
-    Value bias(const Bodies& /* bodies */) const { return Value{}; }
+    Value bias(const Proxies& /* proxies */) const { return Value{}; }
 
-    Jacobian jacobian(const Bodies& /* bodies */) const
+    Jacobian jacobian(const Proxies& /* proxies */) const
     {
         return Jacobian{0, 0, -1, 0, 0, 1};
     }
 
 private:
-
-    template <class BodiesOrProxies>
-    Value angleDiff(const BodiesOrProxies& bodies) const
-    {
-        return Value{bodies[1]->orientation() - bodies[0]->orientation()};
-    }
 
     Value initialAngle_;
 };
@@ -350,27 +346,26 @@ public:
     HingeConstraintFunction(const Bodies& bodies, Vec2 worldSpaceSharedPoint)
         : Base{},
           localSpaceSharedPoint_{
-              bodies.bodies()[0]->toLocalSpace() * worldSpaceSharedPoint,
-              bodies.bodies()[1]->toLocalSpace() * worldSpaceSharedPoint}
+              bodies[0]->toLocalSpace() * worldSpaceSharedPoint,
+              bodies[1]->toLocalSpace() * worldSpaceSharedPoint}
     {
     }
 
-    Value eval(const Bodies& bodies) const
+    Value eval(const Proxies& proxies) const
     {
-        auto worldPoints = worldSpacePoints(bodies);
+        auto worldPoints = worldSpacePoints(proxies);
         return worldPoints[1] - worldPoints[0];
     }
 
-    Value bias(const Bodies& /* bodies */) const { return Value{}; }
+    Value bias(const Proxies& /* proxies */) const { return Value{}; }
 
-    Jacobian jacobian(const Bodies& bodies) const
+    Jacobian jacobian(const Proxies& proxies) const
     {
-        auto proxies     = bodies.proxies();
-        auto worldPoints = worldSpacePoints(bodies);
+        auto worldPoints = worldSpacePoints(proxies);
 
         std::array<Vec2, nBodies> centroidToSharedPoint{
-            worldPoints[0] - proxies[0]->centroid(),
-            worldPoints[1] - proxies[1]->centroid(),
+            worldPoints[0] - proxies[0].centroid(),
+            worldPoints[1] - proxies[1].centroid(),
         };
 
         std::array<Vec2, nBodies> instantRotation{
@@ -387,12 +382,11 @@ public:
 
 private:
 
-    std::array<Vec2, nBodies> worldSpacePoints(const Bodies& bodies) const
+    std::array<Vec2, nBodies> worldSpacePoints(const Proxies& proxies) const
     {
-        auto proxies = bodies.proxies();
         return {
-            proxies[0]->toWorldSpace() * localSpaceSharedPoint_[0],
-            proxies[1]->toWorldSpace() * localSpaceSharedPoint_[1],
+            proxies[0].toWorldSpace() * localSpaceSharedPoint_[0],
+            proxies[1].toWorldSpace() * localSpaceSharedPoint_[1],
         };
     }
 
@@ -401,5 +395,3 @@ private:
 
 
 } // namespace simu
-
-#include "Simu/physics/ConstraintFunction.inl.hpp"

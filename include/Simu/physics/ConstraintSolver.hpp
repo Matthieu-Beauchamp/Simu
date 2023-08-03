@@ -50,9 +50,9 @@ public:
     typedef typename F::Value    Value;
     typedef typename F::Jacobian Jacobian;
 
-    typedef typename Bodies::State    State;
-    typedef typename Bodies::VelocityVec VelocityVec;
-    typedef typename Bodies::Impulse  Impulse;
+    typedef typename Proxies::State       State;
+    typedef typename Proxies::VelocityVec VelocityVec;
+    typedef typename Proxies::Impulse     Impulse;
 
     typedef Matrix<float, dimension, dimension> KMatrix;
 
@@ -65,19 +65,19 @@ public:
     Value&       damping() { return damping_; }
     const Value& damping() const { return damping_; }
 
-    void warmstartDefault(Bodies& bodies, const F& f, float dt)
+    void warmstartDefault(Proxies& proxies, const F& f, float dt)
     {
         Value lambda = getAccumulatedLambda();
         setLambdaHint(Value::filled(0.f));
 
-        updateLambda(bodies, f, dt, lambda);
+        updateLambda(proxies, f, dt, lambda);
     }
 
     KMatrix
-    computeEffectiveMass(const Bodies& bodies, const F& f, bool addDamping)
+    computeEffectiveMass(const Proxies& proxies, const F& f, bool addDamping)
     {
-        J_                    = f.jacobian(bodies);
-        KMatrix effectiveMass = J_ * bodies.inverseMass() * transpose(J_);
+        J_                    = f.jacobian(proxies);
+        KMatrix effectiveMass = J_ * proxies.inverseMass() * transpose(J_);
 
         if (addDamping)
             effectiveMass += KMatrix::diagonal(damping());
@@ -86,12 +86,12 @@ public:
     }
 
     Value
-    computeRhs(const Bodies& bodies, const F& f, float dt, bool addDamping) const
+    computeRhs(const Proxies& proxies, const F& f, float dt, bool addDamping) const
     {
-        Value error = J_ * bodies.velocity();
-        Value bias  = f.bias(bodies);
+        Value error = J_ * proxies.velocity();
+        Value bias  = f.bias(proxies);
         Value baumgarteStabilization
-            = KMatrix::diagonal(restitution()) * f.eval(bodies) / dt;
+            = KMatrix::diagonal(restitution()) * f.eval(proxies) / dt;
 
         Value previousDamping
             = addDamping ? KMatrix::diagonal(damping()) * lambda_ : Value{};
@@ -99,13 +99,13 @@ public:
         return -(error + bias + baumgarteStabilization + previousDamping);
     }
 
-    void updateLambda(Bodies& bodies, const F& f, float dt, Value dLambda)
+    void updateLambda(Proxies& proxies, const F& f, float dt, Value dLambda)
     {
         Value oldLambda = lambda_;
         lambda_ += dLambda;
         lambda_ = f.clampLambda(lambda_, dt);
 
-        bodies.applyImpulse(impulse(J_, lambda_ - oldLambda));
+        proxies.applyImpulse(impulse(J_, lambda_ - oldLambda));
     }
 
     static Impulse impulse(const Jacobian& J, const Value& lambda)
@@ -150,38 +150,38 @@ public:
     {
     }
 
-    void initSolve(Bodies& bodies, const F& f)
+    void initSolve(const Proxies& proxies, const F& f)
     {
-        solver_ = Solver{this->computeEffectiveMass(bodies, f, true)};
+        solver_ = Solver{this->computeEffectiveMass(proxies, f, true)};
         SIMU_ASSERT(solver_.isValid(), "Constraint cannot be solved");
     }
 
-    void warmstart(Bodies& bodies, const F& f, float dt)
+    void warmstart(Proxies& proxies, const F& f, float dt)
     {
-        this->warmstartDefault(bodies, f, dt);
+        this->warmstartDefault(proxies, f, dt);
     }
 
-    void solveVelocity(Bodies& bodies, const F& f, float dt)
+    void solveVelocity(Proxies& proxies, const F& f, float dt)
     {
         this->updateLambda(
-            bodies,
+            proxies,
             f,
             dt,
-            solver_.solve(this->computeRhs(bodies, f, dt, true))
+            solver_.solve(this->computeRhs(proxies, f, dt, true))
         );
     }
 
-    void solvePosition(Bodies& bodies, const F& f)
+    void solvePosition(Proxies& proxies, const F& f)
     {
-        Value error = f.eval(bodies);
+        Value error = f.eval(proxies);
 
-        Jacobian J = f.jacobian(bodies);
-        solver_    = KSolver{this->computeEffectiveMass(bodies, f, false)};
+        Jacobian J = f.jacobian(proxies);
+        solver_    = KSolver{this->computeEffectiveMass(proxies, f, false)};
 
         Value posLambda          = f.clampPositionLambda(solver_.solve(-error));
         State positionCorrection = transpose(J) * posLambda;
 
-        bodies.applyPositionCorrection(positionCorrection);
+        proxies.applyPositionCorrection(positionCorrection);
     }
 
 
@@ -211,37 +211,37 @@ public:
 
     InequalitySolver(const Bodies& bodies, const F& f) : Base{bodies, f} {}
 
-    void initSolve(Bodies& bodies, const F& f)
+    void initSolve(const Proxies& proxies, const F& f)
     {
-        effectiveMass_ = this->computeEffectiveMass(bodies, f, true);
+        effectiveMass_ = this->computeEffectiveMass(proxies, f, true);
     }
 
-    void warmstart(Bodies& bodies, const F& f, float dt)
+    void warmstart(Proxies& proxies, const F& f, float dt)
     {
-        this->warmstartDefault(bodies, f, dt);
+        this->warmstartDefault(proxies, f, dt);
     }
 
-    void solveVelocity(Bodies& bodies, const F& f, float dt)
+    void solveVelocity(Proxies& proxies, const F& f, float dt)
     {
         // TODO: Incorrect! must not use damping
         Value correctedError = effectiveMass_ * this->getAccumulatedLambda();
 
         Value lambda = solveInequalities(
             effectiveMass_,
-            this->computeRhs(bodies, f, dt, false) + correctedError,
+            this->computeRhs(proxies, f, dt, false) + correctedError,
             [=, &f](Value lambda) { return f.clampLambda(lambda, dt); },
             this->getAccumulatedLambda()
         );
 
-        this->updateLambda(bodies, f, dt, lambda - this->getAccumulatedLambda());
+        this->updateLambda(proxies, f, dt, lambda - this->getAccumulatedLambda());
     }
 
-    void solvePosition(Bodies& bodies, const F& f)
+    void solvePosition(Proxies& proxies, const F& f)
     {
-        Value error = f.eval(bodies);
+        Value error = f.eval(proxies);
 
-        Jacobian J     = f.jacobian(bodies);
-        effectiveMass_ = J * bodies.inverseMass() * transpose(J);
+        Jacobian J     = f.jacobian(proxies);
+        effectiveMass_ = J * proxies.inverseMass() * transpose(J);
 
         // TODO: Inequality solver should be using:
         // Value posLambda = solveInequalities(
@@ -261,7 +261,7 @@ public:
 
         State positionCorrection = transpose(J) * posLambda;
 
-        bodies.applyPositionCorrection(positionCorrection);
+        proxies.applyPositionCorrection(positionCorrection);
     }
 
 
@@ -317,19 +317,19 @@ public:
         assertLimits();
     }
 
-    bool isActive(const Bodies& bodies, const F& f) const
+    bool isActive(const Proxies& proxies, const F& f) const
     {
-        return nextFunc(bodies, f) != Func::off;
+        return nextFunc(proxies, f) != Func::off;
     }
 
 
-    void initSolve(Bodies& bodies, const F& f)
+    void initSolve(const Proxies& proxies, const F& f)
     {
         Func prev     = func_;
-        func_         = nextFunc(bodies, f);
+        func_         = nextFunc(proxies, f);
         canWarmstart_ = (func_ == prev) && (func_ != Func::off);
 
-        KMatrix effMass = this->computeEffectiveMass(bodies, f, true);
+        KMatrix effMass = this->computeEffectiveMass(proxies, f, true);
 
         if (func_ == Func::equality)
             solver_ = KSolver{effMass};
@@ -337,20 +337,20 @@ public:
             effectiveMass_ = effMass;
     }
 
-    void warmstart(Bodies& bodies, const F& f, float dt)
+    void warmstart(Proxies& proxies, const F& f, float dt)
     {
         if (canWarmstart_)
         {
             if (func_ == Func::upper)
             {
-                bodies.applyImpulse(this->impulse(
+                proxies.applyImpulse(this->impulse(
                     this->getJacobian(),
                     -this->getAccumulatedLambda()
                 ));
             }
             else
             {
-                this->warmstartDefault(bodies, f, dt);
+                this->warmstartDefault(proxies, f, dt);
             }
         }
         else
@@ -359,15 +359,15 @@ public:
         }
     }
 
-    void solveVelocity(Bodies& bodies, const F& f, float dt)
+    void solveVelocity(Proxies& proxies, const F& f, float dt)
     {
-        Value err = rhs(bodies, f, dt);
+        Value err = rhs(proxies, f, dt);
 
         switch (func_)
         {
             case Func::equality:
             {
-                this->updateLambda(bodies, f, dt, solver_.solve(err));
+                this->updateLambda(proxies, f, dt, solver_.solve(err));
                 break;
             }
             case Func::lower:
@@ -385,7 +385,7 @@ public:
                 );
 
                 this->updateLambda(
-                    bodies,
+                    proxies,
                     f,
                     dt,
                     lambda - this->getAccumulatedLambda()
@@ -406,7 +406,7 @@ public:
                     this->getAccumulatedLambda()
                 );
 
-                bodies.applyImpulse(this->impulse(
+                proxies.applyImpulse(this->impulse(
                     this->getJacobian(),
                     -(lambda - this->getAccumulatedLambda())
                 ));
@@ -417,14 +417,14 @@ public:
         }
     }
 
-    void solvePosition(Bodies& bodies, const F& f)
+    void solvePosition(Proxies& proxies, const F& f)
     {
-        Value    C       = f.eval(bodies);
-        Jacobian J       = f.jacobian(bodies);
-        KMatrix  effMass = this->computeEffectiveMass(bodies, f, false);
+        Value    C       = f.eval(proxies);
+        Jacobian J       = f.jacobian(proxies);
+        KMatrix  effMass = this->computeEffectiveMass(proxies, f, false);
 
         Value posLambda;
-        switch (nextFunc(bodies, f))
+        switch (nextFunc(proxies, f))
         {
             case Func::equality:
             {
@@ -466,7 +466,7 @@ public:
 
         State positionCorrection = transpose(J) * posLambda;
 
-        bodies.applyPositionCorrection(positionCorrection);
+        proxies.applyPositionCorrection(positionCorrection);
     }
 
 private:
@@ -485,7 +485,7 @@ private:
         off
     };
 
-    Func nextFunc(const Bodies& bodies, const F& f) const
+    Func nextFunc(const Proxies& proxies, const F& f) const
     {
         if (!L_.has_value() && !U_.has_value())
             return Func::equality;
@@ -493,7 +493,7 @@ private:
         if (L_.has_value() && U_.has_value() && all(L_.value() == U_.value()))
             return Func::equality;
 
-        Value C = f.eval(bodies);
+        Value C = f.eval(proxies);
         if (L_.has_value() && all(C - L_.value() <= Value::filled(0.f)))
             return Func::lower;
         else if (U_.has_value() && all(-C + U_.value() <= Value::filled(0.f)))
@@ -502,14 +502,14 @@ private:
         return Func::off;
     }
 
-    Value rhs(const Bodies& bodies, const F& f, float dt)
+    Value rhs(const Proxies& proxies, const F& f, float dt)
     {
         Jacobian J              = this->getJacobian();
-        Value    error          = J * bodies.velocity();
-        Value    bias           = f.bias(bodies);
+        Value    error          = J * proxies.velocity();
+        Value    bias           = f.bias(proxies);
         Value    baumgarteCoeff = KMatrix::diagonal(this->restitution()) / dt;
 
-        Value C = f.eval(bodies);
+        Value C = f.eval(proxies);
 
         switch (func_)
         {
@@ -525,13 +525,15 @@ private:
             case Func::lower:
             {
                 C -= L_.value();
-                Value alreadyCorrected = J * bodies.inverseMass() * transpose(J)
+                // TODO: Use effectiveMass.
+                Value alreadyCorrected = J * proxies.inverseMass() * transpose(J)
                                          * this->getAccumulatedLambda();
                 return -(error - alreadyCorrected + bias + baumgarteCoeff * C);
             }
             case Func::upper:
             {
-                Value alreadyCorrected = J * bodies.inverseMass() * transpose(J)
+                // TODO: Use effectiveMass.
+                Value alreadyCorrected = J * proxies.inverseMass() * transpose(J)
                                          * -this->getAccumulatedLambda();
                 return error - alreadyCorrected + bias
                        + baumgarteCoeff * (C - U_.value());

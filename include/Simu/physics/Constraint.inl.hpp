@@ -35,8 +35,7 @@ void ConstraintImplementation<F, S>::onConstruction(World& world)
 {
     if (disableContacts_)
     {
-        auto b = bodies().bodies();
-        world.declareContactConflict(Bodies{b[0], b[1]});
+        world.declareContactConflict(Bodies{bodies()[0], bodies()[1]});
     }
 };
 
@@ -45,8 +44,7 @@ void ConstraintImplementation<F, S>::onDestruction(World& world)
 {
     if (disableContacts_)
     {
-        auto b = bodies().bodies();
-        world.removeContactConflict(Bodies{b[0], b[1]});
+        world.removeContactConflict(Bodies{bodies()[0], bodies()[1]});
     }
 };
 

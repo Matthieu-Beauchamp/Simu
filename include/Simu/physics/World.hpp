@@ -75,8 +75,7 @@ struct hash<simu::Bodies>
 {
     size_t operator()(const simu::Bodies& bodies) const
     {
-        auto b = bodies.bodies();
-        return ::details::hash_val(b[0], b[1]);
+        return ::details::hash_val(bodies[0], bodies[1]);
     }
 };
 
@@ -186,7 +185,7 @@ public:
                 .get()
         );
 
-        for (Body* body : c->bodies().bodies())
+        for (Body* body : c->bodies())
         {
             body->constraints_.emplace_back(c);
             body->wake();
@@ -384,11 +383,10 @@ private:
 
     ContactList::iterator inContacts(Bodies bodies)
     {
-        auto b = bodies.bodies();
-
         auto asIs = contacts_.find(bodies);
-        return (asIs != contacts_.end()) ? asIs
-                                         : contacts_.find(Bodies{b[1], b[0]});
+        return (asIs != contacts_.end())
+                   ? asIs
+                   : contacts_.find(Bodies{bodies[1], bodies[0]});
     }
 
     Settings settings_;

@@ -42,28 +42,26 @@ public:
     DistanceConstraintFunction(const Bodies& bodies, std::array<Vec2, 2> fixedPoints)
         : Base{},
           localFixedPoints_{
-              bodies.bodies()[0]->toLocalSpace() * fixedPoints[0],
-              bodies.bodies()[1]->toLocalSpace() * fixedPoints[1]}
+              bodies[0]->toLocalSpace() * fixedPoints[0],
+              bodies[1]->toLocalSpace() * fixedPoints[1]}
     {
     }
 
-    Value eval(const Bodies& bodies) const
+    Value eval(const Proxies& proxies) const
     {
-        return Value{distanceSquared(worldSpaceFixedPoints(bodies))};
+        return Value{distanceSquared(worldSpaceFixedPoints(proxies))};
     }
 
-    Value bias(const Bodies& /* bodies */) const { return Value{}; }
+    Value bias(const Proxies& /* proxies */) const { return Value{}; }
 
-    Jacobian jacobian(const Bodies& bodies) const
+    Jacobian jacobian(const Proxies& proxies) const
     {
-        auto p = bodies.proxies();
-
-        auto worldPoints = worldSpaceFixedPoints(bodies);
+        auto worldPoints = worldSpaceFixedPoints(proxies);
         Vec2 d           = worldPoints[0] - worldPoints[1];
 
         std::array<Vec2, 2> fromCentroid{
-            worldPoints[0] - p[0]->centroid(),
-            worldPoints[1] - p[1]->centroid()};
+            worldPoints[0] - proxies[0].centroid(),
+            worldPoints[1] - proxies[1].centroid()};
 
         return 2.f
                * Jacobian{
@@ -81,16 +79,15 @@ public:
         return normSquared(worldPoints[0] - worldPoints[1]);
     }
 
-    std::array<Vec2, 2> localFixedPoints() const {return localFixedPoints_;}
+    std::array<Vec2, 2> localFixedPoints() const { return localFixedPoints_; }
 
 private:
 
-    std::array<Vec2, 2> worldSpaceFixedPoints(const Bodies& bodies) const
+    std::array<Vec2, 2> worldSpaceFixedPoints(const Proxies& proxies) const
     {
-        auto p = bodies.proxies();
         return {
-            p[0]->toWorldSpace() * localFixedPoints_[0],
-            p[1]->toWorldSpace() * localFixedPoints_[1]};
+            proxies[0].toWorldSpace() * localFixedPoints_[0],
+            proxies[1].toWorldSpace() * localFixedPoints_[1]};
     }
 
     std::array<Vec2, 2> localFixedPoints_;
