@@ -31,7 +31,7 @@ class Tumbler : public simu::Scene
 {
 public:
 
-    static constexpr int maxCount = 800;
+    static constexpr int maxCount = 1500;
 
     Tumbler()
     {

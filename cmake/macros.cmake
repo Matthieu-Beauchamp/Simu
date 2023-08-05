@@ -26,16 +26,19 @@ function(simu_update_submodules dir)
     endif()
 endfunction()
 
+# https://dirtyhandscoding.github.io/posts/fast-debug-in-visual-c.html
+if (MSVC)
+    string(REGEX REPLACE "/RTC1" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+endif()
+
 macro(simu_set_compile_options targetName)
 	if (MSVC)
     	target_compile_options(${targetName} PRIVATE 
-            # /fp:strict # for floating point exception debugging
             /diagnostics:caret 
             /nologo 
-            /Zi 
-            /Zc:__cplusplus 
-            /W4 
+            /W4 /WX
             /permissive-
+            $<$<CONFIG:Debug>: /Ob1 /Zo>
         )
 
         if (CMAKE_VERSION VERSION_LESS "3.13.0")
