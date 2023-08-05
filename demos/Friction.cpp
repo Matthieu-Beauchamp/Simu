@@ -37,6 +37,10 @@ public:
 
     void init(simu::Renderer& renderer) override
     {
+        renderer.setPointPrecision(4);
+        renderer.setPointRadius(0.1f);
+        renderer.setLineWidth(0.1f);
+
         world().makeForceField<simu::Gravity>(simu::Vec2{0.f, -10.f});
 
         simu::BodyDescriptor descr{
@@ -49,7 +53,11 @@ public:
 
         descr.dominance               = 0.f;
         descr.material.friction.value = 0.8f;
-        world().makeBody<simu::VisibleBody>(descr, simu::Rgba{0, 0, 0, 255}, &renderer);
+        world().makeBody<simu::VisibleBody>(
+            descr,
+            simu::Rgba{0, 0, 0, 255},
+            &renderer
+        );
 
         auto box = simu::BoxSpawner{*this}.makeBox(simu::Vec2{-90.f, 0.f});
         box->setVelocity(simu::Vec2{10.f, 0.f});

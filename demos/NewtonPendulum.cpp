@@ -40,8 +40,12 @@ public:
     //  (issue seems to be with bouncing)
     simu::Int32 n = 14;
 
-    void        init(simu::Renderer& renderer) override
+    void init(simu::Renderer& renderer) override
     {
+        renderer.setPointPrecision(4);
+        renderer.setPointRadius(0.1f);
+        renderer.setLineWidth(0.1f);
+
         simu::BodyDescriptor descr{
             simu::Polygon{
                           simu::Vertex{-(float)n, 8.f},
@@ -51,8 +55,11 @@ public:
         };
 
         descr.dominance = 0.f;
-        auto bar
-            = world().makeBody<simu::VisibleBody>(descr, simu::Rgba{0, 0, 0, 255}, &renderer);
+        auto bar        = world().makeBody<simu::VisibleBody>(
+            descr,
+            simu::Rgba{0, 0, 0, 255},
+            &renderer
+        );
 
 
         simu::Vertices v{};
@@ -81,7 +88,7 @@ public:
                 &renderer
             );
             world().makeConstraint<simu::VisibleDistanceConstraint>(
-                simu::Bodies<2>{
+                simu::Bodies{
                     ball,
                     bar
             },

@@ -35,14 +35,17 @@ public:
 
     Tumbler()
     {
-        camera().setPixelSize(1.f / 100.f);
+        camera().setPixelSize(1.f / 20.f);
         camera().panTo(simu::Vec2{0.f, 0.f});
     }
 
 
     void init(simu::Renderer& renderer) override
     {
-        world() = simu::World(); // don't draw contacts
+        renderer.setPointPrecision(4);
+        renderer.setPointRadius(0.01f);
+        renderer.setLineWidth(0.01f);
+
 
         world().makeForceField<simu::Gravity>(simu::Vec2{0.f, -10.f});
 

@@ -114,18 +114,19 @@ protected:
     {
         ContactInfo info = contactInfo();
 
+        float normalLength = renderer.getLineWidth() * 10.f;
         for (Uint32 i = 0; i < info.nContacts; ++i)
         {
             Rgba white = Rgba::filled(255);
-            renderer.drawPoint(info.refContacts[i], white, 0.1f);
+            renderer.drawPoint(info.refContacts[i], white);
+
             renderer.drawLine(
                 info.refContacts[i],
-                info.refContacts[i] + info.normal,
-                white,
-                0.1f
+                info.refContacts[i] + info.normal * normalLength,
+                white
             );
 
-            renderer.drawPoint(info.incContacts[i], white, 0.1f);
+            renderer.drawPoint(info.incContacts[i], white);
         }
     }
 };
@@ -184,8 +185,7 @@ protected:
         renderer.drawLine(
             bodies()[0]->toWorldSpace() * points[0],
             bodies()[1]->toWorldSpace() * points[1],
-            turquoise,
-            0.1f
+            turquoise
         );
     }
 };
@@ -208,7 +208,7 @@ protected:
         if (any(bodyPos() != mousePos()))
         {
             Rgba purple = Rgba{235, 50, 235, 255};
-            renderer.drawLine(bodyPos(), mousePos(), purple, 0.1f);
+            renderer.drawLine(bodyPos(), mousePos(), purple);
         }
     }
 };

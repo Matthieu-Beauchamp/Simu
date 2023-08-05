@@ -40,7 +40,7 @@ class Renderer
 {
 public:
 
-    Renderer()          = default;
+    Renderer() { updatePointOffsets(getPointRadius(), 12); }
     virtual ~Renderer() = default;
 
     // vertices are assumed to be positively oriented.
@@ -83,11 +83,29 @@ public:
         rounded
     };
 
-    void
-    drawLine(Vec2 A, Vec2 B, Rgba color, float width, LineTip tip = LineTip::square);
+    float getLineWidth() const { return lineWidth_; }
+    void  setLineWidth(float width) { lineWidth_ = width; }
 
-    template<Uint32 precision = 4>
-    void drawPoint(Vec2 P, Rgba color, float radius);
+    void drawLine(Vec2 A, Vec2 B, Rgba color, LineTip tip = LineTip::square);
+
+
+    float getPointRadius() const { return pointRadius_; }
+    void  setPointRadius(float radius)
+    {
+        updatePointOffsets(radius, getPointPrecision());
+    }
+
+    Uint32 getPointPrecision() const
+    {
+        return static_cast<Uint32>(pointOffsets_.size());
+    }
+    void setPointPrecision(Uint32 precision)
+    {
+        if (precision >= 3)
+            updatePointOffsets(pointRadius_, precision);
+    }
+
+    void drawPoint(Vec2 P, Rgba color);
 
 protected:
 
@@ -97,11 +115,17 @@ protected:
 
 private:
 
+    void updatePointOffsets(float radius, Uint32 precision);
+
     typedef std::vector<Vec2, Alloc> Vertices;
 
     Vertices v_;
+    Vertices pointOffsets_;
 
     Mat3 cameraTransform_;
+
+    float lineWidth_   = 1.f;
+    float pointRadius_ = 1.f;
 };
 
 
@@ -147,5 +171,3 @@ private:
 };
 
 } // namespace simu
-
-#include "Simu/app/Renderer.inl.hpp"

@@ -85,12 +85,12 @@ void Renderer::drawTriangle(Vec2 A, Vec2 B, Vec2 C, Rgba color)
     drawPolygon(triangle.properties().centroid, triangle.vertexView(), color);
 }
 
-void Renderer::drawLine(Vec2 A, Vec2 B, Rgba color, float width, LineTip tip)
+void Renderer::drawLine(Vec2 A, Vec2 B, Rgba color, LineTip tip)
 {
     SIMU_ASSERT(any(A != B), "A and B must not be the same point");
 
     v_.clear();
-    Vec2 n = width / 2.f * normalized(perp(B - A));
+    Vec2 n = normalized(perp(B - A)) * getLineWidth() / 2.f;
 
     switch (tip)
     {
@@ -112,6 +112,32 @@ void Renderer::drawLine(Vec2 A, Vec2 B, Rgba color, float width, LineTip tip)
     );
 }
 
+void Renderer::drawPoint(Vec2 P, Rgba color)
+{
+    v_.clear();
+
+    for (Uint8 i = 0; i < getPointPrecision(); ++i)
+    {
+        v_.emplace_back(P + pointOffsets_[i]);
+    }
+
+    const auto& cv = v_;
+    drawPolygon(P, makeView(cv.data(), cv.data() + cv.size()), color);
+}
+
+void Renderer::updatePointOffsets(float radius, Uint32 precision)
+{
+    pointOffsets_.resize(precision);
+    pointRadius_ = radius;
+    
+    Rotation rot{2.f * std::numbers::pi_v<float> / precision};
+    Vec2     offset = radius * Vec2::i();
+    for (Vec2 v : pointOffsets_)
+    {
+        v      = offset;
+        offset = rot * offset;
+    }
+}
 
 
 ////////////////////////////////////////////////////////////

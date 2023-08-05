@@ -33,10 +33,14 @@ public:
 
     void init(simu::Renderer& renderer) override
     {
+        renderer.setPointPrecision(4);
+        renderer.setPointRadius(0.1f);
+        renderer.setLineWidth(0.1f);
+
         simu::BoxSpawner spawner{*this};
 
         // NGS is a lot more stable here, but is a bit slower than baumgarte.
-        for (simu::Int32 x = -90; x < 90; x+= 5)
+        for (simu::Int32 x = -90; x < 90; x += 5)
             for (simu::Uint32 i = 0; i < 10; ++i)
                 spawner.makeBox(simu::Vec2{(float)x, (float)5 * i});
 
@@ -53,11 +57,14 @@ public:
 
         descr.dominance               = 0.f;
         descr.material.friction.value = 0.8f;
-        world().makeBody<simu::VisibleBody>(descr, simu::Rgba{0, 0, 0, 255}, &renderer);
-    
+        world().makeBody<simu::VisibleBody>(
+            descr,
+            simu::Rgba{0, 0, 0, 255},
+            &renderer
+        );
+
         useTool<simu::Grabber>(*this);
     }
-
 };
 
 class DummyApp : public simu::Application
