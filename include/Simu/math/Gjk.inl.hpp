@@ -98,18 +98,23 @@ Vec2 Gjk<T>::penetration() const
 
     while (true)
     {
-        auto edges = edgesOf(polytope.vertices);
-        auto best  = *edges.begin();
+        auto  edges    = edgesOf(polytope.vertices);
+        auto  best     = *edges.begin();
+        float bestDist = best.distanceSquaredToOrigin();
 
         for (const auto& e : edges)
         {
-            if (e.distanceSquaredToOrigin() < best.distanceSquaredToOrigin())
-                best = e;
+            float dist = e.distanceSquaredToOrigin();
+            if (dist < bestDist)
+            {
+                best     = e;
+                bestDist = dist;
+            }
         }
 
         Vertex next = furthestVertexInDirection(best.normal());
 
-        if (!polytope.addVertex(best, next))
+        if (!polytope.addVertex(edges, best, next))
             return LineBarycentric{
                 best.from(),
                 best.to(),

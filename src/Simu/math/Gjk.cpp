@@ -142,14 +142,37 @@ Polytope::Polytope(const Simplex& simplex)
     }
 }
 
-bool Polytope::addVertex(const Edge& where, Vertex v)
+bool Polytope::addVertex(const Edges<Vertices>& edges, const Edge& where, Vertex v)
 {
     // TODO: There is a case where the polytope may become concave,
     //  this needs to be handled, must first find a test where this happens.
+    // sometimes happens in Tumbler, Epa gets stuck,
+    //  taking the values from the debugger did not allow reproducing the issue.
+
 
     if (where.isOutside(v))
     {
-        vertices.insert(where.toIt(), v);
+        Edge prevEdge = *edges.previous(where);
+        Edge nextEdge = *edges.next(where);
+
+        bool isNextAngleConcave
+            = cross(nextEdge.from() - v, nextEdge.direction()) <= 0.f;
+
+        bool isPrevAngleConcave
+            = cross(prevEdge.direction(), v - prevEdge.to()) <= 0.f;
+
+        auto insertPos = where.toIt();
+        if (isNextAngleConcave)
+            insertPos = vertices.erase(insertPos);
+        if (isPrevAngleConcave) {
+            if (insertPos == vertices.begin())
+                vertices.erase(std::prev(vertices.end()));
+            else 
+                insertPos = vertices.erase(std::prev(insertPos));
+        }
+
+        vertices.insert(insertPos, v);
+
         return true;
     }
 

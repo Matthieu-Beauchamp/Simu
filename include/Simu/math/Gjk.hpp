@@ -61,7 +61,7 @@ struct Polytope
 
     Polytope(const Simplex& simplex);
 
-    bool addVertex(const Edge& where, Vertex v);
+    bool addVertex(const Edges<Vertices>& edges, const Edge& where, Vertex v);
 
     Vertices vertices{};
 };

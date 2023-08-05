@@ -38,7 +38,7 @@ macro(simu_set_compile_options targetName)
             /nologo 
             /W4 /WX
             /permissive-
-            $<$<CONFIG:Debug>: /Ob1 /Zo>
+            # $<$<CONFIG:Debug>: /Ob1 /Zo>
         )
 
         if (CMAKE_VERSION VERSION_LESS "3.13.0")
