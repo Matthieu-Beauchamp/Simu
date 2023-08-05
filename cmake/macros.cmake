@@ -52,6 +52,12 @@ macro(simu_set_compile_options targetName)
             -fsigned-char
         )
     endif()
+
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        target_compile_options(${targetName} PRIVATE 
+            $<$<CONFIG:Debug>: -Og>
+        )
+    endif()
 endmacro()
 
 macro(simu_coverage targetName)
