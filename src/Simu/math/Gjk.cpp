@@ -142,35 +142,25 @@ Polytope::Polytope(const Simplex& simplex)
     }
 }
 
-bool Polytope::addVertex(const Edges<Vertices>& edges, const Edge& where, Vertex v)
+bool Polytope::addVertex(const Edge& where, Vertex v)
 {
-    // TODO: There is a case where the polytope may become concave,
-    //  this needs to be handled, must first find a test where this happens.
-    // sometimes happens in Tumbler, Epa gets stuck,
-    //  taking the values from the debugger did not allow reproducing the issue.
-
-
     if (where.isOutside(v))
     {
-        Edge prevEdge = *edges.previous(where);
-        Edge nextEdge = *edges.next(where);
-
-        bool isNextAngleConcave
-            = cross(nextEdge.from() - v, nextEdge.direction()) <= 0.f;
-
-        bool isPrevAngleConcave
-            = cross(prevEdge.direction(), v - prevEdge.to()) <= 0.f;
+        // this is not ideal, but prevents almost collinear edges from
+        //  putting us in an infinite loop:
+        // Consider A-B-C three almost collinear vertices of the Polytope.
+        // Sometimes when edge BC is the closest edge to the origin, the furthest
+        //  vertex returned will be A, then creating a degenerate polytope
+        //  with the sequence A-B-A-C and preventing the algorithm from terminating.
+        // This could be probably be solved by using an epsilon value to prevent
+        //  such collinear chains from being accepted in the Polytope.
+        // Currently Gjk does not require any epsilon, and we prefer to keep it that way when possible.
+        // If our Geometry had many more vertices, this loop becomes expensive and undesirable.
+        for (const Vertex& vert : vertices)
+            if (all(vert == v))
+                return false;
 
         auto insertPos = where.toIt();
-        if (isNextAngleConcave)
-            insertPos = vertices.erase(insertPos);
-        if (isPrevAngleConcave) {
-            if (insertPos == vertices.begin())
-                vertices.erase(std::prev(vertices.end()));
-            else 
-                insertPos = vertices.erase(std::prev(insertPos));
-        }
-
         vertices.insert(insertPos, v);
 
         return true;

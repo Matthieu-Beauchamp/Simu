@@ -69,12 +69,12 @@ public:
 
     void step(float dt)
     {
-        this->moveCamera(dt);
-        renderer_->setCameraTransform(camera_.transform());
-
         dt = std::min(dt, 1.f / 60.f) * playSpeed()
              * static_cast<float>(!isPaused());
 
+        this->moveCamera(dt);
+        renderer_->setCameraTransform(camera_.transform());
+        
         renderer_->fillScreen(Rgba{50, 10, 50, 255});
 
         this->preStep(dt);

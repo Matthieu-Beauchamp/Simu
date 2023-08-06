@@ -75,12 +75,10 @@ concept Geometry = requires(T geo){
 
 ////////////////////////////////////////////////////////////
 /// \brief The iterator type returned by T::begin()
-/// 
+///
 ////////////////////////////////////////////////////////////
 template <class T>
 using IteratorOf = decltype(std::declval<T>().begin());
-
-
 
 
 ////////////////////////////////////////////////////////////
@@ -105,6 +103,8 @@ orientation(Vertex v0, Vertex v1, Vertex v2, float epsilon = simu::EPSILON);
 template <Geometry T>
 Vertex furthestVertexInDirection(const T& geometry, Vec2 direction)
 {
+    SIMU_ASSERT(any(direction != Vec2::filled(0.f)), "Any vertex will be returned");
+
     Vec2  furthest = *geometry.begin();
     float maxDist  = dot(furthest, direction);
     for (const Vertex& v : geometry)

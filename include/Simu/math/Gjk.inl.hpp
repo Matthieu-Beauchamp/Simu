@@ -96,8 +96,12 @@ Vec2 Gjk<T>::penetration() const
 
     priv::Polytope polytope{simplex_};
 
+    Uint32 i = 0;
     while (true)
     {
+        if (i++ > 100)
+            return penetration();
+
         auto  edges    = edgesOf(polytope.vertices);
         auto  best     = *edges.begin();
         float bestDist = best.distanceSquaredToOrigin();
@@ -114,7 +118,7 @@ Vec2 Gjk<T>::penetration() const
 
         Vertex next = furthestVertexInDirection(best.normal());
 
-        if (!polytope.addVertex(edges, best, next))
+        if (!polytope.addVertex(best, next))
             return LineBarycentric{
                 best.from(),
                 best.to(),

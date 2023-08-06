@@ -122,6 +122,7 @@ public:
             simu::BodyDescriptor descr{
                 simu::Polygon::box(simu::Vec2{0.25f, 0.25f})};
 
+            descr.material.friction.value = 0.5f;
             world().makeBody<simu::VisibleBody>(
                 descr,
                 simu::Rgba{200, 100, 200, 255},
