@@ -308,9 +308,11 @@ void World::updateBodies(float dt)
             toUpdate.emplace_back(treeIt);
     }
 
+
     // update bounds
     for (auto it : toUpdate)
         bodyTree_.update(it, boundsOf(*it));
+
 
     // check for new contacts
     for (auto it : toUpdate)

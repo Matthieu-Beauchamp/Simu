@@ -291,13 +291,13 @@ public:
     const Settings& settings() const { return settings_; }
 
 
-    template <std::invocable<Body*> F>
+    template <Callable<void(Body*)> F>
     void forEachIn(BoundingBox box, const F& func)
     {
         bodyTree_.forEachIn(box, [&](BodyTree::iterator it) { func(*it); });
     }
 
-    template <std::invocable<Body*> F>
+    template <Callable<void(Body*)> F>
     void forEachAt(Vec2 point, const F& func)
     {
         bodyTree_.forEachAt(point, [&](BodyTree::iterator it) { func(*it); });
@@ -322,18 +322,6 @@ private:
 
     struct Cleaner;
     void cleanup();
-
-    // TODO: Move this code into island.
-    //  for each island
-    //      applyVelocityConstraints on active constraints
-    //      integratePositions
-    //      applyPositionConstraints on previously active constraints
-    //
-    // integrate positions of excluded bodies (structural)
-
-    void applyVelocityConstraints(Island& island, float dt);
-    void integrateBodies(float dt);
-    void applyPositionConstraints(Island& island);
 
     void updateBodies(float dt);
 

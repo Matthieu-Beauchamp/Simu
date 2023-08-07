@@ -30,6 +30,9 @@
 #include "Simu/config.hpp"
 #include "Simu/physics/BoundingBox.hpp"
 
+#include "Simu/utility/View.hpp"
+#include "Simu/utility/Callable.hpp"
+
 namespace simu
 {
 
@@ -78,19 +81,19 @@ public:
         return *this;
     }
 
-    template <std::invocable<iterator> F>
+    template <Callable<void(iterator)> F>
     void forEachIn(BoundingBox box, const F& func)
     {
         forEachIn(box, func, root_);
     }
 
-    template <std::invocable<iterator> F>
+    template <Callable<void(iterator)> F>
     void forEachAt(Vec2 point, const F& func)
     {
         forEachIn(BoundingBox{point, point}, func);
     }
 
-    template <std::invocable<iterator> F>
+    template <Callable<void(iterator)> F>
     void forEachOverlapping(iterator it, const F& func)
     {
         forEachOverlapping(it.node, func);
@@ -405,7 +408,7 @@ private:
             return size(node->left) + size(node->right);
     }
 
-    template <std::invocable<iterator> F>
+    template <class F>
     void forEachIn(const BoundingBox& box, const F& func, Node* node)
     {
         if (node == nullptr)
@@ -423,7 +426,7 @@ private:
         }
     }
 
-    template <std::invocable<iterator> F>
+    template <class F>
     void forEachOverlapping(Node* node, const F& func)
     {
         BoundingBox bounds = node->bounds;
