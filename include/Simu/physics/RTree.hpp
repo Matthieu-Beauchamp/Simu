@@ -48,6 +48,8 @@ class RTree
 {
     typedef std::allocator_traits<Allocator> AllocTraits;
 
+    struct Node;
+
     template <bool>
     class Iterator;
 
@@ -99,6 +101,32 @@ public:
         forEachOverlapping(it.node, func);
     }
 
+    // TODO: Request a general range instead of a view of iterator*
+    template <Callable<void(iterator, iterator)> F>
+    void forEachOverlapping(const ViewType<iterator*>& iterators, const F& func)
+    {
+        OverlapList list{iterators};
+        std::size_t middle = list.middle();
+
+        if (root_->left != nullptr)
+        {
+            list.sortOverlapping(root_->left->bounds);
+            forEachOverlapping(root_->left, list, func);
+        }
+
+        if (root_->right != nullptr)
+        {
+            list.setMiddle(middle);
+            list.sortOverlapping(root_->right->bounds);
+            forEachOverlapping(root_->right, list, func);
+        }
+    }
+
+    template <Callable<BoundingBox(iterator)> Update, Callable<void(iterator)> OnCollision>
+    void updateAndCollide(const Update& update, const OnCollision& onCollision)
+    {
+    }
+
     iterator begin() { return iterator::leftmost(root_); }
     iterator end() { return iterator{root_}; }
 
@@ -144,11 +172,6 @@ public:
     Uint32 depth() const { return depth(root_) - 1; }
 
 private:
-
-    template <bool isConst>
-    class Iterator;
-
-    struct Node;
 
     typedef typename AllocTraits::template rebind_alloc<Node>  NodeAllocator;
     typedef typename AllocTraits::template rebind_traits<Node> NodeAllocTraits;
@@ -439,6 +462,85 @@ private:
 
             node = node->parent;
         }
+    }
+
+    class OverlapList
+    {
+    public:
+
+        OverlapList(const ViewType<iterator*>& iterators)
+        {
+            nodes_.reserve(iterators.size());
+            for (iterator it : iterators)
+                nodes_.emplace_back(it.node);
+
+            middle_ = nodes_.size();
+        }
+
+        void sortOverlapping(const BoundingBox& box)
+        {
+            std::size_t endOverlap     = 0;
+            std::size_t startNoOverlap = middle_;
+
+            while (endOverlap != startNoOverlap)
+            {
+                Node*& current = nodes_[endOverlap];
+
+                if (current->bounds.overlaps(box))
+                    ++endOverlap;
+                else
+                    std::swap(current, nodes_[--startNoOverlap]);
+            }
+
+            middle_ = endOverlap;
+        }
+
+        auto overlapping()
+        {
+            return makeView(nodes_.data(), nodes_.data() + middle_);
+        }
+
+        void        setMiddle(std::size_t middle) { middle_ = middle; }
+        std::size_t middle() const { return middle_; }
+
+    private:
+
+        std::vector<Node*, ReboundTo<Allocator, Node*>> nodes_{};
+        std::size_t                                     middle_;
+    };
+
+    // Adapted from https://github.com/mtsamis/box2d-optimized
+    template <class F>
+    void forEachOverlapping(Node* subRoot, OverlapList& list, const F& func)
+    {
+        if (subRoot->isLeaf())
+        {
+            for (Node* it : list.overlapping())
+                func(iterator{subRoot}, iterator{it});
+        }
+        else
+        {
+            std::size_t middle = list.middle();
+
+            list.sortOverlapping(subRoot->left->bounds);
+            forEachOverlapping(subRoot->left, list, func);
+
+            list.setMiddle(middle);
+
+            list.sortOverlapping(subRoot->right->bounds);
+            forEachOverlapping(subRoot->right, list, func);
+        }
+    }
+
+    template <class Update, class OnCollision>
+    void updateAndCollide(
+        Node*              subRoot,
+        ViewType<Node**>   nodes,
+        ViewType<Node**>   collisions,
+        const Update&      update,
+        const OnCollision& onCollision
+    )
+    {
     }
 
     void update(Node* node, BoundingBox newBounds)

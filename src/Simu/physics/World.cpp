@@ -315,19 +315,22 @@ void World::updateBodies(float dt)
 
 
     // check for new contacts
-    for (auto it : toUpdate)
-    {
-        auto registerContact = [=, this](BodyTree::iterator other) {
-            Bodies bodies{*it, *other};
-            auto   contact = inContacts(bodies);
+    auto registerContact = [=, this](BodyIt first, BodyIt second) {
+        if (first == second)
+            return;
 
-            if (contact == contacts_.end())
-                contacts_[bodies]
-                    = ContactStatus{0, makeContactConstraint(bodies)};
-        };
+        Bodies bodies{*first, *second};
+        auto   contact = inContacts(bodies);
 
-        bodyTree_.forEachOverlapping(it, registerContact);
-    }
+        if (contact == contacts_.end())
+            contacts_[bodies] = ContactStatus{0, makeContactConstraint(bodies)};
+    };
+
+    bodyTree_.forEachOverlapping(
+        makeView(toUpdate.data(), toUpdate.data() + toUpdate.size()),
+        registerContact
+    );
+
 
     // kill outdated contacts
     for (auto it : toUpdate)
