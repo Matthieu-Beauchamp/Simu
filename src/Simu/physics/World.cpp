@@ -117,8 +117,10 @@ void World::removeContactConflict(const Bodies& bodies)
     auto contact = inContacts(bodies);
     if (contact != contacts_.end())
     {
-        contact->second.nConflictingConstraints
-            = std::max(0, contact->second.nConflictingConstraints - 1);
+        contact->second.nConflictingConstraints = std::max(
+            0,
+            contact->second.nConflictingConstraints - 1
+        );
 
         if ((contact->second.nConflictingConstraints == 0)
             && (contact->second.existingContact == nullptr))
@@ -126,10 +128,10 @@ void World::removeContactConflict(const Bodies& bodies)
     }
 }
 
-typename World::ContactFactory World::defaultContactFactory
-    = [](Bodies b, const typename World::ContactAlloc& alloc) {
-          return makeUnique<ContactConstraint>(alloc, b);
-      };
+typename World::ContactFactory World::defaultContactFactory =
+    [](Bodies b, const typename World::ContactAlloc& alloc) {
+        return makeUnique<ContactConstraint>(alloc, b);
+    };
 
 UniquePtr<ContactConstraint> World::makeContactConstraint(Bodies bodies)
 {
@@ -297,17 +299,7 @@ void World::updateBodies(float dt)
         }
     }
 
-    typedef typename BodyTree::iterator           BodyIt;
-    std::vector<BodyIt, ReboundTo<Alloc, BodyIt>> toUpdate{miscAlloc_};
-
-    for (const auto& b : bodies_)
-    {
-        auto treeIt = b->treeLocation_;
-        if (!b->isAsleep()
-            && !treeIt.bounds().contains(b->collider().boundingBox()))
-            toUpdate.emplace_back(treeIt);
-    }
-
+    typedef typename BodyTree::iterator BodyIt;
 
     // check for new contacts
     auto registerContact = [=, this](BodyIt first, BodyIt second) {
@@ -321,34 +313,58 @@ void World::updateBodies(float dt)
             contacts_[bodies] = ContactStatus{0, makeContactConstraint(bodies)};
     };
 
-    // update bounds ///////////////////
-    // for (auto it : toUpdate)
-    //     bodyTree_.update(it, boundsOf(*it));
-    
-    // detectContacts //////////////////
-    // bodyTree_.forEachOverlapping(
-    //     makeView(toUpdate.data(), toUpdate.data() + toUpdate.size()),
-    //     registerContact
-    // );
-
-    bodyTree_.updateAndCollide(
-        [this](BodyIt it) { return boundsOf(*it); },
-        registerContact
-    );
-
-
-    // kill outdated contacts
-    for (auto it : toUpdate)
+    if (settings_.batchBodyTreeOperations)
     {
-        Body* b = *it;
+        bodyTree_.updateAndCollide(
+            [this](BodyIt it) { return boundsOf(*it); },
+            registerContact
+        );
 
-        for (ContactConstraint* c : b->contacts())
+        for (auto& contact : contacts_)
         {
-            if (!c->isDead())
+            ContactConstraint* c = contact.second.existingContact.get();
+            if (c != nullptr)
             {
-                auto bodies = c->bodies();
-                if (!boundsOf(bodies[0]).overlaps(boundsOf(bodies[1])))
+                const Bodies& b = contact.first;
+                if (!boundsOf(b[0]).overlaps(boundsOf(b[1])))
                     c->kill();
+            }
+        }
+    }
+    else
+    {
+        std::vector<BodyIt, ReboundTo<Alloc, BodyIt>> toUpdate{miscAlloc_};
+        for (const auto& b : bodies_)
+        {
+            auto treeIt = b->treeLocation_;
+            if (!b->isAsleep()
+                && !treeIt.bounds().contains(b->collider().boundingBox()))
+                toUpdate.emplace_back(treeIt);
+        }
+
+        // update bounds
+        for (auto it : toUpdate)
+            bodyTree_.update(it, boundsOf(*it));
+
+        // detectContacts
+        bodyTree_.forEachOverlapping(
+            makeView(toUpdate.data(), toUpdate.data() + toUpdate.size()),
+            registerContact
+        );
+
+        // kill outdated contacts
+        for (auto it : toUpdate)
+        {
+            Body* b = *it;
+
+            for (ContactConstraint* c : b->contacts())
+            {
+                if (!c->isDead())
+                {
+                    auto bodies = c->bodies();
+                    if (!boundsOf(bodies[0]).overlaps(boundsOf(bodies[1])))
+                        c->kill();
+                }
             }
         }
     }

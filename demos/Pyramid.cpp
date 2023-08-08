@@ -92,6 +92,7 @@ public:
         auto s = world().settings();
         // s.nPositionIterations = 50;
         // s.nVelocityIterations = 50;
+        // s.batchBodyTreeOperations = false;
         world().updateSettings(s);
 
         useTool<simu::Grabber>(*this);
