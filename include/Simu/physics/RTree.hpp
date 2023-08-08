@@ -658,7 +658,6 @@ private:
             return nullptr;
         else if (count == 1)
         {
-            collisions.sortOverlapping(nodes[0]->bounds);
             for (Node* node : collisions.overlapping())
                 onCollision(iterator{nodes[0]}, iterator{node});
 
@@ -711,13 +710,11 @@ private:
         BoundingBox rightBounds = constructBounds(right);
         subRoot->bounds         = leftBounds.combined(rightBounds);
 
-        std::size_t lastCollision = collisions.middle();
-        collisions.sortOverlapping(leftBounds);
         OverlapList leftCollisions{collisions};
+        leftCollisions.sortOverlapping(leftBounds);
 
-        collisions.setMiddle(lastCollision);
-        collisions.sortOverlapping(rightBounds);
-        OverlapList rightCollisions{collisions};
+        OverlapList rightCollisions{std::move(collisions)};
+        rightCollisions.sortOverlapping(rightBounds);
 
         if (leftBounds.overlaps(rightBounds))
         {

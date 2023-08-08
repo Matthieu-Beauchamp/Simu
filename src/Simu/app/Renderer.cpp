@@ -132,7 +132,7 @@ void Renderer::updatePointOffsets(float radius, Uint32 precision)
     
     Rotation rot{2.f * std::numbers::pi_v<float> / precision};
     Vec2     offset = radius * Vec2::i();
-    for (Vec2 v : pointOffsets_)
+    for (Vec2& v : pointOffsets_)
     {
         v      = offset;
         offset = rot * offset;

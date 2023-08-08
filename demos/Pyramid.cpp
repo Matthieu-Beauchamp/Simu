@@ -94,7 +94,6 @@ public:
         // s.nVelocityIterations = 50;
         world().updateSettings(s);
 
-        // pause();
         useTool<simu::Grabber>(*this);
     }
 
