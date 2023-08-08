@@ -309,11 +309,6 @@ void World::updateBodies(float dt)
     }
 
 
-    // update bounds
-    for (auto it : toUpdate)
-        bodyTree_.update(it, boundsOf(*it));
-
-
     // check for new contacts
     auto registerContact = [=, this](BodyIt first, BodyIt second) {
         if (first == second)
@@ -326,8 +321,18 @@ void World::updateBodies(float dt)
             contacts_[bodies] = ContactStatus{0, makeContactConstraint(bodies)};
     };
 
-    bodyTree_.forEachOverlapping(
-        makeView(toUpdate.data(), toUpdate.data() + toUpdate.size()),
+    // update bounds ///////////////////
+    // for (auto it : toUpdate)
+    //     bodyTree_.update(it, boundsOf(*it));
+    
+    // detectContacts //////////////////
+    // bodyTree_.forEachOverlapping(
+    //     makeView(toUpdate.data(), toUpdate.data() + toUpdate.size()),
+    //     registerContact
+    // );
+
+    bodyTree_.updateAndCollide(
+        [this](BodyIt it) { return boundsOf(*it); },
         registerContact
     );
 

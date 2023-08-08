@@ -110,8 +110,8 @@ ObjCBinPackProtocolList: Auto
 ObjCBlockIndentWidth: 2
 ObjCSpaceAfterProperty: false
 ObjCSpaceBeforeProtocolList: true
-PenaltyBreakAssignment: 2
-PenaltyBreakBeforeFirstCallParameter: 19
+PenaltyBreakAssignment: 200
+PenaltyBreakBeforeFirstCallParameter: 2
 PenaltyBreakComment: 30000 # Don't break license!
 PenaltyBreakFirstLessLess: 120
 PenaltyBreakString: 1000

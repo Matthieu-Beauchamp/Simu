@@ -34,7 +34,7 @@ namespace details
 #if !SIMU_HAS_STD_VIEW
 
 template <std::forward_iterator Iter, std::invocable<decltype(*std::declval<Iter>())> Deref>
-class View<Iter, Deref>::Iterator
+class TransformView<Iter, Deref>::Iterator
 {
 public:
 
@@ -69,34 +69,34 @@ private:
     Deref deref_;
 };
 
-static_assert(std::input_iterator<View<int*, Identity>::Iterator>, "");
+static_assert(std::input_iterator<TransformView<int*, Identity>::Iterator>, "");
 static_assert(
-    std::sentinel_for<View<int*, Identity>::Iterator, View<int*, Identity>::Iterator>,
+    std::sentinel_for<TransformView<int*, Identity>::Iterator, TransformView<int*, Identity>::Iterator>,
     ""
 );
-static_assert(std::ranges::range<View<int*, Identity>>, "");
+static_assert(std::ranges::range<TransformView<int*, Identity>>, "");
 
 
 template <std::forward_iterator Iter, std::invocable<decltype(*std::declval<Iter>())> Deref>
-typename View<Iter, Deref>::Iterator View<Iter, Deref>::begin() const
+typename TransformView<Iter, Deref>::Iterator TransformView<Iter, Deref>::begin() const
 {
     return Iterator{begin_, deref_};
 }
 
 template <std::forward_iterator Iter, std::invocable<decltype(*std::declval<Iter>())> Deref>
-typename View<Iter, Deref>::Iterator View<Iter, Deref>::end() const
+typename TransformView<Iter, Deref>::Iterator TransformView<Iter, Deref>::end() const
 {
     return Iterator{end_, deref_};
 }
 
 template <std::forward_iterator Iter, std::invocable<decltype(*std::declval<Iter>())> Deref>
-bool View<Iter, Deref>::empty() const
+bool TransformView<Iter, Deref>::empty() const
 {
     return begin() == end();
 }
 
 template <std::forward_iterator Iter, std::invocable<decltype(*std::declval<Iter>())> Deref>
-std::size_t View<Iter, Deref>::size() const
+std::size_t TransformView<Iter, Deref>::size() const
 {
     return std::distance(begin(), end());
 }

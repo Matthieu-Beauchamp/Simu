@@ -34,8 +34,6 @@
 #endif
 
 
-// TODO: We always use views in way that we don't want to original sequence to be modifiable, this is currently not true since we use references.
-
 namespace simu
 {
 
@@ -44,6 +42,25 @@ namespace details
 
 
 #if !SIMU_HAS_STD_VIEW
+
+template <std::forward_iterator Iter>
+class View
+{
+public:
+
+    View(Iter begin, Iter end) : begin_{begin}, end_{end} {}
+
+    Iter begin() const { return begin_; }
+    Iter end() const { return end_; }
+
+    bool        empty() const { return begin() == end(); }
+    std::size_t size() const { return std::distance(begin(), end()); }
+
+private:
+
+    Iter begin_;
+    Iter end_;
+};
 
 ////////////////////////////////////////////////////////////
 /// \brief Lightweight iterable sequence constructed from a pair of iterators
@@ -63,7 +80,7 @@ namespace details
 /// \see simu::makeView
 ////////////////////////////////////////////////////////////
 template <std::forward_iterator Iter, std::invocable<decltype(*std::declval<Iter>())> Deref>
-class View
+class TransformView
 {
     typedef decltype(std::declval<Deref>()(
         std::declval<typename std::iterator_traits<Iter>::reference>()
@@ -76,7 +93,7 @@ class View
 
 public:
 
-    View(Iter begin, Iter end, Deref deref = Deref{})
+    TransformView(Iter begin, Iter end, Deref deref = Deref{})
         : begin_{begin}, end_{end}, deref_{deref}
     {
     }
@@ -100,19 +117,6 @@ private:
 
 } // namespace details
 
-
-////////////////////////////////////////////////////////////
-/// \brief Returns the element as-is
-///
-////////////////////////////////////////////////////////////
-struct Identity
-{
-    template <class Value>
-    auto& operator()(Value& v) const
-    {
-        return v;
-    }
-};
 
 ////////////////////////////////////////////////////////////
 /// \brief Dereferences the element one more time
@@ -142,8 +146,8 @@ struct DoubleDereference
 ///
 /// Deref must return a reference, ie it should not create new objects.
 ////////////////////////////////////////////////////////////
-template <std::forward_iterator Iter, class Deref = Identity>
-auto makeView(Iter begin, Iter end, Deref deref = Deref{})
+template <std::forward_iterator Iter, class Deref>
+auto makeView(Iter begin, Iter end, Deref deref)
 {
     typedef decltype(std::declval<Deref>()(
         std::declval<typename std::iterator_traits<Iter>::reference>()
@@ -158,26 +162,41 @@ auto makeView(Iter begin, Iter end, Deref deref = Deref{})
     return std::ranges::subrange<Iter, Iter>{begin, end}
            | std::views::transform(deref);
 #else
-    return details::View<Iter, Deref>{begin, end, deref};
+    return details::TransformView<Iter, Deref>{begin, end, deref};
 #endif
 }
+
+template <std::forward_iterator Iter>
+auto makeView(Iter begin, Iter end)
+{
+#if SIMU_HAS_STD_VIEW
+    return std::ranges::subrange<Iter, Iter>{begin, end};
+#else
+    return details::View<Iter>{begin, end};
+#endif
+}
+
 
 ////////////////////////////////////////////////////////////
 /// \brief Creates a view of the range and applies Deref to every dereferenced element
 ///
 ////////////////////////////////////////////////////////////
-template <std::ranges::range R, class Deref = Identity>
-auto makeView(R& range, Deref deref = Deref{})
+template <std::ranges::range R, class Deref>
+auto makeView(R& range, Deref deref)
 {
     return makeView(range.begin(), range.end(), deref);
 }
 
-template <class Iter, class Deref = Identity>
-using ViewType = decltype(simu::makeView(
-    std::declval<Iter>(),
-    std::declval<Iter>(),
-    std::declval<Identity>()
-));
+template <std::ranges::range R>
+auto makeView(R& range)
+{
+    return makeView(range.begin(), range.end());
+}
+
+
+template <class Iter>
+using ViewType
+    = decltype(simu::makeView(std::declval<Iter>(), std::declval<Iter>()));
 
 } // namespace simu
 

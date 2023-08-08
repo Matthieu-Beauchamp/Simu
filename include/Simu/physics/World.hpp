@@ -385,7 +385,8 @@ private:
 
     static BoundingBox boundsOf(const Body* body)
     {
-        return BoundingBox::scaled(body->collider().boundingBox(), boundsScale);
+        return body->collider().boundingBox();
+        // return BoundingBox::scaled(body->collider().boundingBox(), boundsScale);
     }
 };
 

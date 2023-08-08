@@ -31,6 +31,7 @@
 #include "Simu/physics/BoundingBox.hpp"
 
 #include "Simu/utility/View.hpp"
+#include "Simu/utility/Algo.hpp"
 #include "Simu/utility/Callable.hpp"
 
 namespace simu
@@ -122,9 +123,49 @@ public:
         }
     }
 
-    template <Callable<BoundingBox(iterator)> Update, Callable<void(iterator)> OnCollision>
+    template <
+        Callable<BoundingBox(iterator)>    Update,
+        Callable<void(iterator, iterator)> OnCollision>
     void updateAndCollide(const Update& update, const OnCollision& onCollision)
     {
+        // Using the RTree's allocator will result in fragmented Node allocations
+        //  and drastically decrease performance.
+        Allocator updateAlloc{};
+
+        std::vector<Node*, ReboundTo<Allocator, Node*>> nodes{updateAlloc};
+        for (iterator it = this->begin(); it != this->end(); ++it)
+        {
+            nodes.emplace_back(it.node);
+            it.node->bounds = update(it);
+        }
+
+        for (Node* node : nodes)
+            node->handle() = nullptr;
+
+        if (nodes.size() == 0)
+        {
+            return;
+        }
+        else if (nodes.size() == 1)
+        {
+            insert(nodes[0]);
+        }
+        else
+        {
+            RecycleBin bin{*this, updateAlloc};
+            bin.recycleSubTree(root_);
+
+            OverlapList collisions{updateAlloc};
+            for (Node* node : nodes)
+                collisions.addOverlapping(node);
+
+            root_ = updateAndCollide(
+                makeView(nodes.data(), nodes.data() + nodes.size()),
+                std::move(collisions),
+                onCollision,
+                bin
+            );
+        }
     }
 
     iterator begin() { return iterator::leftmost(root_); }
@@ -175,6 +216,55 @@ private:
 
     typedef typename AllocTraits::template rebind_alloc<Node>  NodeAllocator;
     typedef typename AllocTraits::template rebind_traits<Node> NodeAllocTraits;
+
+    class RecycleBin
+    {
+    public:
+
+        typedef ReboundTo<Allocator, Node*> Allocator;
+
+        RecycleBin(RTree& tree, Allocator alloc) : bin_{alloc}, tree_{tree} {}
+        ~RecycleBin()
+        {
+            for (Node* node : bin_)
+                tree_.deleteNode(node);
+        }
+
+        void recycleSubTree(Node* subRoot)
+        {
+            if (subRoot->left != nullptr)
+                recycleSubTree(subRoot->left);
+            if (subRoot->right != nullptr)
+                recycleSubTree(subRoot->right);
+
+            recycle(subRoot);
+        }
+
+        void recycle(Node* node)
+        {
+            node->parent = nullptr;
+            node->left   = nullptr;
+            node->right  = nullptr;
+            bin_.emplace_back(node);
+        }
+
+        Node* getNode()
+        {
+            if (!bin_.empty())
+            {
+                Node* node = bin_.back();
+                bin_.pop_back();
+                return node;
+            }
+
+            return tree_.makeNode();
+        }
+
+    private:
+
+        std::vector<Node*, Allocator> bin_;
+        RTree&                        tree_;
+    };
 
     Allocator     alloc_;
     NodeAllocator nodeAlloc_{alloc_};
@@ -260,8 +350,8 @@ private:
         // Only check rotations on parent/grand parent of added leaf
         while (node != nullptr)
         {
-            BoundingBox newBounds
-                = bounds(node->left).combined(bounds(node->right));
+            BoundingBox newBounds = bounds(node->left)
+                                        .combined(bounds(node->right));
 
             if (newBounds == node->bounds)
                 return;
@@ -353,8 +443,7 @@ private:
             if (current.second + area(node->bounds) >= best.second)
                 break;
 
-            float directCost
-                = area(current.first->bounds.combined(node->bounds));
+            float directCost = area(current.first->bounds.combined(node->bounds));
             float totalCost = current.second + directCost;
 
             if (totalCost < best.second)
@@ -468,7 +557,15 @@ private:
     {
     public:
 
-        OverlapList(const ViewType<iterator*>& iterators)
+        typedef ReboundTo<Allocator, Node*> Allocator;
+
+        OverlapList(const Allocator& alloc = Allocator{}) : nodes_{alloc} {}
+
+        OverlapList(
+            const ViewType<iterator*>& iterators,
+            const Allocator&           alloc = Allocator{}
+        )
+            : OverlapList{alloc}
         {
             nodes_.reserve(iterators.size());
             for (iterator it : iterators)
@@ -477,25 +574,39 @@ private:
             middle_ = nodes_.size();
         }
 
+        OverlapList(const OverlapList& other)
+            : nodes_{other.nodes_.get_allocator()}
+        {
+            for (Node* node : other.overlapping())
+                nodes_.emplace_back(node);
+
+            middle_ = nodes_.size();
+        }
+
+        OverlapList(OverlapList&& other) = default;
+
+        void addOverlapping(Node* node)
+        {
+            nodes_.emplace_back(node);
+            ++middle_;
+        }
+
         void sortOverlapping(const BoundingBox& box)
         {
-            std::size_t endOverlap     = 0;
-            std::size_t startNoOverlap = middle_;
+            auto mid = booleanSort(
+                nodes_.data(),
+                nodes_.data() + middle_,
+                [=](Node** it) { return (*it)->bounds.overlaps(box); }
+            );
 
-            while (endOverlap != startNoOverlap)
-            {
-                Node*& current = nodes_[endOverlap];
-
-                if (current->bounds.overlaps(box))
-                    ++endOverlap;
-                else
-                    std::swap(current, nodes_[--startNoOverlap]);
-            }
-
-            middle_ = endOverlap;
+            middle_ = mid - nodes_.data();
         }
 
         auto overlapping()
+        {
+            return makeView(nodes_.data(), nodes_.data() + middle_);
+        }
+        auto overlapping() const
         {
             return makeView(nodes_.data(), nodes_.data() + middle_);
         }
@@ -505,8 +616,8 @@ private:
 
     private:
 
-        std::vector<Node*, ReboundTo<Allocator, Node*>> nodes_{};
-        std::size_t                                     middle_;
+        std::vector<Node*, Allocator> nodes_{};
+        std::size_t                   middle_{};
     };
 
     // Adapted from https://github.com/mtsamis/box2d-optimized
@@ -532,15 +643,118 @@ private:
         }
     }
 
-    template <class Update, class OnCollision>
-    void updateAndCollide(
-        Node*              subRoot,
+    // Adapted from https://github.com/mtsamis/box2d-optimized
+    template <class OnCollision>
+    Node* updateAndCollide(
         ViewType<Node**>   nodes,
-        ViewType<Node**>   collisions,
-        const Update&      update,
-        const OnCollision& onCollision
+        OverlapList        collisions,
+        const OnCollision& onCollision,
+        RecycleBin&        bin
     )
     {
+        std::size_t count = nodes.size();
+
+        if (count == 0)
+            return nullptr;
+        else if (count == 1)
+        {
+            collisions.sortOverlapping(nodes[0]->bounds);
+            for (Node* node : collisions.overlapping())
+                onCollision(iterator{nodes[0]}, iterator{node});
+
+            return nodes[0];
+        }
+
+        Node* subRoot = bin.getNode();
+
+        BoundingBox centerBounds{};
+        for (Node* node : nodes)
+        {
+            Vec2 c       = node->bounds.center();
+            centerBounds = centerBounds.combined(BoundingBox{c, c});
+        }
+
+        Uint32 splitAxis;
+        float  split;
+        {
+            Vec2 dim  = centerBounds.max() - centerBounds.min();
+            splitAxis = dim[0] > dim[1] ? 0 : 1;
+            split     = centerBounds.center()[splitAxis];
+        }
+
+        Node** middle = booleanSort(nodes.begin(), nodes.end(), [=](Node** it) {
+            return (*it)->bounds.center()[splitAxis] < split;
+        });
+
+
+        // prevent degenerate linear trees.
+        {
+            std::ptrdiff_t minNodes = std::max(count / 16, (std::size_t)1);
+            if (middle - nodes.begin() < minNodes)
+                middle = nodes.begin() + minNodes;
+            else if (nodes.end() - middle < minNodes)
+                middle = nodes.end() - minNodes;
+        }
+
+        ViewType<Node**> left  = makeView(nodes.begin(), middle);
+        ViewType<Node**> right = makeView(middle, nodes.end());
+
+        auto constructBounds = [](ViewType<Node**> nodes) {
+            BoundingBox b{};
+            for (Node* n : nodes)
+                b = b.combined(n->bounds);
+
+            return b;
+        };
+
+        BoundingBox leftBounds  = constructBounds(left);
+        BoundingBox rightBounds = constructBounds(right);
+        subRoot->bounds         = leftBounds.combined(rightBounds);
+
+        std::size_t lastCollision = collisions.middle();
+        collisions.sortOverlapping(leftBounds);
+        OverlapList leftCollisions{collisions};
+
+        collisions.setMiddle(lastCollision);
+        collisions.sortOverlapping(rightBounds);
+        OverlapList rightCollisions{collisions};
+
+        if (leftBounds.overlaps(rightBounds))
+        {
+            if (left.size() < right.size())
+            {
+                for (Node* node : left)
+                    if (rightBounds.overlaps(node->bounds))
+                        rightCollisions.addOverlapping(node);
+            }
+            else
+            {
+                for (Node* node : right)
+                    if (leftBounds.overlaps(node->bounds))
+                        leftCollisions.addOverlapping(node);
+            }
+        }
+
+        subRoot->left = updateAndCollide(
+            left,
+            std::move(leftCollisions),
+            onCollision,
+            bin
+        );
+
+        subRoot->right = updateAndCollide(
+            right,
+            std::move(rightCollisions),
+            onCollision,
+            bin
+        );
+
+        if (subRoot->left != nullptr)
+            subRoot->left->parent = subRoot;
+        if (subRoot->right != nullptr)
+            subRoot->right->parent = subRoot;
+
+        return subRoot;
     }
 
     void update(Node* node, BoundingBox newBounds)

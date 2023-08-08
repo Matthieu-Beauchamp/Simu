@@ -24,6 +24,8 @@
 
 #pragma once
 
+#include "Simu/utility/Callable.hpp"
+
 namespace simu
 {
 
@@ -40,5 +42,18 @@ inline T squared(const T& x)
     return x * x;
 }
 
+template <std::bidirectional_iterator Iter, Callable<bool(Iter)> GoesLeft>
+Iter booleanSort(Iter begin, Iter end, GoesLeft goesLeft)
+{
+    while (begin != end)
+    {
+        if (goesLeft(begin))
+            ++begin;
+        else
+            std::swap(*begin, *(--end));
+    }
 
-} // namepace simu 
+    return begin;
+}
+
+} // namespace simu
