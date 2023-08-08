@@ -156,8 +156,6 @@ public:
             bin.recycleSubTree(root_);
 
             OverlapList collisions{updateAlloc};
-            for (Node* node : nodes)
-                collisions.addOverlapping(node);
 
             root_ = updateAndCollide(
                 makeView(nodes.data(), nodes.data() + nodes.size()),
@@ -587,8 +585,7 @@ private:
 
         void addOverlapping(Node* node)
         {
-            nodes_.emplace_back(node);
-            ++middle_;
+            nodes_.insert(nodes_.begin() + middle_++, node);
         }
 
         void sortOverlapping(const BoundingBox& box)
