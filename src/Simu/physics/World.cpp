@@ -101,7 +101,7 @@ void World::declareContactConflict(const Bodies& bodies)
     auto contact = inContacts(bodies);
     if (contact == contacts_.end())
     {
-        contacts_[bodies] = ContactStatus{1, nullptr};
+        contacts_[bodies] = ContactStatus{nullptr, 1};
     }
     else
     {
@@ -303,70 +303,29 @@ void World::updateBodies(float dt)
 
     // check for new contacts
     auto registerContact = [=, this](BodyIt first, BodyIt second) {
-        if (first == second)
-            return;
-
         Bodies bodies{*first, *second};
         auto   contact = inContacts(bodies);
 
         if (contact == contacts_.end())
-            contacts_[bodies] = ContactStatus{0, makeContactConstraint(bodies)};
+            contacts_[bodies] = ContactStatus{makeContactConstraint(bodies), 0, true};
+        else
+            contact->second.hit = true;
     };
 
-    if (settings_.batchBodyTreeOperations)
+    bodyTree_.updateAndCollide(
+        [this](BodyIt it) { return boundsOf(*it); },
+        registerContact
+    );
+
+    for (auto& contact : contacts_)
     {
-        bodyTree_.updateAndCollide(
-            [this](BodyIt it) { return boundsOf(*it); },
-            registerContact
-        );
-
-        for (auto& contact : contacts_)
+        ContactStatus& cs = contact.second;
+        if (!cs.hit && cs.existingContact != nullptr)
         {
-            ContactConstraint* c = contact.second.existingContact.get();
-            if (c != nullptr)
-            {
-                const Bodies& b = contact.first;
-                if (!boundsOf(b[0]).overlaps(boundsOf(b[1])))
-                    c->kill();
-            }
-        }
-    }
-    else
-    {
-        std::vector<BodyIt, ReboundTo<Alloc, BodyIt>> toUpdate{miscAlloc_};
-        for (const auto& b : bodies_)
-        {
-            auto treeIt = b->treeLocation_;
-            if (!b->isAsleep()
-                && !treeIt.bounds().contains(b->collider().boundingBox()))
-                toUpdate.emplace_back(treeIt);
+            cs.existingContact->kill();
         }
 
-        // update bounds
-        for (auto it : toUpdate)
-            bodyTree_.update(it, boundsOf(*it));
-
-        // detectContacts
-        bodyTree_.forEachOverlapping(
-            makeView(toUpdate.data(), toUpdate.data() + toUpdate.size()),
-            registerContact
-        );
-
-        // kill outdated contacts
-        for (auto it : toUpdate)
-        {
-            Body* b = *it;
-
-            for (ContactConstraint* c : b->contacts())
-            {
-                if (!c->isDead())
-                {
-                    auto bodies = c->bodies();
-                    if (!boundsOf(bodies[0]).overlaps(boundsOf(bodies[1])))
-                        c->kill();
-                }
-            }
-        }
+        cs.hit = false;
     }
 }
 

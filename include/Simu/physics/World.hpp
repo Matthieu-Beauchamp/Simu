@@ -262,18 +262,6 @@ public:
 
         // TODO: Epsilons, iterate until change < epsilon or iter >= maxIter.
 
-
-        ////////////////////////////////////////////////////////////
-        /// When true, Bounding box updates and collision detection is done in a
-        ///     single pass for every body in this world.
-        /// When false, Bodies have enlarged bounding boxes that are updated
-        ///     only when they no longer contain their bodies.
-        ///
-        /// For scenes where most bodies are immobile, batch operations will be much slower.
-        ///
-        ////////////////////////////////////////////////////////////
-        bool batchBodyTreeOperations = true;
-
         // below is currently unused
         bool enableWarmstarting = true;
 
@@ -367,8 +355,11 @@ private:
 
     struct ContactStatus
     {
-        Int32                        nConflictingConstraints = 0;
-        UniquePtr<ContactConstraint> existingContact         = nullptr;
+        UniquePtr<ContactConstraint> existingContact = nullptr;
+
+        Int32 nConflictingConstraints = 0;
+
+        bool hit = false;
     };
 
     typedef std::unordered_map<
@@ -393,33 +384,9 @@ private:
 
     ContactFactory makeContactConstraint_;
 
-    static constexpr float minBoundsScale = 1.2f;
-
     BoundingBox boundsOf(const Body* body)
     {
-        if (settings_.batchBodyTreeOperations)
-        {
-            return body->collider().boundingBox();
-        }
-        else
-        {
-            Vec2 v = clamp(body->velocity(), Vec2::filled(-2.f), Vec2::filled(2.f));
-            Vec2 minScale = -std::min(v, Vec2::filled(0.f));
-            Vec2 maxScale = std::max(v, Vec2::filled(0.f));
-
-            Vec2 min = body->collider().boundingBox().min();
-            Vec2 max = body->collider().boundingBox().max();
-            Vec2 c   = body->collider().boundingBox().center();
-
-            min += elementWiseMul(minScale, min - c);
-            max += elementWiseMul(maxScale, max - c);
-            return BoundingBox{min, max};
-
-            // return BoundingBox::scaled(
-            //     body->collider().boundingBox(),
-            //     minBoundsScale
-            // );
-        }
+        return body->collider().boundingBox();
     }
 };
 
