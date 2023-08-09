@@ -39,12 +39,19 @@ public:
 
     typedef typename PhysicsObject::PhysicsAlloc Alloc;
 
-    Island(Body* root, const Alloc& alloc)
+    Island(const Alloc& alloc)
         : bodies_{alloc},
           constraints_{alloc},
           contacts_{alloc},
           positions_{alloc},
           velocities_{alloc}
+    {
+    }
+
+    Island(const Island&) = delete;
+    Island(Island&&)      = delete;
+
+    void init(Body* root)
     {
         addBody(root);
 
@@ -68,23 +75,18 @@ public:
         }
     }
 
-    Island(const Island&) = delete;
-    Island(Island&&)      = delete;
-
-    void endSolve()
+    void clear()
     {
-        for (Body* b : bodies_)
-        {
-            b->velocity_ = velocities_[b->proxyIndex];
-            b->position_ = positions_[b->proxyIndex];
-            b->update();
-            b->proxyIndex = Body::NO_INDEX;
-        }
+        bodies_.clear();
+        constraints_.clear();
+        contacts_.clear();
+        positions_.clear();
+        velocities_.clear();
+    }
 
-        for (Constraint* c : constraints_)
-            c->bodies().endSolve();
-        for (ContactConstraint* c : contacts_)
-            c->bodies().endSolve();
+    bool hasConstraints()
+    {
+        return !(constraints_.empty() && contacts_.empty());
     }
 
     bool isAwake() const { return isAwake_; }
@@ -153,6 +155,22 @@ public:
             for (ContactConstraint* constraint : contacts_)
                 constraint->solvePositions(constraint->bodies().getProxies());
         }
+    }
+
+    void endSolve()
+    {
+        for (Body* b : bodies_)
+        {
+            b->velocity_ = velocities_[b->proxyIndex];
+            b->position_ = positions_[b->proxyIndex];
+            b->update();
+            b->proxyIndex = Body::NO_INDEX;
+        }
+
+        for (Constraint* c : constraints_)
+            c->bodies().endSolve();
+        for (ContactConstraint* c : contacts_)
+            c->bodies().endSolve();
     }
 
 private:
@@ -230,8 +248,8 @@ private:
     std::vector<Constraint*, ReboundTo<Alloc, Constraint*>> constraints_;
     std::vector<ContactConstraint*, ReboundTo<Alloc, ContactConstraint*>> contacts_;
 
-    std::vector<Position, ReboundTo<Alloc, Position>> positions_{};
-    std::vector<Velocity, ReboundTo<Alloc, Velocity>> velocities_{};
+    std::vector<Position, ReboundTo<Alloc, Position>> positions_;
+    std::vector<Velocity, ReboundTo<Alloc, Velocity>> velocities_;
 
     bool isAwake_ = false;
 };
@@ -253,9 +271,10 @@ void solveIslands(const T& bodies, const Alloc& alloc, World::Settings s, float 
 
     auto removeBody = [&](Body* body) { std::erase(bodiesToProcess, body); };
 
+    Island island{alloc};
     while (!bodiesToProcess.empty())
     {
-        Island island(bodiesToProcess.back(), alloc);
+        island.init(bodiesToProcess.back());
 
         for (Body* body : island.bodies())
             removeBody(body);
@@ -273,15 +292,24 @@ void solveIslands(const T& bodies, const Alloc& alloc, World::Settings s, float 
 
 
         island.refreshProxies();
-        island.applyVelocityConstraints(s.nVelocityIterations, dt);
-        island.integrateBodies(dt);
-        island.applyPositionConstraints(s.nPositionIterations);
 
+        if (island.hasConstraints())
+        {
+            island.applyVelocityConstraints(s.nVelocityIterations, dt);
+            island.integrateBodies(dt);
+            island.applyPositionConstraints(s.nPositionIterations);
+        }
+        else
+        {
+            island.integrateBodies(dt);
+        }
 
         // structural bodies are shared across islands.
         // -> must not write back before all islands have solved (otherwise body has no index)
         // -> if the body has a velocity, it will be integrated multiple times...
         island.endSolve();
+
+        island.clear();
     }
 }
 

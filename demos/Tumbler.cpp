@@ -60,23 +60,35 @@ public:
         descr.material.friction.value = 0.8f;
 
         descr.position = simu::Vec2{0.f, tumblerBordersSize[0] / 2.f};
-        auto top
-            = world().makeBody<simu::VisibleBody>(descr, tumblerColor, &renderer);
+        auto top       = world().makeBody<simu::VisibleBody>(
+            descr,
+            tumblerColor,
+            &renderer
+        );
 
         descr.position = -descr.position;
-        auto bottom
-            = world().makeBody<simu::VisibleBody>(descr, tumblerColor, &renderer);
+        auto bottom    = world().makeBody<simu::VisibleBody>(
+            descr,
+            tumblerColor,
+            &renderer
+        );
 
 
         descr.position    = simu::Vec2{tumblerBordersSize[0] / 2.f, 0.f};
         descr.orientation = pi / 2.f;
-        auto right
-            = world().makeBody<simu::VisibleBody>(descr, tumblerColor, &renderer);
+        auto right        = world().makeBody<simu::VisibleBody>(
+            descr,
+            tumblerColor,
+            &renderer
+        );
 
         descr.position    = -descr.position;
         descr.orientation = -descr.orientation;
-        auto left
-            = world().makeBody<simu::VisibleBody>(descr, tumblerColor, &renderer);
+        auto left         = world().makeBody<simu::VisibleBody>(
+            descr,
+            tumblerColor,
+            &renderer
+        );
 
         auto d = simu::Bodies::Dominance{1.f, 1.f};
         world().makeConstraint<simu::WeldConstraint>(simu::Bodies{
