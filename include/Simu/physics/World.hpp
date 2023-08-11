@@ -128,10 +128,10 @@ public:
 
     void clear()
     {
+        bodies_.clear();
         forces_.clear();
         contacts_.clear();
         constraints_.clear();
-        bodies_.clear();
         colliderTree_.clear();
     }
 
@@ -352,13 +352,6 @@ private:
     typedef ReboundTo<Alloc, UniquePtr<ForceField>> ForceFieldAlloc;
     ForceFieldAlloc                                 fAlloc_{miscAlloc_};
 
-
-    ColliderTree colliderTree_{bAlloc_};
-
-    typedef std::list<UniquePtr<Body>, BodyAlloc> BodyList;
-    BodyList                                      bodies_{bAlloc_};
-
-
     typedef std::list<UniquePtr<Constraint>, ConstraintAlloc> ConstraintList;
     ConstraintList constraints_{cAlloc_};
 
@@ -396,6 +389,12 @@ private:
                 std::array<simu::Collider*, 2>{colliders[1], colliders[0]}
             );
     }
+
+    ColliderTree colliderTree_{bAlloc_};
+
+    typedef std::list<UniquePtr<Body>, BodyAlloc> BodyList;
+    BodyList                                      bodies_{bAlloc_};
+
 
     Settings settings_;
 

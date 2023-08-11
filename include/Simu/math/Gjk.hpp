@@ -36,17 +36,20 @@ namespace priv
 
 struct Simplex
 {
-    bool pushPoint(Vertex v);
-    Vec2 nextDirection() const;
+    inline Simplex(Vec2 initialSearchDir = Vec2::i());
 
-    Vec2 closestPoint(Vec2 Q) const;
+    inline bool pushPoint(Vertex v);
+    inline Vec2 nextDirection() const;
+
+    inline bool containsOrigin() const;
 
     std::array<Vertex, 3> pointStack{};
 
-    // hold the outwards facing normals of edges P0-P1 and P0-P2 respectively,
+    // hold the outwards facing normals of edges P0-P1, P0-P2, P1-P2 respectively,
     // updated on pushPoint once there are 3 valid vertices
-    std::array<Vec2, 2> normals{};
+    std::array<Vec2, 3> normals{};
 
+    Vec2        initialSearchDir_;
     std::size_t nIterations = 0;
 
 private:
@@ -59,9 +62,9 @@ struct Polytope
 {
     typedef typename Edges<Vertices>::Edge Edge;
 
-    Polytope(const Simplex& simplex);
+    inline Polytope(const Simplex& simplex);
 
-    bool addVertex(const Edge& where, Vertex v);
+    inline bool addVertex(const Edge& where, Vertex v);
 
     Vertices vertices{};
 };

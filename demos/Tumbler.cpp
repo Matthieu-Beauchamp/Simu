@@ -81,7 +81,7 @@ public:
 
         auto motor = world().makeConstraint<simu::RotationMotor>(
             simu::Bodies::singleBody(tumbler),
-            simu::RotationMotor::Specs::fromTorque(0.15f * pi, 1e8f)
+            simu::RotationMotor::Specs::fromTorque(0.05f * pi, 1e8f)
         );
         motor->direction(simu::Vector<float, 1>{-1.f});
 

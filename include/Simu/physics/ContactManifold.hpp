@@ -58,7 +58,7 @@ public:
             colliders_[1]->body()};
 
         Vec2 searchDir = nContacts_ == 0
-                             ? (bodies[0]->centroid() - bodies[1]->centroid())
+                             ? (bodies[1]->centroid() - bodies[0]->centroid())
                              : bodies[referenceIndex()]->toWorldSpace().rotation(
                                ) * contactNormal_;
 

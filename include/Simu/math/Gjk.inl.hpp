@@ -30,18 +30,141 @@
 namespace simu
 {
 
+namespace priv
+{
+
+Simplex::Simplex(Vec2 initialSearchDir) : initialSearchDir_{initialSearchDir}
+{
+    if (all(initialSearchDir_ == Vec2::filled(0.f)))
+        initialSearchDir_ = Vec2::i();
+}
+
+bool Simplex::pushPoint(Vertex v)
+{
+    if (keepBottomPoint_)
+    {
+        pointStack[1]    = pointStack[2];
+        keepBottomPoint_ = false;
+    }
+
+    bool isNewPoint = true;
+    for (Vec2 p : pointStack)
+        isNewPoint = isNewPoint && !all(p == v);
+
+    pointStack[2] = pointStack[1];
+    pointStack[1] = pointStack[0];
+    pointStack[0] = v;
+
+    Vec2 ab = pointStack[1] - pointStack[0];
+    Vec2 bc = pointStack[2] - pointStack[1];
+    Vec2 ca = pointStack[0] - pointStack[2];
+
+    bool positivelyOriented = cross(ab, bc) >= 0.f;
+
+    normals[0] = perp(ab, positivelyOriented);
+    normals[1] = perp(ca, positivelyOriented);
+    normals[2] = perp(bc, positivelyOriented);
+
+    ++nIterations;
+    return isNewPoint;
+}
+
+Vec2 Simplex::nextDirection() const
+{
+    switch (nIterations)
+    {
+        case 0:
+        {
+            return initialSearchDir_;
+        }
+        case 1:
+        {
+            if (dot(initialSearchDir_, pointStack[0]) > 0)
+                return -pointStack[0];
+
+            return -initialSearchDir_;
+        }
+        case 2:
+        {
+            Vec2 edge = pointStack[0] - pointStack[1];
+            return perp(edge, cross(pointStack[1], pointStack[0]) < 0);
+        }
+        default:
+        {
+            bool norm1TowardsOrigin = dot(normals[0], pointStack[0]) < 0;
+            // bool norm2TowardsOrigin = dot(normals[1], pointStack[0]) < 0;
+
+            if (norm1TowardsOrigin)
+                return normals[0];
+
+            keepBottomPoint_ = true;
+            return normals[1];
+        }
+    }
+}
+
+bool Simplex::containsOrigin() const
+{
+    return dot(pointStack[0], normals[0]) >= 0.f
+           && dot(pointStack[0], normals[1]) >= 0.f
+           && dot(pointStack[1], normals[2]) >= 0.f;
+}
+
+
+Polytope::Polytope(const Simplex& simplex)
+{
+    Vertex first  = simplex.pointStack[0];
+    Vertex second = simplex.pointStack[1];
+    Vertex third  = simplex.pointStack[2];
+
+    vertices.emplace_back(first);
+    vertices.emplace_back(second);
+    vertices.emplace_back(third);
+
+    if (orientation(first, second, third, 0.f) == Orientation::negative)
+        std::reverse(vertices.begin(), vertices.end());
+}
+
+bool Polytope::addVertex(const Edge& where, Vertex v)
+{
+    if (where.isOutside(v))
+    {
+        // this is not ideal, but prevents almost collinear edges from
+        //  putting us in an infinite loop:
+        // Consider A-B-C three almost collinear vertices of the Polytope.
+        // Sometimes when edge BC is the closest edge to the origin, the furthest
+        //  vertex returned will be A, then creating a degenerate polytope
+        //  with the sequence A-B-A-C and preventing the algorithm from terminating.
+        // This could be probably be solved by using an epsilon value to prevent
+        //  such collinear chains from being accepted in the Polytope.
+        // Currently Gjk does not require any epsilon, and we prefer to keep it that way when possible.
+        // If our Geometry had many more vertices, this loop becomes expensive and undesirable.
+        for (const Vertex& vert : vertices)
+            if (all(vert == v))
+                return false;
+
+        auto insertPos = where.toIt();
+        vertices.insert(insertPos, v);
+
+        return true;
+    }
+
+    return false;
+}
+
+} // namespace priv
+
+
 template <Geometry T>
 Gjk<T>::Gjk(const T& first, const T& second, Vec2 initialDir)
-    : first_{first}, second_{second}
+    : first_{first}, second_{second}, simplex_{initialDir}
 {
-    Vec2 direction = initialDir;
-    if (all(direction == Vec2{}))
-        direction = simplex_.nextDirection();
-
     while (!done_)
     {
+        Vec2 direction = simplex_.nextDirection();
+
         Vertex v = furthestVertexInDirection(direction);
-        if (dot(v, direction) < 0)
+        if (dot(v, direction) < 0.f)
         {
             done_         = true;
             areColliding_ = false;
@@ -51,7 +174,7 @@ Gjk<T>::Gjk(const T& first, const T& second, Vec2 initialDir)
 
         if (simplex_.nIterations > 2)
         {
-            if (all(simplex_.closestPoint(Vec2{0, 0}) == Vec2{0, 0}))
+            if (simplex_.containsOrigin())
             {
                 areColliding_ = true;
                 done_         = true;
@@ -62,8 +185,6 @@ Gjk<T>::Gjk(const T& first, const T& second, Vec2 initialDir)
                 done_         = true;
             }
         }
-
-        direction = simplex_.nextDirection();
     }
 }
 
