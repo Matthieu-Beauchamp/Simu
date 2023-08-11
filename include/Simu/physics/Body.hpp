@@ -221,7 +221,7 @@ public:
     }
 
     Collider* addCollider(const ColliderDescriptor& descriptor);
-    void removeCollider(Collider* collider); // TODO: Remove associated contacts
+    void removeCollider(Collider* collider);
 
     ////////////////////////////////////////////////////////////
     /// \brief Applies a force for some time on an object

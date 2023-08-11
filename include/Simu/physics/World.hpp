@@ -318,10 +318,7 @@ private:
         );
     }
 
-    void removeCollider(Collider* collider)
-    {
-        colliderTree_.erase(collider->treeLocation_);
-    }
+    void removeCollider(Collider* collider);
 
     UniquePtr<ContactConstraint>
     makeContactConstraint(Collider& first, Collider& second);

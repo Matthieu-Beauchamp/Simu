@@ -203,6 +203,18 @@ private:
 };
 
 
+void World::removeCollider(Collider* collider)
+{
+    colliderTree_.erase(collider->treeLocation_);
+
+    Body* b = collider->body();
+    for (ContactConstraint* c : b->contacts_)
+    {
+        if (c->colliders()[0] == collider || c->colliders()[1] == collider)
+            c->kill();
+    }
+}
+
 void World::cleanup()
 {
     for (auto it = contacts_.begin(); it != contacts_.end();)

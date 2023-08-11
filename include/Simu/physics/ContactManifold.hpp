@@ -46,7 +46,7 @@ public:
         update();
     }
 
-    const std::array<const Collider*, 2> colliders() const
+    const std::array<const Collider*, 2>& colliders() const
     {
         return colliders_;
     }

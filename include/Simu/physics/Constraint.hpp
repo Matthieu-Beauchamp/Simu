@@ -190,6 +190,8 @@ public:
         frame_ = manifold_.frameManifold(this->bodies());
     }
 
+    const std::array<const Collider*, 2>& colliders() const { return manifold_.colliders();}
+
     ContactInfo contactInfo() const
     {
         ContactInfo info;
