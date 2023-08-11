@@ -46,15 +46,11 @@ public:
     typedef S                 Solver;
 
     ConstraintImplementation(const Bodies& bodies, const F& f, bool disableContacts)
-        : Constraint{bodies},
+        : Constraint{bodies, disableContacts},
           f{f},
-          solver{bodies, f},
-          disableContacts_{disableContacts}
+          solver{bodies, f}
     {
     }
-
-    void onConstruction(World& world) override;
-    void onDestruction(World& world) override;
 
     bool isActive(const Proxies& proxies) override
     {
@@ -90,9 +86,6 @@ protected:
     F f;
     S solver;
 
-private:
-
-    bool disableContacts_;
 };
 
 
@@ -186,13 +179,13 @@ class ContactConstraint : public Constraint
 {
 public:
 
-    ContactConstraint(const Bodies& bodies)
-        : Constraint{bodies}, 
-          manifold_{this->bodies()}, 
-          restitutionCoeff_{CombinableProperty{bodies[0]->material().bounciness, 
-                                               bodies[1]->material().bounciness}.value},
-          frictionCoeff_{CombinableProperty{bodies[0]->material().friction, 
-                                            bodies[1]->material().friction}.value}
+    ContactConstraint(Collider& first, Collider& second)
+        : Constraint{Bodies{first.body(), second.body()}, false}, 
+          manifold_{first, second}, 
+          restitutionCoeff_{CombinableProperty{first.material().bounciness, 
+                                               second.material().bounciness}.value},
+          frictionCoeff_{CombinableProperty{first.material().friction, 
+                                            second.material().friction}.value}
     {
         frame_ = manifold_.frameManifold(this->bodies());
     }
@@ -252,14 +245,16 @@ public:
             float tangentVel     = (J * velocity)[0];
             float dTangentLambda = -tangentVel * invTangentKs_[c];
 
-            float bound = frictionCoeff_ * normalLambda_[c];
-            float tangentLambda
-                = clamp(tangentLambda_[c] + dTangentLambda, -bound, bound);
+            float bound         = frictionCoeff_ * normalLambda_[c];
+            float tangentLambda = clamp(
+                tangentLambda_[c] + dTangentLambda,
+                -bound,
+                bound
+            );
             dTangentLambda    = tangentLambda - tangentLambda_[c];
             tangentLambda_[c] = tangentLambda;
 
-            velocity
-                += elementWiseMul(invMassVec, transpose(J) * dTangentLambda);
+            velocity += elementWiseMul(invMassVec, transpose(J) * dTangentLambda);
         }
 
         if (frame_.nContacts == 1)
@@ -321,8 +316,8 @@ public:
             C[c] = dot(frame_.normal, relPos[c]);
 
 
-        Vec2 acceptablePen
-            = -sinkTolerance * Vec2::filled(manifold_.minimumPenetration());
+        Vec2 acceptablePen = -sinkTolerance
+                             * Vec2::filled(manifold_.minimumPenetration());
         if (all(C > acceptablePen))
             return;
 
@@ -401,26 +396,30 @@ private:
 
             Vec2 refN = (incident == 1) ? -frame_.normal : frame_.normal;
             Vec2 nearestIncident = furthestVertexInDirection(
-                bodies()[incident]->collider(),
+                *manifold_.colliders()[incident],
                 -(refN)
             );
 
-            bool hasNewCandidate
-                = any(frame_.worldContacts[incident][0] != nearestIncident);
-            if (frame_.nContacts == 2)
-                hasNewCandidate
-                    = hasNewCandidate
-                      && any(frame_.worldContacts[incident][1] != nearestIncident);
+            bool hasNewCandidate = any(
+                frame_.worldContacts[incident][0] != nearestIncident
+            );
 
-            needsNewManifold
-                = tangentDistanceExceeded || roseTooHigh || hasNewCandidate;
+            if (frame_.nContacts == 2)
+                hasNewCandidate = hasNewCandidate
+                                  && any(
+                                      frame_.worldContacts[incident][1]
+                                      != nearestIncident
+                                  );
+
+            needsNewManifold = tangentDistanceExceeded || roseTooHigh
+                               || hasNewCandidate;
         }
 
         if (needsNewManifold)
         {
             Uint32 nPreviousContacts = frame_.nContacts;
 
-            manifold_.update(bodies());
+            manifold_.update();
             frame_ = manifold_.frameManifold(bodies());
 
             tangentLambda_ = Vec2{};
@@ -474,10 +473,10 @@ private:
         }
         else if (manifold_.nContacts() == 2)
         {
-            normalK(0, 1)
-                = normalMass
-                  + refInertia * Jn(0, 3 * ref + 2) * Jn(1, 3 * ref + 2)
-                  + incInertia * Jn(0, 3 * inc + 2) * Jn(1, 3 * inc + 2);
+            normalK(0, 1) = normalMass
+                            + refInertia * Jn(0, 3 * ref + 2) * Jn(1, 3 * ref + 2)
+                            + incInertia * Jn(0, 3 * inc + 2)
+                                  * Jn(1, 3 * inc + 2);
 
             normalK(1, 0) = normalK(0, 1);
 
@@ -552,8 +551,8 @@ private:
         std::array<Vec2, 2> relPos;
         for (Uint32 c = 0; c < frame_.nContacts; ++c)
         {
-            relPos[c]
-                = frame_.worldContacts[inc][c] - frame_.worldContacts[ref][c];
+            relPos[c] = frame_.worldContacts[inc][c]
+                        - frame_.worldContacts[ref][c];
         }
 
         return relPos;

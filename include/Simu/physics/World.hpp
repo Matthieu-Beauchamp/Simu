@@ -71,11 +71,11 @@ namespace std
 {
 
 template <>
-struct hash<simu::Bodies>
+struct hash<std::array<simu::Collider*, 2>>
 {
-    size_t operator()(const simu::Bodies& bodies) const
+    size_t operator()(const std::array<simu::Collider*, 2>& colliders) const
     {
-        return ::details::hash_val(bodies[0], bodies[1]);
+        return ::details::hash_val(colliders[0], colliders[1]);
     }
 };
 
@@ -111,7 +111,8 @@ public:
 
     typedef ReboundTo<Alloc, UniquePtr<ContactConstraint>> ContactAlloc;
 
-    typedef std::function<UniquePtr<ContactConstraint>(Bodies, const ContactAlloc&)>
+    typedef std::function<
+        UniquePtr<ContactConstraint>(Collider&, Collider&, const ContactAlloc&)>
         ContactFactory;
 
     static ContactFactory defaultContactFactory;
@@ -122,35 +123,53 @@ public:
     ////////////////////////////////////////////////////////////
     World(ContactFactory makeContact = defaultContactFactory);
 
-    // clang-format off
+    World(const World& other) = delete;
+    World(World&& other)      = delete;
+
+    void clear()
+    {
+        forces_.clear();
+        contacts_.clear();
+        constraints_.clear();
+        bodies_.clear();
+        colliderTree_.clear();
+    }
+
+    void setContactFactory(ContactFactory makeContact)
+    {
+        contacts_.clear();
+        makeContactConstraint_ = makeContact;
+    }
 
     ////////////////////////////////////////////////////////////
     /// \brief Gives a view over the Bodies in the world
-    /// 
+    ///
     /// ie for ( [const] Body& body : world.bodies())
-    /// 
+    ///
     ////////////////////////////////////////////////////////////
     auto bodies() { return makeView(bodies_, DoubleDereference{}); }
     auto bodies() const { return makeView(bodies_, DoubleDereference{}); }
 
     ////////////////////////////////////////////////////////////
     /// \brief Gives a view over the ForceFields in the world
-    /// 
+    ///
     /// ie for ( [const] ForceField& force : world.forceFields())
-    /// 
+    ///
     ////////////////////////////////////////////////////////////
     auto forceFields() { return makeView(forces_, DoubleDereference{}); }
     auto forceFields() const { return makeView(forces_, DoubleDereference{}); }
 
     ////////////////////////////////////////////////////////////
     /// \brief Gives a view over the Constraints in the world
-    /// 
+    ///
     /// ie for ( [const] Constraint& constraint : world.constraints())
-    /// 
+    ///
     ////////////////////////////////////////////////////////////
     auto constraints() { return makeView(constraints_, DoubleDereference{}); }
-    auto constraints() const { return makeView(constraints_, DoubleDereference{}); }
-    // clang-format on
+    auto constraints() const
+    {
+        return makeView(constraints_, DoubleDereference{});
+    }
 
 
     ////////////////////////////////////////////////////////////
@@ -162,9 +181,9 @@ public:
     {
         auto body = makeObject<T>(bAlloc_, std::forward<Args>(args)...);
 
-        BoundingBox bounds = boundsOf(body.get());
         T* b = static_cast<T*>(bodies_.emplace_back(std::move(body)).get());
-        b->treeLocation_ = bodyTree_.emplace(bounds, b);
+        b->world_ = this;
+
         return b;
     }
     Body* makeBody(const BodyDescriptor& descr)
@@ -212,9 +231,10 @@ public:
             for (Body& body : bodies())
                 body.wake();
         else
-            bodyTree_.forEachIn(f->domain().region, [](BodyTree::iterator it) {
-                (*it)->wake();
-            });
+            colliderTree_.forEachIn(
+                f->domain().region,
+                [](ColliderTree::iterator it) { (*it)->body()->wake(); }
+            );
 
         return f;
     }
@@ -227,26 +247,6 @@ public:
     ///
     ////////////////////////////////////////////////////////////
     void step(float dt);
-
-    // TODO: Contact conflicts needs testing
-    // TODO: This is no longer needed since bodies knows their constraint
-    //  constraint should be queried to know wether or not they prevent contact between two of their bodies.
-    ////////////////////////////////////////////////////////////
-    /// \brief Declares that contacts between 2 bodies should not be enforced
-    ///
-    /// If there already exist a contact between them, it is killed.
-    /// As long as at least one conflict exists between the 2 bodies, they will
-    ///     never collide.
-    ///
-    ////////////////////////////////////////////////////////////
-    void declareContactConflict(const Bodies& bodies);
-
-    ////////////////////////////////////////////////////////////
-    /// \brief Removes a contact conflict between 2 bodies.
-    ///
-    /// \see declareContactConflict
-    ////////////////////////////////////////////////////////////
-    void removeContactConflict(const Bodies& bodies);
 
     struct Settings
     {
@@ -294,19 +294,37 @@ public:
     template <Callable<void(Body*)> F>
     void forEachIn(BoundingBox box, const F& func)
     {
-        bodyTree_.forEachIn(box, [&](BodyTree::iterator it) { func(*it); });
+        colliderTree_.forEachIn(box, [&](ColliderTree::iterator it) {
+            func((*it)->body());
+        });
     }
 
     template <Callable<void(Body*)> F>
     void forEachAt(Vec2 point, const F& func)
     {
-        bodyTree_.forEachAt(point, [&](BodyTree::iterator it) { func(*it); });
+        colliderTree_.forEachAt(point, [&](ColliderTree::iterator it) {
+            func((*it)->body());
+        });
     }
 
 private:
 
+    friend Body;
+    void addCollider(Collider* collider)
+    {
+        collider->treeLocation_ = colliderTree_.emplace(
+            collider->boundingBox(),
+            collider
+        );
+    }
 
-    UniquePtr<ContactConstraint> makeContactConstraint(Bodies bodies);
+    void removeCollider(Collider* collider)
+    {
+        colliderTree_.erase(collider->treeLocation_);
+    }
+
+    UniquePtr<ContactConstraint>
+    makeContactConstraint(Collider& first, Collider& second);
 
     template <std::derived_from<PhysicsObject> T, class A, class... Args>
     UniquePtr<T> makeObject(A& alloc, Args&&... args)
@@ -328,66 +346,63 @@ private:
 
     Alloc miscAlloc_{};
 
+    typedef ReboundTo<Alloc, UniquePtr<Body>> BodyAlloc;
+    BodyAlloc                                 bAlloc_{miscAlloc_};
 
-    typedef ReboundTo<Alloc, UniquePtr<Body>>     BodyAlloc;
+    typedef ReboundTo<Alloc, UniquePtr<Constraint>> ConstraintAlloc;
+    ConstraintAlloc                                 cAlloc_{bAlloc_};
+
+    typedef ReboundTo<Alloc, UniquePtr<ForceField>> ForceFieldAlloc;
+    ForceFieldAlloc                                 fAlloc_{miscAlloc_};
+
+
+    ColliderTree colliderTree_{bAlloc_};
+
     typedef std::list<UniquePtr<Body>, BodyAlloc> BodyList;
-
-    BodyAlloc bAlloc_{miscAlloc_};
-    BodyList  bodies_{bAlloc_};
+    BodyList                                      bodies_{bAlloc_};
 
 
-    BodyTree bodyTree_{bAlloc_};
-
-
-    typedef ReboundTo<Alloc, UniquePtr<Constraint>>           ConstraintAlloc;
     typedef std::list<UniquePtr<Constraint>, ConstraintAlloc> ConstraintList;
-
-    ConstraintAlloc cAlloc_{bAlloc_};
-    ConstraintList  constraints_{cAlloc_};
+    ConstraintList constraints_{cAlloc_};
 
 
-    typedef ReboundTo<Alloc, UniquePtr<ForceField>>           ForceFieldAlloc;
     typedef std::list<UniquePtr<ForceField>, ForceFieldAlloc> ForceFieldList;
 
-    ForceFieldAlloc fAlloc_{miscAlloc_};
-    ForceFieldList  forces_{fAlloc_};
+    ForceFieldList forces_{fAlloc_};
 
 
     struct ContactStatus
     {
         UniquePtr<ContactConstraint> existingContact = nullptr;
 
-        Int32 nConflictingConstraints = 0;
-
         bool hit = false;
     };
 
     typedef std::unordered_map<
-        Bodies,
+        std::array<simu::Collider*, 2>,
         ContactStatus,
-        std::hash<Bodies>,
-        std::equal_to<Bodies>,
-        ReboundTo<Alloc, std::pair<const Bodies, ContactStatus>>>
+        std::hash<std::array<simu::Collider*, 2>>,
+        std::equal_to<std::array<simu::Collider*, 2>>,
+        ReboundTo<Alloc, std::pair<const std::array<simu::Collider*, 2>, ContactStatus>>>
         ContactList;
 
     ContactList contacts_{miscAlloc_};
 
-    ContactList::iterator inContacts(Bodies bodies)
+    ContactList::iterator
+    inContacts(const std::array<simu::Collider*, 2>& colliders)
     {
-        auto asIs = contacts_.find(bodies);
-        return (asIs != contacts_.end())
-                   ? asIs
-                   : contacts_.find(Bodies{bodies[1], bodies[0]});
+        auto asIs = contacts_.find(colliders);
+        if (asIs != contacts_.end())
+            return asIs;
+        else
+            return contacts_.find(
+                std::array<simu::Collider*, 2>{colliders[1], colliders[0]}
+            );
     }
 
     Settings settings_;
 
     ContactFactory makeContactConstraint_;
-
-    BoundingBox boundsOf(const Body* body)
-    {
-        return body->collider().boundingBox();
-    }
 };
 
 

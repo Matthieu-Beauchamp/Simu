@@ -87,6 +87,7 @@ class Gjk
 {
 public:
 
+    // TODO: initialDir is not correctly taken into account, + what are we supposed to pass in?
     Gjk(const T& first, const T& second, Vec2 initialDir = Vec2::i());
 
     bool areColliding() const { return areColliding_; }

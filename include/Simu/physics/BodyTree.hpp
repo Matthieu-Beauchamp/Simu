@@ -31,11 +31,11 @@
 namespace simu
 {
 
-class Body;
+class Collider;
 
-class BodyTree : public RTree<Body*, FreeListAllocator<Body*>>
+class ColliderTree : public RTree<Collider*, FreeListAllocator<Collider*>>
 {
-    typedef RTree<Body*, FreeListAllocator<Body*>> Base;
+    typedef RTree<Collider*, FreeListAllocator<Collider*>> Base;
 
 public:
 

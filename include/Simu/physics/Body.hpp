@@ -33,7 +33,6 @@
 #include "Simu/physics/BodyTree.hpp"
 #include "Simu/physics/Transform.hpp"
 #include "Simu/physics/Collider.hpp"
-#include "Simu/physics/Material.hpp"
 
 #include "Simu/utility/View.hpp"
 
@@ -50,28 +49,13 @@ class ContactConstraint;
 struct BodyDescriptor
 {
     ////////////////////////////////////////////////////////////
-    /// \brief The local-space Geometry for the Body. Does not need to be centered on origin.
-    ///
-    /// It is recommended to center the Polygon on the origin to make placing it more intuitive
-    ///
-    /// \see orientation
-    ////////////////////////////////////////////////////////////
-    Polygon polygon;
-
-    ////////////////////////////////////////////////////////////
-    /// \brief The Material of the Body. Affects how it interacts with other bodies.
-    ///
-    ////////////////////////////////////////////////////////////
-    Material material{};
-
-    ////////////////////////////////////////////////////////////
     /// \brief The initial position of the Body. This is a translation of the local-space geometry.
     ///
     ////////////////////////////////////////////////////////////
     Vec2 position{};
 
     ////////////////////////////////////////////////////////////
-    /// \brief The initial orientation of the Body. This is a rotation around the local-space polygon's centroid.
+    /// \brief The initial orientation of the Body. This is a rotation around the body's local space origin.
     ///
     ////////////////////////////////////////////////////////////
     float orientation{};
@@ -91,6 +75,7 @@ struct BodyDescriptor
     ////////////////////////////////////////////////////////////
     float dominance = 1.f;
 };
+
 
 ////////////////////////////////////////////////////////////
 /// \brief Mass properties of a Body
@@ -125,8 +110,8 @@ public:
 
 private:
 
-    float invMass_;
-    float invInertia_;
+    float invMass_{};
+    float invInertia_{};
 };
 
 
@@ -171,28 +156,40 @@ class Position
 {
 public:
 
-    Position(Vec2 position, float orientation)
-        : toWorldSpace_{Rotation{orientation}, Translation{position}}
+    Position(Vec2 position, float orientation, Vec2 localCentroid)
+        : pos_{position},
+          orientation_{orientation},
+          localCentroid_{localCentroid}
     {
     }
 
-    Vec2  position() const { return toWorldSpace_.translation().offset(); }
-    float orientation() const { return toWorldSpace_.rotation().theta(); }
-    Vec2  centroid() const { return position(); }
+    Vec2  position() const { return pos_.offset(); }
+    float orientation() const { return orientation_.theta(); }
+
+    Vec2 centroid() const { return toWorldSpace() * localCentroid(); }
+    Vec2 localCentroid() const { return localCentroid_.offset(); }
 
     void advance(Vec2 dPos, float dTheta)
     {
-        toWorldSpace_.translation() *= Translation(dPos);
-        toWorldSpace_.rotation() *= Rotation(dTheta);
+        pos_ *= Translation{dPos};
+        orientation_ *= Rotation{dTheta};
     }
 
-    Transform toWorldSpace() const { return toWorldSpace_; }
+    Transform toWorldSpace() const
+    {
+        return pos_ * localCentroid_ * orientation_ * localCentroid_.inverse();
+    }
+
     Transform toLocalSpace() const { return toWorldSpace().inverse(); }
 
+    void setLocalCentroid(Vec2 c) { localCentroid_.set(c); }
 
 private:
 
-    Transform toWorldSpace_;
+    Translation pos_;
+    Rotation    orientation_;
+
+    Translation localCentroid_;
 };
 
 class World;
@@ -208,24 +205,23 @@ public:
     ///
     ////////////////////////////////////////////////////////////
     Body(const BodyDescriptor& descriptor)
-        : position_{descriptor.position + descriptor.polygon.properties().centroid, 
-                    descriptor.orientation},
-          material_{descriptor.material},
-          mass_{descriptor.polygon.properties(), descriptor.material.density},
-          collider_{descriptor.polygon, Transform::identity(), Alloc{}},
+        : position_{descriptor.position, descriptor.orientation, Vec2{}},
           dominance_{descriptor.dominance}
     {
         update();
     }
 
-    void setAllocator(const PhysicsAlloc& alloc) override
+    Body(const Body& other) = delete;
+    Body(Body&& other)      = delete;
+
+    ~Body() override
     {
-        replaceAllocator(constraints_, alloc);
-        replaceAllocator(contacts_, alloc);
-        collider_.replaceAlloc(alloc);
+        for (Collider& c : colliders_.colliders_)
+            removeCollider(&c);
     }
 
-    ~Body() override = default;
+    Collider* addCollider(const ColliderDescriptor& descriptor);
+    void removeCollider(Collider* collider); // TODO: Remove associated contacts
 
     ////////////////////////////////////////////////////////////
     /// \brief Applies a force for some time on an object
@@ -301,10 +297,10 @@ public:
     float orientation() const { return position_.orientation(); }
 
     ////////////////////////////////////////////////////////////
-    /// \brief Returns a read only reference to the Body's Collider.
+    /// \brief Returns a read only reference to the Body's Colliders.
     ///
     ////////////////////////////////////////////////////////////
-    const Collider& collider() const { return collider_; }
+    auto colliders() const { return makeView(colliders_); }
 
     ////////////////////////////////////////////////////////////
     /// \brief Transformation matrix to convert from the Body's local space to world space
@@ -319,18 +315,13 @@ public:
     Transform toLocalSpace() const { return position_.toLocalSpace(); }
 
     Vec2 centroid() const { return position_.centroid(); }
+    Vec2 localCentroid() const { return position_.localCentroid(); }
 
-    float invMass() const { return mass_.invMass(); }
-    float invInertia() const { return mass_.invInertia(); }
+    float invMass() const { return 1.f / mass(); }
+    float invInertia() const { return 1.f / inertia(); }
 
-    float mass() const { return mass_.mass(); }
-    float inertia() const { return mass_.inertia(); }
-
-    ////////////////////////////////////////////////////////////
-    /// \brief The Body's Material
-    ///
-    ////////////////////////////////////////////////////////////
-    Material material() const { return material_; }
+    float mass() const { return colliders_.properties().m; }
+    float inertia() const { return colliders_.properties().I; }
 
     ////////////////////////////////////////////////////////////
     /// \brief Whether the body is structural or not according to its dominance
@@ -380,11 +371,6 @@ public:
     auto contacts() { return makeView(contacts_); }
     auto contacts() const { return makeView(contacts_); }
 
-protected:
-
-    // for VisibleBody...
-    typename BodyTree::iterator treeLocation_;
-
 private:
 
     friend class Island;
@@ -393,8 +379,15 @@ private:
 
     friend class Bodies;
 
+    void setAllocator(const PhysicsAlloc& alloc) override
+    {
+        replaceAllocator(constraints_, alloc);
+        replaceAllocator(contacts_, alloc);
 
-    void update() { collider_.update(toWorldSpace()); }
+        colliders_.replaceAlloc(alloc);
+    }
+
+    void update() { colliders_.update(toWorldSpace()); }
 
     bool isImmobile(float velocityTreshold, float angularVelocityTreshold) const
     {
@@ -422,12 +415,8 @@ private:
     Position position_;
     Velocity velocity_{};
 
-    Material material_;
-
-    Mass     mass_;
-    Collider collider_;
-
-    float dominance_;
+    Colliders colliders_;
+    float     dominance_;
 
     bool  isAsleep_     = false;
     float timeImmobile_ = 0.f;
@@ -437,6 +426,8 @@ private:
 
     static constexpr Int32 NO_INDEX   = -1;
     Int32                  proxyIndex = NO_INDEX;
+
+    World* world_ = nullptr;
 };
 
 

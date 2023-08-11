@@ -42,6 +42,7 @@ public:
 
     void init(simu::Renderer& renderer) override
     {
+        count_ = 0;
         renderer.setPointPrecision(4);
         renderer.setPointRadius(0.01f);
         renderer.setLineWidth(0.01f);
@@ -51,68 +52,36 @@ public:
 
         constexpr float pi = std::numbers::pi_v<float>;
 
-        simu::Vec2 tumblerBordersSize{20.f, 1.f};
-        simu::Rgba tumblerColor{0, 0, 0, 255};
+        constexpr float size      = 20.f;
+        constexpr float thickness = 1.f;
 
-        simu::BodyDescriptor descr{simu::Polygon::box(tumblerBordersSize)};
-        descr.dominance               = 0.f;
-        descr.material.density        = 5.f;
-        descr.material.friction.value = 0.8f;
+        simu::Rgba           black{0, 0, 0, 255};
+        simu::BodyDescriptor descr{};
+        descr.dominance = 0.f;
+        auto tumbler = world().makeBody<simu::VisibleBody>(descr, black, &renderer);
 
-        descr.position = simu::Vec2{0.f, tumblerBordersSize[0] / 2.f};
-        auto top       = world().makeBody<simu::VisibleBody>(
-            descr,
-            tumblerColor,
-            &renderer
-        );
+        simu::Vec2 horizontalDim{size, thickness};
+        simu::Vec2 verticalDim{thickness, size};
 
-        descr.position = -descr.position;
-        auto bottom    = world().makeBody<simu::VisibleBody>(
-            descr,
-            tumblerColor,
-            &renderer
-        );
+        simu::Vec2 xOffset{size / 2.f, 0.f};
+        simu::Vec2 yOffset{0.f, size / 2.f};
 
+        simu::ColliderDescriptor cDescr{
+            simu::Polygon::box(horizontalDim, yOffset)};
+        cDescr.material.density        = 5.f;
+        cDescr.material.friction.value = 0.8f;
 
-        descr.position    = simu::Vec2{tumblerBordersSize[0] / 2.f, 0.f};
-        descr.orientation = pi / 2.f;
-        auto right        = world().makeBody<simu::VisibleBody>(
-            descr,
-            tumblerColor,
-            &renderer
-        );
-
-        descr.position    = -descr.position;
-        descr.orientation = -descr.orientation;
-        auto left         = world().makeBody<simu::VisibleBody>(
-            descr,
-            tumblerColor,
-            &renderer
-        );
-
-        auto d = simu::Bodies::Dominance{1.f, 1.f};
-        world().makeConstraint<simu::WeldConstraint>(simu::Bodies{
-            {top, left},
-            d
-        });
-        world().makeConstraint<simu::WeldConstraint>(simu::Bodies{
-            {top, right},
-            d
-        });
-        world().makeConstraint<simu::WeldConstraint>(simu::Bodies{
-            {top, bottom},
-            d
-        });
-
-        // fixtures simplifiy this nonsense and the above welds...
-        world().declareContactConflict(simu::Bodies{bottom, left});
-        world().declareContactConflict(simu::Bodies{bottom, right});
-        world().declareContactConflict(simu::Bodies{left, right});
-
+        tumbler->addCollider(cDescr);
+        cDescr.polygon = simu::Polygon::box(horizontalDim, -yOffset);
+        tumbler->addCollider(cDescr);
+        cDescr.polygon = simu::Polygon::box(verticalDim, xOffset);
+        tumbler->addCollider(cDescr);
+        cDescr.polygon = simu::Polygon::box(verticalDim, -xOffset);
+        tumbler->addCollider(cDescr);
 
         auto motor = world().makeConstraint<simu::RotationMotor>(
-            simu::Bodies::singleBody(top),
-            simu::RotationMotor::Specs::fromTorque(0.05f * pi, 1e8f)
+            simu::Bodies::singleBody(tumbler),
+            simu::RotationMotor::Specs::fromTorque(0.15f * pi, 1e8f)
         );
         motor->direction(simu::Vector<float, 1>{-1.f});
 
@@ -131,16 +100,18 @@ public:
 
         if (count_ < maxCount)
         {
-            simu::BodyDescriptor descr{
-                simu::Polygon::box(simu::Vec2{0.25f, 0.25f})};
+            simu::BodyDescriptor descr{};
 
-            descr.material.friction.value = 0.5f;
-            world().makeBody<simu::VisibleBody>(
+            auto b = world().makeBody<simu::VisibleBody>(
                 descr,
                 simu::Rgba{200, 100, 200, 255},
                 getRenderer()
             );
 
+            simu::ColliderDescriptor cDescr{
+                simu::Polygon::box(simu::Vec2{0.25f, 0.25f})};
+            cDescr.material.friction.value = 0.5f;
+            b->addCollider(cDescr);
             ++count_;
         }
     }

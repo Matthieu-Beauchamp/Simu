@@ -73,22 +73,30 @@ protected:
 
     void draw(Renderer& renderer) override
     {
-        BoundingBox bounds = this->treeLocation_.bounds();
+        Transform toWorld = toWorldSpace();
+        for (const Collider& collider : colliders())
+        {
+            BoundingBox bounds = collider.boundingBox();
 
-        std::array<const Vec2, 4> box{
-            bounds.min(),
-            Vec2{bounds.max()[0], bounds.min()[1]},
-            bounds.max(),
-            Vec2{bounds.min()[0], bounds.max()[1]}
-        };
+            std::array<const Vec2, 4> box{
+                bounds.min(),
+                Vec2{bounds.max()[0], bounds.min()[1]},
+                bounds.max(),
+                Vec2{bounds.min()[0], bounds.max()[1]}
+            };
 
-        renderer.drawPolygon(
-            bounds.center(),
-            makeView(box.data(), box.data() + box.size()),
-            color_ - Rgba{0, 0, 0, 200}
-        );
+            renderer.drawPolygon(
+                bounds.center(),
+                makeView(box.data(), box.data() + box.size()),
+                color_ - Rgba{0, 0, 0, 200}
+            );
 
-        renderer.drawPolygon(centroid(), collider().vertexView(), color_);
+            renderer.drawPolygon(
+                toWorld * collider.properties().centroid,
+                collider.vertexView(),
+                color_
+            );
+        }
     }
 
 private:
@@ -101,8 +109,8 @@ class VisibleContactConstraint : public ContactConstraint, public Visible
 {
 public:
 
-    VisibleContactConstraint(const Bodies& bodies, Renderer* renderer)
-        : ContactConstraint{bodies}, Visible{renderer}
+    VisibleContactConstraint(Collider& first, Collider& second, Renderer* renderer)
+        : ContactConstraint{first, second}, Visible{renderer}
     {
     }
 
@@ -127,6 +135,14 @@ protected:
             );
 
             renderer.drawPoint(info.incContacts[i], white);
+        }
+
+        if (info.nContacts == 0)
+        {
+            for (auto body : bodies())
+            {
+                renderer.drawPoint(body->centroid(), Rgba{255, 0, 0, 255});
+            }
         }
     }
 };

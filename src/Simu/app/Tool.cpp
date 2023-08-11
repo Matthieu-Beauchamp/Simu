@@ -108,15 +108,20 @@ bool BoxSpawner::onMousePress(simu::Mouse::Input input)
 
 simu::Body* BoxSpawner::makeBox(simu::Vec2 pos, simu::Vec2 dims)
 {
-    simu::BodyDescriptor descr{simu::Polygon::box(dims)};
-
-    descr.position                  = pos;
-    descr.material.bounciness.value = 0.f;
-    descr.material.friction.value   = 0.5f;
-    return scene_.world().makeBody<simu::VisibleBody>(
+    simu::BodyDescriptor descr{};
+    descr.position = pos;
+    auto b         = scene_.world().makeBody<simu::VisibleBody>(
         descr,
         simu::Rgba{225, 150, 240, 255},
         scene_.app()->renderer()
     );
+
+    simu::ColliderDescriptor cDescr{simu::Polygon::box(dims)};
+    cDescr.material.bounciness.value = 0.f;
+    cDescr.material.friction.value   = 0.5f;
+    b->addCollider(cDescr);
+
+    return b;
 }
+
 } // namespace simu

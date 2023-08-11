@@ -53,25 +53,26 @@ class Polygon
 {
 public:
 
-    Polygon(const std::initializer_list<Vertex>& vertices);
+    Polygon(const std::initializer_list<Vertex>& vertices)
+        : Polygon{vertices.begin(), vertices.end()}
+    {
+    }
 
     template <VertexIterator2D It>
     Polygon(It begin, It end);
 
-    static Polygon box(Vec2 dim)
+    static Polygon box(Vec2 dim, Vec2 center = Vec2{})
     {
         float w = dim[0] / 2.f;
         float h = dim[1] / 2.f;
 
         return Polygon{
-            simu::Vertex{-w, -h},
-            simu::Vertex{w,  -h},
-            simu::Vertex{w,  h },
-            simu::Vertex{-w, h }
+            center + Vertex{-w, -h},
+            center + Vertex{w,  -h},
+            center + Vertex{w,  h },
+            center + Vertex{-w, h }
         };
     }
-
-    Vec2 furthestVertexInDirection(const Vec2& direction) const;
 
     GeometricProperties properties() const { return properties_; }
 

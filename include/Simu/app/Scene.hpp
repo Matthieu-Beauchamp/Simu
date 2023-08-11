@@ -45,13 +45,30 @@ class Scene
 {
 public:
 
-    Scene()          = default;
+    Scene() : world_{}
+    {
+        auto contactFactory = [this](
+                                  Collider&                           first,
+                                  Collider&                           second,
+                                  const typename World::ContactAlloc& alloc
+                              ) {
+            return makeUnique<VisibleContactConstraint>(
+                alloc,
+                first,
+                second,
+                this->renderer_
+            );
+        };
+
+        world_.setContactFactory(contactFactory);
+    }
+
     virtual ~Scene() = default;
 
     bool isInit() const { return isInit_; }
     void reset()
     {
-        world_ = makeWorld();
+        world_.clear();
         this->init(*renderer_);
     }
 
@@ -137,16 +154,6 @@ private:
     void mousePress(Mouse::Input input);
     void mouseMove(Vec2 newPos);
     void mouseScroll(Vec2 scroll);
-
-
-    World makeWorld()
-    {
-        Renderer* r = this->renderer_;
-        return World([=](Bodies                              bodies,
-                         const typename World::ContactAlloc& alloc) {
-            return makeUnique<VisibleContactConstraint>(alloc, bodies, r);
-        });
-    }
 
     World  world_{};
     Camera camera_{};

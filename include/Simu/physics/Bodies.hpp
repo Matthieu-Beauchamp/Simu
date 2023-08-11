@@ -60,24 +60,12 @@ public:
     SolverProxy() = default;
     SolverProxy(Position* p, Velocity* v) : position_{p}, velocity_{v} {}
 
-    // void refresh() { *this = SolverProxy(this->body_); }
-
-    // void writeBack()
-    // {
-    //     body_->position_ = *position_;
-    //     body_->velocity_ = *velocity_;
-
-    //     body_->update();
-
-    //     body_->proxyIndex = Body::NO_INDEX;
-    // }
-
     void advancePos(Vec2 dPos, float dTheta)
     {
-        SIMU_ASSERT(std::isfinite(dPos), "");
-        SIMU_ASSERT(std::isfinite(dTheta), "");
-
         position_->advance(dPos, dTheta);
+
+        SIMU_ASSERT(std::isfinite(position_->position()), "");
+        SIMU_ASSERT(std::isfinite(position_->orientation()), "");
     }
 
     void incrementVel(Vec2 dv, float dw)
@@ -87,11 +75,11 @@ public:
 
     void setVelocity(Vec2 velocity, float angularVelocity)
     {
-        SIMU_ASSERT(std::isfinite(velocity), "");
-        SIMU_ASSERT(std::isfinite(angularVelocity), "");
-
         velocity_->setLinear(velocity);
         velocity_->setAngular(angularVelocity);
+
+        SIMU_ASSERT(std::isfinite(velocity_->linear()), "");
+        SIMU_ASSERT(std::isfinite(velocity_->angular()), "");
     }
 
     Vec2  position() const { return position_->position(); }

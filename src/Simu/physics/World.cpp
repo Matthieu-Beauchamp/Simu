@@ -96,46 +96,14 @@ void World::step(float dt)
         f.postStep();
 }
 
-void World::declareContactConflict(const Bodies& bodies)
-{
-    auto contact = inContacts(bodies);
-    if (contact == contacts_.end())
-    {
-        contacts_[bodies] = ContactStatus{nullptr, 1};
-    }
-    else
-    {
-        ++contact->second.nConflictingConstraints;
-        if (contact->second.existingContact != nullptr)
-            contact->second.existingContact->kill();
-    }
-}
-
-
-void World::removeContactConflict(const Bodies& bodies)
-{
-    auto contact = inContacts(bodies);
-    if (contact != contacts_.end())
-    {
-        contact->second.nConflictingConstraints = std::max(
-            0,
-            contact->second.nConflictingConstraints - 1
-        );
-
-        if ((contact->second.nConflictingConstraints == 0)
-            && (contact->second.existingContact == nullptr))
-            contacts_.erase(contact);
-    }
-}
-
 typename World::ContactFactory World::defaultContactFactory =
-    [](Bodies b, const typename World::ContactAlloc& alloc) {
-        return makeUnique<ContactConstraint>(alloc, b);
-    };
+    [](Collider& first, Collider& second, const typename World::ContactAlloc& alloc
+    ) { return makeUnique<ContactConstraint>(alloc, first, second); };
 
-UniquePtr<ContactConstraint> World::makeContactConstraint(Bodies bodies)
+UniquePtr<ContactConstraint>
+World::makeContactConstraint(Collider& first, Collider& second)
 {
-    auto c = makeContactConstraint_(bodies, cAlloc_);
+    auto c = makeContactConstraint_(first, second, cAlloc_);
     c->setAllocator(cAlloc_);
     c->onConstruction(*this);
 
@@ -152,12 +120,16 @@ void World::applyForces(float dt)
 {
     struct ApplyForce
     {
-        void operator()(BodyTree::iterator body) const { (*this)(**body); }
-
-        void operator()(Body& body) const
+        void operator()(ColliderTree::iterator collider) const
         {
+            (*this)(**collider);
+        }
+
+        void operator()(Collider& collider) const
+        {
+            Body& body = *collider.body();
             if (!body.isAsleep() && !body.isStructural())
-                force.apply(body, dt);
+                force.apply(collider, dt);
         }
 
         ForceField& force;
@@ -171,12 +143,12 @@ void World::applyForces(float dt)
 
         if (force.domain().type == ForceField::DomainType::global)
         {
-            for (Body& body : bodies())
-                applyForce(body);
+            for (Collider* collider : colliderTree_)
+                applyForce(*collider);
         }
         else
         {
-            bodyTree_.forEachIn(force.domain().region, applyForce);
+            colliderTree_.forEachIn(force.domain().region, applyForce);
         }
     }
 }
@@ -239,7 +211,10 @@ void World::cleanup()
         if (contact != nullptr && contact->isDead())
         {
             for (Body* b : contact->bodies())
+            {
                 std::erase(b->contacts_, contact);
+                b->wake();
+            }
 
             it = contacts_.erase(it);
         }
@@ -260,18 +235,10 @@ void World::cleanup()
     {
         for (Body* body : (*c)->bodies())
         {
-            body->constraints_.erase(std::find(
-                body->constraints_.begin(),
-                body->constraints_.end(),
-                c->get()
-            ));
-
+            std::erase(body->constraints_, c->get());
             body->wake();
         }
     }
-
-    for (auto b : deadBodies)
-        bodyTree_.erase((*b)->treeLocation_);
 
     cleaner.onDestruction(*this, deadConstraints);
     cleaner.onDestruction(*this, deadForces);
@@ -299,21 +266,39 @@ void World::updateBodies(float dt)
         }
     }
 
-    typedef typename BodyTree::iterator BodyIt;
+    typedef typename ColliderTree::iterator ColliderIt;
 
     // check for new contacts
-    auto registerContact = [=, this](BodyIt first, BodyIt second) {
-        Bodies bodies{*first, *second};
-        auto   contact = inContacts(bodies);
+    auto registerContact = [=, this](ColliderIt first, ColliderIt second) {
+        std::array<simu::Collider*, 2> colliders{*first, *second};
+
+        const Body* b0 = colliders[0]->body();
+        const Body* b1 = colliders[1]->body();
+        if (b0 == b1)
+            return;
+
+        for (Constraint* c : b0->constraints())
+        {
+            if (c->disablesContacts())
+            {
+                const Bodies& bodies = c->bodies();
+                if (bodies[0] == b1 || bodies[1] == b1)
+                    return;
+            }
+        }
+
+        auto contact = inContacts(colliders);
 
         if (contact == contacts_.end())
-            contacts_[bodies] = ContactStatus{makeContactConstraint(bodies), 0, true};
+            contacts_[colliders] = ContactStatus{
+                makeContactConstraint(**first, **second),
+                true};
         else
             contact->second.hit = true;
     };
 
-    bodyTree_.updateAndCollide(
-        [this](BodyIt it) { return boundsOf(*it); },
+    colliderTree_.updateAndCollide(
+        [](ColliderIt it) { return (*it)->boundingBox(); },
         registerContact
     );
 

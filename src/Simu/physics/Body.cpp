@@ -23,7 +23,9 @@
 ////////////////////////////////////////////////////////////
 
 #include "Simu/physics/Body.hpp"
+
 #include "Simu/physics/Constraint.hpp"
+#include "Simu/physics/World.hpp"
 
 namespace simu
 {
@@ -37,6 +39,47 @@ bool Body::interactsAsStructural() const
         isStruct = isStruct && constraint->bodies().isBodyStructural(this);
 
     return isStruct;
+}
+
+Collider* Body::addCollider(const ColliderDescriptor& descriptor)
+{
+    SIMU_ASSERT(world_ != nullptr, "Body must be owned by a World");
+
+    Vec2 oldCentroid = centroid();
+
+    Collider* c = colliders_.add(descriptor, this);
+
+    // see removeCollider.
+    // Here we assume the new collider has the Body's velocity, ignoring
+    //  conservation of momentums.
+    Vec2 dvAtCentroid = angularVelocity() * perp(centroid() - oldCentroid);
+    setVelocity(velocity() + dvAtCentroid);
+    position_.setLocalCentroid(localCentroid());
+
+    update();
+    world_->addCollider(c);
+
+    return c;
+}
+
+void Body::removeCollider(Collider* collider)
+{
+    Vec2 oldCentroid = centroid();
+
+    world_->removeCollider(collider);
+    colliders_.remove(collider);
+    if (colliders_.isEmpty())
+        return;
+
+    // Assume the removed collider still exists and keeps its portion
+    //  of the Body's momentum.
+    //  => velocities don't change for the Body, except at the center of mass
+
+    Vec2 dvAtCentroid = angularVelocity() * perp(centroid() - oldCentroid);
+    setVelocity(velocity() + dvAtCentroid);
+    position_.setLocalCentroid(localCentroid());
+
+    update();
 }
 
 } // namespace simu

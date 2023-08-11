@@ -88,13 +88,14 @@ public:
     Value
     computeRhs(const Proxies& proxies, const F& f, float dt, bool addDamping) const
     {
-        Value error = J_ * proxies.velocity();
-        Value bias  = f.bias(proxies);
-        Value baumgarteStabilization
-            = KMatrix::diagonal(restitution()) * f.eval(proxies) / dt;
+        Value error                  = J_ * proxies.velocity();
+        Value bias                   = f.bias(proxies);
+        Value baumgarteStabilization = KMatrix::diagonal(restitution())
+                                       * f.eval(proxies) / dt;
 
-        Value previousDamping
-            = addDamping ? KMatrix::diagonal(damping()) * lambda_ : Value{};
+        Value previousDamping = addDamping
+                                    ? KMatrix::diagonal(damping()) * lambda_
+                                    : Value{};
 
         return -(error + bias + baumgarteStabilization + previousDamping);
     }
@@ -163,12 +164,9 @@ public:
 
     void solveVelocity(Proxies& proxies, const F& f, float dt)
     {
-        this->updateLambda(
-            proxies,
-            f,
-            dt,
-            solver_.solve(this->computeRhs(proxies, f, dt, true))
-        );
+        auto err     = this->computeRhs(proxies, f, dt, true);
+        auto dLambda = solver_.solve(err);
+        this->updateLambda(proxies, f, dt, dLambda);
     }
 
     void solvePosition(Proxies& proxies, const F& f)
@@ -428,8 +426,9 @@ public:
         {
             case Func::equality:
             {
-                posLambda
-                    = f.clampPositionLambda(solve(effMass, -(C - L_.value())));
+                posLambda = f.clampPositionLambda(
+                    solve(effMass, -(C - L_.value()))
+                );
                 break;
             }
             case Func::lower:

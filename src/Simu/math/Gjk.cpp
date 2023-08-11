@@ -63,7 +63,7 @@ Vec2 Simplex::nextDirection() const
     {
         case 0:
         {
-            return Vec2::i(); // TODO: use difference between centroids
+            return Vec2::i();
         }
         case 1:
         {

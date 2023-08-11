@@ -30,23 +30,5 @@
 namespace simu
 {
 
-template <ConstraintFunction F, ConstraintSolver S>
-void ConstraintImplementation<F, S>::onConstruction(World& world)
-{
-    if (disableContacts_)
-    {
-        world.declareContactConflict(Bodies{bodies()[0], bodies()[1]});
-    }
-};
-
-template <ConstraintFunction F, ConstraintSolver S>
-void ConstraintImplementation<F, S>::onDestruction(World& world)
-{
-    if (disableContacts_)
-    {
-        world.removeContactConflict(Bodies{bodies()[0], bodies()[1]});
-    }
-};
-
 
 } // namespace simu

@@ -47,21 +47,19 @@ public:
 
         world().makeForceField<simu::Gravity>(simu::Vec2{0.f, -10.f});
 
-        simu::BodyDescriptor descr{
-            simu::Polygon{
-                          simu::Vertex{-200.f, -20.f},
-                          simu::Vertex{200.f, -20.f},
-                          simu::Vertex{200.f, -1.f},
-                          simu::Vertex{-200.f, -1.f}}
-        };
-
-        descr.dominance               = 0.f;
-        descr.material.friction.value = 0.8f;
-        world().makeBody<simu::VisibleBody>(
+        simu::BodyDescriptor descr{};
+        descr.dominance = 0.f;
+        auto ground     = world().makeBody<simu::VisibleBody>(
             descr,
             simu::Rgba{0, 0, 0, 255},
             &renderer
         );
+
+        simu::ColliderDescriptor cDescr{
+            simu::Polygon::box(simu::Vec2{400.f, 20.f}, simu::Vec2{0.f, -11.f})};
+        cDescr.material.friction.value = 0.8f;
+
+        ground->addCollider(cDescr);
 
         simu::BoxSpawner spawn{*this};
 

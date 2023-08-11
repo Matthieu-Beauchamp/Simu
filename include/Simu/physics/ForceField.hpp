@@ -68,7 +68,7 @@ public:
 
     Domain domain() const { return domain_; }
 
-    virtual void apply(Body& body, float dt) const = 0;
+    virtual void apply(Collider& collider, float dt) const = 0;
 
 protected:
 
@@ -85,9 +85,15 @@ public:
     {
     }
 
-    void apply(Body& body, float dt) const override
+    void apply(Collider& collider, float dt) const override
     {
-        body.applyForce(force_, dt, Vec2{0, 0});
+        MassProperties p = collider.properties();
+        Body*          b = collider.body();
+        b->applyForce(
+            force_ * p.m * b->invMass(),
+            dt,
+            b->toWorldSpace().rotation() * (p.centroid - b->localCentroid())
+        );
     }
 
 private:
@@ -104,9 +110,15 @@ public:
     {
     }
 
-    void apply(Body& body, float dt) const override
+    void apply(Collider& collider, float dt) const override
     {
-        body.applyForce(acceleration_ * body.mass(), dt, Vec2{0, 0});
+        MassProperties p = collider.properties();
+        Body*          b = collider.body();
+        b->applyForce(
+            acceleration_ * p.m,
+            dt,
+            b->toWorldSpace().rotation() * (p.centroid - b->localCentroid())
+        );
     }
 
 private:

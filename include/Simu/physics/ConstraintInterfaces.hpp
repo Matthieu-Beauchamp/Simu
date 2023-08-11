@@ -65,7 +65,8 @@ class Constraint : public PhysicsObject
 {
 public:
 
-    Constraint(const Bodies& bodies) : bodies_{bodies}
+    Constraint(const Bodies& bodies, bool disablesContacts)
+        : bodies_{bodies}, disablesContacts_{disablesContacts}
     {
         bool tooManyStructural = false;
         if (bodies_[0] == bodies_[1] && bodies_.isBodyStructural(bodies_[0]))
@@ -94,6 +95,7 @@ public:
     Bodies&       bodies() { return bodies_; }
     const Bodies& bodies() const { return bodies_; }
 
+    bool disablesContacts() const { return disablesContacts_; }
 
 protected:
 
@@ -111,6 +113,7 @@ private:
     Proxies& proxies() { return bodies().getProxies(); }
 
     Bodies bodies_;
+    bool   disablesContacts_;
 };
 
 
