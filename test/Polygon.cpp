@@ -39,7 +39,7 @@ TEST_CASE("Geometry")
             REQUIRE(approx(1.f / 6, 1e-6f).contains(properties.momentOfArea));
 
             REQUIRE(all(
-                square.furthestVertexInDirection(Vec2{1, 1}) == Vertex{1.f, 1.f}
+                furthestVertexInDirection(square, Vec2{1, 1}) == Vertex{1.f, 1.f}
             ));
         }
 
@@ -60,7 +60,7 @@ TEST_CASE("Geometry")
             REQUIRE(approx(1.f / 6, 1e-6f).contains(properties.momentOfArea));
 
             REQUIRE(all(
-                square.furthestVertexInDirection(Vec2{1, 1}) == Vertex{1.f, 1.f}
+                furthestVertexInDirection(square, Vec2{1, 1}) == Vertex{1.f, 1.f}
             ));
         }
 
@@ -80,7 +80,7 @@ TEST_CASE("Geometry")
             REQUIRE(properties.isDegenerate);
 
             REQUIRE(all(
-                line.furthestVertexInDirection(Vec2{1, 1}) == Vertex{2.f, 2.f}
+                furthestVertexInDirection(line, Vec2{1, 1}) == Vertex{2.f, 2.f}
             ));
         }
 
@@ -89,7 +89,7 @@ TEST_CASE("Geometry")
             Polygon box{
                 Vertex{0, 0},
 
-                // hole is negatively oriented
+ // hole is negatively oriented
                 Vertex{1, 1},
                 Vertex{1, 3},
                 Vertex{3, 3},
@@ -121,16 +121,21 @@ TEST_CASE("Geometry")
 
             REQUIRE_FALSE(properties.isDegenerate);
 
-            REQUIRE(properties.area == outer.properties().area - hole.properties().area);
+            REQUIRE(
+                properties.area == outer.properties().area - hole.properties().area
+            );
 
             REQUIRE(all(properties.centroid == Vec2{2.f, 2.f}));
 
             // this form is only true since they share the same centroid
             REQUIRE(approx(properties.momentOfArea, 1e-5f)
-                    .contains(outer.properties().momentOfArea - hole.properties().momentOfArea));
+                        .contains(
+                            outer.properties().momentOfArea
+                            - hole.properties().momentOfArea
+                        ));
 
             REQUIRE(all(
-                box.furthestVertexInDirection(Vec2{1, 1}) == Vertex{4.f, 4.f}
+                furthestVertexInDirection(box, Vec2{1, 1}) == Vertex{4.f, 4.f}
             ));
         }
     }

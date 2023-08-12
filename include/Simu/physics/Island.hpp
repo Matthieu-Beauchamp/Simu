@@ -91,6 +91,8 @@ public:
 
     bool isAwake() const { return isAwake_; }
     auto bodies() { return makeView(bodies_); }
+    auto constraints() { return makeView(constraints_); }
+    auto contacts() { return makeView(contacts_); }
 
     void refreshProxies()
     {

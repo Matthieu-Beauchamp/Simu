@@ -13,7 +13,7 @@ AlignEscapedNewlines: Right
 AlignOperands: true
 AlignTrailingComments: true
 
-AllowAllArgumentsOnNextLine: false
+AllowAllArgumentsOnNextLine: true
 # AllowAllConstructorInitializersOnNextLine: false # deprecated. See NextLine of PackConstructorInitializers.
 AllowAllParametersOfDeclarationOnNextLine: false
 
@@ -110,14 +110,17 @@ ObjCBinPackProtocolList: Auto
 ObjCBlockIndentWidth: 2
 ObjCSpaceAfterProperty: false
 ObjCSpaceBeforeProtocolList: true
+# penalties
 PenaltyBreakAssignment: 200
-PenaltyBreakBeforeFirstCallParameter: 2
+PenaltyBreakBeforeFirstCallParameter: 0
 PenaltyBreakComment: 30000 # Don't break license!
 PenaltyBreakFirstLessLess: 120
+PenaltyBreakOpenParenthesis: 0
 PenaltyBreakString: 1000
 PenaltyBreakTemplateDeclaration: 1000
-PenaltyExcessCharacter: 15
+PenaltyExcessCharacter: 5
 PenaltyReturnTypeOnItsOwnLine: 0
+#################################
 PointerAlignment: Left
 ReflowComments:  true
 SortIncludes:    false

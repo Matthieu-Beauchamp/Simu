@@ -113,12 +113,9 @@ TEST_CASE("Matrix")
 
         REQUIRE(all(Vec2{1, 2} * transpose(Vec2{2, 1}) == Mat2{2, 1, 4, 2}));
 
-        float theta = std::numbers::pi / 4;
+        float theta = std::numbers::pi_v<float> / 4.f;
         Mat2  rot{
-            std::cos(theta),
-            -std::sin(theta),
-            std::sin(theta),
-            std::cos(theta)};
+            std::cos(theta), -std::sin(theta), std::sin(theta), std::cos(theta)};
 
         REQUIRE(all(approx(normalized(Vec2{1, 1}), Vec2::filled(1e-6f))
                         .contains(rot * Vec2::i())));
@@ -128,12 +125,9 @@ TEST_CASE("Matrix")
     {
         REQUIRE(all(solve(Mat3::identity(), Vec3::i()) == Vec3::i()));
 
-        float theta = std::numbers::pi / 4;
+        float theta = std::numbers::pi_v<float> / 4.f;
         Mat2  rot{
-            std::cos(theta),
-            -std::sin(theta),
-            std::sin(theta),
-            std::cos(theta)};
+            std::cos(theta), -std::sin(theta), std::sin(theta), std::cos(theta)};
 
         REQUIRE(all(approx(invert(rot) * rot, Mat2::filled(EPSILON))
                         .contains(Mat2::identity())));
@@ -179,11 +173,7 @@ TEST_CASE("Matrix")
 
             Vec3 b{0.2f, 0.2f, 0.f};
 
-            Vec3 x = solveInequalities(
-                A,
-                b,
-                [](Vec3 x) { return x; }
-            );
+            Vec3 x = solveInequalities(A, b, [](Vec3 x) { return x; });
 
             REQUIRE(all(approx(x, Vec3::filled(2 * simu::EPSILON))
                             .contains(Vec3{0.1f, 0.1f, 0.f})));
@@ -200,11 +190,9 @@ TEST_CASE("Matrix")
 
             Vec2 b{5, 6};
 
-            Vec2 x = solveInequalities(
-                A,
-                b,
-                [](Vec2 x) { return std::max(x, Vec2::filled(0.f)); }
-            );
+            Vec2 x = solveInequalities(A, b, [](Vec2 x) {
+                return std::max(x, Vec2::filled(0.f));
+            });
 
             REQUIRE(all(x >= Vec2::filled(0.f)));
 
@@ -223,13 +211,9 @@ TEST_CASE("Matrix")
 
             Vec2 b{-5, -6};
 
-            Vec2 x = solveInequalities(
-                A,
-                b,
-                [](Vec2 x) {
-                    return Vec2{std::max(x[0], 1.f), std::min(x[1], -1.f)};
-                }
-            );
+            Vec2 x = solveInequalities(A, b, [](Vec2 x) {
+                return Vec2{std::max(x[0], 1.f), std::min(x[1], -1.f)};
+            });
 
             REQUIRE(x[0] >= 1.f);
             REQUIRE(x[1] <= -1.f);

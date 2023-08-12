@@ -61,7 +61,7 @@ TEST_CASE("R-Tree")
         std::vector<TestType> v{size};
 
         for (Uint32 i = 0; i < size; ++i)
-            t.insert(BoundingBox{Vec2::filled(i), Vec2::filled(i + 1)}, &v[i]);
+            t.insert(BoundingBox{Vec2::filled((float)i), Vec2::filled(i + 1.f)}, &v[i]);
 
 
         for (TestType* test : t)
@@ -83,7 +83,7 @@ TEST_CASE("R-Tree")
         constexpr int size = 16;
 
         for (int i = 0; i < size; ++i)
-            t.insert(BoundingBox{Vec2::filled(i), Vec2::filled(i + 1)}, i);
+            t.insert(BoundingBox{Vec2::filled((float)i), Vec2::filled(i + 1.f)}, i);
 
         REQUIRE(t.bounds() == BoundingBox{Vec2::filled(0), Vec2::filled(size)});
 
@@ -111,7 +111,7 @@ TEST_CASE("R-Tree")
         }
 
         for (int i = 0; i < size; ++i)
-            t.insert(BoundingBox{Vec2::filled(i), Vec2::filled(i + 1)}, i);
+            t.insert(BoundingBox{Vec2::filled((float)i), Vec2::filled(i + 1.f)}, i);
 
         t.clear();
         testEmpty(t);
@@ -171,7 +171,7 @@ TEST_CASE("R-Tree")
 
         // clang-format off
         auto left   = t.insert(BoundingBox{Vec2{0, 0}, Vec2{1, 1}}, {});
-        auto center = t.insert(BoundingBox{Vec2{1.1, 1.1}, Vec2{1.9, 1.9}}, {});
+        auto center = t.insert(BoundingBox{Vec2{1.1f, 1.1f}, Vec2{1.9f, 1.9f}}, {});
         auto right  = t.insert(BoundingBox{Vec2{2, 2}, Vec2{3, 3}}, {});
         // clang-format on
 
@@ -184,5 +184,10 @@ TEST_CASE("R-Tree")
         REQUIRE(left->hit);
         REQUIRE(center->hit);
         REQUIRE(right->hit);
+    }
+
+    SECTION("Batch operations")
+    {
+        // TODO: 
     }
 }

@@ -108,7 +108,7 @@ public:
     struct FrameManifold
     {
         Uint32                               nContacts;
-        std::array<std::array<Vertex, 2>, 2> worldContacts;
+        std::array<std::array<Vertex, 2>, 2> contacts;
         Vec2                                 normal; // points out of bodies[1]
         Vec2                                 tangent;
     };
@@ -147,7 +147,7 @@ private:
     {
         FrameManifold frame;
         frame.nContacts     = nContacts();
-        frame.worldContacts = contacts(Ts);
+        frame.contacts = contacts(Ts);
         frame.normal        = contactNormal(Ts);
         frame.tangent       = contactTangent(Ts);
 

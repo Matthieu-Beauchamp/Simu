@@ -46,9 +46,7 @@ public:
     typedef S                 Solver;
 
     ConstraintImplementation(const Bodies& bodies, const F& f, bool disableContacts)
-        : Constraint{bodies, disableContacts},
-          f{f},
-          solver{bodies, f}
+        : Constraint{bodies, disableContacts}, f{f}, solver{bodies, f}
     {
     }
 
@@ -85,7 +83,6 @@ protected:
 
     F f;
     S solver;
-
 };
 
 
@@ -114,11 +111,7 @@ public:
     typedef ConstraintImplementation<HingeConstraintFunction> Base;
     typedef HingeConstraintFunction                           F;
 
-    HingeConstraint(
-        const Bodies& bodies,
-        Vec2          worldSpaceSharedPoint,
-        bool          disableContacts = true
-    )
+    HingeConstraint(const Bodies& bodies, Vec2 worldSpaceSharedPoint, bool disableContacts = true)
         : Base{
             bodies,
             F{bodies, worldSpaceSharedPoint},
@@ -129,8 +122,7 @@ public:
 };
 
 
-typedef ConstraintFunctions<HingeConstraintFunction, RotationConstraintFunction>
-    WeldConstraintFunction;
+typedef ConstraintFunctions<HingeConstraintFunction, RotationConstraintFunction> WeldConstraintFunction;
 
 class WeldConstraint : public ConstraintImplementation<WeldConstraintFunction>
 {
@@ -179,6 +171,10 @@ class ContactConstraint : public Constraint
 {
 public:
 
+    // tolerate sinkTolerance * penetration as the acceptable range where
+    //  no position correction is needed
+    static constexpr float sinkTolerance = 3.f; // [1.f, inf[
+
     ContactConstraint(Collider& first, Collider& second)
         : Constraint{Bodies{first.body(), second.body()}, false}, 
           manifold_{first, second}, 
@@ -190,17 +186,20 @@ public:
         frame_ = manifold_.frameManifold(this->bodies());
     }
 
-    const std::array<const Collider*, 2>& colliders() const { return manifold_.colliders();}
+    const std::array<const Collider*, 2>& colliders() const
+    {
+        return manifold_.colliders();
+    }
 
     ContactInfo contactInfo() const
     {
         ContactInfo info;
         info.nContacts = manifold_.nContacts();
 
-        info.refContacts[0] = frame_.worldContacts[ref][0];
-        info.incContacts[0] = frame_.worldContacts[inc][0];
-        info.refContacts[1] = frame_.worldContacts[ref][1];
-        info.incContacts[1] = frame_.worldContacts[inc][1];
+        info.refContacts[0] = frame_.contacts[ref][0];
+        info.incContacts[0] = frame_.contacts[inc][0];
+        info.refContacts[1] = frame_.contacts[ref][1];
+        info.incContacts[1] = frame_.contacts[inc][1];
 
         info.normal = frame_.normal;
 
@@ -249,9 +248,7 @@ public:
 
             float bound         = frictionCoeff_ * normalLambda_[c];
             float tangentLambda = clamp(
-                tangentLambda_[c] + dTangentLambda,
-                -bound,
-                bound
+                tangentLambda_[c] + dTangentLambda, -bound, bound
             );
             dTangentLambda    = tangentLambda - tangentLambda_[c];
             tangentLambda_[c] = tangentLambda;
@@ -337,9 +334,7 @@ public:
             float posLambda = -error[0] * invNormalK11_;
             posLambda       = std::max(posLambda, 0.f);
 
-            proxies.applyPositionCorrection(
-                transpose(normalJacobian(0)) * posLambda
-            );
+            proxies.applyPositionCorrection(transpose(normalJacobian(0)) * posLambda);
         }
         else if (frame_.nContacts == 2)
         {
@@ -398,20 +393,14 @@ private:
 
             Vec2 refN = (incident == 1) ? -frame_.normal : frame_.normal;
             Vec2 nearestIncident = furthestVertexInDirection(
-                *manifold_.colliders()[incident],
-                -(refN)
+                *manifold_.colliders()[incident], -(refN)
             );
 
-            bool hasNewCandidate = any(
-                frame_.worldContacts[incident][0] != nearestIncident
-            );
+            bool hasNewCandidate = any(frame_.contacts[incident][0] != nearestIncident);
 
             if (frame_.nContacts == 2)
                 hasNewCandidate = hasNewCandidate
-                                  && any(
-                                      frame_.worldContacts[incident][1]
-                                      != nearestIncident
-                                  );
+                                  && any(frame_.contacts[incident][1] != nearestIncident);
 
             needsNewManifold = tangentDistanceExceeded || roseTooHigh
                                || hasNewCandidate;
@@ -477,8 +466,7 @@ private:
         {
             normalK(0, 1) = normalMass
                             + refInertia * Jn(0, 3 * ref + 2) * Jn(1, 3 * ref + 2)
-                            + incInertia * Jn(0, 3 * inc + 2)
-                                  * Jn(1, 3 * inc + 2);
+                            + incInertia * Jn(0, 3 * inc + 2) * Jn(1, 3 * inc + 2);
 
             normalK(1, 0) = normalK(0, 1);
 
@@ -510,7 +498,7 @@ private:
             Vec2 centroid = proxies[b].centroid();
             for (Uint32 c = 0; c < frame_.nContacts; ++c)
             {
-                r[b][c] = frame_.worldContacts[b][c] - centroid;
+                r[b][c] = frame_.contacts[b][c] - centroid;
             }
         }
 
@@ -553,8 +541,7 @@ private:
         std::array<Vec2, 2> relPos;
         for (Uint32 c = 0; c < frame_.nContacts; ++c)
         {
-            relPos[c] = frame_.worldContacts[inc][c]
-                        - frame_.worldContacts[ref][c];
+            relPos[c] = frame_.contacts[inc][c] - frame_.contacts[ref][c];
         }
 
         return relPos;
@@ -596,10 +583,6 @@ private:
 
     static constexpr float posCorrectionFactor = 0.2f;
     static constexpr float maxCorrection       = 0.2f;
-
-    // tolerate sinkTolerance * penetration as the acceptable range where
-    //  no position correction is needed
-    static constexpr float sinkTolerance = 3.f; // [1.f, inf[
 };
 
 

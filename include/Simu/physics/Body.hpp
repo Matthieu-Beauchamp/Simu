@@ -286,7 +286,7 @@ public:
     /// This is an offset of the Body's local space geometry
     ///
     ////////////////////////////////////////////////////////////
-    const Vec2& position() const { return position_.position(); }
+    Vec2 position() const { return position_.position(); }
 
     ////////////////////////////////////////////////////////////
     /// \brief The Body's world space orientation in radians

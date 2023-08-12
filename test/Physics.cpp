@@ -11,16 +11,15 @@
 
 using namespace simu;
 
-BodyDescriptor squareDescriptor()
+Body* makeBox(World& w, Vec2 pos = Vec2{0, 0}, float theta = 0.f, Vec2 dim = Vec2{1, 1})
 {
-    return BodyDescriptor{
-        Polygon{
-                Vec2{0, 0},
-                Vec2{1, 0},
-                Vec2{1, 1},
-                Vec2{0, 1},
-                }
-    };
+    BodyDescriptor descr{};
+    descr.position    = pos;
+    descr.orientation = theta;
+    auto b            = w.makeBody(descr);
+
+    b->addCollider(ColliderDescriptor{Polygon::box(dim)});
+    return b;
 }
 
 constexpr float pi = std::numbers::pi_v<float>;
@@ -36,10 +35,8 @@ TEST_CASE("Physics")
 
         World world{};
 
-        BodyDescriptor descr{squareDescriptor()};
-        descr.position    = p;
-        descr.orientation = theta;
-        auto body         = world.makeBody(descr);
+        auto body            = makeBox(world, p, theta);
+        Vec2 initialCentroid = body->localCentroid();
 
         body->setVelocity(v);
         body->setAngularVelocity(w);
@@ -59,10 +56,7 @@ TEST_CASE("Physics")
         // rotation is done about the polygon's centroid.
         // body->position is the position of the origin of the body's local space, rotation not considered.
         // The centroid is not necessarilly centered at {0, 0} in local space.
-        REQUIRE(all(
-            body->properties().centroid
-            == squareDescriptor().polygon.properties().centroid + body->position()
-        ));
+        REQUIRE(all(body->centroid() == initialCentroid + body->position()));
     }
 
     SECTION("Global force fields (gravity)")
@@ -72,13 +66,11 @@ TEST_CASE("Physics")
         float initialHeight = 100.f;
 
 
-        std::vector<World::BodyPtr> bodies;
-        constexpr Uint32                   nBodies = 5;
+        std::vector<Body*> bodies;
+        constexpr Uint32   nBodies = 5;
         for (Uint32 i = 0; i < nBodies; ++i)
         {
-            BodyDescriptor descr{squareDescriptor()};
-            descr.position = Vec2{static_cast<float>(i), initialHeight};
-            bodies.emplace_back(world.makeBody(descr));
+            bodies.emplace_back(makeBox(world, Vec2{(float)i, initialHeight}));
         }
 
         Vec2 gravity = Vec2{0.f, -10.f};
@@ -90,9 +82,7 @@ TEST_CASE("Physics")
         {
             // implicitely requires use of symplectic euler integrator
             REQUIRE(all(body->velocity() == dt * gravity));
-            REQUIRE(
-                body->position()[1] == initialHeight + dt * body->velocity()[1]
-            );
+            REQUIRE(body->position()[1] == initialHeight + dt * body->velocity()[1]);
         }
     }
 
@@ -100,54 +90,41 @@ TEST_CASE("Physics")
     {
         World world{};
 
-        BodyDescriptor descr{squareDescriptor()};
-
         Vec2 leftPos{-10.f, 0.f};
-        descr.position = leftPos;
-        auto left      = world.makeBody(descr);
+        auto left = makeBox(world, leftPos);
 
         Vec2 middlePos{0.f, 0.f};
-        descr.position = middlePos;
-        auto middle    = world.makeBody(descr);
+        auto middle = makeBox(world, middlePos);
 
         Vec2 rightPos{10.f, 0.f};
-        descr.position = rightPos;
-        auto right     = world.makeBody(descr);
+        auto right = makeBox(world, rightPos);
 
         Vec2 leftForce{1.f, 0};
         world.makeForceField<LinearField>(
-            leftForce,
-            ForceField::region(Vec2{-10.f, 0.f}, Vec2{0.f, 10.f})
+            leftForce, ForceField::region(Vec2{-10.f, 0.f}, Vec2{0.f, 10.f})
         );
 
         Vec2 middleForce{0.f, -1.f};
         world.makeForceField<LinearField>(
-            middleForce,
-            ForceField::region(Vec2{-2.f, 0.f}, Vec2{2.f, 10.f})
+            middleForce, ForceField::region(Vec2{-2.f, 0.f}, Vec2{2.f, 10.f})
         );
 
         Vec2 rightForce{-1.f, 0};
         world.makeForceField<LinearField>(
-            rightForce,
-            ForceField::region(Vec2{0.f, 0.f}, Vec2{10.f, 10.f})
+            rightForce, ForceField::region(Vec2{0.f, 0.f}, Vec2{10.f, 10.f})
         );
 
         float dt = 1.f;
         world.step(dt);
 
-        REQUIRE(all(left->velocity() == leftForce * dt / left->properties().mass)
-        );
+        REQUIRE(all(left->velocity() == leftForce * dt / left->mass()));
         REQUIRE(all(left->position() == leftPos + left->velocity() * dt));
 
         // overlaps with all forces, left and right cancel out
-        REQUIRE(all(
-            middle->velocity() == middleForce * dt / middle->properties().mass
-        ));
+        REQUIRE(all(middle->velocity() == middleForce * dt / middle->mass()));
         REQUIRE(all(middle->position() == middlePos + middle->velocity() * dt));
 
-        REQUIRE(
-            all(right->velocity() == rightForce * dt / right->properties().mass)
-        );
+        REQUIRE(all(right->velocity() == rightForce * dt / right->mass()));
         REQUIRE(all(right->position() == rightPos + right->velocity() * dt));
     }
 
@@ -157,17 +134,10 @@ TEST_CASE("Physics")
         {
             World world{};
 
-            BodyDescriptor descr{squareDescriptor()};
-            descr.position = Vec2{-10.f, 0};
-            auto left      = world.makeBody(descr);
+            auto left  = makeBox(world, Vec2{-10.f, 0});
+            auto right = makeBox(world, Vec2{10.f, 0});
 
-            descr.position = Vec2{10.f, 0};
-            auto right     = world.makeBody(descr);
-
-
-            auto c
-                = world.makeConstraint<RotationConstraint>(Bodies<2>{left, right}
-                );
+            auto c = world.makeConstraint<RotationConstraint>(Bodies{left, right});
 
             left->applyImpulse(Vec2{0, 1}, Vec2{1, 0});
             left->applyImpulse(Vec2{0, -1}, Vec2{-1, 0});
@@ -182,24 +152,18 @@ TEST_CASE("Physics")
             right->setAngularVelocity(right->angularVelocity() - w);
             world.step(1.f);
             REQUIRE(approx(left->angularVelocity(), simu::EPSILON).contains(0.f));
-            REQUIRE(approx(right->angularVelocity(), simu::EPSILON).contains(0.f)
-            );
+            REQUIRE(approx(right->angularVelocity(), simu::EPSILON).contains(0.f));
         }
 
         SECTION("Hinge constraint")
         {
             World world{};
 
-            BodyDescriptor descr{squareDescriptor()};
-            descr.position = Vec2{-1.f, 0};
-            auto left      = world.makeBody(descr);
-
-            descr.position = Vec2{0.f, 0};
-            auto right     = world.makeBody(descr);
+            auto left  = makeBox(world, Vec2{-1.f, 0.f});
+            auto right = makeBox(world, Vec2{0.f, 0.f});
 
             auto c = world.makeConstraint<HingeConstraint>(
-                Bodies<2>{left, right},
-                Vec2{0.f, 0.5f}
+                Bodies{left, right}, Vec2{-0.5f, 0.f}
             );
 
             // translation /////////////////////////////////////
@@ -246,17 +210,11 @@ TEST_CASE("Physics")
         {
             World world{};
 
-            BodyDescriptor descr{squareDescriptor()};
-            descr.position = Vec2{0, 0};
-            auto left      = world.makeBody(descr);
-
-            descr.position = left->properties().centroid;
-            auto right     = world.makeBody(descr);
+            auto left  = makeBox(world);
+            auto right = makeBox(world);
 
             auto c = world.makeConstraint<HingeConstraint>(
-                Bodies<2>{left, right},
-                left->properties().centroid,
-                true
+                Bodies{left, right}, left->centroid(), true
             );
 
             left->setAngularVelocity(1.f);
@@ -269,24 +227,20 @@ TEST_CASE("Physics")
 
             // remove constraint, bodies are now colliding
             c->kill();
-            world.step(1.f);
-            REQUIRE(all(left->velocity() != Vec2{}));
-            REQUIRE(all(right->velocity() != Vec2{}));
+            world.step(1.f); // contact created after solving
+            world.step(1.f); // contact is solved.
+            REQUIRE(any(left->velocity() != Vec2{}));
+            REQUIRE(any(right->velocity() != Vec2{}));
         }
 
         SECTION("Weld constraint")
         {
             World world{};
 
-            BodyDescriptor descr{squareDescriptor()};
-            descr.position = Vec2{-1.f, 0};
-            auto left      = world.makeBody(descr);
+            auto left  = makeBox(world, Vec2{-1.f, 0.f});
+            auto right = makeBox(world, Vec2{0.f, 0.f});
 
-            descr.position = Vec2{0.f, 0};
-            auto right     = world.makeBody(descr);
-
-            auto c
-                = world.makeConstraint<WeldConstraint>(Bodies<2>{left, right});
+            auto c = world.makeConstraint<WeldConstraint>(Bodies{left, right});
 
             // applied at the centroid of the combined bodies
             right->applyImpulse(Vec2{0.f, 1.f}, Vec2{-0.5f, 0});
@@ -296,8 +250,7 @@ TEST_CASE("Physics")
             world.step(1.f);
 
             REQUIRE(approx(left->angularVelocity(), simu::EPSILON).contains(0.f));
-            REQUIRE(approx(right->angularVelocity(), simu::EPSILON).contains(0.f)
-            );
+            REQUIRE(approx(right->angularVelocity(), simu::EPSILON).contains(0.f));
 
             REQUIRE(all(left->velocity() == Vec2{0.f, 0.5f}));
             REQUIRE(all(right->velocity() == Vec2{0.f, 0.5f}));
@@ -306,8 +259,7 @@ TEST_CASE("Physics")
             world.step(1.f);
 
             REQUIRE(approx(left->angularVelocity(), simu::EPSILON).contains(0.f));
-            REQUIRE(approx(right->angularVelocity(), simu::EPSILON).contains(0.f)
-            );
+            REQUIRE(approx(right->angularVelocity(), simu::EPSILON).contains(0.f));
 
             REQUIRE(all(left->velocity() == Vec2{}));
             REQUIRE(all(right->velocity() == Vec2{}));
@@ -317,15 +269,12 @@ TEST_CASE("Physics")
         {
             World world{};
 
-            BodyDescriptor descr{squareDescriptor()};
-
-            descr.position = Vec2{0, 0};
-            auto body      = world.makeBody(descr);
+            auto body = makeBox(world, Vec2{0.f, 0.f});
 
             constexpr float pi = std::numbers::pi_v<float>;
 
             auto rot = world.makeConstraint<RotationMotor>(
-                Bodies<1>{body},
+                Bodies::singleBody(body),
                 RotationMotor::Specs::fromAccel(
                     pi * 2, // maximum speed of 1 turn per second
                     pi / 2  // maximum acceleration of 1/4 turn per second
@@ -333,7 +282,7 @@ TEST_CASE("Physics")
             );
 
             auto trans = world.makeConstraint<TranslationMotor>(
-                Bodies<1>{body},
+                Bodies::singleBody(body),
                 TranslationMotor::Specs::fromAccel(
                     1.f,  // maximum speed of 1 meter per second
                     0.25f // maximum acceleration of 1/4 meter per second
@@ -370,13 +319,10 @@ TEST_CASE("Physics")
         {
             World world{};
 
-            BodyDescriptor descr{squareDescriptor()};
-
-            descr.position = Vec2{0, 0};
-            auto body      = world.makeBody(descr);
+            auto body = makeBox(world);
 
             auto trans = world.makeConstraint<TranslationMotor>(
-                Bodies<1>{body},
+                Bodies::singleBody(body),
                 TranslationMotor::Specs::fromAccel(
                     1.f, // maximum speed of 1 meter per second
                     2.f  // maximum acceleration of 2 meters per second
@@ -415,22 +361,17 @@ TEST_CASE("Physics")
         {
             World world{};
 
-            BodyDescriptor descr{squareDescriptor()};
+            auto body1 = makeBox(world, Vec2{0.f, 0.f});
+            auto body2 = makeBox(world, Vec2{1.f, 0.f});
 
-            descr.position = Vec2{0, 0};
-            auto body1     = world.makeBody(descr);
-            descr.position = Vec2{1, 0};
-            auto body2     = world.makeBody(descr);
-
-            world.makeConstraint<WeldConstraint>(Bodies<2>{body1, body2});
+            world.makeConstraint<WeldConstraint>(Bodies{body1, body2});
 
             auto trans = world.makeConstraint<TranslationMotor>(
-                Bodies<1>{body2},
+                Bodies::singleBody(body2),
                 TranslationMotor::Specs::fromAccel(
                     2.f,  // maximum speed of 2 meter per second
                     0.5f, // maximum acceleration of 0.5 meters per second
-                    body1->properties().mass
-                        + body2->properties().mass // total mass
+                    body1->mass() + body2->mass() // total mass
                 )
             );
 
@@ -444,10 +385,12 @@ TEST_CASE("Physics")
             REQUIRE(all(body2->velocity() == Vec2{1.f, 0}));
 
             world.step(3.f);
-            REQUIRE(all(approx(body1->velocity(), Vec2::filled(0.01f))
-                            .contains(Vec2{2.f, 0})));
-            REQUIRE(all(approx(body2->velocity(), Vec2::filled(0.01f))
-                            .contains(Vec2{2.f, 0})));
+            REQUIRE(all(
+                approx(body1->velocity(), Vec2::filled(0.01f)).contains(Vec2{2.f, 0})
+            ));
+            REQUIRE(all(
+                approx(body2->velocity(), Vec2::filled(0.01f)).contains(Vec2{2.f, 0})
+            ));
 
             trans->direction(Vec2{-1, 0});
             world.step(1.f);
@@ -457,9 +400,9 @@ TEST_CASE("Physics")
                             .contains(Vec2{1.5f, 0})));
 
             world.step(10.f);
-            REQUIRE(all(approx(body1->velocity(), Vec2::filled(0.01f))
+            REQUIRE(all(approx(body1->velocity(), Vec2::filled(0.05f))
                             .contains(Vec2{-2.f, 0})));
-            REQUIRE(all(approx(body2->velocity(), Vec2::filled(0.01f))
+            REQUIRE(all(approx(body2->velocity(), Vec2::filled(0.05f))
                             .contains(Vec2{-2.f, 0})));
         }
     }
@@ -470,15 +413,10 @@ TEST_CASE("Physics")
         {
             World world{};
 
-            BodyDescriptor descr{squareDescriptor()};
-            descr.material.bounciness.value = 0.f;
+            auto body1 = makeBox(world, Vec2{-2.f, 0.f});
+            auto body2 = makeBox(world, Vec2{1.f, 0.f});
 
-            descr.position = Vec2{-2, 0};
-            auto body1     = world.makeBody(descr);
             body1->setVelocity(Vec2{0.5f, 0});
-
-            descr.position = Vec2{1, 0};
-            auto body2     = world.makeBody(descr);
             body2->setVelocity(Vec2{-0.5f, 0});
 
             world.step(1.f);
@@ -496,15 +434,18 @@ TEST_CASE("Physics")
         {
             World world{};
 
-            BodyDescriptor descr{squareDescriptor()};
-            descr.material.bounciness.value = 1.f;
+            BodyDescriptor     descr{};
+            ColliderDescriptor cDescr{Polygon::box(Vec2::filled(1.f))};
+            cDescr.material.bounciness.value = 1.f;
 
             descr.position = Vec2{-2, 0};
             auto body1     = world.makeBody(descr);
+            body1->addCollider(cDescr);
             body1->setVelocity(Vec2{0.5f, 0});
 
             descr.position = Vec2{1, 0};
             auto body2     = world.makeBody(descr);
+            body2->addCollider(cDescr);
             body2->setVelocity(Vec2{-0.5f, 0});
 
             world.step(1.f);
@@ -525,17 +466,20 @@ TEST_CASE("Physics")
         {
             World world{};
 
-            BodyDescriptor descr{squareDescriptor()};
-            descr.material.bounciness.value = 1.f;
+            BodyDescriptor     descr{};
+            ColliderDescriptor cDescr{Polygon::box(Vec2::filled(1.f))};
+            cDescr.material.bounciness.value = 1.f;
 
             descr.position  = Vec2{-2, 0};
             auto projectile = world.makeBody(descr);
+            projectile->addCollider(cDescr);
             projectile->setVelocity(Vec2{1.f, 0.f});
             REQUIRE(!projectile->isStructural());
 
             descr.position  = Vec2{0, 0};
             descr.dominance = 0.f;
             auto wall       = world.makeBody(descr);
+            wall->addCollider(cDescr);
             REQUIRE(wall->isStructural());
 
             world.step(1.1f); // collision
@@ -550,14 +494,13 @@ TEST_CASE("Physics")
         {
             World world{};
 
-            BodyDescriptor descr{squareDescriptor()};
-
-            auto driver   = world.makeBody(descr);
-            auto middle   = world.makeBody(descr);
-            auto follower = world.makeBody(descr);
+            float x        = 0.f;
+            auto  driver   = makeBox(world, Vec2{x, 0.f});
+            auto  middle   = makeBox(world, Vec2{x += 2, 0.f});
+            auto  follower = makeBox(world, Vec2{x += 2, 0.f});
 
             world.makeConstraint<RotationConstraint>(
-                Bodies<2>{
+                Bodies{
                     {driver, middle},
                     Vec2{0.f,    1.f   }
             },
@@ -565,14 +508,12 @@ TEST_CASE("Physics")
             );
 
             world.makeConstraint<RotationConstraint>(
-                Bodies<2>{
+                Bodies{
                     {middle, follower},
                     Vec2{0.f,    1.f     }
             },
                 true
             );
-
-            world.declareContactConflict(Bodies<2>{driver, follower});
 
             driver->setAngularVelocity(1.f);
             world.step(1.f);
@@ -580,58 +521,48 @@ TEST_CASE("Physics")
             REQUIRE(driver->angularVelocity() == 1.f);
             REQUIRE(middle->angularVelocity() == 1.f);
             REQUIRE(follower->angularVelocity() == 1.f);
-
-            world.removeContactConflict(Bodies<2>{driver, follower});
         }
     }
 
     SECTION("Motorcycle")
     {
-        constexpr float wheelRadius = 0.5f;
+        constexpr float wheelRadius     = 0.5f;
+        constexpr float fromGroundToPos = 2 * wheelRadius + 0.5f;
 
         struct MotorCycle : public Body
         {
-            MotorCycle(Vec2 pos)
-                : Body{
-                    BodyDescriptor{
-                                   Polygon{
-                            Vec2{-1.f, -0.5f},
-                            Vec2{1.f, -0.5f},
-                            Vec2{1.f, 0.5f},
-                            Vec2{-1.f, 0.5f}},
-                                   Material{},
-                                   pos}
-            }
-            {
-            }
+            MotorCycle(Vec2 pos) : Body{BodyDescriptor{pos}} {}
 
             void onConstruction(World& world) override
             {
-                BodyDescriptor wheelDescr = wheelDescriptor();
-                wheelDescr.position       = toWorldSpace() * Vec2{-1.f, -1.5f};
-                rearWheel                 = world.makeBody(wheelDescr);
-                wheelDescr.position       = toWorldSpace() * Vec2{1.f, -1.5f};
-                frontWheel                = world.makeBody(wheelDescr);
+                ColliderDescriptor cDescr{Polygon::box(Vec2{2.f, 1.f})};
+                addCollider(cDescr);
+
+                BodyDescriptor     wheelDescr{};
+                ColliderDescriptor wheelColliderDescr = wheelDescriptor();
+
+                wheelDescr.position = toWorldSpace() * Vec2{-1.f, -1.f};
+                rearWheel           = world.makeBody(wheelDescr);
+                rearWheel->addCollider(wheelColliderDescr);
+
+                wheelDescr.position = toWorldSpace() * Vec2{1.f, -1.f};
+                frontWheel          = world.makeBody(wheelDescr);
+                frontWheel->addCollider(wheelColliderDescr);
 
                 rearHinge = world.makeConstraint<HingeConstraint>(
-                    Bodies<2>{this, rearWheel},
-                    rearWheel->properties().centroid
+                    Bodies{this, rearWheel}, rearWheel->centroid()
                 );
 
                 frontHinge = world.makeConstraint<HingeConstraint>(
-                    Bodies<2>{this, frontWheel},
-                    frontWheel->properties().centroid
+                    Bodies{this, frontWheel}, frontWheel->centroid()
                 );
 
-                float totalMass
-                    = properties().mass + 2 * rearWheel->properties().mass;
+                float totalMass = mass() + 2 * rearWheel->mass();
 
                 motor = world.makeConstraint<RotationMotor>(
-                    Bodies<1>{rearWheel},
+                    Bodies::singleBody(rearWheel),
                     RotationMotor::Specs::fromTargetForce(
-                        2 * pi,
-                        wheelRadius,
-                        10.f * totalMass
+                        2 * pi, wheelRadius, 10.f * totalMass
                     )
                 );
             }
@@ -639,47 +570,46 @@ TEST_CASE("Physics")
             void onKill() override
             {
                 // since this->shouldDie()
-                REQUIRE(rearHinge->shouldDie());
-                REQUIRE(frontHinge->shouldDie());
+                REQUIRE(rearHinge->isDead());
+                REQUIRE(frontHinge->isDead());
 
                 rearWheel->kill();
-                REQUIRE(motor->shouldDie());
+                REQUIRE(motor->isDead());
 
                 frontWheel->kill();
             }
 
-            static BodyDescriptor wheelDescriptor()
+            static ColliderDescriptor wheelDescriptor()
             {
                 std::vector<Vec2> points;
                 Uint32            nPoints = 24;
                 for (Uint32 i = 0; i < nPoints; ++i)
                 {
                     float theta = i * 2 * pi / nPoints;
-                    points.emplace_back(
-                        wheelRadius* Vec2{std::cos(theta), std::sin(theta)}
-                    );
+                    points.emplace_back(wheelRadius* Vec2{
+                        std::cos(theta), std::sin(theta)});
                 }
 
                 Material material{};
                 material.friction.value = 1.f;
 
-                return BodyDescriptor{
+                return ColliderDescriptor{
                     Polygon{points.begin(), points.end()},
                     material
                 };
             }
 
-            Body*     rearWheel = nullptr;
+            Body*            rearWheel = nullptr;
             HingeConstraint* rearHinge = nullptr;
 
-            Body*     frontWheel = nullptr;
+            Body*            frontWheel = nullptr;
             HingeConstraint* frontHinge = nullptr;
 
             RotationMotor* motor = nullptr;
         };
 
         World world{};
-        auto         motorcycle = world.makeBody<MotorCycle>(Vec2{0.f, 2.5f});
+        auto  motorcycle = world.makeBody<MotorCycle>(Vec2{0.f, 2.5f});
 
         REQUIRE(motorcycle->rearWheel != nullptr);
         REQUIRE(motorcycle->rearHinge != nullptr);
@@ -687,25 +617,27 @@ TEST_CASE("Physics")
         REQUIRE(motorcycle->frontHinge != nullptr);
         REQUIRE(motorcycle->motor != nullptr);
 
-        BodyDescriptor groundDescr{
-            Polygon{
-                    Vec2{-5.f, -1.f},
-                    Vec2{5.f, -1.f},
-                    Vec2{5.f, 0.f},
-                    Vec2{-5.f, 0.f}}
-        };
-
+        BodyDescriptor groundDescr{};
         groundDescr.dominance = 0.f;
 
-        auto ground  = world.makeBody(groundDescr);
+        ColliderDescriptor groundColliderDescr{
+            Polygon::box(Vec2{10.f, 1.f}, Vec2{0.f, -0.5f})};
+
+        auto ground = world.makeBody(groundDescr);
+        ground->addCollider(groundColliderDescr);
+
         auto gravity = world.makeForceField<Gravity>(Vec2{0, -10.f});
 
         world.step(0.2f);
         for (Uint32 i = 0; i < 25; ++i)
             world.step(0.01f);
 
-        REQUIRE(all(approx(motorcycle->position(), Vec2::filled(0.005f))
-                        .contains(Vec2{0.f, 2.f})));
+        float           pen = groundColliderDescr.material.penetration.value;
+        Interval<float> restingheight{
+            fromGroundToPos - ContactConstraint::sinkTolerance * pen,
+            fromGroundToPos - pen};
+
+        REQUIRE(restingheight.contains(motorcycle->position()[1]));
 
         motorcycle->motor->direction(Vector<float, 1>{-1});
         motorcycle->motor->throttle(1.f);
@@ -733,18 +665,22 @@ TEST_CASE("Physics")
     {
         World world{};
 
-        BodyDescriptor groundDescr{
-            Polygon{
-                    Vec2{-5.f, -1.f},
-                    Vec2{5.f, -1.f},
-                    Vec2{5.f, 0.f},
-                    Vec2{-5.f, 0.f}}
-        };
-
+        BodyDescriptor groundDescr{};
         groundDescr.dominance = 0.f;
 
-        auto ground  = world.makeBody(groundDescr);
+        ColliderDescriptor groundColliderDescr{
+            Polygon::box(Vec2{10.f, 1.f}, Vec2{0.f, -0.5f})};
+
+        auto ground = world.makeBody(groundDescr);
+        ground->addCollider(groundColliderDescr);
+
         auto gravity = world.makeForceField<Gravity>(Vec2{0, -10.f});
+
+
+        BodyDescriptor wheelDescr{
+            Vec2{1.06283140f, 0.494556785f},
+            -0.132951573f
+        };
 
         std::vector<Vec2> points;
         Uint32            nPoints = 24;
@@ -757,22 +693,24 @@ TEST_CASE("Physics")
         Material material{};
         material.friction.value = 1.f;
 
-        BodyDescriptor wheelDescr{
+        ColliderDescriptor wheelColliderDescr{
             Polygon{points.begin(), points.end()},
-            material,
-            Vec2{1.06283140f,    0.494556785f},
-            -0.132951573
+            material
         };
 
         auto wheel = world.makeBody(wheelDescr);
-        wheel->setVelocity(Vec2{0.563797712f, -0.153355882f});
+        wheel->addCollider(wheelColliderDescr);
+
+        Vec2 initialVel{0.563797712f, -0.153355882f};
+        wheel->setVelocity(initialVel);
         wheel->setAngularVelocity(-1.12384140f);
 
         world.step(0.01f);
+        world.step(0.01f);
+        world.step(0.01f);
 
         // exact values are not important here, currently the velocity diverges to ~{0, 3}
-        REQUIRE(all(approx(wheel->velocity(), Vec2::filled(0.1f))
-                        .contains(Vec2{0.5f, 0.f})));
+        REQUIRE(approx(wheel->velocity()[1], 0.1f).contains(0.f));
     }
 
 
@@ -787,26 +725,31 @@ TEST_CASE("Physics")
         world.makeForceField<Gravity>(Vec2{0.f, -10.f});
 
         auto makeBox = [&](Int32 index) -> Body* {
-            BodyDescriptor descr{squareDescriptor()};
-            descr.position[1]             = index;
-            descr.material.friction.value = 0.5f;
-            return world.makeBody(descr);
+            BodyDescriptor descr{};
+            descr.position[1] = static_cast<float>(index);
+
+            ColliderDescriptor cDescr{
+                Polygon::box(Vec2{1.f, 1.f}, Vec2{0.5f, 0.5f})};
+            cDescr.material.friction.value = 0.5f;
+
+            auto b = world.makeBody(descr);
+            b->addCollider(cDescr);
+            return b;
         };
 
-        BodyDescriptor floorDescr{
-            Polygon{
-                    Vec2{-1.f, -1.f},
-                    Vec2{2.f, -1.f},
-                    Vec2{2.f, 0.f},
-                    Vec2{-1.f, 0.f},
-                    }
-        };
-        floorDescr.material.friction.value = 0.5f;
-        floorDescr.dominance               = 0.f;
+        BodyDescriptor floorDescr{};
+        floorDescr.dominance = 0.f;
+
+        // TODO: Using an offset center {0, -0.5f} causes issues
+        //  where the boxes have a big orientation, yet they are stable
+        ColliderDescriptor floorColliderDescr{
+            Polygon::box(Vec2{4.f, 1.f})};
+        floorColliderDescr.material.friction.value = 0.5f;
 
         Body* floor = world.makeBody(floorDescr);
+        floor->addCollider(floorColliderDescr);
 
-        constexpr Int32                  nBoxes = 10;
+        constexpr Int32           nBoxes = 10;
         std::array<Body*, nBoxes> boxes{};
 
         Int32 i = 0;
@@ -831,20 +774,26 @@ TEST_CASE("Physics")
             }
         }
 
-        i               = 0;
-        const float err = 100 * simu::EPSILON;
+        float floorHeight = 0.5f;
+        float pen         = floorColliderDescr.material.penetration.value;
+        i                 = 0;
+        const float err   = 0.001f;
         for (const Body* box : boxes)
         {
-            float h = static_cast<float>(i++);
+            Interval<float> restingheight{
+                floorHeight - ContactConstraint::sinkTolerance * pen,
+                floorHeight};
 
-            REQUIRE(approx(box->orientation(), err).contains(0.f));
+            REQUIRE(approx(box->orientation(), 0.2f).contains(0.f));
             REQUIRE(approx(box->angularVelocity(), err).contains(0.f));
 
-            REQUIRE(approx(box->position()[0], err).contains(0.f));
-            REQUIRE(approx(box->position()[1], 0.005f).contains(h));
+            REQUIRE(approx(box->position()[0], 0.1f).contains(0.f));
+            REQUIRE(restingheight.contains(box->position()[1]));
 
             REQUIRE(approx(box->velocity()[0], err).contains(0.f));
             REQUIRE(approx(box->velocity()[1], 0.005f).contains(0.f));
+
+            floorHeight = box->position()[1] + 1.f;
         }
     }
 

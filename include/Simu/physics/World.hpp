@@ -179,10 +179,11 @@ public:
     template <std::derived_from<Body> T, class... Args>
     T* makeBody(Args&&... args)
     {
-        auto body = makeObject<T>(bAlloc_, std::forward<Args>(args)...);
-
+        auto body = makeUnique<T>(bAlloc_, std::forward<Args>(args)...);
         T* b = static_cast<T*>(bodies_.emplace_back(std::move(body)).get());
         b->world_ = this;
+        b->setAllocator(bAlloc_);
+        b->onConstruction(*this);
 
         return b;
     }

@@ -38,19 +38,20 @@ struct Simplex
 {
     inline Simplex(Vec2 initialSearchDir = Vec2::i());
 
-    inline bool pushPoint(Vertex v);
+    inline void pushPoint(Vertex v);
     inline Vec2 nextDirection() const;
 
+    inline bool hasPoint(Vertex v) const;
     inline bool containsOrigin() const;
 
     std::array<Vertex, 3> pointStack{};
 
-    // hold the outwards facing normals of edges P0-P1, P0-P2, P1-P2 respectively,
-    // updated on pushPoint once there are 3 valid vertices
+    // hold the outwards facing normals of edges P0-P1, P0-P2, P1-P2
+    // respectively, updated on pushPoint once there are 3 valid vertices
     std::array<Vec2, 3> normals{};
 
-    Vec2        initialSearchDir_;
-    std::size_t nIterations = 0;
+    Vec2   initialSearchDir_;
+    Uint32 nIterations = 0;
 
 private:
 

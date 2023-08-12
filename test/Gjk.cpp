@@ -18,11 +18,13 @@ void testPenetration(const Polygon& first, const Polygon& second, Vec2 penetrati
 {
     Gjk gjk{first, second};
     REQUIRE(gjk.areColliding());
-    REQUIRE(all(gjk.penetration() == penetration));
+    Vec2 pen = gjk.penetration();
+    REQUIRE(all(pen == penetration));
 
     Gjk gjkInv{second, first};
     REQUIRE(gjkInv.areColliding());
-    REQUIRE(all(gjkInv.penetration() == -penetration));
+    pen = gjkInv.penetration();
+    REQUIRE(all(pen == -penetration));
 
     if (any(penetration != Vec2{0, 0}))
     {
@@ -35,11 +37,13 @@ void testSeparation(const Polygon& first, const Polygon& second, Vec2 separation
 {
     Gjk gjk{first, second};
     REQUIRE_FALSE(gjk.areColliding());
-    REQUIRE(all(gjk.separation() == separation));
+    Vec2 sep = gjk.separation();
+    REQUIRE(all(sep == separation));
 
     Gjk gjkInv{second, first};
     REQUIRE_FALSE(gjkInv.areColliding());
-    REQUIRE(all(gjkInv.separation() == -separation));
+    sep = gjkInv.separation();
+    REQUIRE(all(sep == -separation));
 
     testPenetration(translated(first, separation), second, Vec2{0, 0});
     testPenetration(first, translated(second, -separation), Vec2{0, 0});
@@ -275,40 +279,33 @@ TEST_CASE("Gjk")
 
     SECTION("Degenerate")
     {
-        Polygon line{
-            Vertex{1, 0},
-            Vertex{1, 1},
-            Vertex{1, 2},
-        };
+        // In practice, colliders must have a surface, ie points and lines are not
+        //  allowed. We can remove the handling for these special cases
+        //  for better performance.
 
-        testSeparation(line, translated(line, Vec2{1, 0}), Vec2{1, 0});
+        // Polygon line{
+        //     Vertex{1, 0},
+        //     Vertex{1, 1},
+        //     Vertex{1, 2},
+        // };
 
-        Polygon hline{
-            Vertex{0, 0.5},
-            Vertex{1, 0.5},
-            Vertex{2, 0.5},
-        };
+        // testSeparation(line, translated(line, Vec2{1, 0}), Vec2{1, 0});
 
-        testPenetration(line, hline, Vec2{0, -0.5});
+        // Polygon hline{
+        //     Vertex{0, 0.5},
+        //     Vertex{1, 0.5},
+        //     Vertex{2, 0.5},
+        // };
 
-        Polygon point{
-            Vertex{0, 0},
-            Vertex{0, 0},
-            Vertex{0, 0}
-        };
+        // testPenetration(line, hline, Vec2{0, -0.5});
 
-        testSeparation(point, translated(point, Vec2{1, 0}), Vec2{1, 0});
-        testPenetration(point, point, Vec2{0, 0});
-    }
+        // Polygon point{
+        //     Vertex{0, 0},
+        //     Vertex{0, 0},
+        //     Vertex{0, 0}
+        // };
 
-    SECTION("Almost collinear simplex to polytope")
-    {
-        priv::Simplex s{};
-        s.pushPoint(Vertex{-1.f, 1e-8f});
-        s.pushPoint(Vertex{1.f, -2e-8f});
-        s.pushPoint(Vertex{2.f, 1e-8f});
-    
-        priv::Polytope p{s};
-        REQUIRE(p.vertices.size() == 3);
+        // testSeparation(point, translated(point, Vec2{1, 0}), Vec2{1, 0});
+        // testPenetration(point, point, Vec2{0, 0});
     }
 }

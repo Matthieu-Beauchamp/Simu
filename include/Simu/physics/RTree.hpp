@@ -33,6 +33,7 @@
 #include "Simu/utility/View.hpp"
 #include "Simu/utility/Algo.hpp"
 #include "Simu/utility/Callable.hpp"
+#include "Simu/utility/Memory.hpp"
 
 namespace simu
 {
@@ -123,9 +124,7 @@ public:
         }
     }
 
-    template <
-        Callable<BoundingBox(iterator)>    Update,
-        Callable<void(iterator, iterator)> OnCollision>
+    template <Callable<BoundingBox(iterator)> Update, Callable<void(iterator, iterator)> OnCollision>
     void updateAndCollide(const Update& update, const OnCollision& onCollision)
     {
         // Using the RTree's allocator will result in fragmented Node allocations
@@ -348,8 +347,7 @@ private:
         // Only check rotations on parent/grand parent of added leaf
         while (node != nullptr)
         {
-            BoundingBox newBounds = bounds(node->left)
-                                        .combined(bounds(node->right));
+            BoundingBox newBounds = bounds(node->left).combined(bounds(node->right));
 
             if (newBounds == node->bounds)
                 return;
@@ -730,17 +728,11 @@ private:
         }
 
         subRoot->left = updateAndCollide(
-            left,
-            std::move(leftCollisions),
-            onCollision,
-            bin
+            left, std::move(leftCollisions), onCollision, bin
         );
 
         subRoot->right = updateAndCollide(
-            right,
-            std::move(rightCollisions),
-            onCollision,
-            bin
+            right, std::move(rightCollisions), onCollision, bin
         );
 
         if (subRoot->left != nullptr)

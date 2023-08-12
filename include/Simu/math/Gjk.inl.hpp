@@ -39,17 +39,13 @@ Simplex::Simplex(Vec2 initialSearchDir) : initialSearchDir_{initialSearchDir}
         initialSearchDir_ = Vec2::i();
 }
 
-bool Simplex::pushPoint(Vertex v)
+void Simplex::pushPoint(Vertex v)
 {
     if (keepBottomPoint_)
     {
         pointStack[1]    = pointStack[2];
         keepBottomPoint_ = false;
     }
-
-    bool isNewPoint = true;
-    for (Vec2 p : pointStack)
-        isNewPoint = isNewPoint && !all(p == v);
 
     pointStack[2] = pointStack[1];
     pointStack[1] = pointStack[0];
@@ -66,7 +62,6 @@ bool Simplex::pushPoint(Vertex v)
     normals[2] = perp(bc, positivelyOriented);
 
     ++nIterations;
-    return isNewPoint;
 }
 
 Vec2 Simplex::nextDirection() const
@@ -86,8 +81,12 @@ Vec2 Simplex::nextDirection() const
         }
         case 2:
         {
-            Vec2 edge = pointStack[0] - pointStack[1];
-            return perp(edge, cross(pointStack[1], pointStack[0]) < 0);
+            Vec2  edge = pointStack[0] - pointStack[1];
+            float k    = cross(pointStack[1], pointStack[0]);
+            if (k == 0.f)
+                return perp(initialSearchDir_);
+
+            return perp(edge, k < 0);
         }
         default:
         {
@@ -102,6 +101,17 @@ Vec2 Simplex::nextDirection() const
         }
     }
 }
+
+bool Simplex::hasPoint(Vertex v) const
+{
+    bool   hasP = false;
+    Uint32 max = std::min(nIterations, static_cast<Uint32>(pointStack.size()));
+    for (Uint32 i = 0; i < max; ++i)
+        hasP = hasP || all(pointStack[i] == v);
+
+    return hasP;
+}
+
 
 bool Simplex::containsOrigin() const
 {
@@ -170,7 +180,8 @@ Gjk<T>::Gjk(const T& first, const T& second, Vec2 initialDir)
             areColliding_ = false;
         }
 
-        bool isNewPoint = simplex_.pushPoint(v);
+        bool isNewPoint = !simplex_.hasPoint(v);
+        simplex_.pushPoint(v);
 
         if (simplex_.nIterations > 2)
         {
@@ -196,17 +207,32 @@ Vec2 Gjk<T>::separation()
 
     while (true)
     {
-        Vertex previous = simplex_.pointStack[0];
-        Vertex current  = furthestVertexInDirection(simplex_.nextDirection());
+        Vec2   dir = simplex_.nextDirection();
+        Vertex v   = furthestVertexInDirection(dir);
 
-        if (simplex_.nIterations < 3
-            || normSquared(previous) > normSquared(current))
-            simplex_.pushPoint(current);
-        else
+        if (simplex_.hasPoint(v))
             break;
+        else
+            simplex_.pushPoint(v);
     }
 
-    return -simplex_.closestPoint(Vec2{0, 0});
+    switch (simplex_.nIterations)
+    {
+        case 1: return -simplex_.pointStack[0];
+        case 2:
+            return -LineBarycentric{
+                simplex_.pointStack[0], simplex_.pointStack[1], Vec2{0, 0}
+            }
+                        .closestPoint;
+        default:
+            return -TriangleBarycentric{
+                simplex_.pointStack[0],
+                simplex_.pointStack[1],
+                simplex_.pointStack[2],
+                Vec2{0.f, 0.f}
+            }
+                        .closestPoint;
+    }
 }
 
 template <Geometry T>
@@ -217,12 +243,8 @@ Vec2 Gjk<T>::penetration() const
 
     priv::Polytope polytope{simplex_};
 
-    Uint32 i = 0;
     while (true)
     {
-        if (i++ > 100)
-            return penetration();
-
         auto  edges    = edgesOf(polytope.vertices);
         auto  best     = *edges.begin();
         float bestDist = best.distanceSquaredToOrigin();
@@ -241,9 +263,7 @@ Vec2 Gjk<T>::penetration() const
 
         if (!polytope.addVertex(best, next))
             return LineBarycentric{
-                best.from(),
-                best.to(),
-                Vec2{0, 0}
+                best.from(), best.to(), Vec2{0, 0}
             }
                 .closestPoint;
     }

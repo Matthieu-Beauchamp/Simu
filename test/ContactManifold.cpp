@@ -1,15 +1,30 @@
 #include "catch2/catch_test_macros.hpp"
 
+#include "Simu/physics/World.hpp"
 #include "Simu/physics/ContactManifold.hpp"
 #include "Simu/math/Gjk.hpp"
 
 using namespace simu;
 
-template <Geometry T>
-ContactManifold<T> makeContactManifold(std::array<T*, 2> bodies)
+struct Manifold : public ContactManifold
 {
-    Gjk<T> gjk{*bodies[0], *bodies[1]};
-    return ContactManifold<T>{bodies[0], bodies[1], gjk.penetration()};
+    Manifold(Collider& first, Collider& second)
+        : ContactManifold{first, second},
+          frame{frameManifold(Bodies{first.body(), second.body()})}
+    {
+    }
+
+    typename ContactManifold::FrameManifold frame;
+};
+
+Manifold makeManifold(const Polygon& first, const Polygon& second)
+{
+    static World   w{};
+    BodyDescriptor descr{};
+
+    return Manifold{
+        *w.makeBody(descr)->addCollider(ColliderDescriptor{first}),
+        *w.makeBody(descr)->addCollider(ColliderDescriptor{second})};
 }
 
 bool inContacts(auto contacts, Vertex v)
@@ -23,10 +38,14 @@ bool inContacts(auto contacts, Vertex v)
     return false;
 }
 
+float flipNormal(const ContactManifold& manifold)
+{
+    // normal points outwards of collider[1]
+    return (manifold.referenceIndex() == 0) ? -1.f : 1.f;
+}
+
 TEST_CASE("Contact manifolds")
 {
-    typedef std::array<Polygon*, 2> Polys;
-
     SECTION("Vertex to Vertex")
     {
         // never happens, unless the bodies are only touching -> nothing to do
@@ -48,30 +67,32 @@ TEST_CASE("Contact manifolds")
         };
 
         {
-            auto manifold = makeContactManifold(Polys{&bottom, &top});
+            auto manifold = makeManifold(bottom, top);
+            auto frame    = manifold.frame;
 
             REQUIRE(manifold.referenceIndex() == 0);
             REQUIRE(manifold.incidentIndex() == 1);
 
-            REQUIRE(all(approx(Vec2{0, 1}, Vec2::filled(simu::EPSILON))
-                            .contains(normalized(manifold.contactNormal))));
-            REQUIRE(manifold.nContacts == 1);
-            REQUIRE(all(
-                manifold.contacts[manifold.incidentIndex()][0] == Vertex{1, 1.5f}
-            ));
+            Vec2 n = flipNormal(manifold) * frame.normal;
+            REQUIRE(all(approx(Vec2{0, 1}, Vec2::filled(simu::EPSILON)).contains(n)));
+            REQUIRE(frame.nContacts == 1);
+            REQUIRE(
+                all(frame.contacts[manifold.incidentIndex()][0] == Vertex{1, 1.5f})
+            );
         }
         {
-            auto manifold = makeContactManifold(Polys{&top, &bottom});
+            auto manifold = makeManifold(top, bottom);
+            auto frame    = manifold.frame;
 
             REQUIRE(manifold.referenceIndex() == 1);
             REQUIRE(manifold.incidentIndex() == 0);
 
-            REQUIRE(all(approx(Vec2{0, 1}, Vec2::filled(simu::EPSILON))
-                            .contains(normalized(manifold.contactNormal))));
-            REQUIRE(manifold.nContacts == 1);
-            REQUIRE(all(
-                manifold.contacts[manifold.incidentIndex()][0] == Vertex{1, 1.5f}
-            ));
+            Vec2 n = flipNormal(manifold) * frame.normal;
+            REQUIRE(all(approx(Vec2{0, 1}, Vec2::filled(simu::EPSILON)).contains(n)));
+            REQUIRE(frame.nContacts == 1);
+            REQUIRE(
+                all(frame.contacts[manifold.incidentIndex()][0] == Vertex{1, 1.5f})
+            );
         }
     }
 
@@ -94,35 +115,32 @@ TEST_CASE("Contact manifolds")
             };
 
 
-            auto manifold = makeContactManifold(Polys{&bottom, &top});
+            auto manifold = makeManifold(bottom, top);
+            auto frame    = manifold.frame;
 
-            REQUIRE(manifold.nContacts == 2);
+            REQUIRE(frame.nContacts == 2);
             if (manifold.referenceIndex() == 0)
             {
                 REQUIRE(all(approx(Vec2{0, 1}, Vec2::filled(simu::EPSILON))
-                                .contains(normalized(manifold.contactNormal))));
+                                .contains(flipNormal(manifold) * frame.normal)));
 
                 REQUIRE(inContacts(
-                    manifold.contacts[manifold.incidentIndex()],
-                    Vertex{0, 1}
+                    frame.contacts[manifold.incidentIndex()], Vertex{0, 1}
                 ));
                 REQUIRE(inContacts(
-                    manifold.contacts[manifold.incidentIndex()],
-                    Vertex{2, 1}
+                    frame.contacts[manifold.incidentIndex()], Vertex{2, 1}
                 ));
             }
             else
             {
                 REQUIRE(all(approx(Vec2{0, -1}, Vec2::filled(simu::EPSILON))
-                                .contains(normalized(manifold.contactNormal))));
+                                .contains(flipNormal(manifold) * frame.normal)));
 
                 REQUIRE(inContacts(
-                    manifold.contacts[manifold.incidentIndex()],
-                    Vertex{0, 2}
+                    frame.contacts[manifold.incidentIndex()], Vertex{0, 2}
                 ));
                 REQUIRE(inContacts(
-                    manifold.contacts[manifold.incidentIndex()],
-                    Vertex{2, 2}
+                    frame.contacts[manifold.incidentIndex()], Vertex{2, 2}
                 ));
             }
         }
@@ -143,35 +161,32 @@ TEST_CASE("Contact manifolds")
                 Vertex{0.5f, 3.5f}
             };
 
-            auto manifold = makeContactManifold(Polys{&bottom, &top});
+            auto manifold = makeManifold(bottom, top);
+            auto frame    = manifold.frame;
 
-            REQUIRE(manifold.nContacts == 2);
+            REQUIRE(frame.nContacts == 2);
             if (manifold.referenceIndex() == 0)
             {
                 REQUIRE(all(approx(Vec2{0, 1}, Vec2::filled(simu::EPSILON))
-                                .contains(normalized(manifold.contactNormal))));
+                                .contains(flipNormal(manifold) * frame.normal)));
 
                 REQUIRE(inContacts(
-                    manifold.contacts[manifold.incidentIndex()],
-                    Vertex{0.5f, 1.5f}
+                    frame.contacts[manifold.incidentIndex()], Vertex{0.5f, 1.5f}
                 ));
                 REQUIRE(inContacts(
-                    manifold.contacts[manifold.incidentIndex()],
-                    Vertex{2.f, 1.5f}
+                    frame.contacts[manifold.incidentIndex()], Vertex{2.f, 1.5f}
                 )); // clipped
             }
             else
             {
                 REQUIRE(all(approx(Vec2{0, -1}, Vec2::filled(simu::EPSILON))
-                                .contains(normalized(manifold.contactNormal))));
+                                .contains(flipNormal(manifold) * frame.normal)));
 
                 REQUIRE(inContacts(
-                    manifold.contacts[manifold.incidentIndex()],
-                    Vertex{0.5f, 2}
+                    frame.contacts[manifold.incidentIndex()], Vertex{0.5f, 2}
                 )); // clipped
                 REQUIRE(inContacts(
-                    manifold.contacts[manifold.incidentIndex()],
-                    Vertex{2, 2}
+                    frame.contacts[manifold.incidentIndex()], Vertex{2, 2}
                 ));
             }
         }
@@ -193,21 +208,22 @@ TEST_CASE("Contact manifolds")
             Vertex{0.f,   2.75f},
         };
 
-        auto manifold = makeContactManifold(Polys{&top, &bottom});
+        auto manifold = makeManifold(top, bottom);
+        auto frame    = manifold.frame;
 
         REQUIRE(manifold.referenceIndex() == 1);
         REQUIRE(manifold.incidentIndex() == 0);
 
         REQUIRE(all(approx(Vec2{0, 1}, Vec2::filled(simu::EPSILON))
-                        .contains(normalized(manifold.contactNormal))));
+                        .contains(flipNormal(manifold) * frame.normal)));
 
-        REQUIRE(manifold.nContacts == 2);
+        REQUIRE(frame.nContacts == 2);
 
-        REQUIRE(inContacts(manifold.contacts[0], Vertex{0.25f, 1.75f}));
-        REQUIRE(inContacts(manifold.contacts[0], Vertex{2.f, 2.f}));
+        REQUIRE(inContacts(frame.contacts[0], Vertex{0.25f, 1.75f}));
+        REQUIRE(inContacts(frame.contacts[0], Vertex{2.f, 2.f}));
 
-        REQUIRE(inContacts(manifold.contacts[1], Vertex{0.25f, 2.f}));
-        REQUIRE(inContacts(manifold.contacts[1], Vertex{2.f, 2.f}));
+        REQUIRE(inContacts(frame.contacts[1], Vertex{0.25f, 2.f}));
+        REQUIRE(inContacts(frame.contacts[1], Vertex{2.f, 2.f}));
     }
 
     SECTION("Edge distance to origin")
@@ -216,9 +232,9 @@ TEST_CASE("Contact manifolds")
         //  but did happen in practice
 
         Vertices v{
-            Vertex{-1,   1e-8},
-            Vertex{1e-6, 1e-8},
-            Vertex{1,    1e-8},
+            Vertex{-1,    1e-8f},
+            Vertex{1e-6f, 1e-8f},
+            Vertex{1,     1e-8f},
         };
 
         auto it = v.begin();

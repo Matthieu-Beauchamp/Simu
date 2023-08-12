@@ -43,7 +43,13 @@ struct MassProperties
     template <Geometry G>
     MassProperties(const G& geometry, float density)
     {
+        SIMU_ASSERT(density > 0.f, "Must have a positive density");
+
         GeometricProperties properties{geometry};
+        SIMU_ASSERT(
+            !properties.isDegenerate, "Must have a surface. (not a point or line)."
+        );
+
         m        = properties.area * density;
         I        = properties.momentOfArea * density;
         centroid = properties.centroid;
@@ -64,14 +70,13 @@ struct MassProperties
         float inertiaAtOrigin = lhs.I + lhs.m * normSquared(lhs.centroid);
         inertiaAtOrigin += rhs.I + rhs.m * normSquared(rhs.centroid);
 
-        combined.I = inertiaAtOrigin
-                     - combined.m * normSquared(combined.centroid);
+        combined.I = inertiaAtOrigin - combined.m * normSquared(combined.centroid);
 
         return combined;
     }
 
-    float m = 0.f;
-    float I = 0.f;
+    float m        = 0.f;
+    float I        = 0.f;
     Vec2  centroid = Vec2{};
 };
 
@@ -158,8 +163,7 @@ public:
     auto vertexView() const
     {
         return makeView(
-            transformed_.data(),
-            transformed_.data() + transformed_.size()
+            transformed_.data(), transformed_.data() + transformed_.size()
         );
     }
 
@@ -230,7 +234,7 @@ public:
                 break;
             }
         }
-        
+
         properties_ = MassProperties{};
         for (const Collider& c : colliders_)
             properties_ = properties_ + c.properties();

@@ -92,15 +92,15 @@ TEST_CASE("Bounding Box")
             Vec2{1, 1}
         };
 
-        testNoOverlap(a, translated(a, Vec2{1.1, 0}));
-        testNoOverlap(a, translated(a, Vec2{-1.1, 0}));
-        testNoOverlap(a, translated(a, Vec2{0, 1.1}));
-        testNoOverlap(a, translated(a, Vec2{0, -1.1}));
+        testNoOverlap(a, translated(a, Vec2{1.1f, 0}));
+        testNoOverlap(a, translated(a, Vec2{-1.1f, 0}));
+        testNoOverlap(a, translated(a, Vec2{0, 1.1f}));
+        testNoOverlap(a, translated(a, Vec2{0, -1.1f}));
 
-        testNoOverlap(a, translated(a, Vec2{1.1, 1.1}));
-        testNoOverlap(a, translated(a, Vec2{-1.1, 1.1}));
-        testNoOverlap(a, translated(a, Vec2{-1.1, -1.1}));
-        testNoOverlap(a, translated(a, Vec2{1.1, -1.1}));
+        testNoOverlap(a, translated(a, Vec2{1.1f, 1.1f}));
+        testNoOverlap(a, translated(a, Vec2{-1.1f, 1.1f}));
+        testNoOverlap(a, translated(a, Vec2{-1.1f, -1.1f}));
+        testNoOverlap(a, translated(a, Vec2{1.1f, -1.1f}));
     }
 
     SECTION("Overlap edge cases"){
