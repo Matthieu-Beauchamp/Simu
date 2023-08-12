@@ -179,11 +179,6 @@ private:
     {
         bool isNew = body->proxyIndex == Body::NO_INDEX;
 
-        if (body->interactsAsStructural())
-            isNew = isNew
-                    || std::find(bodies_.begin(), bodies_.end(), body)
-                           == bodies_.end();
-
         if (isNew)
         {
             bodies_.emplace_back(body);
