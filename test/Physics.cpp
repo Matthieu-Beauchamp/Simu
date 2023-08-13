@@ -721,12 +721,14 @@ TEST_CASE("Physics")
         //  the stack can hold for very long
         //  (no fatal accumulation of errors, no awkward contact manifold problems, etc.)
 
+        // Also test have the Colliders centroid not at origin.
+
         World world{};
         world.makeForceField<Gravity>(Vec2{0.f, -10.f});
 
         auto makeBox = [&](Int32 index) -> Body* {
             BodyDescriptor descr{};
-            descr.position[1] = static_cast<float>(index);
+            descr.position[1] = 2.f * index;
 
             ColliderDescriptor cDescr{
                 Polygon::box(Vec2{1.f, 1.f}, Vec2{0.5f, 0.5f})};
@@ -740,11 +742,8 @@ TEST_CASE("Physics")
         BodyDescriptor floorDescr{};
         floorDescr.dominance = 0.f;
 
-        // TODO: Using an offset center {0, -0.5f} causes issues
-        //  where the boxes have a big orientation, yet they are stable
-        CHECK(false);
         ColliderDescriptor floorColliderDescr{
-            Polygon::box(Vec2{4.f, 1.f})};
+            Polygon::box(Vec2{4.f, 1.f}, Vec2{0.f, -0.5f})};
         floorColliderDescr.material.friction.value = 0.5f;
 
         Body* floor = world.makeBody(floorDescr);
@@ -764,35 +763,25 @@ TEST_CASE("Physics")
         for (Uint32 steps = 0; steps < 6000; ++steps)
         {
             world.step(0.01f);
-
-            for (auto& box : boxes)
-            {
-                if (!approx(box->orientation(), 1 * simu::EPSILON).contains(0.f))
-                {
-                    box->setAngularVelocity(box->angularVelocity());
-                    break;
-                }
-            }
         }
 
-        float floorHeight = 0.5f;
+        float floorHeight = 0.f;
         float pen         = floorColliderDescr.material.penetration.value;
         i                 = 0;
-        const float err   = 0.001f;
+        const float err   = EPSILON;
         for (const Body* box : boxes)
         {
             Interval<float> restingheight{
-                floorHeight - ContactConstraint::sinkTolerance * pen,
-                floorHeight};
+                floorHeight - ContactConstraint::sinkTolerance * pen, floorHeight};
 
-            REQUIRE(approx(box->orientation(), 0.2f).contains(0.f));
+            REQUIRE(approx(box->orientation(), err).contains(0.f));
             REQUIRE(approx(box->angularVelocity(), err).contains(0.f));
 
-            REQUIRE(approx(box->position()[0], 0.1f).contains(0.f));
+            REQUIRE(approx(box->position()[0], err).contains(0.f));
             REQUIRE(restingheight.contains(box->position()[1]));
 
             REQUIRE(approx(box->velocity()[0], err).contains(0.f));
-            REQUIRE(approx(box->velocity()[1], 0.005f).contains(0.f));
+            REQUIRE(approx(box->velocity()[1], err).contains(0.f));
 
             floorHeight = box->position()[1] + 1.f;
         }

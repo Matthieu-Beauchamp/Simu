@@ -54,7 +54,7 @@ Collider* Body::addCollider(const ColliderDescriptor& descriptor)
     //  conservation of momentums.
     Vec2 dvAtCentroid = angularVelocity() * perp(centroid() - oldCentroid);
     setVelocity(velocity() + dvAtCentroid);
-    position_.setLocalCentroid(localCentroid());
+    position_.setLocalCentroid(colliders_.properties().centroid);
 
     update();
     world_->addCollider(c);
@@ -77,7 +77,7 @@ void Body::removeCollider(Collider* collider)
 
     Vec2 dvAtCentroid = angularVelocity() * perp(centroid() - oldCentroid);
     setVelocity(velocity() + dvAtCentroid);
-    position_.setLocalCentroid(localCentroid());
+    position_.setLocalCentroid(colliders_.properties().centroid);
 
     update();
 }

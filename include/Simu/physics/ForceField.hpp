@@ -50,16 +50,14 @@ public:
     static Domain global()
     {
         return Domain{
-            DomainType::global,
-            BoundingBox{Vec2{1, 0}, Vec2{0, 0}}
+            DomainType::global, BoundingBox{Vec2{1, 0}, Vec2{0, 0}}
         };
     }
 
     static Domain region(Vec2 min, Vec2 max)
     {
         return Domain{
-            DomainType::region,
-            BoundingBox{min, max}
+            DomainType::region, BoundingBox{min, max}
         };
     }
 
@@ -114,11 +112,11 @@ public:
     {
         MassProperties p = collider.properties();
         Body*          b = collider.body();
-        b->applyForce(
-            acceleration_ * p.m,
-            dt,
-            b->toWorldSpace().rotation() * (p.centroid - b->localCentroid())
-        );
+
+        Vec2 whereFromCentroid = b->toWorldSpace().rotation()
+                                 * (p.centroid - b->localCentroid());
+
+        b->applyForce(acceleration_ * p.m, dt, whereFromCentroid);
     }
 
 private:
