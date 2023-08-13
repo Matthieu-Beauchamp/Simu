@@ -42,8 +42,8 @@ struct Islands : public std::list<Island>
     }
 };
 
-template <class ConstraintRange>
-void requireCoversAllConstraintsOnce(ConstraintRange allConstraints, Islands& islands)
+template <class ContactRange>
+void requireCoversAllConstraintsOnce(ContactRange allConstraints, Islands& islands)
 {
     for (Constraint& constraint : allConstraints)
     {
@@ -61,7 +61,17 @@ void requireCoversAllConstraintsOnce(ConstraintRange allConstraints, Islands& is
 template <class ContactRange>
 void requireCoversAllContactsOnce(ContactRange allContacts, Islands& islands)
 {
-    //  TODO:
+    for (ContactConstraint& contact : allContacts)
+    {
+        Uint32 count = 0;
+        for (Island& island : islands)
+        {
+            for (ContactConstraint* c : island.contacts())
+                if (c == &contact)
+                    ++count;
+        }
+        REQUIRE(count == 1);
+    }
 }
 
 Body* makeBox(World& w, Vec2 pos = Vec2{0, 0}, Vec2 dim = Vec2{2, 2})
@@ -158,12 +168,10 @@ TEST_CASE("Island")
                 Islands islands{world.bodies()};
                 REQUIRE(islands.size() == nStacks);
 
-                // TODO: ACCESS CONTACTS
-                CHECK(false);
-                // auto c = world.constraints();
-                // REQUIRE(std::distance(c.begin(), c.end()) == nStacks * stackHeight);
+                auto c = world.contacts();
+                REQUIRE(std::distance(c.begin(), c.end()) == nStacks * stackHeight);
 
-                // requireCoversAllConstraintsOnce(world.constraints(), islands);
+                requireCoversAllContactsOnce(c, islands);
             }
 
             SECTION("Per constraint structural")

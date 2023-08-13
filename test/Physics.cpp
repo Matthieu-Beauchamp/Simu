@@ -742,6 +742,7 @@ TEST_CASE("Physics")
 
         // TODO: Using an offset center {0, -0.5f} causes issues
         //  where the boxes have a big orientation, yet they are stable
+        CHECK(false);
         ColliderDescriptor floorColliderDescr{
             Polygon::box(Vec2{4.f, 1.f})};
         floorColliderDescr.material.friction.value = 0.5f;

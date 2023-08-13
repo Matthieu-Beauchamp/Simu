@@ -111,8 +111,7 @@ public:
 
     typedef ReboundTo<Alloc, UniquePtr<ContactConstraint>> ContactAlloc;
 
-    typedef std::function<
-        UniquePtr<ContactConstraint>(Collider&, Collider&, const ContactAlloc&)>
+    typedef std::function<UniquePtr<ContactConstraint>(Collider&, Collider&, const ContactAlloc&)>
         ContactFactory;
 
     static ContactFactory defaultContactFactory;
@@ -171,6 +170,15 @@ public:
         return makeView(constraints_, DoubleDereference{});
     }
 
+    ////////////////////////////////////////////////////////////
+    /// \brief Gives a view over the ContactConstraints in the world
+    ///
+    /// ie for ( [const] ContactConstraint& contact : world.contacts())
+    ///
+    ////////////////////////////////////////////////////////////
+    auto contacts() { return makeView(contacts_, DerefContact{}); }
+    auto contacts() const { return makeView(contacts_, DerefContact{}); }
+
 
     ////////////////////////////////////////////////////////////
     /// \brief Construct a Body and puts it in the world
@@ -180,7 +188,7 @@ public:
     T* makeBody(Args&&... args)
     {
         auto body = makeUnique<T>(bAlloc_, std::forward<Args>(args)...);
-        T* b = static_cast<T*>(bodies_.emplace_back(std::move(body)).get());
+        T*   b = static_cast<T*>(bodies_.emplace_back(std::move(body)).get());
         b->world_ = this;
         b->setAllocator(bAlloc_);
         b->onConstruction(*this);
@@ -314,8 +322,7 @@ private:
     void addCollider(Collider* collider)
     {
         collider->treeLocation_ = colliderTree_.emplace(
-            collider->boundingBox(),
-            collider
+            collider->boundingBox(), collider
         );
     }
 
@@ -379,6 +386,19 @@ private:
 
     ContactList contacts_{miscAlloc_};
 
+    struct DerefContact
+    {
+        ContactConstraint& operator()(typename ContactList::value_type& s) const
+        {
+            return *s.second.existingContact;
+        }
+
+        const ContactConstraint& operator()(const typename ContactList::value_type& s) const
+        {
+            return *s.second.existingContact;
+        }
+    };
+
     ContactList::iterator
     inContacts(const std::array<simu::Collider*, 2>& colliders)
     {
@@ -386,9 +406,8 @@ private:
         if (asIs != contacts_.end())
             return asIs;
         else
-            return contacts_.find(
-                std::array<simu::Collider*, 2>{colliders[1], colliders[0]}
-            );
+            return contacts_.find(std::array<simu::Collider*, 2>{
+                colliders[1], colliders[0]});
     }
 
     ColliderTree colliderTree_{bAlloc_};
