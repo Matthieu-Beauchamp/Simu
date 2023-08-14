@@ -90,6 +90,10 @@ Application::Application()
 
 Application::~Application()
 {
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+
     renderer_.reset(nullptr);
     glfwDestroyWindow(window_);
     glfwTerminate();
