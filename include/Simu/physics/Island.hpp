@@ -215,6 +215,7 @@ private:
 
         constraint->bodies().startSolve(positions_.data(), velocities_.data());
 
+        // TODO: Must be called **exactly** once per constraint.
         if (!constraint->isActive(constraint->bodies().getProxies()))
         {
             if (added2)

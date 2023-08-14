@@ -12,7 +12,7 @@
 #include <GLES2/gl2.h>
 #endif
 
-#define GLFW_INCLUDE_NONE // ignore below comment, we will glbinding
+#define GLFW_INCLUDE_NONE // ignore below comment, we will use glbinding
 #include <GLFW/glfw3.h> // Will drag system OpenGL headers
 #include "glbinding/glbinding.h"
 #include "glbinding/gl33core/gl.h"

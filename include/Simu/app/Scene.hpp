@@ -53,10 +53,7 @@ public:
                                   const typename World::ContactAlloc& alloc
                               ) {
             return makeUnique<VisibleContactConstraint>(
-                alloc,
-                first,
-                second,
-                this->renderer_
+                alloc, first, second, this->renderer_
             );
         };
 
@@ -114,7 +111,7 @@ protected:
 
     Renderer* getRenderer() const { return renderer_; }
 
-    virtual void init(Renderer& renderer) = 0;
+    virtual void        init(Renderer& renderer) = 0;
 
     virtual void onClear(){};
     virtual void preStep(float /* dt */){};

@@ -42,6 +42,8 @@ public:
     Application();
     ~Application();
 
+    void setName(const char* name);
+
     void run();
 
     // TODO: Scenes should know their Application, to allow setting cursors and such.
@@ -58,7 +60,6 @@ protected:
 
     virtual std::shared_ptr<Scene> nextScene(std::shared_ptr<Scene> current) = 0;
 
-
 private:
 
     void show() const;
@@ -66,13 +67,8 @@ private:
     static void frameBufferResizeCallback(GLFWwindow* window, int w, int h);
     static void windowResizeCallback(GLFWwindow* window, int w, int h);
 
-    static void keypressCallback(
-        GLFWwindow* window,
-        int         key,
-        int         scancode,
-        int         action,
-        int         modifiers
-    );
+    static void
+    keypressCallback(GLFWwindow* window, int key, int scancode, int action, int modifiers);
 
     static void mouseMoveCallback(GLFWwindow* window, double x, double y);
     static void
