@@ -89,8 +89,9 @@ if (SIMU_BUILD_DEMOS)
     )
 
     FetchContent_MakeAvailable(GLFW glBinding)
+    buildImgui() # Links to glfw, providing symbols
 
-    target_link_libraries(simu-app glfw glbinding::glbinding)
+    target_link_libraries(simu-app glbinding::glbinding imgui)
     
     add_subdirectory(demos)
 endif()

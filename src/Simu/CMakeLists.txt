@@ -6,5 +6,5 @@ foreach(component IN LISTS simuComponents)
         ${component}/*.cpp
     )
 
-    target_sources(simu-${component} PUBLIC ${${component}Src})
+    target_sources(simu-${component} PRIVATE ${${component}Src})
 endforeach()

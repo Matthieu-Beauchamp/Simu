@@ -10,5 +10,5 @@ foreach(component IN LISTS simuComponents)
         ${component}/*.hpp
     )
 
-    target_sources(simu-${component} PUBLIC ${${component}Headers} ${component}.hpp)
+    target_sources(simu-${component} PRIVATE ${${component}Headers} ${component}.hpp)
 endforeach()

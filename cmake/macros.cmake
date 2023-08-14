@@ -101,3 +101,44 @@ macro(simu_add_library targetName src...)
     simu_set_compile_definitions(${targetName})
     target_compile_definitions(${targetName} PRIVATE SIMU_EXPORT)
 endmacro()
+
+function(buildImgui)
+    # https://stackoverflow.com/a/65620000
+    FetchContent_Declare(
+        imgui
+        GIT_REPOSITORY https://github.com/ocornut/imgui
+        GIT_TAG        f7eea63 # v1.89.8
+        CONFIGURE_COMMAND ""
+        BUILD_COMMAND ""
+    )
+
+    FetchContent_GetProperties(imgui)
+    if(NOT imgui_POPULATED)
+        FetchContent_Populate(imgui)
+    endif()
+
+    add_library(imgui "")
+    target_link_libraries(imgui glfw)
+
+    target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR})
+
+    set(imguiSrc
+        imconfig.h
+        imgui.h
+        imgui.cpp
+
+        imgui_demo.cpp
+        imgui_draw.cpp
+        imgui_tables.cpp
+        imgui_widgets.cpp
+    
+        backends/imgui_impl_glfw.h
+        backends/imgui_impl_glfw.cpp
+        backends/imgui_impl_opengl3.h
+        backends/imgui_impl_opengl3.cpp
+    )
+
+    list(TRANSFORM imguiSrc PREPEND "${imgui_SOURCE_DIR}/")
+    target_sources(imgui PRIVATE ${imguiSrc})
+
+endfunction()
