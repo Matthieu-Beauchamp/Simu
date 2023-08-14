@@ -218,9 +218,9 @@ private:
     {
     public:
 
-        typedef ReboundTo<Allocator, Node*> Allocator;
+        typedef ReboundTo<Allocator, Node*> Alloc;
 
-        RecycleBin(RTree& tree, Allocator alloc) : bin_{alloc}, tree_{tree} {}
+        RecycleBin(RTree& tree, Alloc alloc) : bin_{alloc}, tree_{tree} {}
         ~RecycleBin()
         {
             for (Node* node : bin_)
@@ -259,8 +259,8 @@ private:
 
     private:
 
-        std::vector<Node*, Allocator> bin_;
-        RTree&                        tree_;
+        std::vector<Node*, Alloc> bin_;
+        RTree&                    tree_;
     };
 
     Allocator     alloc_;
@@ -553,14 +553,11 @@ private:
     {
     public:
 
-        typedef ReboundTo<Allocator, Node*> Allocator;
+        typedef ReboundTo<Allocator, Node*> Alloc;
 
-        OverlapList(const Allocator& alloc = Allocator{}) : nodes_{alloc} {}
+        OverlapList(const Alloc& alloc = Alloc{}) : nodes_{alloc} {}
 
-        OverlapList(
-            const ViewType<iterator*>& iterators,
-            const Allocator&           alloc = Allocator{}
-        )
+        OverlapList(const ViewType<iterator*>& iterators, const Alloc& alloc = Alloc{})
             : OverlapList{alloc}
         {
             nodes_.reserve(iterators.size());
@@ -611,8 +608,8 @@ private:
 
     private:
 
-        std::vector<Node*, Allocator> nodes_{};
-        std::size_t                   middle_{};
+        std::vector<Node*, Alloc> nodes_{};
+        std::size_t               middle_{};
     };
 
     // Adapted from https://github.com/mtsamis/box2d-optimized
