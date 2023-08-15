@@ -56,9 +56,7 @@ public:
         descr.dominance               = 0.f;
         descr.material.friction.value = 0.8f;
         world().makeBody<simu::VisibleBody>(
-            descr,
-            simu::Rgba{0, 0, 0, 255},
-            &renderer
+            descr, simu::Rgba{0, 0, 0, 255}, &renderer
         );
 
 
@@ -68,15 +66,11 @@ public:
         {
             makeSlab(
                 simu::Vec2{
-                    -w / 2.f + thickness / 2.f,
-                    w / 2.f + y * (w + thickness)},
+                    -w / 2.f + thickness / 2.f, w / 2.f + y * (w + thickness)},
                 true
             );
             makeSlab(
-                simu::Vec2{
-                    w / 2.f - thickness / 2.f,
-                    w / 2.f + y * (w + thickness)},
-                true
+                simu::Vec2{w / 2.f - thickness / 2.f, w / 2.f + y * (w + thickness)}, true
             );
 
             makeSlab(simu::Vec2{0.f, (y + 1) * w + (y + 0.5f) * thickness}, false);
@@ -131,34 +125,16 @@ private:
         d.orientation = vertical ? std::numbers::pi_v<float> / 2 : 0.f;
 
         world().makeBody<simu::VisibleBody>(
-            d,
-            simu::Rgba::filled(200.f),
-            app()->renderer()
+            d, simu::Rgba::filled(200.f), app()->renderer()
         );
     }
 };
 
-class DummyApp : public simu::Application
-{
-public:
-
-    DummyApp() = default;
-
-    std::shared_ptr<simu::Scene>
-    nextScene(std::shared_ptr<simu::Scene> current) override
-    {
-        if (current == nullptr)
-        {
-            return std::make_shared<Tower>();
-        }
-
-        return current;
-    }
-};
 
 int main()
 {
-    DummyApp dummy{};
+    simu::Application dummy{};
+    dummy.registerScene<Tower>("Tower");
     dummy.run();
     return 0;
 }

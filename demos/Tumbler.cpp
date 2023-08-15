@@ -66,8 +66,7 @@ public:
         simu::Vec2 xOffset{size / 2.f, 0.f};
         simu::Vec2 yOffset{0.f, size / 2.f};
 
-        simu::ColliderDescriptor cDescr{
-            simu::Polygon::box(horizontalDim, yOffset)};
+        simu::ColliderDescriptor cDescr{simu::Polygon::box(horizontalDim, yOffset)};
         cDescr.material.density        = 5.f;
         cDescr.material.friction.value = 0.8f;
 
@@ -103,9 +102,7 @@ public:
             simu::BodyDescriptor descr{};
 
             auto b = world().makeBody<simu::VisibleBody>(
-                descr,
-                simu::Rgba{200, 100, 200, 255},
-                getRenderer()
+                descr, simu::Rgba{200, 100, 200, 255}, getRenderer()
             );
 
             simu::ColliderDescriptor cDescr{
@@ -139,27 +136,11 @@ private:
     int count_ = 0;
 };
 
-class DummyApp : public simu::Application
-{
-public:
-
-    DummyApp() = default;
-
-    std::shared_ptr<simu::Scene>
-    nextScene(std::shared_ptr<simu::Scene> current) override
-    {
-        if (current == nullptr)
-        {
-            return std::make_shared<Tumbler>();
-        }
-
-        return current;
-    }
-};
 
 int main()
 {
-    DummyApp dummy{};
+    simu::Application dummy{};
+    dummy.registerScene<Tumbler>("Tumbler");
     dummy.run();
     return 0;
 }

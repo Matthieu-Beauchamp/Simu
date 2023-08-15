@@ -25,11 +25,11 @@
 #include "Simu/app.hpp"
 
 
-class Tower : public simu::Scene
+class Friction : public simu::Scene
 {
 public:
 
-    Tower()
+    Friction()
     {
         camera().setPixelSize(1.f / 10.f);
         camera().panTo(simu::Vec2{-90.f, 0.f});
@@ -54,9 +54,7 @@ public:
         descr.dominance               = 0.f;
         descr.material.friction.value = 0.8f;
         world().makeBody<simu::VisibleBody>(
-            descr,
-            simu::Rgba{0, 0, 0, 255},
-            &renderer
+            descr, simu::Rgba{0, 0, 0, 255}, &renderer
         );
 
         auto box = simu::BoxSpawner{*this}.makeBox(simu::Vec2{-90.f, 0.f});
@@ -84,27 +82,11 @@ public:
     }
 };
 
-class DummyApp : public simu::Application
-{
-public:
-
-    DummyApp() = default;
-
-    std::shared_ptr<simu::Scene>
-    nextScene(std::shared_ptr<simu::Scene> current) override
-    {
-        if (current == nullptr)
-        {
-            return std::make_shared<Tower>();
-        }
-
-        return current;
-    }
-};
 
 int main()
 {
-    DummyApp dummy{};
+    simu::Application dummy{};
+    dummy.registerScene<Friction>("Friction");
     dummy.run();
     return 0;
 }

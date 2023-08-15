@@ -40,9 +40,18 @@ class Application
 public:
 
     Application();
-    virtual ~Application();
+    ~Application();
 
     void setName(const char* name);
+
+    template <std::derived_from<Scene> S, class... Args>
+    void registerScene(const char* name, Args&&... args)
+    {
+        scenes_[name] = std::make_shared<S>(std::forward<Args>(args)...);
+
+        if (scene_ == nullptr)
+            changeScene(scenes_[name]);
+    }
 
     void run();
 
@@ -56,13 +65,12 @@ public:
 
     Renderer* renderer() { return renderer_.get(); }
 
-protected:
-
-    virtual std::shared_ptr<Scene> nextScene(std::shared_ptr<Scene> current) = 0;
-    
-    virtual void doGui(float dt);
-
 private:
+
+    void changeScene(std::shared_ptr<Scene> next);
+
+    void doGui(float dt);
+
 
     void show() const;
 
@@ -82,6 +90,8 @@ private:
     std::shared_ptr<Scene>    scene_    = nullptr;
     std::unique_ptr<Renderer> renderer_ = nullptr;
     GLFWwindow*               window_   = nullptr;
+
+    std::unordered_map<const char*, std::shared_ptr<Scene>> scenes_{};
 };
 
 

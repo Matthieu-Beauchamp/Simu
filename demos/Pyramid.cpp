@@ -50,9 +50,7 @@ public:
         simu::BodyDescriptor descr{};
         descr.dominance = 0.f;
         auto ground     = world().makeBody<simu::VisibleBody>(
-            descr,
-            simu::Rgba{0, 0, 0, 255},
-            &renderer
+            descr, simu::Rgba{0, 0, 0, 255}, &renderer
         );
 
         simu::ColliderDescriptor cDescr{
@@ -81,10 +79,7 @@ public:
                     );
             else
                 for (int x = y; x < 2 * height - y; ++x)
-                    spawn.makeBox(
-                        simu::Vec2{start + w * x, h * y},
-                        simu::Vec2{w, h}
-                    );
+                    spawn.makeBox(simu::Vec2{start + w * x, h * y}, simu::Vec2{w, h});
 
         // Baumgarte is much more stable for bricked pyramid, NGS needs a LOT of iterations and still falls apart pretty fast.
         auto s = world().settings();
@@ -114,27 +109,11 @@ public:
     }
 };
 
-class DummyApp : public simu::Application
-{
-public:
-
-    DummyApp() = default;
-
-    std::shared_ptr<simu::Scene>
-    nextScene(std::shared_ptr<simu::Scene> current) override
-    {
-        if (current == nullptr)
-        {
-            return std::make_shared<Pyramid>();
-        }
-
-        return current;
-    }
-};
 
 int main()
 {
-    DummyApp dummy{};
+    simu::Application dummy{};
+    dummy.registerScene<Pyramid>("Pyramid");
     dummy.run();
     return 0;
 }

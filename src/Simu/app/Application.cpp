@@ -147,29 +147,6 @@ void Application::run()
         }
 
         show();
-
-        auto current = scene_;
-        auto next    = nextScene(current);
-        if (next != current)
-        {
-            scene_ = next;
-
-            if (current != nullptr)
-            {
-                current->app_      = nullptr;
-                current->renderer_ = nullptr;
-            }
-
-            if (next != nullptr)
-            {
-                if (!next->isInit() || next->app_ != this)
-                    next->init(this);
-
-                int w, h;
-                glfwGetWindowSize(window_, &w, &h);
-                windowResizeCallback(window_, w, h);
-            }
-        };
     }
 }
 
@@ -180,11 +157,37 @@ bool Application::isKeyPressed(Keyboard::Key key) const
     return glfwGetKey(window_, static_cast<int>(key)) == GLFW_PRESS;
 }
 
+void Application::changeScene(std::shared_ptr<Scene> next)
+{
+    auto current = scene_;
+    if (next != current)
+    {
+        scene_ = next;
+
+        if (current != nullptr)
+        {
+            current->app_      = nullptr;
+            current->renderer_ = nullptr;
+        }
+
+        if (next != nullptr)
+        {
+            if (!next->isInit() || next->app_ != this)
+                next->init(this);
+
+            int w, h;
+            glfwGetWindowSize(window_, &w, &h);
+            windowResizeCallback(window_, w, h);
+        }
+    };
+}
+
 void Application::doGui(float dt)
 {
     struct MenuData
     {
-        bool exit = false;
+        bool exit        = false;
+        bool selectScene = false;
 
         // for scene
         float playSpeed   = 1.f;
@@ -216,6 +219,8 @@ void Application::doGui(float dt)
             if (menu.exit)
                 close();
 
+            ImGui::MenuItem("Select Scene", nullptr, &menu.selectScene);
+
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Engine"))
@@ -238,9 +243,31 @@ void Application::doGui(float dt)
         ImGui::EndMainMenuBar();
     }
 
+    if (menu.selectScene)
+    {
+        ImGui::Begin(
+            "Scene selection", &menu.selectScene, ImGuiWindowFlags_AlwaysAutoResize
+        );
+        
+        for (const auto& scene : scenes_)
+        {
+            bool selected = scene.second == scene_;
+            ImGui::Selectable(scene.first, &selected);
+            if (selected && scene.second != scene_)
+            {
+                changeScene(scene.second);
+                break;
+            }
+        }
+
+        ImGui::End();
+    }
+
     if (menu.showProfiler)
     {
-        ImGui::Begin("Engine Profiler", &menu.showProfiler, ImGuiWindowFlags_AlwaysAutoResize);
+        ImGui::Begin(
+            "Engine Profiler", &menu.showProfiler, ImGuiWindowFlags_AlwaysAutoResize
+        );
         ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f * dt, 1.f / dt);
         // TODO: ...
         ImGui::End();
@@ -248,7 +275,9 @@ void Application::doGui(float dt)
 
     if (menu.showEngineSettings)
     {
-        ImGui::Begin("Engine Settings", &menu.showEngineSettings, ImGuiWindowFlags_AlwaysAutoResize);
+        ImGui::Begin(
+            "Engine Settings", &menu.showEngineSettings, ImGuiWindowFlags_AlwaysAutoResize
+        );
 
         int vIter = s.nVelocityIterations;
         int pIter = s.nPositionIterations;
@@ -268,7 +297,9 @@ void Application::doGui(float dt)
 
     if (hasScene && menu.showSceneControls)
     {
-        ImGui::Begin("Scene Controls", &menu.showSceneControls, ImGuiWindowFlags_AlwaysAutoResize);
+        ImGui::Begin(
+            "Scene Controls", &menu.showSceneControls, ImGuiWindowFlags_AlwaysAutoResize
+        );
 
         ImGui::Text("Play speed %f", scene_->playSpeed());
         ImGui::SameLine();

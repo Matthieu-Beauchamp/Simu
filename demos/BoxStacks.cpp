@@ -58,36 +58,18 @@ public:
         descr.dominance               = 0.f;
         descr.material.friction.value = 0.8f;
         world().makeBody<simu::VisibleBody>(
-            descr,
-            simu::Rgba{0, 0, 0, 255},
-            &renderer
+            descr, simu::Rgba{0, 0, 0, 255}, &renderer
         );
 
         useTool<simu::Grabber>(*this);
     }
 };
 
-class DummyApp : public simu::Application
-{
-public:
-
-    DummyApp() = default;
-
-    std::shared_ptr<simu::Scene>
-    nextScene(std::shared_ptr<simu::Scene> current) override
-    {
-        if (current == nullptr)
-        {
-            return std::make_shared<BoxStacks>();
-        }
-
-        return current;
-    }
-};
 
 int main()
 {
-    DummyApp dummy{};
+    simu::Application dummy{};
+    dummy.registerScene<BoxStacks>("Box stacks");
     dummy.run();
     return 0;
 }

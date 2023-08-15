@@ -56,9 +56,7 @@ public:
 
         descr.dominance = 0.f;
         auto bar        = world().makeBody<simu::VisibleBody>(
-            descr,
-            simu::Rgba{0, 0, 0, 255},
-            &renderer
+            descr, simu::Rgba{0, 0, 0, 255}, &renderer
         );
 
 
@@ -83,14 +81,11 @@ public:
 
             descr.position = simu::Vec2{x, 0.f};
             auto ball      = world().makeBody<simu::VisibleBody>(
-                descr,
-                simu::Rgba::filled(200),
-                &renderer
+                descr, simu::Rgba::filled(200), &renderer
             );
             world().makeConstraint<simu::VisibleDistanceConstraint>(
                 simu::Bodies{
-                    ball,
-                    bar
+                    ball, bar
             },
                 std::array<simu::Vec2, 2>{simu::Vec2{x, 1.f}, simu::Vec2{x, 8.f}},
                 std::nullopt,
@@ -113,28 +108,11 @@ public:
     }
 };
 
-class DummyApp : public simu::Application
-{
-public:
-
-    DummyApp() = default;
-
-    std::shared_ptr<simu::Scene>
-    nextScene(std::shared_ptr<simu::Scene> current) override
-    {
-        if (current == nullptr)
-        {
-            return std::make_shared<NewtonPendulum>();
-        }
-
-        return current;
-    }
-};
 
 int main()
 {
-    DummyApp dummy{};
-
+    simu::Application dummy{};
+    dummy.registerScene<NewtonPendulum>("Newton's Pendulum");
     dummy.run();
 
     return 0;
