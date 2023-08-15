@@ -24,96 +24,81 @@
 
 #include <numbers>
 
-#include "Simu/app.hpp"
+#include "Demos.hpp"
 
-class NewtonPendulum : public simu::Scene
+
+NewtonPendulum::NewtonPendulum()
 {
-public:
+    camera().setPixelSize(1.f / 10.f);
+    camera().panTo(simu::Vec2{0.f, 0.f});
+}
 
-    NewtonPendulum()
+
+void NewtonPendulum::init(simu::Renderer& renderer)
+{
+    renderer.setPointPrecision(4);
+    renderer.setPointRadius(0.1f);
+    renderer.setLineWidth(0.1f);
+
+    simu::BodyDescriptor     descr{};
+    simu::ColliderDescriptor cDescr{
+        simu::Polygon{
+                      simu::Vertex{-(float)n, 8.f},
+                      simu::Vertex{(float)n, 8.f},
+                      simu::Vertex{(float)n, 11.f},
+                      simu::Vertex{-(float)n, 11.f}}
+    };
+
+    descr.dominance = 0.f;
+    cDescr.material.friction.value = 0.5f;
+    auto bar        = world().makeBody<simu::VisibleBody>(
+        descr, simu::Rgba{0, 0, 0, 255}, &renderer
+    );
+
+    bar->addCollider(cDescr);
+
+
+    simu::Vertices v{};
+
+    // TODO: The fact that we don't have vertex-vertex contacts is very apparent here,
+    int   nPoints = 48;
+    float theta   = 0.f;
+    for (int i = 0; i < nPoints; ++i)
     {
-        camera().setPixelSize(1.f / 10.f);
-        camera().panTo(simu::Vec2{0.f, 0.f});
+        theta += (2.f * std::numbers::pi_v<float>) / nPoints;
+        v.emplace_back(simu::Vec2{std::cos(theta), std::sin(theta)});
     }
 
-    // n above 10 is not very stable, increasing velocity iterations does not help.
-    //  (issue seems to be with bouncing)
-    simu::Int32 n = 14;
-
-    void init(simu::Renderer& renderer) override
+    descr.dominance                  = 1.f;
+    cDescr.polygon                   = simu::Polygon{v.begin(), v.end()};
+    cDescr.material.density          = 10.f;
+    cDescr.material.bounciness.value = 1.f;
+    for (int i = 0; i < n; ++i)
     {
-        renderer.setPointPrecision(4);
-        renderer.setPointRadius(0.1f);
-        renderer.setLineWidth(0.1f);
+        float x = -(n - 1.f) + 2.f * i;
 
-        simu::BodyDescriptor descr{
-            simu::Polygon{
-                          simu::Vertex{-(float)n, 8.f},
-                          simu::Vertex{(float)n, 8.f},
-                          simu::Vertex{(float)n, 11.f},
-                          simu::Vertex{-(float)n, 11.f}}
-        };
+        descr.position = simu::Vec2{x, 0.f};
+        auto ball      = world().makeBody<simu::VisibleBody>(
+            descr, simu::Rgba::filled(200), &renderer
+        );
+        ball->addCollider(cDescr);
 
-        descr.dominance = 0.f;
-        auto bar        = world().makeBody<simu::VisibleBody>(
-            descr, simu::Rgba{0, 0, 0, 255}, &renderer
+        world().makeConstraint<simu::VisibleDistanceConstraint>(
+            simu::Bodies{
+                ball, bar
+        },
+            std::array<simu::Vec2, 2>{simu::Vec2{x, 1.f}, simu::Vec2{x, 8.f}},
+            std::nullopt,
+            7.f,
+            &renderer,
+            false
         );
 
-
-        simu::Vertices v{};
-
-        // TODO: The fact that we don't have vertex-vertex contacts is very apparent here,
-        int   nPoints = 48;
-        float theta   = 0.f;
-        for (int i = 0; i < nPoints; ++i)
-        {
-            theta += (2.f * std::numbers::pi_v<float>) / nPoints;
-            v.emplace_back(simu::Vec2{std::cos(theta), std::sin(theta)});
-        }
-
-        descr.polygon                   = simu::Polygon{v.begin(), v.end()};
-        descr.dominance                 = 1.f;
-        descr.material.density          = 10.f;
-        descr.material.bounciness.value = 1.f;
-        for (int i = 0; i < n; ++i)
-        {
-            float x = -(n - 1.f) + 2.f * i;
-
-            descr.position = simu::Vec2{x, 0.f};
-            auto ball      = world().makeBody<simu::VisibleBody>(
-                descr, simu::Rgba::filled(200), &renderer
-            );
-            world().makeConstraint<simu::VisibleDistanceConstraint>(
-                simu::Bodies{
-                    ball, bar
-            },
-                std::array<simu::Vec2, 2>{simu::Vec2{x, 1.f}, simu::Vec2{x, 8.f}},
-                std::nullopt,
-                7.f,
-                &renderer,
-                false
-            );
-
-            if (i >= 2)
-                ball->setVelocity(simu::Vec2{10.f, 0.f});
-        }
-
-        world().makeForceField<simu::Gravity>(simu::Vec2{0, -10.f});
-
-        auto s = world().settings();
-        // s.nVelocityIterations = 10*n;
-        world().updateSettings(s);
-
-        useTool<simu::Grabber>(*this);
+        if (i >= 2)
+            ball->setVelocity(simu::Vec2{10.f, 0.f});
     }
-};
 
+    world().makeForceField<simu::Gravity>(simu::Vec2{0, -10.f});
 
-int main()
-{
-    simu::Application dummy{};
-    dummy.registerScene<NewtonPendulum>("Newton's Pendulum");
-    dummy.run();
-
-    return 0;
+    useTool<simu::Grabber>(*this);
 }

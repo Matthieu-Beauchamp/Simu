@@ -24,117 +24,97 @@
 
 #include <numbers>
 
-#include "Simu/app.hpp"
+#include "Demos.hpp"
 
 
-class Tower : public simu::Scene
+Tower::Tower()
 {
-public:
+    camera().setPixelSize(1.f / 10.f);
+    camera().panTo(simu::Vec2{0.f, 0.f});
+}
 
-    Tower()
+void Tower::init(simu::Renderer& renderer)
+{
+    renderer.setPointPrecision(4);
+    renderer.setPointRadius(0.1f);
+    renderer.setLineWidth(0.1f);
+
+    world().makeForceField<simu::Gravity>(simu::Vec2{0.f, -10.f});
+
+    simu::BodyDescriptor     descr{};
+    simu::ColliderDescriptor cDescr{
+        simu::Polygon{
+                      simu::Vertex{-100.f, -20.f},
+                      simu::Vertex{100.f, -20.f},
+                      simu::Vertex{100.f, 0.f},
+                      simu::Vertex{-100.f, 0.f}}
+    };
+
+    descr.dominance                = 0.f;
+    cDescr.material.friction.value = 0.8f;
+    world()
+        .makeBody<simu::VisibleBody>(descr, simu::Rgba{0, 0, 0, 255}, &renderer)
+        ->addCollider(cDescr);
+
+
+    int h = 20;
+
+    for (int y = 0; y < h; ++y)
     {
-        camera().setPixelSize(1.f / 10.f);
-        camera().panTo(simu::Vec2{0.f, 0.f});
-    }
-
-    void init(simu::Renderer& renderer) override
-    {
-        renderer.setPointPrecision(4);
-        renderer.setPointRadius(0.1f);
-        renderer.setLineWidth(0.1f);
-
-        world().makeForceField<simu::Gravity>(simu::Vec2{0.f, -10.f});
-
-        simu::BodyDescriptor descr{
-            simu::Polygon{
-                          simu::Vertex{-100.f, -20.f},
-                          simu::Vertex{100.f, -20.f},
-                          simu::Vertex{100.f, 0.f},
-                          simu::Vertex{-100.f, 0.f}}
-        };
-
-        descr.dominance               = 0.f;
-        descr.material.friction.value = 0.8f;
-        world().makeBody<simu::VisibleBody>(
-            descr, simu::Rgba{0, 0, 0, 255}, &renderer
+        makeSlab(
+            simu::Vec2{-w / 2.f + thickness / 2.f, w / 2.f + y * (w + thickness)}, true
+        );
+        makeSlab(
+            simu::Vec2{w / 2.f - thickness / 2.f, w / 2.f + y * (w + thickness)}, true
         );
 
-
-        int h = 20;
-
-        for (int y = 0; y < h; ++y)
-        {
-            makeSlab(
-                simu::Vec2{
-                    -w / 2.f + thickness / 2.f, w / 2.f + y * (w + thickness)},
-                true
-            );
-            makeSlab(
-                simu::Vec2{w / 2.f - thickness / 2.f, w / 2.f + y * (w + thickness)}, true
-            );
-
-            makeSlab(simu::Vec2{0.f, (y + 1) * w + (y + 0.5f) * thickness}, false);
-        }
-
-        auto s = world().settings();
-        // s.nPositionIterations = 5;
-        // s.nVelocityIterations = 20;
-        world().updateSettings(s);
-
-        useTool<simu::Grabber>(*this);
+        makeSlab(simu::Vec2{0.f, (y + 1) * w + (y + 0.5f) * thickness}, false);
     }
 
-    bool onKeypress(simu::Keyboard::Input input) override
-    {
-        if (simu::Scene::onKeypress(input))
-            return true;
+    auto s = world().settings();
+    // s.nPositionIterations = 5;
+    // s.nVelocityIterations = 20;
+    world().updateSettings(s);
 
-        if (input.action != simu::Mouse::Action::press)
-            return false;
+    useTool<simu::Grabber>(*this);
+}
 
-        if (input.key == simu::Keyboard::Key::G)
-            useTool<simu::Grabber>(*this);
-        else if (input.key == simu::Keyboard::Key::B)
-            useTool<simu::BoxSpawner>(*this);
-        else
-            return false;
-
+bool Tower::onKeypress(simu::Keyboard::Input input)
+{
+    if (simu::Scene::onKeypress(input))
         return true;
-    }
 
-private:
+    if (input.action != simu::Mouse::Action::press)
+        return false;
 
-    static constexpr float w         = 5.f;
-    static constexpr float thickness = 1.f;
+    if (input.key == simu::Keyboard::Key::G)
+        useTool<simu::Grabber>(*this);
+    else if (input.key == simu::Keyboard::Key::B)
+        useTool<simu::BoxSpawner>(*this);
+    else
+        return false;
 
-    void makeSlab(simu::Vec2 pos, bool vertical)
-    {
-        float width = vertical ? w : 2.f * w;
+    return true;
+}
 
-        simu::BodyDescriptor d{
-            simu::Polygon{
-                          simu::Vec2{-width / 2.f, -thickness / 2.f},
-                          simu::Vec2{width / 2.f, -thickness / 2.f},
-                          simu::Vec2{width / 2.f, thickness / 2.f},
-                          simu::Vec2{-width / 2.f, thickness / 2.f}}
-        };
-
-        d.material.friction.value = 0.5f;
-        // d.position                = simu::Vec2{pos[0], 1.2f* pos[1]};
-        d.position    = pos;
-        d.orientation = vertical ? std::numbers::pi_v<float> / 2 : 0.f;
-
-        world().makeBody<simu::VisibleBody>(
-            d, simu::Rgba::filled(200.f), app()->renderer()
-        );
-    }
-};
-
-
-int main()
+void Tower::makeSlab(simu::Vec2 pos, bool vertical)
 {
-    simu::Application dummy{};
-    dummy.registerScene<Tower>("Tower");
-    dummy.run();
-    return 0;
+    float width = vertical ? w : 2.f * w;
+
+    simu::BodyDescriptor     d{};
+    simu::ColliderDescriptor cDescr{
+        simu::Polygon{
+                      simu::Vec2{-width / 2.f, -thickness / 2.f},
+                      simu::Vec2{width / 2.f, -thickness / 2.f},
+                      simu::Vec2{width / 2.f, thickness / 2.f},
+                      simu::Vec2{-width / 2.f, thickness / 2.f}}
+    };
+
+    d.position    = pos;
+    d.orientation = vertical ? std::numbers::pi_v<float> / 2 : 0.f;
+    cDescr.material.friction.value = 0.5f;
+
+    world()
+        .makeBody<simu::VisibleBody>(d, simu::Rgba::filled(200), app()->renderer())
+        ->addCollider(cDescr);
 }

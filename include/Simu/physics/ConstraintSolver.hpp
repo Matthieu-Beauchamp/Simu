@@ -418,10 +418,10 @@ public:
     void solvePosition(Proxies& proxies, const F& f)
     {
         Value    C       = f.eval(proxies);
-        Jacobian J       = f.jacobian(proxies);
         KMatrix  effMass = this->computeEffectiveMass(proxies, f, false);
+        Jacobian J       = this->getJacobian();
 
-        Value posLambda;
+        Value posLambda{};
         switch (nextFunc(proxies, f))
         {
             case Func::equality:

@@ -85,16 +85,14 @@ protected:
                 Vec2{bounds.min()[0], bounds.max()[1]}
             };
 
+            Rgba boundsColor{color_};
+            boundsColor[3] = 80;
             renderer.drawPolygon(
-                bounds.center(),
-                makeView(box.data(), box.data() + box.size()),
-                color_ - Rgba{0, 0, 0, 200}
+                bounds.center(), makeView(box.data(), box.data() + box.size()), boundsColor
             );
 
             renderer.drawPolygon(
-                toWorld * collider.properties().centroid,
-                collider.vertexView(),
-                color_
+                toWorld * collider.properties().centroid, collider.vertexView(), color_
             );
         }
     }

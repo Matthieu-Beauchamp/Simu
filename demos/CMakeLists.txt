@@ -1,15 +1,14 @@
-file(GLOB_RECURSE demos
-    LIST_DIRECTORIES FALSE
-    CONFIGURE_DEPENDS
-    RELATIVE ${CMAKE_CURRENT_LIST_DIR}
-    *.cpp
+add_executable(Demos 
+    Demos.cpp Demos.hpp
+    BoxStacks.cpp 
+    Tower.cpp
+    Tumbler.cpp 
+    Pyramid.cpp 
+    NewtonPendulum.cpp
 )
 
+target_link_libraries(Demos simu-app)
 
-foreach(demo IN LISTS demos)
-    get_filename_component(demoName ${demo} NAME_WLE)
-    add_executable(${demoName} ${demo})
 
-    target_link_libraries(${demoName} simu-app)
-
-endforeach()
+add_executable(ImGuiTest ImGuiTest.cpp)
+target_link_libraries(ImGuiTest simu-app)

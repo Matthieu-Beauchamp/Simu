@@ -22,98 +22,80 @@
 //
 ////////////////////////////////////////////////////////////
 
-#include "Simu/app.hpp"
+#include "Demos.hpp"
 
-
-class Pyramid : public simu::Scene
+Pyramid::Pyramid()
 {
-public:
-
-    Pyramid()
-    {
-        camera().setPixelSize(1.f / 10.f);
-        camera().panTo(simu::Vec2{0.f, 0.f});
-    }
-
-    static constexpr float w = 2.f;
-    static constexpr float h = 2.f;
+    camera().setPixelSize(1.f / 10.f);
+    camera().panTo(simu::Vec2{0.f, 0.f});
+}
 
 
-    void init(simu::Renderer& renderer) override
-    {
-        renderer.setPointPrecision(4);
-        renderer.setPointRadius(0.1f);
-        renderer.setLineWidth(0.1f);
+void Pyramid::init(simu::Renderer& renderer)
+{
+    renderer.setPointPrecision(4);
+    renderer.setPointRadius(0.1f);
+    renderer.setLineWidth(0.1f);
 
-        world().makeForceField<simu::Gravity>(simu::Vec2{0.f, -10.f});
+    world().makeForceField<simu::Gravity>(simu::Vec2{0.f, -10.f});
 
-        simu::BodyDescriptor descr{};
-        descr.dominance = 0.f;
-        auto ground     = world().makeBody<simu::VisibleBody>(
-            descr, simu::Rgba{0, 0, 0, 255}, &renderer
-        );
+    simu::BodyDescriptor descr{};
+    descr.dominance = 0.f;
+    auto ground     = world().makeBody<simu::VisibleBody>(
+        descr, simu::Rgba{0, 0, 0, 255}, &renderer
+    );
 
-        simu::ColliderDescriptor cDescr{
-            simu::Polygon::box(simu::Vec2{400.f, 20.f}, simu::Vec2{0.f, -11.f})};
-        cDescr.material.friction.value = 0.8f;
+    simu::ColliderDescriptor cDescr{
+        simu::Polygon::box(simu::Vec2{400.f, 20.f}, simu::Vec2{0.f, -11.f})};
+    cDescr.material.friction.value = 0.8f;
 
-        ground->addCollider(cDescr);
+    ground->addCollider(cDescr);
 
-        simu::BoxSpawner spawn{*this};
+    simu::BoxSpawner spawn{*this};
 
-        int  height  = 60;
-        bool bricked = true;
-        // only for bricked, otherwise we are only doing stacks.
-        float spacing = 0.5f;
+    int  height  = 60;
+    bool bricked = true;
+    // only for bricked, otherwise we are only doing stacks.
+    float spacing = 0.5f;
 
-        float start = -(w + spacing) * height / 2;
+    float start = -(w + spacing) * height / 2;
 
-        for (int y = 0; y < height; ++y)
-            if (bricked)
-                for (int x = 0; x < height - y; ++x)
-                    spawn.makeBox(
-                        simu::Vec2{
-                            start + (w + spacing) * x + y * (1.f + spacing / 2.f),
-                            (h + spacing) * y},
-                        simu::Vec2{w, h}
-                    );
-            else
-                for (int x = y; x < 2 * height - y; ++x)
-                    spawn.makeBox(simu::Vec2{start + w * x, h * y}, simu::Vec2{w, h});
-
-        // Baumgarte is much more stable for bricked pyramid, NGS needs a LOT of iterations and still falls apart pretty fast.
-        auto s = world().settings();
-        // s.nPositionIterations = 50;
-        // s.nVelocityIterations = 50;
-        world().updateSettings(s);
-
-        useTool<simu::Grabber>(*this);
-    }
-
-    bool onKeypress(simu::Keyboard::Input input) override
-    {
-        if (simu::Scene::onKeypress(input))
-            return true;
-
-        if (input.action != simu::Mouse::Action::press)
-            return false;
-
-        if (input.key == simu::Keyboard::Key::G)
-            useTool<simu::Grabber>(*this);
-        else if (input.key == simu::Keyboard::Key::B)
-            useTool<simu::BoxSpawner>(*this);
+    for (int y = 0; y < height; ++y)
+        if (bricked)
+            for (int x = 0; x < height - y; ++x)
+                spawn.makeBox(
+                    simu::Vec2{
+                        start + (w + spacing) * x + y * (1.f + spacing / 2.f),
+                        (h + spacing) * y},
+                    simu::Vec2{w, h}
+                );
         else
-            return false;
+            for (int x = y; x < 2 * height - y; ++x)
+                spawn.makeBox(simu::Vec2{start + w * x, h * y}, simu::Vec2{w, h});
 
-        return true;
-    }
-};
+    // Baumgarte is much more stable for bricked pyramid, NGS needs a LOT of iterations and still falls apart pretty fast.
+    auto s = world().settings();
+    // s.nPositionIterations = 50;
+    // s.nVelocityIterations = 50;
+    world().updateSettings(s);
 
+    useTool<simu::Grabber>(*this);
+}
 
-int main()
+bool Pyramid::onKeypress(simu::Keyboard::Input input)
 {
-    simu::Application dummy{};
-    dummy.registerScene<Pyramid>("Pyramid");
-    dummy.run();
-    return 0;
+    if (simu::Scene::onKeypress(input))
+        return true;
+
+    if (input.action != simu::Mouse::Action::press)
+        return false;
+
+    if (input.key == simu::Keyboard::Key::G)
+        useTool<simu::Grabber>(*this);
+    else if (input.key == simu::Keyboard::Key::B)
+        useTool<simu::BoxSpawner>(*this);
+    else
+        return false;
+
+    return true;
 }

@@ -22,54 +22,40 @@
 //
 ////////////////////////////////////////////////////////////
 
-#include "Simu/app.hpp"
+#include "Demos.hpp"
 
+BoxStacks::BoxStacks() { camera().setPixelSize(1.f / 10.f); }
 
-class BoxStacks : public simu::Scene
+void BoxStacks::init(simu::Renderer& renderer)
 {
-public:
+    renderer.setPointPrecision(4);
+    renderer.setPointRadius(0.1f);
+    renderer.setLineWidth(0.1f);
 
-    BoxStacks() { camera().setPixelSize(1.f / 10.f); }
+    simu::BoxSpawner spawner{*this};
 
-    void init(simu::Renderer& renderer) override
-    {
-        renderer.setPointPrecision(4);
-        renderer.setPointRadius(0.1f);
-        renderer.setLineWidth(0.1f);
-
-        simu::BoxSpawner spawner{*this};
-
-        // NGS is a lot more stable here, but is a bit slower than baumgarte.
-        for (simu::Int32 x = -90; x < 90; x += 5)
-            for (simu::Uint32 i = 0; i < 10; ++i)
-                spawner.makeBox(simu::Vec2{(float)x, (float)5 * i});
+    // NGS is a lot more stable here, but is a bit slower than baumgarte.
+    for (simu::Int32 x = -90; x < 90; x += 5)
+        for (simu::Uint32 i = 0; i < 10; ++i)
+            spawner.makeBox(simu::Vec2{(float)x, (float)5 * i});
 
 
-        world().makeForceField<simu::Gravity>(simu::Vec2{0.f, -10.f});
+    world().makeForceField<simu::Gravity>(simu::Vec2{0.f, -10.f});
 
-        simu::BodyDescriptor descr{
-            simu::Polygon{
-                          simu::Vertex{-100.f, -20.f},
-                          simu::Vertex{100.f, -20.f},
-                          simu::Vertex{100.f, -1.f},
-                          simu::Vertex{-100.f, -1.f}}
-        };
+    simu::BodyDescriptor     descr{};
+    simu::ColliderDescriptor cDescr{
+        simu::Polygon{
+                      simu::Vertex{-100.f, -20.f},
+                      simu::Vertex{100.f, -20.f},
+                      simu::Vertex{100.f, -1.f},
+                      simu::Vertex{-100.f, -1.f}}
+    };
 
-        descr.dominance               = 0.f;
-        descr.material.friction.value = 0.8f;
-        world().makeBody<simu::VisibleBody>(
-            descr, simu::Rgba{0, 0, 0, 255}, &renderer
-        );
+    descr.dominance                = 0.f;
+    cDescr.material.friction.value = 0.8f;
+    world()
+        .makeBody<simu::VisibleBody>(descr, simu::Rgba{0, 0, 0, 255}, &renderer)
+        ->addCollider(cDescr);
 
-        useTool<simu::Grabber>(*this);
-    }
-};
-
-
-int main()
-{
-    simu::Application dummy{};
-    dummy.registerScene<BoxStacks>("Box stacks");
-    dummy.run();
-    return 0;
+    useTool<simu::Grabber>(*this);
 }

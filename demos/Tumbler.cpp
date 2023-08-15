@@ -24,123 +24,99 @@
 
 #include <numbers>
 
-#include "Simu/app.hpp"
+#include "Demos.hpp"
 
-
-class Tumbler : public simu::Scene
+Tumbler::Tumbler()
 {
-public:
-
-    static constexpr int maxCount = 1500;
-
-    Tumbler()
-    {
-        camera().setPixelSize(1.f / 20.f);
-        camera().panTo(simu::Vec2{0.f, 0.f});
-    }
-
-
-    void init(simu::Renderer& renderer) override
-    {
-        count_ = 0;
-        renderer.setPointPrecision(4);
-        renderer.setPointRadius(0.01f);
-        renderer.setLineWidth(0.01f);
-
-
-        world().makeForceField<simu::Gravity>(simu::Vec2{0.f, -10.f});
-
-        constexpr float pi = std::numbers::pi_v<float>;
-
-        constexpr float size      = 20.f;
-        constexpr float thickness = 1.f;
-
-        simu::Rgba           black{0, 0, 0, 255};
-        simu::BodyDescriptor descr{};
-        descr.dominance = 0.f;
-        auto tumbler = world().makeBody<simu::VisibleBody>(descr, black, &renderer);
-
-        simu::Vec2 horizontalDim{size, thickness};
-        simu::Vec2 verticalDim{thickness, size};
-
-        simu::Vec2 xOffset{size / 2.f, 0.f};
-        simu::Vec2 yOffset{0.f, size / 2.f};
-
-        simu::ColliderDescriptor cDescr{simu::Polygon::box(horizontalDim, yOffset)};
-        cDescr.material.density        = 5.f;
-        cDescr.material.friction.value = 0.8f;
-
-        tumbler->addCollider(cDescr);
-        cDescr.polygon = simu::Polygon::box(horizontalDim, -yOffset);
-        tumbler->addCollider(cDescr);
-        cDescr.polygon = simu::Polygon::box(verticalDim, xOffset);
-        tumbler->addCollider(cDescr);
-        cDescr.polygon = simu::Polygon::box(verticalDim, -xOffset);
-        tumbler->addCollider(cDescr);
-
-        auto motor = world().makeConstraint<simu::RotationMotor>(
-            simu::Bodies::singleBody(tumbler),
-            simu::RotationMotor::Specs::fromTorque(0.05f * pi, 1e8f)
-        );
-        motor->direction(simu::Vector<float, 1>{-1.f});
-
-        auto s = world().settings();
-        // s.nPositionIterations = 50;
-        // s.nVelocityIterations = 50;
-        world().updateSettings(s);
-
-        useTool<simu::Grabber>(*this);
-    }
-
-    void postStep(float) override
-    {
-        if (isPaused())
-            return;
-
-        if (count_ < maxCount)
-        {
-            simu::BodyDescriptor descr{};
-
-            auto b = world().makeBody<simu::VisibleBody>(
-                descr, simu::Rgba{200, 100, 200, 255}, getRenderer()
-            );
-
-            simu::ColliderDescriptor cDescr{
-                simu::Polygon::box(simu::Vec2{0.25f, 0.25f})};
-            cDescr.material.friction.value = 0.5f;
-            b->addCollider(cDescr);
-            ++count_;
-        }
-    }
-
-    bool onKeypress(simu::Keyboard::Input input) override
-    {
-        if (simu::Scene::onKeypress(input))
-            return true;
-
-        if (input.action != simu::Mouse::Action::press)
-            return false;
-
-        if (input.key == simu::Keyboard::Key::G)
-            useTool<simu::Grabber>(*this);
-        else if (input.key == simu::Keyboard::Key::B)
-            useTool<simu::BoxSpawner>(*this);
-        else
-            return false;
-
-        return true;
-    }
-
-private:
-
-    int count_ = 0;
-};
-
-
-int main()
-{
-    simu::Application dummy{};
-    dummy.registerScene<Tumbler>("Tumbler");
-    dummy.run();
-    return 0;
+    camera().setPixelSize(1.f / 20.f);
+    camera().panTo(simu::Vec2{0.f, 0.f});
 }
+
+
+void Tumbler::init(simu::Renderer& renderer)
+{
+    count_ = 0;
+    renderer.setPointPrecision(4);
+    renderer.setPointRadius(0.01f);
+    renderer.setLineWidth(0.01f);
+
+
+    world().makeForceField<simu::Gravity>(simu::Vec2{0.f, -10.f});
+
+    constexpr float pi = std::numbers::pi_v<float>;
+
+    constexpr float size      = 20.f;
+    constexpr float thickness = 1.f;
+
+    simu::Rgba           black{0, 0, 0, 255};
+    simu::BodyDescriptor descr{};
+    descr.dominance = 0.f;
+    auto tumbler = world().makeBody<simu::VisibleBody>(descr, black, &renderer);
+
+    simu::Vec2 horizontalDim{size, thickness};
+    simu::Vec2 verticalDim{thickness, size};
+
+    simu::Vec2 xOffset{size / 2.f, 0.f};
+    simu::Vec2 yOffset{0.f, size / 2.f};
+
+    simu::ColliderDescriptor cDescr{simu::Polygon::box(horizontalDim, yOffset)};
+    cDescr.material.density        = 5.f;
+    cDescr.material.friction.value = 0.8f;
+
+    tumbler->addCollider(cDescr);
+    cDescr.polygon = simu::Polygon::box(horizontalDim, -yOffset);
+    tumbler->addCollider(cDescr);
+    cDescr.polygon = simu::Polygon::box(verticalDim, xOffset);
+    tumbler->addCollider(cDescr);
+    cDescr.polygon = simu::Polygon::box(verticalDim, -xOffset);
+    tumbler->addCollider(cDescr);
+
+    auto motor = world().makeConstraint<simu::RotationMotor>(
+        simu::Bodies::singleBody(tumbler),
+        simu::RotationMotor::Specs::fromTorque(0.05f * pi, 1e8f)
+    );
+    motor->direction(simu::Vector<float, 1>{-1.f});
+
+    useTool<simu::Grabber>(*this);
+}
+
+void Tumbler::postStep(float)
+{
+    if (isPaused())
+        return;
+
+    if (count_ < maxCount)
+    {
+        simu::BodyDescriptor descr{};
+
+        auto b = world().makeBody<simu::VisibleBody>(
+            descr, simu::Rgba{200, 100, 200, 255}, getRenderer()
+        );
+
+        simu::ColliderDescriptor cDescr{
+            simu::Polygon::box(simu::Vec2{0.25f, 0.25f})};
+        cDescr.material.friction.value = 0.5f;
+        b->addCollider(cDescr);
+        ++count_;
+    }
+}
+
+bool Tumbler::onKeypress(simu::Keyboard::Input input)
+{
+    if (simu::Scene::onKeypress(input))
+        return true;
+
+    if (input.action != simu::Mouse::Action::press)
+        return false;
+
+    if (input.key == simu::Keyboard::Key::G)
+        useTool<simu::Grabber>(*this);
+    else if (input.key == simu::Keyboard::Key::B)
+        useTool<simu::BoxSpawner>(*this);
+    else
+        return false;
+
+    return true;
+}
+
+
