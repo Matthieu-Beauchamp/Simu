@@ -38,6 +38,14 @@
 namespace simu
 {
 
+void styleGui()
+{
+    ImGui::StyleColorsDark();
+
+    ImGuiStyle& s                 = ImGui::GetStyle();
+    s.Colors[ImGuiCol_WindowBg].w = 0.4f;
+}
+
 void glfwErrorCallback(int error, const char* description);
 
 Application::Application()
@@ -76,9 +84,14 @@ Application::Application()
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
 
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
-    ImGui::StyleColorsDark();
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+
+    // In case of trouble: https://github.com/ocornut/imgui/issues/1542#issuecomment-907318315
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+
+    styleGui();
 
     // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForOpenGL(window_, true);
@@ -118,18 +131,20 @@ void Application::run()
         float dt = static_cast<float>(glfwGetTime());
         glfwSetTime(0.0);
 
-        {
-            ImGui::SetNextWindowPos(ImVec2{0.f, 0.f}, ImGuiCond_FirstUseEver);
-            ImGui::Begin("Profiler");
-            ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f * dt, 1.f / dt);
-            ImGui::End();
-        }
+        doGui(dt);
 
         if (scene_ != nullptr)
             scene_->step(dt); // draws
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+        if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+        {
+            ImGui::UpdatePlatformWindows(); // may change context
+            ImGui::RenderPlatformWindowsDefault();
+            glfwMakeContextCurrent(window_);
+        }
 
         show();
 
@@ -164,6 +179,126 @@ bool Application::isKeyPressed(Keyboard::Key key) const
 {
     return glfwGetKey(window_, static_cast<int>(key)) == GLFW_PRESS;
 }
+
+void Application::doGui(float dt)
+{
+    struct MenuData
+    {
+        bool exit = false;
+
+        // for scene
+        float playSpeed   = 1.f;
+        bool  restart     = false;
+        bool  pauseToggle = false;
+        bool  step        = false;
+
+        bool showProfiler       = true;
+        bool showEngineSettings = false;
+        bool showSceneControls  = false;
+    };
+
+    static World::Settings s{};
+    static MenuData        menu;
+
+    bool hasScene = scene_ != nullptr;
+
+    // TODO: Programmatically dock windows...
+    //  seems to require using DockBuilder in imgui_internal.h
+    /* auto dockId = */ ImGui::DockSpaceOverViewport(
+        ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode
+    );
+
+    if (ImGui::BeginMainMenuBar())
+    {
+        if (ImGui::BeginMenu("Application"))
+        {
+            ImGui::MenuItem("Exit", "Esc", &menu.exit);
+            if (menu.exit)
+                close();
+
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Engine"))
+        {
+            ImGui::MenuItem("Settings", nullptr, &menu.showEngineSettings);
+            ImGui::MenuItem("Profiler", nullptr, &menu.showProfiler);
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Tools"))
+        {
+            ImGui::EndMenu();
+        }
+
+        if (hasScene && ImGui::BeginMenu("Scene"))
+        {
+            ImGui::MenuItem("Controls", nullptr, &menu.showSceneControls);
+            ImGui::EndMenu();
+        }
+
+        ImGui::EndMainMenuBar();
+    }
+
+    if (menu.showProfiler)
+    {
+        ImGui::Begin("Engine Profiler", &menu.showProfiler, ImGuiWindowFlags_AlwaysAutoResize);
+        ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f * dt, 1.f / dt);
+        // TODO: ...
+        ImGui::End();
+    }
+
+    if (menu.showEngineSettings)
+    {
+        ImGui::Begin("Engine Settings", &menu.showEngineSettings, ImGuiWindowFlags_AlwaysAutoResize);
+
+        int vIter = s.nVelocityIterations;
+        int pIter = s.nPositionIterations;
+
+        ImGui::PushItemWidth(150);
+        ImGui::SliderInt("Velocity iterations", &vIter, 0, 50);
+        ImGui::SliderInt("Position iterations", &pIter, 0, 50);
+
+        s.nVelocityIterations = vIter;
+        s.nPositionIterations = pIter;
+
+        if (hasScene)
+            scene_->world().updateSettings(s);
+
+        ImGui::End();
+    }
+
+    if (hasScene && menu.showSceneControls)
+    {
+        ImGui::Begin("Scene Controls", &menu.showSceneControls, ImGuiWindowFlags_AlwaysAutoResize);
+
+        ImGui::Text("Play speed %f", scene_->playSpeed());
+        ImGui::SameLine();
+        if (ImGui::Button("-"))
+            scene_->setPlaySpeed(scene_->playSpeed() / 2.f);
+        ImGui::SameLine();
+        if (ImGui::Button("+"))
+            scene_->setPlaySpeed(scene_->playSpeed() * 2.f);
+
+        if (ImGui::Button(menu.pauseToggle ? "Play (P)" : "Pause (P)"))
+        {
+            menu.pauseToggle = !menu.pauseToggle;
+            if (menu.pauseToggle)
+                scene_->pause();
+            else
+                scene_->resume();
+        }
+
+        if (ImGui::Button("Restart (R)"))
+            scene_->reset();
+
+        // TODO:
+        // if (menu.pauseToggle)
+        //     if (ImGui::Button("Step (S)"))
+        //         scene_->step();
+
+        ImGui::End();
+    }
+}
+
 
 void Application::show() const { glfwSwapBuffers(window_); }
 

@@ -40,7 +40,7 @@ class Application
 public:
 
     Application();
-    ~Application();
+    virtual ~Application();
 
     void setName(const char* name);
 
@@ -59,6 +59,8 @@ public:
 protected:
 
     virtual std::shared_ptr<Scene> nextScene(std::shared_ptr<Scene> current) = 0;
+    
+    virtual void doGui(float dt);
 
 private:
 

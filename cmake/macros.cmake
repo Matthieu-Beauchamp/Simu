@@ -107,7 +107,7 @@ function(buildImgui)
     FetchContent_Declare(
         imgui
         GIT_REPOSITORY https://github.com/ocornut/imgui
-        GIT_TAG        f7eea63 # v1.89.8
+        GIT_TAG        docking
         CONFIGURE_COMMAND ""
         BUILD_COMMAND ""
     )
