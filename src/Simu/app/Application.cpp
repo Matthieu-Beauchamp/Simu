@@ -31,13 +31,109 @@
 #include "glbinding/glbinding.h"
 
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
 
+// ImGui docking API subject to change, operations are isolated here.
+// Only valid during a single frame, use scope to properly complete operations
+class DockSpaces
+{
+public:
+
+    DockSpaces()
+    {
+        // https://github.com/ocornut/imgui/issues/2109#issuecomment-426204357
+        viewPortDock_ = ImGui::DockSpaceOverViewport(
+            ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode
+        );
+
+        if (!isFirstFrame)
+            return;
+
+        ImGui::DockBuilderRemoveNode(viewPortDock_); // Clear out existing layout
+        ImGui::DockBuilderAddNode(viewPortDock_, ImGuiDockNodeFlags_DockSpace); // Add empty node
+        ImGui::DockBuilderSetNodeSize(
+            viewPortDock_, ImGui::GetMainViewport()->WorkSize
+        ); // needed when splitting right after
+
+        leftDock_ = ImGui::DockBuilderSplitNode(
+            viewPortDock_, ImGuiDir_Left, 0.2f, nullptr, nullptr
+        );
+        // ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode(
+        //     dock_main_id, ImGuiDir_Down, 0.20f, NULL, &dock_main_id
+        // );
+    }
+
+    ~DockSpaces()
+    {
+        if (!isFirstFrame)
+            return;
+
+        auto getSize = [](const char* windowName) {
+            // See imgui.cpp: CalcWindowContentSizes
+            auto   w = ImGui::FindWindowByName(windowName);
+            ImVec2 dim;
+            dim.x = w->DC.CursorMaxPos.x - w->DC.CursorStartPos.x;
+            dim.y = w->DC.CursorMaxPos.y - w->DC.CursorStartPos.y;
+            return dim;
+        };
+
+        simu::Vec2 dim{};
+        for (auto w : windows_)
+        {
+            ImVec2 s = getSize(w);
+            dim[0]   = std::max(dim[0], s.x);
+            dim[1] += s.y;
+        }
+
+
+        ImVec2 maxSize    = ImGui::GetMainViewport()->WorkSize;
+        float  totalRatio = dim[1] / maxSize[1];
+        // maxSize.x *= 0.4f;
+        dim = std::min(dim, simu::Vec2{maxSize.x, maxSize.y});
+
+        ImGui::DockBuilderSetNodeSize(leftDock_, ImVec2{dim[0], dim[1]});
+
+        for (auto it = windows_.begin(); it != windows_.end(); ++it)
+        {
+            auto w = ImGui::FindWindowByName(*it);
+
+            float ratio = getSize(*it).y * totalRatio / dim[1];
+            dim[1] -= dim[1] * ratio;
+
+            ImGuiID dock;
+            ImGui::DockBuilderSplitNode(
+                leftDock_, ImGuiDir_Up, ratio, &dock, &leftDock_
+            );
+
+            ImGui::DockBuilderDockWindow(w->Name, dock);
+        }
+
+        ImGui::DockBuilderFinish(viewPortDock_);
+        windows_.clear();
+        isFirstFrame = false;
+    }
+
+    void dockCurrentWindowLeft()
+    {
+        if (!isFirstFrame)
+            return;
+
+        windows_.emplace_back(ImGui::GetCurrentWindow()->Name);
+    }
+
+private:
+
+    static bool              isFirstFrame;
+    ImGuiID                  viewPortDock_;
+    ImGuiID                  leftDock_;
+    std::vector<const char*> windows_;
+};
+bool DockSpaces::isFirstFrame = true;
 
 namespace simu
 {
-
 void styleGui()
 {
     ImGui::StyleColorsDark();
@@ -187,7 +283,7 @@ void Application::doGui(float dt)
     struct MenuData
     {
         bool exit        = false;
-        bool selectScene = false;
+        bool selectScene = true;
 
         // for scene
         float playSpeed   = 1.f;
@@ -196,20 +292,16 @@ void Application::doGui(float dt)
         bool  step        = false;
 
         bool showProfiler       = true;
-        bool showEngineSettings = false;
-        bool showSceneControls  = false;
+        bool showEngineSettings = true;
+        bool showSceneControls  = true;
     };
 
     static World::Settings s{};
     static MenuData        menu;
 
-    bool hasScene = scene_ != nullptr;
+    DockSpaces docks{};
+    bool       hasScene = scene_ != nullptr;
 
-    // TODO: Programmatically dock windows...
-    //  seems to require using DockBuilder in imgui_internal.h
-    /* auto dockId = */ ImGui::DockSpaceOverViewport(
-        ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode
-    );
 
     if (ImGui::BeginMainMenuBar())
     {
@@ -249,6 +341,8 @@ void Application::doGui(float dt)
             "Scene selection", &menu.selectScene, ImGuiWindowFlags_AlwaysAutoResize
         );
 
+        docks.dockCurrentWindowLeft();
+
         for (const auto& scene : scenes_)
         {
             bool selected = scene.second == scene_;
@@ -268,6 +362,8 @@ void Application::doGui(float dt)
         ImGui::Begin(
             "Engine Profiler", &menu.showProfiler, ImGuiWindowFlags_AlwaysAutoResize
         );
+
+        docks.dockCurrentWindowLeft();
 
         ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f * dt, 1.f / dt);
 
@@ -321,6 +417,8 @@ void Application::doGui(float dt)
             "Engine Settings", &menu.showEngineSettings, ImGuiWindowFlags_AlwaysAutoResize
         );
 
+        docks.dockCurrentWindowLeft();
+
         int vIter = s.nVelocityIterations;
         int pIter = s.nPositionIterations;
 
@@ -342,6 +440,9 @@ void Application::doGui(float dt)
         ImGui::Begin(
             "Scene Controls", &menu.showSceneControls, ImGuiWindowFlags_AlwaysAutoResize
         );
+
+        docks.dockCurrentWindowLeft();
+
 
         ImGui::Text("Play speed %f", scene_->playSpeed());
         ImGui::SameLine();
