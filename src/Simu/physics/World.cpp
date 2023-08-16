@@ -63,9 +63,15 @@ void World::step(float dt)
         b.preStep();
     for (Constraint& c : constraints())
         c.preStep();
-    for (auto& c : contacts_)
-        if (c.second.existingContact != nullptr)
-            static_cast<Constraint*>(c.second.existingContact.get())->preStep();
+
+    {
+        SIMU_PROFILE_ENTRY(profiler_.narrowPhaseCollision);
+
+        for (auto& c : contacts_)
+            if (c.second.existingContact != nullptr)
+                c.second.existingContact.get()->preStep();
+    }
+
     for (ForceField& f : forceFields())
         f.preStep();
 
@@ -80,7 +86,7 @@ void World::step(float dt)
         //  if an island is sleeping, all its bodies' forces and velocities are set to 0
         applyForces(dt);
 
-        solveIslands(bodies(), cAlloc_, settings(), dt);
+        solveIslands(bodies(), cAlloc_, settings(), dt, profiler());
 
         updateBodies(dt);
     }
@@ -268,9 +274,7 @@ void World::updateBodies(float dt)
         for (Body& body : bodies())
         {
             body.updateTimeImmobile(
-                dt,
-                settings_.velocitySleepThreshold,
-                settings_.angularVelocitySleepThreshold
+                dt, settings_.velocitySleepThreshold, settings_.angularVelocitySleepThreshold
             );
 
             if (body.canSleep(settings_.inactivitySleepDelay))
@@ -303,16 +307,20 @@ void World::updateBodies(float dt)
 
         if (contact == contacts_.end())
             contacts_[colliders] = ContactStatus{
-                makeContactConstraint(**first, **second),
-                true};
+                makeContactConstraint(**first, **second), true};
         else
             contact->second.hit = true;
     };
 
-    colliderTree_.updateAndCollide(
-        [](ColliderIt it) { return (*it)->boundingBox(); },
-        registerContact
-    );
+    {
+        SIMU_PROFILE_ENTRY(profiler_.treeUpdateAndCollision);
+
+        colliderTree_.updateAndCollide(
+            [](ColliderIt it) { return (*it)->boundingBox(); }, registerContact
+        );
+    }
+
+    SIMU_PROFILE_TREE_HEIGHT(profiler_, colliderTree_);
 
     for (auto& contact : contacts_)
     {

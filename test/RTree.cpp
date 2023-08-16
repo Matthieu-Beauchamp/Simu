@@ -31,7 +31,7 @@ TEST_CASE("R-Tree")
     {
         Tree t{};
         REQUIRE(t.begin() == t.end());
-        REQUIRE(t.depth() == 0);
+        REQUIRE(t.height() == 0);
     }
 
     SECTION("Iterator conversions")
@@ -55,7 +55,7 @@ TEST_CASE("R-Tree")
     {
         RTree<TestType*> t{};
 
-        // must be a power of 2 for depth checks
+        // must be a power of 2 for height checks
         constexpr Uint32 size = 16;
 
         std::vector<TestType> v{size};
@@ -74,7 +74,7 @@ TEST_CASE("R-Tree")
         REQUIRE(t.size() == size);
         REQUIRE(t.bounds() == BoundingBox{Vec2{0,0}, Vec2{size, size}});
 
-        REQUIRE(t.depth() < size - 1);
+        REQUIRE(t.height() < size - 1);
     }
 
     SECTION("Removal")

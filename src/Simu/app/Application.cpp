@@ -248,7 +248,7 @@ void Application::doGui(float dt)
         ImGui::Begin(
             "Scene selection", &menu.selectScene, ImGuiWindowFlags_AlwaysAutoResize
         );
-        
+
         for (const auto& scene : scenes_)
         {
             bool selected = scene.second == scene_;
@@ -268,8 +268,50 @@ void Application::doGui(float dt)
         ImGui::Begin(
             "Engine Profiler", &menu.showProfiler, ImGuiWindowFlags_AlwaysAutoResize
         );
+
         ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f * dt, 1.f / dt);
-        // TODO: ...
+
+        if (hasScene)
+        {
+            auto printTimeEntry = [](const TimeEntry& t, const char* name) {
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                ImGui::Text(name);
+                ImGui::TableNextColumn();
+                ImGui::Text("%.3f", t.last() * 1000.f);
+                ImGui::TableNextColumn();
+                ImGui::Text("%.3f", t.average() * 1000.f);
+                ImGui::TableNextColumn();
+                ImGui::Text("%.3f", t.max() * 1000.f);
+            };
+
+            Profiler& p = scene_->world().profiler();
+            if (ImGui::BeginTable("Timers (ms)", 4))
+            {
+                ImGui::TableSetupColumn("Operation");
+                ImGui::TableSetupColumn("last");
+                ImGui::TableSetupColumn("average");
+                ImGui::TableSetupColumn("max");
+
+                ImGui::TableHeadersRow();
+
+                printTimeEntry(p.islandConstruction, "Island construction");
+                printTimeEntry(p.solveVelocities, "Solve velocities");
+                printTimeEntry(p.solvePositions, "Solve Positions");
+                printTimeEntry(p.treeUpdateAndCollision, "Tree update and collision");
+                printTimeEntry(p.narrowPhaseCollision, "Narrow phase collision");
+
+                ImGui::EndTable();
+            }
+            ImGui::Text("Tree height: %u", p.treeHeight);
+
+
+            ImGui::Separator();
+            if (ImGui::Button("Reset profiler"))
+                p.reset();
+        }
+
+
         ImGui::End();
     }
 

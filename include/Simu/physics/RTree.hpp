@@ -207,7 +207,7 @@ public:
     BoundingBox bounds() const { return root_->bounds; }
     BoundingBox bounds(const_iterator it) const { return it.bounds(); }
 
-    Uint32 depth() const { return depth(root_) - 1; }
+    Uint32 height() const { return height(root_) - 1; }
 
 private:
 
@@ -498,12 +498,12 @@ private:
 
     void erase(Node* node) { deleteNode(extract(node)); }
 
-    Uint32 depth(const Node* subRoot) const
+    Uint32 height(const Node* subRoot) const
     {
         if (subRoot == nullptr)
             return 0;
 
-        return 1 + std::max(depth(subRoot->left), depth(subRoot->right));
+        return 1 + std::max(height(subRoot->left), height(subRoot->right));
     }
 
     std::size_t size(Node* node) const

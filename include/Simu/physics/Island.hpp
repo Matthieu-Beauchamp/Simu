@@ -143,8 +143,7 @@ public:
     {
         for (std::size_t i = 0; i < positions_.size(); ++i)
             positions_[i].advance(
-                velocities_[i].linear() * dt,
-                velocities_[i].angular() * dt
+                velocities_[i].linear() * dt, velocities_[i].angular() * dt
             );
     }
 
@@ -261,7 +260,7 @@ concept BodyRange = std::ranges::range<T> && requires(T t) {
 
 
 template <BodyRange T, class Alloc>
-void solveIslands(const T& bodies, const Alloc& alloc, World::Settings s, float dt)
+void solveIslands(const T& bodies, const Alloc& alloc, World::Settings s, float dt, Profiler& profiler)
 {
     std::vector<Body*, ReboundTo<Alloc, Body*>> bodiesToProcess{alloc};
     for (Body& body : bodies)
@@ -269,33 +268,47 @@ void solveIslands(const T& bodies, const Alloc& alloc, World::Settings s, float 
 
     auto removeBody = [&](Body* body) { std::erase(bodiesToProcess, body); };
 
+
+    SIMU_PROFILE_START_PARTIAL_ENTRY(profiler.islandConstruction);
+    SIMU_PROFILE_START_PARTIAL_ENTRY(profiler.solveVelocities);
+    SIMU_PROFILE_START_PARTIAL_ENTRY(profiler.solvePositions);
+
     Island island{alloc};
     while (!bodiesToProcess.empty())
     {
-        island.init(bodiesToProcess.back());
-
-        for (Body* body : island.bodies())
-            removeBody(body);
-
-
-        if (island.isAwake())
         {
+            SIMU_PROFILE_PARTIAL_ENTRY(profiler.islandConstruction);
+            island.init(bodiesToProcess.back());
+
             for (Body* body : island.bodies())
-                body->wake();
-        }
-        else
-        {
-            // reset forces and velocities on all bodies
-        }
+                removeBody(body);
 
+            if (island.isAwake())
+            {
+                for (Body* body : island.bodies())
+                    body->wake();
+            }
+            else
+            {
+                // reset forces and velocities on all bodies
+            }
 
-        island.refreshProxies();
+            island.refreshProxies();
+        }
 
         if (island.hasConstraints())
         {
-            island.applyVelocityConstraints(s.nVelocityIterations, dt);
+            {
+                SIMU_PROFILE_PARTIAL_ENTRY(profiler.solveVelocities);
+                island.applyVelocityConstraints(s.nVelocityIterations, dt);
+            }
+
             island.integrateBodies(dt);
-            island.applyPositionConstraints(s.nPositionIterations);
+
+            {
+                SIMU_PROFILE_PARTIAL_ENTRY(profiler.solvePositions);
+                island.applyPositionConstraints(s.nPositionIterations);
+            }
         }
         else
         {
@@ -309,6 +322,10 @@ void solveIslands(const T& bodies, const Alloc& alloc, World::Settings s, float 
 
         island.clear();
     }
+
+    SIMU_PROFILE_COMMIT_PARTIAL_ENTRY(profiler.islandConstruction);
+    SIMU_PROFILE_COMMIT_PARTIAL_ENTRY(profiler.solveVelocities);
+    SIMU_PROFILE_COMMIT_PARTIAL_ENTRY(profiler.solvePositions);
 }
 
 } // namespace simu

@@ -33,6 +33,8 @@
 #include "Simu/physics/Bodies.hpp"
 #include "Simu/physics/ForceField.hpp"
 
+#include "Simu/physics/Profiler.hpp"
+
 namespace details
 {
 // https://youngforest.github.io/2020/05/27/best-implement-to-use-pair-as-key-to-std-unordered-map-in-C/
@@ -316,6 +318,9 @@ public:
         });
     }
 
+    Profiler&       profiler() { return profiler_; }
+    const Profiler& profiler() const { return profiler_; }
+
 private:
 
     friend Body;
@@ -393,7 +398,8 @@ private:
             return *s.second.existingContact;
         }
 
-        const ContactConstraint& operator()(const typename ContactList::value_type& s) const
+        const ContactConstraint&
+        operator()(const typename ContactList::value_type& s) const
         {
             return *s.second.existingContact;
         }
@@ -417,6 +423,7 @@ private:
 
 
     Settings settings_;
+    Profiler profiler_;
 
     ContactFactory makeContactConstraint_;
 };

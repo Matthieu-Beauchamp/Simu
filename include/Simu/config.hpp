@@ -38,7 +38,7 @@
 ////////////////////////////////////////////////////////////
 #define SIMU_API
 
-// Note that these macros are defined by cmake (cmake/config.cmake),
+// Note that these OS macros are defined by cmake (cmake/config.cmake),
 // this is because compiler specific macros are not very reliable,
 // msys/gcc would define Linux as the platform on Windows.
 #if defined(SIMU_OS_WINDOWS)
@@ -58,10 +58,18 @@
 #endif
 
 
+#define SIMU_PROFILE
+#if defined(SIMU_NO_PROFILER)
+#    undef SIMU_PROFILE
+#endif
+
+
 #define SIMU_NO_ASSERT 1
 
 #if defined(NDEBUG) && defined(SIMU_NO_ASSERT)
-#    define SIMU_ASSERT(c, m) (void)(c); (void)(m)
+#    define SIMU_ASSERT(c, m)                                                  \
+        (void)(c);                                                             \
+        (void)(m)
 #else
 #    define SIMU_ASSERT(cond, msg)                                             \
         if (!(cond))                                                           \
