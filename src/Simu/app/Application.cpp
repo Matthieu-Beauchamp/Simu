@@ -293,10 +293,10 @@ void Application::doGui(float dt)
         bool  step        = false;
 
         bool showProfiler       = true;
-        bool showEngineSettings = true;
-        bool showSceneControls  = true;
+        bool showEngineSettings = false;
+        bool showSceneControls  = false;
 
-        bool selectTool      = false;
+        bool selectTool      = true;
         bool showToolOptions = false;
     };
 
@@ -388,8 +388,8 @@ void Application::doGui(float dt)
                 ImGui::Text("%.3f", t.max() * 1000.f);
             };
 
-            Profiler& p = scene_->world().profiler();
-            auto tableFlags = ImGuiTableFlags_Borders;
+            Profiler& p          = scene_->world().profiler();
+            auto      tableFlags = ImGuiTableFlags_Borders;
             if (ImGui::BeginTable("Timers (ms)", 4, tableFlags))
             {
                 ImGui::TableSetupColumn("Operation");
@@ -425,8 +425,6 @@ void Application::doGui(float dt)
             "Engine Settings", &menu.showEngineSettings, ImGuiWindowFlags_AlwaysAutoResize
         );
 
-        docks.dockCurrentWindowLeft();
-
         int vIter = s.nVelocityIterations;
         int pIter = s.nPositionIterations;
 
@@ -436,6 +434,8 @@ void Application::doGui(float dt)
 
         s.nVelocityIterations = vIter;
         s.nPositionIterations = pIter;
+
+        ImGui::Checkbox("Warmstarting", &s.enableWarmstarting);
 
         if (hasScene)
             scene_->world().updateSettings(s);
@@ -448,9 +448,6 @@ void Application::doGui(float dt)
         ImGui::Begin(
             "Scene Controls", &menu.showSceneControls, ImGuiWindowFlags_AlwaysAutoResize
         );
-
-        docks.dockCurrentWindowLeft();
-
 
         ImGui::Text("Play speed %f", scene_->playSpeed());
         ImGui::SameLine();
@@ -486,6 +483,8 @@ void Application::doGui(float dt)
             "Tool selection", &menu.selectTool, ImGuiWindowFlags_AlwaysAutoResize
         );
 
+        docks.dockCurrentWindowLeft();
+
         for (const auto& t : scene_->tools_)
         {
             bool selected = t.get() == scene_->currentTool();
@@ -502,8 +501,11 @@ void Application::doGui(float dt)
 
     if (hasScene && menu.showToolOptions)
     {
+        std::string name = scene_->currentTool()->getName();
+        name += " options";
+
         ImGui::Begin(
-            "Tool options", &menu.showToolOptions, ImGuiWindowFlags_AlwaysAutoResize
+            name.c_str(), &menu.showToolOptions, ImGuiWindowFlags_AlwaysAutoResize
         );
 
         scene_->currentTool()->doGui();

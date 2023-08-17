@@ -273,9 +273,13 @@ public:
 
         // TODO: Epsilons, iterate until change < epsilon or iter >= maxIter.
 
-        // below is currently unused
+        ////////////////////////////////////////////////////////////
+        /// \brief Enable constraints to guess impulse based on previous step.
+        ////////////////////////////////////////////////////////////
         bool enableWarmstarting = true;
 
+
+        // below is currently unused
         bool  enableSleeping                = false;
         float inactivitySleepDelay          = 1.f;
         float velocitySleepThreshold        = 1e-3f;

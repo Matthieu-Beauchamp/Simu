@@ -118,17 +118,20 @@ public:
             ); // refresh proxy pointers
     }
 
-    void applyVelocityConstraints(Uint32 nIter, float dt)
+    void applyVelocityConstraints(Uint32 nIter, bool warmstartEnabled, float dt)
     {
         for (Constraint* constraint : constraints_)
             constraint->initSolve(constraint->bodies().getProxies());
         for (ContactConstraint* constraint : contacts_)
             constraint->initSolve(constraint->bodies().getProxies());
 
-        for (Constraint* constraint : constraints_)
-            constraint->warmstart(constraint->bodies().getProxies(), dt);
-        for (ContactConstraint* constraint : contacts_)
-            constraint->warmstart(constraint->bodies().getProxies(), dt);
+        if (warmstartEnabled)
+        {
+            for (Constraint* constraint : constraints_)
+                constraint->warmstart(constraint->bodies().getProxies(), dt);
+            for (ContactConstraint* constraint : contacts_)
+                constraint->warmstart(constraint->bodies().getProxies(), dt);
+        }
 
         for (Uint32 iter = 0; iter < nIter; ++iter)
         {
@@ -300,7 +303,9 @@ void solveIslands(const T& bodies, const Alloc& alloc, World::Settings s, float 
         {
             {
                 SIMU_PROFILE_PARTIAL_ENTRY(profiler.solveVelocities);
-                island.applyVelocityConstraints(s.nVelocityIterations, dt);
+                island.applyVelocityConstraints(
+                    s.nVelocityIterations, s.enableWarmstarting, dt
+                );
             }
 
             island.integrateBodies(dt);

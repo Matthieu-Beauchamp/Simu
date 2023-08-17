@@ -65,12 +65,15 @@ public:
     Value&       damping() { return damping_; }
     const Value& damping() const { return damping_; }
 
+    void initBase()
+    {
+        previousLambda_ = lambda_;
+        lambda_         = Value{};
+    }
+
     void warmstartDefault(Proxies& proxies, const F& f, float dt)
     {
-        Value lambda = getAccumulatedLambda();
-        setLambdaHint(Value::filled(0.f));
-
-        updateLambda(proxies, f, dt, lambda);
+        updateLambda(proxies, f, dt, previousLambda_);
     }
 
     KMatrix
@@ -93,9 +96,8 @@ public:
         Value baumgarteStabilization = KMatrix::diagonal(restitution())
                                        * f.eval(proxies) / dt;
 
-        Value previousDamping = addDamping
-                                    ? KMatrix::diagonal(damping()) * lambda_
-                                    : Value{};
+        Value previousDamping = addDamping ? KMatrix::diagonal(damping()) * lambda_
+                                           : Value{};
 
         return -(error + bias + baumgarteStabilization + previousDamping);
     }
@@ -116,11 +118,13 @@ public:
 
     Jacobian getJacobian() const { return J_; }
     Value    getAccumulatedLambda() const { return lambda_; }
+    Value    getPreviousLambda() const { return previousLambda_; }
     void     setLambdaHint(Value lambda) { lambda_ = lambda; }
 
 private:
 
     Value    lambda_{};
+    Value    previousLambda_{};
     Jacobian J_{};
 
     Value restitution_{};
@@ -153,6 +157,7 @@ public:
 
     void initSolve(const Proxies& proxies, const F& f)
     {
+        this->initBase();
         solver_ = Solver{this->computeEffectiveMass(proxies, f, true)};
         SIMU_ASSERT(solver_.isValid(), "Constraint cannot be solved");
     }
@@ -211,6 +216,7 @@ public:
 
     void initSolve(const Proxies& proxies, const F& f)
     {
+        this->initBase();
         effectiveMass_ = this->computeEffectiveMass(proxies, f, true);
     }
 
@@ -323,6 +329,8 @@ public:
 
     void initSolve(const Proxies& proxies, const F& f)
     {
+        this->initBase();
+
         Func prev     = func_;
         func_         = nextFunc(proxies, f);
         canWarmstart_ = (func_ == prev) && (func_ != Func::off);
@@ -341,19 +349,15 @@ public:
         {
             if (func_ == Func::upper)
             {
-                proxies.applyImpulse(this->impulse(
-                    this->getJacobian(),
-                    -this->getAccumulatedLambda()
-                ));
+                proxies.applyImpulse(
+                    this->impulse(this->getJacobian(), -this->getPreviousLambda())
+                );
+                this->setLambdaHint(this->getPreviousLambda());
             }
             else
             {
                 this->warmstartDefault(proxies, f, dt);
             }
-        }
-        else
-        {
-            this->setLambdaHint(Value::filled(0.f));
         }
     }
 
@@ -375,18 +379,14 @@ public:
                     err,
                     [=, &f](Value lambda) {
                         return std::max(
-                            f.clampLambda(lambda, dt),
-                            Value::filled(0.f)
+                            f.clampLambda(lambda, dt), Value::filled(0.f)
                         );
                     },
                     this->getAccumulatedLambda()
                 );
 
                 this->updateLambda(
-                    proxies,
-                    f,
-                    dt,
-                    lambda - this->getAccumulatedLambda()
+                    proxies, f, dt, lambda - this->getAccumulatedLambda()
                 );
                 break;
             }
@@ -397,16 +397,14 @@ public:
                     err,
                     [=, &f](Value lambda) {
                         return std::max(
-                            -f.clampLambda(-lambda, dt),
-                            Value::filled(0.f)
+                            -f.clampLambda(-lambda, dt), Value::filled(0.f)
                         );
                     },
                     this->getAccumulatedLambda()
                 );
 
                 proxies.applyImpulse(this->impulse(
-                    this->getJacobian(),
-                    -(lambda - this->getAccumulatedLambda())
+                    this->getJacobian(), -(lambda - this->getAccumulatedLambda())
                 ));
                 this->setLambdaHint(lambda);
                 break;
@@ -426,9 +424,7 @@ public:
         {
             case Func::equality:
             {
-                posLambda = f.clampPositionLambda(
-                    solve(effMass, -(C - L_.value()))
-                );
+                posLambda = f.clampPositionLambda(solve(effMass, -(C - L_.value())));
                 break;
             }
             case Func::lower:
@@ -438,8 +434,7 @@ public:
                     -(C - L_.value()),
                     [&f](Value lambda) {
                         return std::max(
-                            f.clampPositionLambda(lambda),
-                            Value::filled(0.f)
+                            f.clampPositionLambda(lambda), Value::filled(0.f)
                         );
                     }
                 );
@@ -448,16 +443,11 @@ public:
             }
             case Func::upper:
             {
-                posLambda = -solveInequalities(
-                    effMass,
-                    C - U_.value(),
-                    [&f](Value lambda) {
-                        return std::max(
-                            -f.clampPositionLambda(-lambda),
-                            Value::filled(0.f)
-                        );
-                    }
-                );
+                posLambda = -solveInequalities(effMass, C - U_.value(), [&f](Value lambda) {
+                    return std::max(
+                        -f.clampPositionLambda(-lambda), Value::filled(0.f)
+                    );
+                });
                 break;
             }
             default: break;

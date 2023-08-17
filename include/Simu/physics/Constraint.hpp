@@ -225,14 +225,22 @@ public:
         computeJacobians(proxies, true);
         computeKs(proxies, true);
         computeBounce(proxies);
+
+        previousTangentLambda_ = tangentLambda_;
+        previousNormalLambda_  = normalLambda_;
+        tangentLambda_         = Vec2{};
+        normalLambda_          = Vec2{};
     }
 
     void warmstart(Proxies& proxies, float /* dt */) final override
     {
-        Impulse P = transpose(Jf[0]) * tangentLambda_[0]
-                    + transpose(Jf[1]) * tangentLambda_[1];
-        P += transpose(Jn) * normalLambda_;
+        Impulse P = transpose(Jf[0]) * previousTangentLambda_[0]
+                    + transpose(Jf[1]) * previousTangentLambda_[1];
+        P += transpose(Jn) * previousNormalLambda_;
         proxies.applyImpulse(P);
+
+        normalLambda_  = previousNormalLambda_;
+        tangentLambda_ = previousTangentLambda_;
     }
 
     void solveVelocities(Proxies& proxies, float /* dt */) final override
@@ -567,7 +575,9 @@ private:
     };
 
     Vec2 tangentLambda_{};
+    Vec2 previousTangentLambda_{};
     Vec2 normalLambda_{};
+    Vec2 previousNormalLambda_{};
 
     Vec2 bounce_{};
 
