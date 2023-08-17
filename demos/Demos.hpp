@@ -56,7 +56,6 @@ public:
 
     Pyramid();
     void init(simu::Renderer& renderer) override;
-    bool onKeypress(simu::Keyboard::Input input) override;
 
 private:
 
@@ -71,8 +70,6 @@ public:
 
     Tower();
     void init(simu::Renderer& renderer) override;
-
-    bool onKeypress(simu::Keyboard::Input input) override;
 
 private:
 
@@ -95,8 +92,6 @@ public:
     void init(simu::Renderer& renderer) override;
 
     void postStep(float) override;
-
-    bool onKeypress(simu::Keyboard::Input input) override;
 
 private:
 

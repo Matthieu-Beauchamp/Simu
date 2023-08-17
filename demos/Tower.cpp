@@ -29,6 +29,9 @@
 
 Tower::Tower()
 {
+    registerAllTools();
+    useTool<simu::Grabber>();
+
     camera().setPixelSize(1.f / 10.f);
     camera().panTo(simu::Vec2{0.f, 0.f});
 }
@@ -70,32 +73,8 @@ void Tower::init(simu::Renderer& renderer)
 
         makeSlab(simu::Vec2{0.f, (y + 1) * w + (y + 0.5f) * thickness}, false);
     }
-
-    auto s = world().settings();
-    // s.nPositionIterations = 5;
-    // s.nVelocityIterations = 20;
-    world().updateSettings(s);
-
-    useTool<simu::Grabber>(*this);
 }
 
-bool Tower::onKeypress(simu::Keyboard::Input input)
-{
-    if (simu::Scene::onKeypress(input))
-        return true;
-
-    if (input.action != simu::Mouse::Action::press)
-        return false;
-
-    if (input.key == simu::Keyboard::Key::G)
-        useTool<simu::Grabber>(*this);
-    else if (input.key == simu::Keyboard::Key::B)
-        useTool<simu::BoxSpawner>(*this);
-    else
-        return false;
-
-    return true;
-}
 
 void Tower::makeSlab(simu::Vec2 pos, bool vertical)
 {

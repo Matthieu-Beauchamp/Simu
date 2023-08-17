@@ -27,6 +27,8 @@
 #include "Simu/app/Scene.hpp"
 #include "Simu/app/Application.hpp"
 
+#include "imgui.h"
+
 namespace simu
 {
 
@@ -34,14 +36,14 @@ namespace simu
 // Grabber
 ////////////////////////////////////////////////////////////
 
-bool Grabber::onMousePress(simu::Mouse::Input input)
+bool Grabber::onMousePress(Mouse::Input input)
 {
-    if (input.button != simu::Mouse::Button::left)
+    if (input.button != Mouse::Button::left)
         return false;
 
-    if (input.action == simu::Mouse::Action::press)
+    if (input.action == Mouse::Action::press)
     {
-        scene_.world().forEachAt(input.pos, [&, this](simu::Body* b) {
+        scene_.world().forEachAt(input.pos, [&, this](Body* b) {
             if (!b->isStructural())
             {
                 if (mc_ != nullptr)
@@ -51,7 +53,7 @@ bool Grabber::onMousePress(simu::Mouse::Input input)
             }
         });
     }
-    else if (input.action == simu::Mouse::Action::release)
+    else if (input.action == Mouse::Action::release)
     {
         if (mc_ != nullptr)
         {
@@ -67,7 +69,7 @@ bool Grabber::onMousePress(simu::Mouse::Input input)
     return true;
 }
 
-bool Grabber::onMouseMove(simu::Vec2 pos)
+bool Grabber::onMouseMove(Vec2 pos)
 {
     if (mc_ != nullptr)
     {
@@ -78,13 +80,10 @@ bool Grabber::onMouseMove(simu::Vec2 pos)
     return false;
 }
 
-simu::VisibleMouseConstraint*
-Grabber::makeMouseConstraint(simu::Body* b, simu::Vec2 pos)
+VisibleMouseConstraint* Grabber::makeMouseConstraint(Body* b, Vec2 pos)
 {
     return scene_.world().makeConstraint<VisibleMouseConstraint>(
-        b,
-        pos,
-        scene_.app()->renderer()
+        b, pos, scene_.app()->renderer()
     );
 }
 
@@ -93,10 +92,29 @@ Grabber::makeMouseConstraint(simu::Body* b, simu::Vec2 pos)
 // BoxSpawner
 ////////////////////////////////////////////////////////////
 
-bool BoxSpawner::onMousePress(simu::Mouse::Input input)
+void BoxSpawner::doGui()
 {
-    if (input.action == simu::Mouse::Action::press
-        && input.button == simu::Mouse::Button::left)
+    ImGui::SliderFloat2("Dimensions", dims.data, 0.1f, 50.f);
+
+    ImGui::SliderFloat("Density", &density, 0.1f, 100.f);
+    ImGui::SliderFloat("Friction", &friction, 0.f, 1.f);
+    ImGui::SliderFloat("Bounciness", &bounciness, 0.f, 1.f);
+
+    constexpr float pi    = std::numbers::pi_v<float>;
+    float           ratio = orientation / (2.f * pi);
+    orientation -= std::floor(ratio) * pi;
+    int degrees = static_cast<int>(180 * orientation / pi);
+    ImGui::SliderInt("Orientation", &degrees, -180, 180);
+    orientation = degrees * pi / 180.f;
+
+    Vec4 rgba = color_ / 255.f;
+    ImGui::ColorEdit3("Color", rgba.data);
+    color_ = static_cast<Rgba>(rgba * 255.f);
+}
+
+bool BoxSpawner::onMousePress(Mouse::Input input)
+{
+    if (input.action == Mouse::Action::press && input.button == Mouse::Button::left)
     {
         makeBox(input.pos);
         return true;
@@ -106,19 +124,21 @@ bool BoxSpawner::onMousePress(simu::Mouse::Input input)
 }
 
 
-simu::Body* BoxSpawner::makeBox(simu::Vec2 pos, simu::Vec2 dims)
+Body* BoxSpawner::makeBox(Vec2 pos, std::optional<Vec2> dimensions)
 {
-    simu::BodyDescriptor descr{};
-    descr.position = pos;
-    auto b         = scene_.world().makeBody<simu::VisibleBody>(
-        descr,
-        simu::Rgba{225, 150, 240, 255},
-        scene_.app()->renderer()
+    BodyDescriptor descr{pos, orientation, dominance};
+
+    auto b = scene_.world().makeBody<VisibleBody>(
+        descr, color_, scene_.app()->renderer()
     );
 
-    simu::ColliderDescriptor cDescr{simu::Polygon::box(dims)};
-    cDescr.material.bounciness.value = 0.f;
-    cDescr.material.friction.value   = 0.5f;
+    Material material;
+    material.density          = density;
+    material.friction.value   = friction;
+    material.bounciness.value = bounciness;
+
+    ColliderDescriptor cDescr{
+        Polygon::box(dimensions.value_or(this->dims)), material};
     b->addCollider(cDescr);
 
     return b;

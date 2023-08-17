@@ -24,7 +24,13 @@
 
 #include "Demos.hpp"
 
-BoxStacks::BoxStacks() { camera().setPixelSize(1.f / 10.f); }
+BoxStacks::BoxStacks()
+{
+    registerAllTools();
+    useTool<simu::Grabber>();
+
+    camera().setPixelSize(1.f / 10.f);
+}
 
 void BoxStacks::init(simu::Renderer& renderer)
 {
@@ -57,5 +63,4 @@ void BoxStacks::init(simu::Renderer& renderer)
         .makeBody<simu::VisibleBody>(descr, simu::Rgba{0, 0, 0, 255}, &renderer)
         ->addCollider(cDescr);
 
-    useTool<simu::Grabber>(*this);
 }

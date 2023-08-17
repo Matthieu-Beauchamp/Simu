@@ -28,6 +28,9 @@
 
 Tumbler::Tumbler()
 {
+    registerAllTools();
+    useTool<simu::Grabber>();
+
     camera().setPixelSize(1.f / 20.f);
     camera().panTo(simu::Vec2{0.f, 0.f});
 }
@@ -76,8 +79,6 @@ void Tumbler::init(simu::Renderer& renderer)
         simu::RotationMotor::Specs::fromTorque(0.05f * pi, 1e8f)
     );
     motor->direction(simu::Vector<float, 1>{-1.f});
-
-    useTool<simu::Grabber>(*this);
 }
 
 void Tumbler::postStep(float)
@@ -100,23 +101,3 @@ void Tumbler::postStep(float)
         ++count_;
     }
 }
-
-bool Tumbler::onKeypress(simu::Keyboard::Input input)
-{
-    if (simu::Scene::onKeypress(input))
-        return true;
-
-    if (input.action != simu::Mouse::Action::press)
-        return false;
-
-    if (input.key == simu::Keyboard::Key::G)
-        useTool<simu::Grabber>(*this);
-    else if (input.key == simu::Keyboard::Key::B)
-        useTool<simu::BoxSpawner>(*this);
-    else
-        return false;
-
-    return true;
-}
-
-

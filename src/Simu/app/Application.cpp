@@ -132,8 +132,10 @@ private:
 };
 bool DockSpaces::isFirstFrame = true;
 
+
 namespace simu
 {
+
 void styleGui()
 {
     ImGui::StyleColorsDark();
@@ -151,10 +153,9 @@ Application::Application()
     glfwSetErrorCallback(glfwErrorCallback);
 
     // TODO: as args
-    window_ = glfwCreateWindow(640, 480, "My Title", nullptr, nullptr);
+    window_ = glfwCreateWindow(640, 480, "Simu", nullptr, nullptr);
     SIMU_ASSERT(window_ != nullptr, "Window creation failed");
     glfwSetWindowUserPointer(window_, this);
-    setName("Simu Application");
 
     glfwSetFramebufferSizeCallback(window_, frameBufferResizeCallback);
     glfwSetWindowSizeCallback(window_, windowResizeCallback);
@@ -294,6 +295,9 @@ void Application::doGui(float dt)
         bool showProfiler       = true;
         bool showEngineSettings = true;
         bool showSceneControls  = true;
+
+        bool selectTool      = false;
+        bool showToolOptions = false;
     };
 
     static World::Settings s{};
@@ -321,8 +325,11 @@ void Application::doGui(float dt)
             ImGui::MenuItem("Profiler", nullptr, &menu.showProfiler);
             ImGui::EndMenu();
         }
-        if (ImGui::BeginMenu("Tools"))
+
+        if (hasScene && ImGui::BeginMenu("Tools"))
         {
+            ImGui::MenuItem("Select", nullptr, &menu.selectTool);
+            ImGui::MenuItem("Options", nullptr, &menu.showToolOptions);
             ImGui::EndMenu();
         }
 
@@ -382,7 +389,8 @@ void Application::doGui(float dt)
             };
 
             Profiler& p = scene_->world().profiler();
-            if (ImGui::BeginTable("Timers (ms)", 4))
+            auto tableFlags = ImGuiTableFlags_Borders;
+            if (ImGui::BeginTable("Timers (ms)", 4, tableFlags))
             {
                 ImGui::TableSetupColumn("Operation");
                 ImGui::TableSetupColumn("last");
@@ -468,6 +476,37 @@ void Application::doGui(float dt)
         // if (menu.pauseToggle)
         //     if (ImGui::Button("Step (S)"))
         //         scene_->step();
+
+        ImGui::End();
+    }
+
+    if (hasScene && menu.selectTool)
+    {
+        ImGui::Begin(
+            "Tool selection", &menu.selectTool, ImGuiWindowFlags_AlwaysAutoResize
+        );
+
+        for (const auto& t : scene_->tools_)
+        {
+            bool selected = t.get() == scene_->currentTool();
+            ImGui::Selectable(t->getName(), &selected);
+            if (selected && t.get() != scene_->currentTool())
+            {
+                scene_->useTool(t->getName());
+                break;
+            }
+        }
+
+        ImGui::End();
+    }
+
+    if (hasScene && menu.showToolOptions)
+    {
+        ImGui::Begin(
+            "Tool options", &menu.showToolOptions, ImGuiWindowFlags_AlwaysAutoResize
+        );
+
+        scene_->currentTool()->doGui();
 
         ImGui::End();
     }

@@ -37,6 +37,10 @@ public:
     Tool()          = default;
     virtual ~Tool() = default;
 
+    // called inside an ImGui window Begin/End block
+    virtual void        doGui() = 0;
+    virtual const char* getName() const { return ""; }
+
     virtual bool onKeypress(Keyboard::Input input) = 0;
     virtual bool onMousePress(Mouse::Input input)  = 0;
     virtual bool onMouseMove(Vec2 newPos)          = 0;
@@ -47,7 +51,12 @@ class NoTool : public Tool
 {
 public:
 
+    static constexpr char name[] = "No Tool";
+
     NoTool() = default;
+
+    void        doGui() override {}
+    const char* getName() const override { return name; }
 
     bool onKeypress(Keyboard::Input /* input */) override { return false; }
     bool onMousePress(Mouse::Input /* input */) override { return false; }
@@ -62,18 +71,23 @@ class Grabber : public Tool
 {
 public:
 
+    static constexpr char name[] = "Grabber";
+
+
     Grabber(Scene& scene) : scene_{scene} {}
 
-    bool onMousePress(simu::Mouse::Input input) override;
-    bool onMouseMove(simu::Vec2 pos) override;
+    void        doGui() override {}
+    const char* getName() const override { return name; }
+
+    bool onMousePress(Mouse::Input input) override;
+    bool onMouseMove(Vec2 pos) override;
 
     bool onKeypress(Keyboard::Input /* input */) override { return false; }
     bool onMouseScroll(Vec2 /* scroll */) override { return false; }
 
 private:
 
-    simu::VisibleMouseConstraint*
-    makeMouseConstraint(simu::Body* b, simu::Vec2 pos);
+    VisibleMouseConstraint* makeMouseConstraint(Body* b, Vec2 pos);
 
     VisibleMouseConstraint* mc_ = nullptr;
     Scene&                  scene_;
@@ -84,15 +98,31 @@ class BoxSpawner : public Tool
 {
 public:
 
+    static constexpr char name[] = "Box Spawner";
+
     BoxSpawner(Scene& scene) : scene_{scene} {}
 
-    bool onMousePress(simu::Mouse::Input input) override;
-    bool onMouseMove(simu::Vec2 /* pos */) override { return false; }
+    void        doGui() override;
+    const char* getName() const override { return name; }
+
+    bool onMousePress(Mouse::Input input) override;
+    bool onMouseMove(Vec2 /* pos */) override { return false; }
 
     bool onKeypress(Keyboard::Input /* input */) override { return false; }
     bool onMouseScroll(Vec2 /* scroll */) override { return false; }
 
-    simu::Body* makeBox(simu::Vec2 pos, simu::Vec2 dims = simu::Vec2{2.f, 2.f});
+    Body* makeBox(Vec2 pos, std::optional<Vec2> dims = std::nullopt);
+
+
+    float orientation = 0.f;
+    float dominance   = 1.f;
+    Vec2  dims{2.f, 2.f};
+    
+    float density    = 1.f;
+    float friction   = 0.5f;
+    float bounciness = 0.f;
+
+    Rgba color_{225, 150, 240, 255};
 
 private:
 

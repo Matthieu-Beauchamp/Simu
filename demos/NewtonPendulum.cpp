@@ -29,6 +29,9 @@
 
 NewtonPendulum::NewtonPendulum()
 {
+    registerTool<simu::Grabber>(*this);
+    useTool<simu::Grabber>();
+
     camera().setPixelSize(1.f / 10.f);
     camera().panTo(simu::Vec2{0.f, 0.f});
 }
@@ -99,6 +102,4 @@ void NewtonPendulum::init(simu::Renderer& renderer)
     }
 
     world().makeForceField<simu::Gravity>(simu::Vec2{0, -10.f});
-
-    useTool<simu::Grabber>(*this);
 }

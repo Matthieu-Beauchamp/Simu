@@ -26,6 +26,9 @@
 
 Pyramid::Pyramid()
 {
+    registerAllTools();
+    useTool<simu::Grabber>();
+
     camera().setPixelSize(1.f / 10.f);
     camera().panTo(simu::Vec2{0.f, 0.f});
 }
@@ -72,30 +75,4 @@ void Pyramid::init(simu::Renderer& renderer)
         else
             for (int x = y; x < 2 * height - y; ++x)
                 spawn.makeBox(simu::Vec2{start + w * x, h * y}, simu::Vec2{w, h});
-
-    // Baumgarte is much more stable for bricked pyramid, NGS needs a LOT of iterations and still falls apart pretty fast.
-    auto s = world().settings();
-    // s.nPositionIterations = 50;
-    // s.nVelocityIterations = 50;
-    world().updateSettings(s);
-
-    useTool<simu::Grabber>(*this);
-}
-
-bool Pyramid::onKeypress(simu::Keyboard::Input input)
-{
-    if (simu::Scene::onKeypress(input))
-        return true;
-
-    if (input.action != simu::Mouse::Action::press)
-        return false;
-
-    if (input.key == simu::Keyboard::Key::G)
-        useTool<simu::Grabber>(*this);
-    else if (input.key == simu::Keyboard::Key::B)
-        useTool<simu::BoxSpawner>(*this);
-    else
-        return false;
-
-    return true;
 }

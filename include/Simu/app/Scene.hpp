@@ -58,9 +58,16 @@ public:
         };
 
         world_.setContactFactory(contactFactory);
+        tool_ = tools_.emplace_back(std::make_unique<NoTool>()).get();
     }
 
     virtual ~Scene() = default;
+
+    void registerAllTools()
+    {
+        registerTool<Grabber>(*this);
+        registerTool<BoxSpawner>(*this);
+    }
 
     bool isInit() const { return isInit_; }
     void reset()
@@ -136,11 +143,33 @@ protected:
     virtual bool onMouseScroll(Vec2 scroll);
 
     template <std::derived_from<Tool> T, class... Args>
-    T* useTool(Args&&... args)
+    T* registerTool(Args&&... args)
     {
-        tool_ = std::make_unique<T>(std::forward<Args>(args)...);
-        return static_cast<T*>(tool_.get());
+        tools_.emplace_back(std::make_unique<T>(std::forward<Args>(args)...));
+        return static_cast<T*>(tools_.back().get());
     }
+
+    template <std::derived_from<Tool> T>
+    T* useTool()
+    {
+        return static_cast<T*>(useTool(T::name));
+    }
+
+    Tool* useTool(const std::string& name)
+    {
+        for (const auto& t : tools_)
+        {
+            if (t->getName() == name)
+            {
+                tool_ = t.get();
+                return currentTool();
+            }
+        }
+
+        SIMU_ASSERT(false, "No tool of this class was registered");
+    }
+
+    Tool* currentTool() const { return tool_; }
 
 private:
 
@@ -155,7 +184,8 @@ private:
     World  world_{};
     Camera camera_{};
 
-    std::unique_ptr<Tool> tool_ = std::make_unique<NoTool>();
+    Tool*                            tool_ = nullptr;
+    std::list<std::unique_ptr<Tool>> tools_{};
 
     Renderer*    renderer_ = nullptr;
     Application* app_      = nullptr;
