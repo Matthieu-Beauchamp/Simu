@@ -27,6 +27,30 @@
 #include "Demos.hpp"
 #include "imgui.h"
 
+// TODO: Has a bug when there are two contacts are on the same circle
+// Say we have the circles A, B and C. B and C are at rest and A is moving towards B.
+//  if A collides with B when B is also colliding with C, then A is pushed back
+//  instead of coming to rest ater transfering its momentum to B.
+//
+// Disabling warmstarting has no effect.
+// Adding space between the circles helps avoid the issue.
+//
+// https://pybullet.org/Bullet/phpBB3/viewtopic.php?t=1584
+//
+// This link is partially broken, I had to change page manually in the URL.
+// https://www.gamedev.net/forums/topic.asp?topic_id=291687&page=1
+//
+// After some debugging and research, this not a bug but a limitation of the engine.
+// The Collision restitution model used is only valid for collision between 2 bodies.
+// Some methods can be used to order the collisions sequentially an process only
+//  collisions of 2 bodies at a time.
+// See for example, Jan Bender's paper "Constraint-based collision and contact handling using impulses".
+// For our engine, we can work around the issue by putting a gap between the circles,
+//  this decreases the chances that an n-body collision happens.
+//
+// This also explains why stacking bouncy bodies is very unstable.
+
+
 NewtonPendulum::NewtonPendulum()
 {
     registerTool<simu::Grabber>(*this);
@@ -62,7 +86,6 @@ void NewtonPendulum::init(simu::Renderer& renderer)
 
     simu::Vertices v{};
 
-    // TODO: The fact that we don't have vertex-vertex contacts is very apparent here,
     float theta = 0.f;
     for (int i = 0; i < circlePrecision_; ++i)
     {
@@ -76,7 +99,9 @@ void NewtonPendulum::init(simu::Renderer& renderer)
     cDescr.material.bounciness.value = 1.f;
     for (int i = 0; i < n_; ++i)
     {
-        float x = -barWidth / 2.f + (2 * i + 1) * circleRadius_;
+        float gapRatio = 0.1f;
+        float offset   = ((2 + gapRatio) * i + 1) * circleRadius_;
+        float x        = -barWidth / 2.f + offset;
 
         descr.position = simu::Vec2{x, 0.f};
         auto ball      = world().makeBody<simu::VisibleBody>(
