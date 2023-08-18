@@ -63,12 +63,6 @@ public:
 
     virtual ~Scene() = default;
 
-    void registerAllTools()
-    {
-        registerTool<Grabber>(*this);
-        registerTool<BoxSpawner>(*this);
-    }
-
     bool isInit() const { return isInit_; }
     void reset()
     {
@@ -120,6 +114,9 @@ protected:
 
     virtual void init(Renderer& renderer) = 0;
 
+    // called inside an ImGui window Begin/End block
+    virtual void doGui() {}
+
     virtual void onClear(){};
     virtual void preStep(float /* dt */){};
     virtual void postStep(float /* dt */){};
@@ -142,11 +139,18 @@ protected:
     // zooms in or out
     virtual bool onMouseScroll(Vec2 scroll);
 
+    // Tools should be registered in the constructor, only once per tool.
     template <std::derived_from<Tool> T, class... Args>
     T* registerTool(Args&&... args)
     {
         tools_.emplace_back(std::make_unique<T>(std::forward<Args>(args)...));
         return static_cast<T*>(tools_.back().get());
+    }
+
+    void registerAllTools()
+    {
+        registerTool<Grabber>(*this);
+        registerTool<BoxSpawner>(*this);
     }
 
     template <std::derived_from<Tool> T>

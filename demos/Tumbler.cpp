@@ -26,6 +26,8 @@
 
 #include "Demos.hpp"
 
+#include "imgui.h"
+
 Tumbler::Tumbler()
 {
     registerAllTools();
@@ -86,7 +88,7 @@ void Tumbler::postStep(float)
     if (isPaused())
         return;
 
-    if (count_ < maxCount)
+    if (count_ < maxCount_)
     {
         simu::BodyDescriptor descr{};
 
@@ -101,3 +103,5 @@ void Tumbler::postStep(float)
         ++count_;
     }
 }
+
+void Tumbler::doGui() { ImGui::SliderInt("Max boxes", &maxCount_, 1, 3000); }

@@ -26,6 +26,7 @@
 
 #include "Demos.hpp"
 
+#include "imgui.h"
 
 Tower::Tower()
 {
@@ -46,12 +47,7 @@ void Tower::init(simu::Renderer& renderer)
 
     simu::BodyDescriptor     descr{};
     simu::ColliderDescriptor cDescr{
-        simu::Polygon{
-                      simu::Vertex{-100.f, -20.f},
-                      simu::Vertex{100.f, -20.f},
-                      simu::Vertex{100.f, 0.f},
-                      simu::Vertex{-100.f, 0.f}}
-    };
+        simu::Polygon::box(simu::Vec2{200.f, 20.f}, simu::Vec2{0.f, -10.f})};
 
     descr.dominance                = 0.f;
     cDescr.material.friction.value = 0.8f;
@@ -59,10 +55,7 @@ void Tower::init(simu::Renderer& renderer)
         .makeBody<simu::VisibleBody>(descr, simu::Rgba{0, 0, 0, 255}, &renderer)
         ->addCollider(cDescr);
 
-
-    int h = 20;
-
-    for (int y = 0; y < h; ++y)
+    for (int y = 0; y < height_; ++y)
     {
         makeSlab(
             simu::Vec2{-w / 2.f + thickness / 2.f, w / 2.f + y * (w + thickness)}, true
@@ -97,3 +90,5 @@ void Tower::makeSlab(simu::Vec2 pos, bool vertical)
         .makeBody<simu::VisibleBody>(d, simu::Rgba::filled(200), app()->renderer())
         ->addCollider(cDescr);
 }
+
+void Tower::doGui() { ImGui::SliderInt("Height", &height_, 1, 100); }

@@ -33,6 +33,12 @@ public:
 
     BoxStacks();
     void init(simu::Renderer& renderer) override;
+    void doGui() override;
+
+private:
+
+    int nStacks_ = 10;
+    int height_  = 10;
 };
 
 
@@ -42,12 +48,20 @@ public:
 
     NewtonPendulum();
     void init(simu::Renderer& renderer) override;
+    void doGui() override;
 
 private:
 
     // n above 10 is not very stable, increasing velocity iterations does not help.
     //  (issue seems to be with bouncing)
-    simu::Int32 n = 5;
+    int n_ = 5;
+
+    float circleRadius_ = 1.f;
+    float stringLength_ = 7.f;
+
+    int circlePrecision_ = 48;
+
+    int initialPush_ = 1;
 };
 
 class Pyramid : public simu::Scene
@@ -56,11 +70,15 @@ public:
 
     Pyramid();
     void init(simu::Renderer& renderer) override;
+    void doGui() override;
 
 private:
 
     static constexpr float w = 2.f;
     static constexpr float h = 2.f;
+
+    int   height_  = 60;
+    float spacing_ = 0.5f;
 };
 
 
@@ -70,6 +88,7 @@ public:
 
     Tower();
     void init(simu::Renderer& renderer) override;
+    void doGui() override;
 
 private:
 
@@ -77,6 +96,8 @@ private:
     static constexpr float thickness = 1.f;
 
     void makeSlab(simu::Vec2 pos, bool vertical);
+
+    int height_ = 20;
 };
 
 
@@ -84,16 +105,16 @@ class Tumbler : public simu::Scene
 {
 public:
 
-    static constexpr int maxCount = 1500;
 
     Tumbler();
-
-
     void init(simu::Renderer& renderer) override;
+    void doGui() override;
 
     void postStep(float) override;
 
 private:
+
+    int maxCount_ = 1500;
 
     int count_ = 0;
 };

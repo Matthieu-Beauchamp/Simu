@@ -24,6 +24,8 @@
 
 #include "Demos.hpp"
 
+#include "imgui.h"
+
 Pyramid::Pyramid()
 {
     registerAllTools();
@@ -56,23 +58,24 @@ void Pyramid::init(simu::Renderer& renderer)
 
     simu::BoxSpawner spawn{*this};
 
-    int  height  = 60;
-    bool bricked = true;
-    // only for bricked, otherwise we are only doing stacks.
-    float spacing = 0.5f;
+    float start = -(w + spacing_) * height_ / 2;
 
-    float start = -(w + spacing) * height / 2;
+    for (int y = 0; y < height_; ++y)
+    {
+        for (int x = 0; x < height_ - y; ++x)
+        {
+            spawn.makeBox(
+                simu::Vec2{
+                    start + (w + spacing_) * x + y * (1.f + spacing_ / 2.f),
+                    (h + spacing_) * y},
+                simu::Vec2{w, h}
+            );
+        }
+    }
+}
 
-    for (int y = 0; y < height; ++y)
-        if (bricked)
-            for (int x = 0; x < height - y; ++x)
-                spawn.makeBox(
-                    simu::Vec2{
-                        start + (w + spacing) * x + y * (1.f + spacing / 2.f),
-                        (h + spacing) * y},
-                    simu::Vec2{w, h}
-                );
-        else
-            for (int x = y; x < 2 * height - y; ++x)
-                spawn.makeBox(simu::Vec2{start + w * x, h * y}, simu::Vec2{w, h});
+void Pyramid::doGui()
+{
+    ImGui::SliderInt("Height", &height_, 1, 100);
+    ImGui::SliderFloat("Spacing", &spacing_, 0.f, w);
 }

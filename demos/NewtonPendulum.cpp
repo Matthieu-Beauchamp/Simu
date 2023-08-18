@@ -25,7 +25,7 @@
 #include <numbers>
 
 #include "Demos.hpp"
-
+#include "imgui.h"
 
 NewtonPendulum::NewtonPendulum()
 {
@@ -43,18 +43,17 @@ void NewtonPendulum::init(simu::Renderer& renderer)
     renderer.setPointRadius(0.1f);
     renderer.setLineWidth(0.1f);
 
-    simu::BodyDescriptor     descr{};
-    simu::ColliderDescriptor cDescr{
-        simu::Polygon{
-                      simu::Vertex{-(float)n, 8.f},
-                      simu::Vertex{(float)n, 8.f},
-                      simu::Vertex{(float)n, 11.f},
-                      simu::Vertex{-(float)n, 11.f}}
-    };
+    float barWidth  = n_ * circleRadius_ * 2.f;
+    float barBottom = circleRadius_ + stringLength_;
 
-    descr.dominance = 0.f;
+    simu::BodyDescriptor     descr{};
+    simu::ColliderDescriptor cDescr{simu::Polygon::box(
+        simu::Vec2{barWidth, 1.f}, simu::Vec2{0.f, barBottom + 0.5f}
+    )};
+
+    descr.dominance                = 0.f;
     cDescr.material.friction.value = 0.5f;
-    auto bar        = world().makeBody<simu::VisibleBody>(
+    auto bar                       = world().makeBody<simu::VisibleBody>(
         descr, simu::Rgba{0, 0, 0, 255}, &renderer
     );
 
@@ -64,21 +63,20 @@ void NewtonPendulum::init(simu::Renderer& renderer)
     simu::Vertices v{};
 
     // TODO: The fact that we don't have vertex-vertex contacts is very apparent here,
-    int   nPoints = 48;
-    float theta   = 0.f;
-    for (int i = 0; i < nPoints; ++i)
+    float theta = 0.f;
+    for (int i = 0; i < circlePrecision_; ++i)
     {
-        theta += (2.f * std::numbers::pi_v<float>) / nPoints;
-        v.emplace_back(simu::Vec2{std::cos(theta), std::sin(theta)});
+        theta += (2.f * std::numbers::pi_v<float>) / circlePrecision_;
+        v.emplace_back(circleRadius_ * simu::Vec2{std::cos(theta), std::sin(theta)});
     }
 
     descr.dominance                  = 1.f;
     cDescr.polygon                   = simu::Polygon{v.begin(), v.end()};
     cDescr.material.density          = 10.f;
     cDescr.material.bounciness.value = 1.f;
-    for (int i = 0; i < n; ++i)
+    for (int i = 0; i < n_; ++i)
     {
-        float x = -(n - 1.f) + 2.f * i;
+        float x = -barWidth / 2.f + (2 * i + 1) * circleRadius_;
 
         descr.position = simu::Vec2{x, 0.f};
         auto ball      = world().makeBody<simu::VisibleBody>(
@@ -90,16 +88,27 @@ void NewtonPendulum::init(simu::Renderer& renderer)
             simu::Bodies{
                 ball, bar
         },
-            std::array<simu::Vec2, 2>{simu::Vec2{x, 1.f}, simu::Vec2{x, 8.f}},
+            std::array<simu::Vec2, 2>{
+                simu::Vec2{x, circleRadius_}, simu::Vec2{x, barBottom}},
             std::nullopt,
-            7.f,
+            stringLength_,
             &renderer,
             false
         );
 
-        if (i >= 2)
+        if (i >= (n_ - initialPush_))
             ball->setVelocity(simu::Vec2{10.f, 0.f});
     }
 
     world().makeForceField<simu::Gravity>(simu::Vec2{0, -10.f});
+}
+
+void NewtonPendulum::doGui()
+{
+    ImGui::SliderInt("Number of circles", &n_, 1, 10);
+    ImGui::SliderFloat("Radius", &circleRadius_, 0.1f, 10.f);
+    ImGui::SliderFloat("String length", &stringLength_, 0.01f, 20.f);
+    ImGui::SliderInt("Circle precision", &circlePrecision_, 3, 100);
+
+    ImGui::SliderInt("Push how many?", &initialPush_, 0, n_);
 }

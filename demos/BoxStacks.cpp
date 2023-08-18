@@ -24,6 +24,8 @@
 
 #include "Demos.hpp"
 
+#include "imgui.h"
+
 BoxStacks::BoxStacks()
 {
     registerAllTools();
@@ -39,28 +41,37 @@ void BoxStacks::init(simu::Renderer& renderer)
     renderer.setLineWidth(0.1f);
 
     simu::BoxSpawner spawner{*this};
+    auto             dims = spawner.dims;
 
-    // NGS is a lot more stable here, but is a bit slower than baumgarte.
-    for (simu::Int32 x = -90; x < 90; x += 5)
-        for (simu::Uint32 i = 0; i < 10; ++i)
-            spawner.makeBox(simu::Vec2{(float)x, (float)5 * i});
+    float      floorWidth  = (nStacks_ * 2 + 4) * dims[0];
+    float      floorHeight = 20.f;
+    simu::Vec2 center{0.f, -floorHeight / 2.f - 1.f};
 
+    for (int stack = 0; stack < nStacks_; ++stack)
+    {
+        for (int h = 0; h < height_; ++h)
+        {
+            float x = -floorWidth / 2.f + dims[0] * (1 + (stack+1) * 2);
+            float y = h * dims[1];
+            spawner.makeBox(simu::Vec2{x, y});
+        }
+    }
 
     world().makeForceField<simu::Gravity>(simu::Vec2{0.f, -10.f});
 
     simu::BodyDescriptor     descr{};
     simu::ColliderDescriptor cDescr{
-        simu::Polygon{
-                      simu::Vertex{-100.f, -20.f},
-                      simu::Vertex{100.f, -20.f},
-                      simu::Vertex{100.f, -1.f},
-                      simu::Vertex{-100.f, -1.f}}
-    };
+        simu::Polygon::box(simu::Vec2{floorWidth + 2.f*height_*dims[1], floorHeight}, center)};
 
     descr.dominance                = 0.f;
     cDescr.material.friction.value = 0.8f;
     world()
         .makeBody<simu::VisibleBody>(descr, simu::Rgba{0, 0, 0, 255}, &renderer)
         ->addCollider(cDescr);
+}
 
+void BoxStacks::doGui()
+{
+    ImGui::SliderInt("Number of stacks", &nStacks_, 1, 100);
+    ImGui::SliderInt("Stack height", &height_, 1, 100);
 }

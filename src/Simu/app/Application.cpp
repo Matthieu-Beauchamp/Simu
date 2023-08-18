@@ -295,6 +295,7 @@ void Application::doGui(float dt)
         bool showProfiler       = true;
         bool showEngineSettings = false;
         bool showSceneControls  = false;
+        bool showSceneOptions   = false;
 
         bool selectTool      = true;
         bool showToolOptions = false;
@@ -336,6 +337,7 @@ void Application::doGui(float dt)
         if (hasScene && ImGui::BeginMenu("Scene"))
         {
             ImGui::MenuItem("Controls", nullptr, &menu.showSceneControls);
+            ImGui::MenuItem("Options", nullptr, &menu.showSceneOptions);
             ImGui::EndMenu();
         }
 
@@ -473,6 +475,17 @@ void Application::doGui(float dt)
         // if (menu.pauseToggle)
         //     if (ImGui::Button("Step (S)"))
         //         scene_->step();
+
+        ImGui::End();
+    }
+
+    if (hasScene && menu.showSceneOptions)
+    {
+        ImGui::Begin(
+            "Scene options", &menu.showSceneOptions, ImGuiWindowFlags_AlwaysAutoResize
+        );
+
+        scene_->doGui();
 
         ImGui::End();
     }

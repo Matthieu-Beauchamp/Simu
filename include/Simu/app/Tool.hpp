@@ -39,6 +39,8 @@ public:
 
     // called inside an ImGui window Begin/End block
     virtual void        doGui() = 0;
+
+    // Must be unique. Must not change during execution
     virtual const char* getName() const { return ""; }
 
     virtual bool onKeypress(Keyboard::Input input) = 0;
@@ -122,7 +124,7 @@ public:
     float friction   = 0.5f;
     float bounciness = 0.f;
 
-    Rgba color_{225, 150, 240, 255};
+    Rgba color{225, 150, 240, 255};
 
 private:
 

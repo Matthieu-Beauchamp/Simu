@@ -107,9 +107,9 @@ void BoxSpawner::doGui()
     ImGui::SliderInt("Orientation", &degrees, -180, 180);
     orientation = degrees * pi / 180.f;
 
-    Vec4 rgba = color_ / 255.f;
+    Vec4 rgba = color / 255.f;
     ImGui::ColorEdit3("Color", rgba.data);
-    color_ = static_cast<Rgba>(rgba * 255.f);
+    color = static_cast<Rgba>(rgba * 255.f);
 }
 
 bool BoxSpawner::onMousePress(Mouse::Input input)
@@ -129,7 +129,7 @@ Body* BoxSpawner::makeBox(Vec2 pos, std::optional<Vec2> dimensions)
     BodyDescriptor descr{pos, orientation, dominance};
 
     auto b = scene_.world().makeBody<VisibleBody>(
-        descr, color_, scene_.app()->renderer()
+        descr, color, scene_.app()->renderer()
     );
 
     Material material;
