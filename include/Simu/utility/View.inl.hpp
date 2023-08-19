@@ -38,7 +38,7 @@ class TransformView<Iter, Deref>::Iterator
 {
 public:
 
-    typedef std::remove_reference_t<DerefReturn>        value_type;
+    typedef std::remove_reference_t<DerefReturn> value_type;
     typedef typename std::iterator_traits<Iter>::difference_type difference_type;
 
     typedef value_type& reference;
@@ -69,22 +69,26 @@ private:
     Deref deref_;
 };
 
-static_assert(std::input_iterator<TransformView<int*, Identity>::Iterator>, "");
+static_assert(std::input_iterator<TransformView<int**, DoubleDereference>::Iterator>, "");
 static_assert(
-    std::sentinel_for<TransformView<int*, Identity>::Iterator, TransformView<int*, Identity>::Iterator>,
+    std::sentinel_for<
+        TransformView<int**, DoubleDereference>::Iterator,
+        TransformView<int**, DoubleDereference>::Iterator>,
     ""
 );
-static_assert(std::ranges::range<TransformView<int*, Identity>>, "");
+static_assert(std::ranges::range<TransformView<int**, DoubleDereference>>, "");
 
 
 template <std::forward_iterator Iter, std::invocable<decltype(*std::declval<Iter>())> Deref>
-typename TransformView<Iter, Deref>::Iterator TransformView<Iter, Deref>::begin() const
+typename TransformView<Iter, Deref>::Iterator
+TransformView<Iter, Deref>::begin() const
 {
     return Iterator{begin_, deref_};
 }
 
 template <std::forward_iterator Iter, std::invocable<decltype(*std::declval<Iter>())> Deref>
-typename TransformView<Iter, Deref>::Iterator TransformView<Iter, Deref>::end() const
+typename TransformView<Iter, Deref>::Iterator
+TransformView<Iter, Deref>::end() const
 {
     return Iterator{end_, deref_};
 }

@@ -381,7 +381,7 @@ void Application::doGui(float dt)
             auto printTimeEntry = [](const TimeEntry& t, const char* name) {
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
-                ImGui::Text(name);
+                ImGui::Text("%s", name);
                 ImGui::TableNextColumn();
                 ImGui::Text("%.3f", t.last() * 1000.f);
                 ImGui::TableNextColumn();

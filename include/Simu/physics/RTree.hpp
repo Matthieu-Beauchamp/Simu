@@ -650,10 +650,11 @@ private:
             return nullptr;
         else if (count == 1)
         {
+            Node* leaf = *nodes.begin();
             for (Node* node : collisions.overlapping())
-                onCollision(iterator{nodes[0]}, iterator{node});
+                onCollision(iterator{leaf}, iterator{node});
 
-            return nodes[0];
+            return leaf;
         }
 
         Node* subRoot = bin.getNode();
