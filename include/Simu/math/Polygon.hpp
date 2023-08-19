@@ -29,6 +29,7 @@
 #include "Simu/config.hpp"
 #include "Simu/math/Matrix.hpp"
 #include "Simu/math/Geometry.hpp"
+#include "Simu/math/Transform.hpp"
 
 #include "Simu/utility/View.hpp"
 
@@ -72,6 +73,23 @@ public:
             center + Vertex{w,  h },
             center + Vertex{-w, h }
         };
+    }
+
+    static Polygon
+    circle(float radius, Uint32 precision = 16, Vec2 center = Vec2{})
+    {
+        simu::Vertices vertices{};
+        vertices.resize(precision);
+
+        Rotation rot{2.f * std::numbers::pi_v<float> / precision};
+        Vec2     offset = radius * Vec2::i();
+        for (Vec2& v : vertices)
+        {
+            v      = center + offset;
+            offset = rot * offset;
+        }
+
+        return Polygon{vertices.begin(), vertices.end()};
     }
 
     GeometricProperties properties() const { return properties_; }

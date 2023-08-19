@@ -34,6 +34,7 @@ int main()
     app.registerScene<Pyramid>("Pyramid");
     app.registerScene<Tower>("Tower");
     app.registerScene<Tumbler>("Tumbler");
+    app.registerScene<Motorcycle>("Motorcycle");
 
     app.run();
     return 0;

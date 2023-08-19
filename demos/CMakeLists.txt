@@ -5,6 +5,7 @@ add_executable(Demos
     Tumbler.cpp 
     Pyramid.cpp 
     NewtonPendulum.cpp
+    Motorcycle.cpp
 )
 
 target_link_libraries(Demos simu-app)

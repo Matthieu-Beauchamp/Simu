@@ -24,6 +24,8 @@
 
 #pragma once
 
+#include <numbers>
+
 #include "Simu/app.hpp"
 
 
@@ -117,4 +119,55 @@ private:
     int maxCount_ = 1500;
 
     int count_ = 0;
+};
+
+class Motorcycle : public simu::Scene
+{
+public:
+
+    Motorcycle();
+    void init(simu::Renderer& renderer) override;
+    void doGui() override {}
+
+    void preStep(float) override { updateMotors(); }
+
+protected:
+
+    void moveCamera(float dt) override;
+
+private:
+
+    void updateMotors();
+
+    void buildMap();
+    void buildMotorcycle();
+
+
+    static constexpr float pi = std::numbers::pi_v<float>;
+
+    static constexpr float maxAccel_    = 1000*pi / 2;
+    static constexpr float maxVelocity_ = 12 * pi;
+
+    static constexpr float breakStrengthRatio = 2.f;
+
+    static constexpr float maxTiltAccel_    = 50*pi / 4;
+    static constexpr float maxTiltVelocity_ = 2 * pi;
+
+    static constexpr float        wheelRadius    = 1.f;
+    static constexpr simu::Uint32 wheelPrecision = 100;
+
+    static inline const simu::Rgba chassisColor{50, 100, 200, 255};
+    static inline const simu::Rgba wheelColor{100, 100, 100, 255};
+    static inline const simu::Rgba bodyColor{0, 0, 0, 255};
+
+    simu::Body* motorcycle_;
+
+    simu::Body*          rearWheel_;
+    simu::RotationMotor* motor_;
+
+    simu::Body*          frontWheel_;
+    simu::RotationMotor* breaks_;
+
+    simu::Body*          rider_;
+    simu::RotationMotor* riderTilt_;
 };

@@ -83,18 +83,8 @@ void NewtonPendulum::init(simu::Renderer& renderer)
 
     bar->addCollider(cDescr);
 
-
-    simu::Vertices v{};
-
-    float theta = 0.f;
-    for (int i = 0; i < circlePrecision_; ++i)
-    {
-        theta += (2.f * std::numbers::pi_v<float>) / circlePrecision_;
-        v.emplace_back(circleRadius_ * simu::Vec2{std::cos(theta), std::sin(theta)});
-    }
-
-    descr.dominance                  = 1.f;
-    cDescr.polygon                   = simu::Polygon{v.begin(), v.end()};
+    descr.dominance = 1.f;
+    cDescr.polygon  = simu::Polygon::circle(circleRadius_, circlePrecision_);
     cDescr.material.density          = 10.f;
     cDescr.material.bounciness.value = 1.f;
     for (int i = 0; i < n_; ++i)

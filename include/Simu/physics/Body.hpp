@@ -28,10 +28,10 @@
 
 #include "Simu/config.hpp"
 #include "Simu/math/Matrix.hpp"
+#include "Simu/math/Transform.hpp"
 
 #include "Simu/physics/PhysicsObject.hpp"
 #include "Simu/physics/BodyTree.hpp"
-#include "Simu/physics/Transform.hpp"
 #include "Simu/physics/Collider.hpp"
 
 #include "Simu/utility/View.hpp"
