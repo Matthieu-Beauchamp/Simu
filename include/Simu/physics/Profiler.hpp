@@ -49,12 +49,13 @@ public:
 
     Int64 nMeasures() const { return nMeasures_; }
 
-    class ScopedTimer;
-    inline [[nodiscard]] ScopedTimer time();
+    class [[nodiscard]] ScopedTimer;
 
-    void                             startPartial() { last_ = Seconds{0.0}; }
-    inline [[nodiscard]] ScopedTimer timePartial();
-    void                             commitPartial() { addMeasure(last_); }
+    inline ScopedTimer time();
+    
+    void               startPartial() { last_ = Seconds{0.0}; }
+    inline ScopedTimer timePartial();
+    void               commitPartial() { addMeasure(last_); }
 
 private:
 
@@ -74,7 +75,7 @@ private:
     Int64 nMeasures_ = 0;
 };
 
-class TimeEntry::ScopedTimer
+class [[nodiscard]] TimeEntry::ScopedTimer
 {
 #if defined(SIMU_PROFILE)
 
