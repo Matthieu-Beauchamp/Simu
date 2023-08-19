@@ -151,6 +151,7 @@ private:
 
     struct FreeBlock
     {
+        FreeBlock(Byte* start, Byte* end) : start{start}, end{end} {}
         std::size_t size() const noexcept { return end - start; }
 
         Byte* start;
@@ -269,8 +270,7 @@ bool Block::deallocate(T* p, std::size_t n) noexcept
     }
 
     bool canMergeWithNext = (next != freeList_.end() && end == next->start);
-    bool canMergeWithPrev
-        = (next != freeList_.begin() && std::prev(next)->end == start);
+    bool canMergeWithPrev = (next != freeList_.begin() && std::prev(next)->end == start);
 
     if (canMergeWithNext && canMergeWithPrev)
     {
@@ -295,8 +295,7 @@ FreeListAllocator<T, sz>::FreeListAllocator()
 }
 
 template <class T, std::size_t sz>
-FreeListAllocator<T, sz>::FreeListAllocator(const FreeListAllocator& other
-) noexcept
+FreeListAllocator<T, sz>::FreeListAllocator(const FreeListAllocator& other) noexcept
 {
     *this = other;
 }
@@ -318,7 +317,8 @@ FreeListAllocator<T, sz>::FreeListAllocator(const FreeListAllocator<U, sz>& othe
 }
 
 template <class T, std::size_t sz>
-FreeListAllocator<T, sz>::pointer FreeListAllocator<T, sz>::allocate(size_type n)
+typename FreeListAllocator<T, sz>::pointer
+FreeListAllocator<T, sz>::allocate(size_type n)
 {
     if (n == 0)
         return nullptr;
