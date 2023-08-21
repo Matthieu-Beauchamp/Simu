@@ -83,7 +83,7 @@ void Motorcycle::buildMap()
     descr.dominance = 0.f;
 
     simu::ColliderDescriptor floor{
-        simu::Polygon::box(simu::Vec2{200.f, 20.f}, simu::Vec2{0.f, -10.f})};
+        simu::Polygon::box(simu::Vec2{200.f, 20.f}, simu::Vec2{0.f, -30.f})};
 
     w.makeBody<simu::VisibleBody>(descr, bodyColor, r)->addCollider(floor);
 }
@@ -96,7 +96,7 @@ void Motorcycle::buildMotorcycle()
     simu::BodyDescriptor descr{};
 
     simu::Material chassisMaterial{};
-    chassisMaterial.density = 0.1f;
+    chassisMaterial.density = 5.f;
     simu::ColliderDescriptor chassisColliderDescr{
         simu::Polygon::box(simu::Vec2{6.f * wheelRadius, 2 * wheelRadius}),
         chassisMaterial};
@@ -107,8 +107,7 @@ void Motorcycle::buildMotorcycle()
     descr.position = simu::Vec2{-2.f * wheelRadius, -2.f * wheelRadius};
 
     simu::Material wheelMaterial{};
-    wheelMaterial.density        = 0.2f;
-    wheelMaterial.friction.value = 1.f;
+    wheelMaterial.friction.value = 2.f;
     simu::ColliderDescriptor wheelColliderDescr{
         simu::Polygon::circle(wheelRadius, wheelPrecision), wheelMaterial};
 
@@ -120,18 +119,41 @@ void Motorcycle::buildMotorcycle()
     frontWheel_       = w.makeBody<simu::VisibleBody>(descr, wheelColor, r);
     frontWheel_->addCollider(wheelColliderDescr);
 
-    // TODO: Proper suspension
-    w.makeConstraint<simu::HingeConstraint>(
-        simu::Bodies{motorcycle_, rearWheel_}, rearWheel_->centroid()
+    simu::Vec2 springDir{0.f, -1.f};
+    float      springLength = wheelRadius * 1.25f;
+
+    // w.makeConstraint<simu::HingeConstraint>(
+    //     simu::Bodies{motorcycle_, rearWheel_}, rearWheel_->centroid()
+    // );
+    // w.makeConstraint<simu::HingeConstraint>(
+    //     simu::Bodies{motorcycle_, frontWheel_}, frontWheel_->centroid()
+    // );
+
+    auto rearSusp = w.makeConstraint<simu::SuspensionConstraint>(
+        simu::Bodies{motorcycle_, rearWheel_},
+        springDir,
+        springLength,
+        simu::Vec2{-2.f * wheelRadius, -wheelRadius}
     );
-    w.makeConstraint<simu::HingeConstraint>(
-        simu::Bodies{motorcycle_, frontWheel_}, frontWheel_->centroid()
+    auto frontSusp = w.makeConstraint<simu::SuspensionConstraint>(
+        simu::Bodies{motorcycle_, frontWheel_},
+        springDir,
+        springLength,
+        simu::Vec2{2.f * wheelRadius, -wheelRadius}
     );
 
+    rearSusp->setSpringDamping(options_.suspensionDamping);
+    frontSusp->setSpringDamping(options_.suspensionDamping);
 
-    auto specs = simu::RotationMotor::Specs::fromAccel(maxVelocity_, maxAccel_);
+    rearSusp->setSpringRestitution(options_.suspensionRestitution);
+    frontSusp->setSpringRestitution(options_.suspensionRestitution);
+
+
+    auto specs = simu::RotationMotor::Specs::fromTorque(
+        options_.maxVelocity, options_.maxTorque
+    );
     auto breakSpecs = simu::RotationMotor::Specs::fromAccel(
-        0.f, breakStrengthRatio * maxAccel_
+        0.f, breakStrengthRatio * options_.maxTorque
     );
 
     motor_ = w.makeConstraint<simu::RotationMotor>(
@@ -148,7 +170,9 @@ void Motorcycle::buildMotorcycle()
         simu::Polygon::box(simu::Vec2{0.3f * wheelRadius, chestHeight})};
 
     simu::ColliderDescriptor headDescr{simu::Polygon::circle(
-        0.5f * wheelRadius, wheelPrecision, simu::Vec2{0.f, chestHeight / 2.f + 0.25f*wheelRadius}
+        0.5f * wheelRadius,
+        wheelPrecision,
+        simu::Vec2{0.f, chestHeight / 2.f + 0.25f * wheelRadius}
     )};
 
     rider_ = w.makeBody<simu::VisibleBody>(descr, bodyColor, r);
@@ -184,6 +208,26 @@ void Motorcycle::buildMotorcycle()
 
     riderTilt_ = w.makeConstraint<simu::RotationMotor>(
         simu::Bodies::singleBody(rider_),
-        simu::RotationMotor::Specs::fromAccel(maxTiltVelocity_, maxTiltAccel_)
+        simu::RotationMotor::Specs::fromTorque(
+            options_.maxTiltVelocity, options_.maxTiltTorque
+        )
+    );
+}
+
+void Motorcycle::doGui()
+{
+    ImGui::SliderFloat(
+        "Max motor velocity (radians)", &options_.maxVelocity, 0.1f, 1000.f
+    );
+    ImGui::SliderFloat("Max motor torque", &options_.maxTorque, 0.1f, 10000.f);
+
+    ImGui::SliderFloat(
+        "Max tilt velocity (radians)", &options_.maxTiltVelocity, 0.1f, 100.f
+    );
+    ImGui::SliderFloat("Max tilt torque", &options_.maxTiltTorque, 0.1f, 1000.f);
+
+    ImGui::SliderFloat("Suspension damping", &options_.suspensionDamping, 0.f, 5.f);
+    ImGui::SliderFloat(
+        "Suspension restitution", &options_.suspensionRestitution, 0.f, 2.f
     );
 }

@@ -57,7 +57,7 @@ public:
     typedef Matrix<float, dimension, dimension> KMatrix;
 
 
-    ConstraintSolverBase(Bodies /* bodies */, const F& /* f */) {}
+    ConstraintSolverBase(const Bodies& /* bodies */, const F& /* f */) {}
 
     Value&       restitution() { return restitution_; }
     const Value& restitution() const { return restitution_; }

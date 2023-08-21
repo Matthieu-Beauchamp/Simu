@@ -69,6 +69,8 @@ public:
 
 class Scene;
 
+// TODO: Updating on mouse move is not enough, mouse pos must be updated
+//  when to camera moves too. (update every frame for simplicity)
 class Grabber : public Tool
 {
 public:

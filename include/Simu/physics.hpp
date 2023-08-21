@@ -30,3 +30,4 @@
 #include "Simu/physics/Constraint.hpp"
 #include "Simu/physics/Motors.hpp"
 #include "Simu/physics/DistanceConstraint.hpp"
+#include "Simu/physics/SuspensionConstraint.hpp"

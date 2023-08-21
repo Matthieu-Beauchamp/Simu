@@ -127,7 +127,7 @@ public:
 
     Motorcycle();
     void init(simu::Renderer& renderer) override;
-    void doGui() override {}
+    void doGui() override;
 
     void preStep(float) override { updateMotors(); }
 
@@ -145,16 +145,10 @@ private:
 
     static constexpr float pi = std::numbers::pi_v<float>;
 
-    static constexpr float maxAccel_    = 1000*pi / 2;
-    static constexpr float maxVelocity_ = 12 * pi;
-
     static constexpr float breakStrengthRatio = 2.f;
 
-    static constexpr float maxTiltAccel_    = 50*pi / 4;
-    static constexpr float maxTiltVelocity_ = 2 * pi;
-
     static constexpr float        wheelRadius    = 1.f;
-    static constexpr simu::Uint32 wheelPrecision = 100;
+    static constexpr simu::Uint32 wheelPrecision = 160; // TODO: Polygonal wheel jumps
 
     static inline const simu::Rgba chassisColor{50, 100, 200, 255};
     static inline const simu::Rgba wheelColor{100, 100, 100, 255};
@@ -170,4 +164,18 @@ private:
 
     simu::Body*          rider_;
     simu::RotationMotor* riderTilt_;
+
+    struct Options
+    {
+        float maxVelocity = 100.f * 2.f * pi;
+        float maxTorque   = 1000.f;
+
+        float maxTiltVelocity = 2.f * pi;
+        float maxTiltTorque   = 100.f;
+
+        float suspensionDamping     = 0.f;
+        float suspensionRestitution = 0.05f;
+    };
+
+    Options options_{};
 };

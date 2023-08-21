@@ -70,6 +70,7 @@ public:
         this->init(*renderer_);
     }
 
+    // TODO: Baumgarte stabilization does not play well with varying time steps.
     // play speeds above 1 may hinder the physics accuracy
     void setPlaySpeed(float speed)
     {
