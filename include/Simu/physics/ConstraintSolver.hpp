@@ -28,6 +28,7 @@
 
 #include "Simu/config.hpp"
 #include "Simu/math/Matrix.hpp"
+#include "Simu/utility/Callable.hpp"
 
 #include "Simu/physics/ConstraintInterfaces.hpp"
 #include "Simu/physics/ConstraintSoftness.hpp"
@@ -35,11 +36,116 @@
 namespace simu
 {
 
-class Body;
+namespace constraint
+{
+
+template <Uint32 dimension>
+using Value = Vector<float, dimension>;
+
+template <Uint32 dimension>
+using JacobianMatrix = Matrix<float, dimension, 6>;
+
+template <Uint32 dimension>
+using EffectiveMass = Matrix<float, dimension, dimension>;
+
+typedef typename Proxies::Mass    Mass;
+typedef typename Proxies::MassVec MassVec;
+
+typedef typename Proxies::State       State;
+typedef typename Proxies::VelocityVec VelocityVec;
+typedef typename Proxies::Impulse     Impulse;
+
+} // namespace constraint
+
+
+template <Uint32 dimension>
+class Lambda
+{
+public:
+
+    typedef constraint::Value<dimension> Val;
+
+    Lambda() = default;
+
+    void newStep()
+    {
+        previous_    = accumulated_;
+        accumulated_ = Val{};
+    }
+
+    Val getAccumulated() const { return accumulated_; }
+    Val getPrevious() const { return previous_; }
+
+    template <Callable<Val(const Val&)> Clamp>
+    Val increment(const Val& dLambda, const Clamp& clampFunc)
+    {
+        return setAccumulated(clampFunc(accumulated_ + dLambda));
+    }
+
+    // assumes accumulated is clamped to valid range.
+    // Returns the change in accumulated lambda.
+    Val setAccumulated(const Val& accumulated)
+    {
+        Val dLambda  = accumulated - accumulated_;
+        accumulated_ = accumulated;
+        return dLambda;
+    }
+
+    /// \param damping The Gamma / dt vector
+    Val forceFeedbackBias(const Val& damping)
+    {
+        return elementWiseMul(accumulated_, damping);
+    }
+
+private:
+
+    Val accumulated_;
+    Val previous_;
+};
+
+
+template <Uint32 dimension>
+class Jacobian : public constraint::JacobianMatrix<dimension>
+{
+public:
+
+    typedef constraint::JacobianMatrix<dimension> Base;
+
+    typedef constraint::Value<dimension> Value;
+
+    typedef constraint::EffectiveMass<dimension> EffectiveMass;
+    typedef constraint::MassVec                  MassVec;
+
+    typedef constraint::VelocityVec Velocity;
+
+
+    Jacobian() = default;
+
+    /// This is the non inverted J * M^-1 * J^T
+    EffectiveMass computeEffectiveMass(const MassVec& invMassVec) const
+    {
+        return *this * elementWiseMul(invMassVec, transpose(*this));
+    }
+
+    /// This is the non inverted J * M^-1 * J^T + E*Gamma/dt
+    /// \param damping The diagonal of E*Gamma / dt
+    EffectiveMass
+    computeEffectiveMassWithDamping(const MassVec& invMassVec, const Value& damping) const
+    {
+        return computeEffectiveMass(invMassVec) + EffectiveMass::diagonal(damping);
+    }
+
+    Value velocityError(const Velocity& velocity) const
+    {
+        return *this * velocity;
+    }
+
+    Value impulse(const Value& lambda) { return transpose(*this) * lambda; }
+};
 
 
 template <ConstraintFunction F_>
-class ConstraintSolverBase
+struct ConstraintSolverBase
 {
 public:
 
@@ -48,25 +154,13 @@ public:
     static constexpr Uint32 nBodies   = F::nBodies;
     static constexpr Uint32 dimension = F::dimension;
 
-    typedef typename F::Value    Value;
-    typedef typename F::Jacobian Jacobian;
+    typedef constraint::EffectiveMass<dimension> KMatrix;
 
-    typedef typename Proxies::State       State;
-    typedef typename Proxies::VelocityVec VelocityVec;
-    typedef typename Proxies::Impulse     Impulse;
+    ConstraintSolverBase() = default;
 
-    typedef Matrix<float, dimension, dimension> KMatrix;
-
-
-    ConstraintSolverBase(const Bodies& /* bodies */, const F& /* f */) {}
-
-    auto&       softness() { return softness_; }
-    const auto& softness() const { return softness_; }
-
-    void initBase()
+    void initVelocitySolve(const Proxies& proxies, const F& f)
     {
-        previousLambda_ = lambda_;
-        lambda_         = Value{};
+        lambda.newStep();
     }
 
     void warmstartDefault(Proxies& proxies, const F& f, float dt)
@@ -74,102 +168,82 @@ public:
         updateLambda(proxies, f, dt, previousLambda_);
     }
 
-    KMatrix
-    computeEffectiveMass(const Proxies& proxies, const F& f, float dt, bool addDamping)
+    KMatrix computeEffectiveMass(const Proxies& proxies, const F& f)
     {
-        J_                    = f.jacobian(proxies);
-        KMatrix effectiveMass = J_ * proxies.inverseMass() * transpose(J_);
+        J = f.jacobian(proxies);
+        return J.computeEffectiveMass(proxies.invMassVec());
+    }
 
-        if (addDamping)
+    KMatrix
+    computeEffectiveMassWithDamping(const Proxies& proxies, const F& f, float dt)
+    {
+        KMatrix effectiveMass = computeEffectiveMass(proxies, f);
+
+        for (Uint32 i = 0; i < dimension; ++i)
         {
-            for (Uint32 i = 0; i < dimension; ++i)
-            {
-                ConstraintSoftness::Feedbacks feedback = softness_[i].getFeedbacks(
-                    1.f / effectiveMass(i, i), dt
-                );
+            ConstraintSoftness::Feedbacks feedback = softness_[i].getFeedbacks(
+                1.f / effectiveMass(i, i), dt
+            );
 
-                damping_[i]     = feedback.gamma / dt;
-                restitution_[i] = feedback.beta / dt;
-            }
-
-            effectiveMass += KMatrix::diagonal(damping_);
+            damping_[i]     = feedback.gamma / dt;
+            restitution_[i] = feedback.beta / dt;
         }
+
+        effectiveMass += KMatrix::diagonal(damping_);
 
         return effectiveMass;
     }
 
-    Value computeRhs(const Proxies& proxies, const F& f, float, bool addDamping) const
+    Value computeVelocityError(const Proxies& proxies, const F& f) const
     {
-        Value error                  = J_ * proxies.velocity();
-        Value bias                   = f.bias(proxies);
-        Value baumgarteStabilization = KMatrix::diagonal(restitution_)
-                                       * f.eval(proxies);
-
-        Value previousDamping = addDamping ? KMatrix::diagonal(damping_) * lambda_
-                                           : Value{};
-
-        return -(error + bias + baumgarteStabilization + previousDamping);
+        Value error = J_ * proxies.velocity();
+        Value bias  = f.bias(proxies);
+        return error + bias;
     }
 
-    void updateLambda(Proxies& proxies, const F& f, float dt, Value dLambda)
+    // This can be reused throughout velocity iterations
+    Value computeBaumgarteStabilization(const Proxies& proxies, const F& f) const
     {
-        Value oldLambda = lambda_;
-        lambda_ += dLambda;
-        lambda_ = f.clampLambda(lambda_, dt);
-
-        proxies.applyImpulse(impulse(J_, lambda_ - oldLambda));
+        return elementWiseMul(restitution_, f.eval(proxies));
     }
 
-    static Impulse impulse(const Jacobian& J, const Value& lambda)
+    Value computeForceFeedbackBias() const
     {
-        return transpose(J) * lambda;
+        return elementWiseMul(damping_, lambda_);
     }
 
-    Jacobian getJacobian() const { return J_; }
-    Value    getAccumulatedLambda() const { return lambda_; }
-    Value    getPreviousLambda() const { return previousLambda_; }
-    void     setLambdaHint(Value lambda) { lambda_ = lambda; }
+    void applyImpulse(Proxies& proxies, const constraint::Impulse& impulse)
+    {
+        proxies.applyImpulse(impulse);
+    }
 
-private:
+    Lambda<dimension>            lambda{};
+    Jacobian<dimension>          J{};
+    constraint::Value<dimension> C{};
 
-    Value    lambda_{};
-    Value    previousLambda_{};
-    Jacobian J_{};
+    std::array<ConstraintSoftness, dimension> softness{};
 
-    std::array<ConstraintSoftness, dimension> softness_{};
-
-    Value restitution_{};
-    Value damping_{};
+    constraint::Value<dimension> restitution{};
+    constraint::Value<dimension> damping{};
 };
 
 
-template <ConstraintFunction F>
-class EqualitySolver : public ConstraintSolverBase<F>
+template <Uint32 dimension>
+class EqualitySolver
 {
 public:
 
-    typedef ConstraintSolverBase<F> Base;
-
-    static constexpr Uint32 nBodies   = F::nBodies;
-    static constexpr Uint32 dimension = F::dimension;
-
-    typedef typename Base::Value    Value;
-    typedef typename Base::Jacobian Jacobian;
-    typedef typename Base::State    State;
-
-    typedef typename Base::KMatrix         KMatrix;
-    typedef Solver<float, Base::dimension> KSolver;
+    typedef constraint::Value<dimension>         Value;
+    typedef constraint::EffectiveMass<dimension> EffectiveMass;
+    typedef Solver<float, dimension>             Solver_;
 
 
-    EqualitySolver(const Bodies& bodies, const F& f)
-        : Base{bodies, f}, solver_{KMatrix{}}
-    {
-    }
+    EqualitySolver() = default;
 
     void initSolve(const Proxies& proxies, const F& f, float dt)
     {
         this->initBase();
-        solver_ = Solver{this->computeEffectiveMass(proxies, f, dt, true)};
+        solver_ = Solver{this->computeEffectiveMassWithDamping(proxies, f, dt)};
         SIMU_ASSERT(solver_.isValid(), "Constraint cannot be solved");
     }
 
@@ -201,7 +275,7 @@ public:
 
 private:
 
-    KSolver solver_;
+    Solver_ solver_;
 };
 
 
@@ -223,7 +297,7 @@ public:
     typedef Solver<float, Base::dimension> KSolver;
 
 
-    InequalitySolver(const Bodies& bodies, const F& f) : Base{bodies, f} {}
+    InequalitySolver() = default;
 
     void initSolve(const Proxies& proxies, const F& f, float dt)
     {
@@ -319,7 +393,7 @@ public:
     typedef typename Base::KMatrix         KMatrix;
     typedef Solver<float, Base::dimension> KSolver;
 
-    LimitsSolver(Bodies bodies, const F& f) : Base{bodies, f} {}
+    LimitsSolver() = default;
 
     void setLowerLimit(std::optional<Value> L)
     {

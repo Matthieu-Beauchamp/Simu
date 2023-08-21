@@ -85,8 +85,14 @@ public:
         float halfLife;
     };
 
+    ////////////////////////////////////////////////////////////
+    /// For a scalar constraint (dimension = 1), the mass parameter is
+    ///     (J * M^-1 * J^T)^1. Otherwise take the corresponding entry in the
+    ///     diagonal of that matrix.
+    ////////////////////////////////////////////////////////////
     Feedbacks getFeedbacks(float mass, float dt) const
     {
+        // TODO: Since we don't have any getters, convert on set().
         switch (param_)
         {
             case Parametrization::feedbacks: return feedbacks_;
