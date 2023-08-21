@@ -30,6 +30,7 @@
 #include "Simu/math/Matrix.hpp"
 
 #include "Simu/physics/ConstraintInterfaces.hpp"
+#include "Simu/physics/ConstraintSoftness.hpp"
 
 namespace simu
 {
@@ -59,11 +60,8 @@ public:
 
     ConstraintSolverBase(const Bodies& /* bodies */, const F& /* f */) {}
 
-    Value&       restitution() { return restitution_; }
-    const Value& restitution() const { return restitution_; }
-
-    Value&       damping() { return damping_; }
-    const Value& damping() const { return damping_; }
+    auto&       softness() { return softness_; }
+    const auto& softness() const { return softness_; }
 
     void initBase()
     {
@@ -77,26 +75,37 @@ public:
     }
 
     KMatrix
-    computeEffectiveMass(const Proxies& proxies, const F& f, bool addDamping)
+    computeEffectiveMass(const Proxies& proxies, const F& f, float dt, bool addDamping)
     {
         J_                    = f.jacobian(proxies);
         KMatrix effectiveMass = J_ * proxies.inverseMass() * transpose(J_);
 
         if (addDamping)
-            effectiveMass += KMatrix::diagonal(damping());
+        {
+            for (Uint32 i = 0; i < dimension; ++i)
+            {
+                ConstraintSoftness::Feedbacks feedback = softness_[i].getFeedbacks(
+                    1.f / effectiveMass(i, i), dt
+                );
+
+                damping_[i]     = feedback.gamma / dt;
+                restitution_[i] = feedback.beta / dt;
+            }
+
+            effectiveMass += KMatrix::diagonal(damping_);
+        }
 
         return effectiveMass;
     }
 
-    Value
-    computeRhs(const Proxies& proxies, const F& f, float dt, bool addDamping) const
+    Value computeRhs(const Proxies& proxies, const F& f, float, bool addDamping) const
     {
         Value error                  = J_ * proxies.velocity();
         Value bias                   = f.bias(proxies);
-        Value baumgarteStabilization = KMatrix::diagonal(restitution())
-                                       * f.eval(proxies) / dt;
+        Value baumgarteStabilization = KMatrix::diagonal(restitution_)
+                                       * f.eval(proxies);
 
-        Value previousDamping = addDamping ? KMatrix::diagonal(damping()) * lambda_
+        Value previousDamping = addDamping ? KMatrix::diagonal(damping_) * lambda_
                                            : Value{};
 
         return -(error + bias + baumgarteStabilization + previousDamping);
@@ -127,6 +136,8 @@ private:
     Value    previousLambda_{};
     Jacobian J_{};
 
+    std::array<ConstraintSoftness, dimension> softness_{};
+
     Value restitution_{};
     Value damping_{};
 };
@@ -155,10 +166,10 @@ public:
     {
     }
 
-    void initSolve(const Proxies& proxies, const F& f)
+    void initSolve(const Proxies& proxies, const F& f, float dt)
     {
         this->initBase();
-        solver_ = Solver{this->computeEffectiveMass(proxies, f, true)};
+        solver_ = Solver{this->computeEffectiveMass(proxies, f, dt, true)};
         SIMU_ASSERT(solver_.isValid(), "Constraint cannot be solved");
     }
 
@@ -179,7 +190,7 @@ public:
         Value error = f.eval(proxies);
 
         Jacobian J = f.jacobian(proxies);
-        solver_    = KSolver{this->computeEffectiveMass(proxies, f, false)};
+        solver_ = KSolver{this->computeEffectiveMass(proxies, f, 0.f, false)};
 
         Value posLambda          = f.clampPositionLambda(solver_.solve(-error));
         State positionCorrection = transpose(J) * posLambda;
@@ -214,10 +225,10 @@ public:
 
     InequalitySolver(const Bodies& bodies, const F& f) : Base{bodies, f} {}
 
-    void initSolve(const Proxies& proxies, const F& f)
+    void initSolve(const Proxies& proxies, const F& f, float dt)
     {
         this->initBase();
-        effectiveMass_ = this->computeEffectiveMass(proxies, f, true);
+        effectiveMass_ = this->computeEffectiveMass(proxies, f, dt, true);
     }
 
     void warmstart(Proxies& proxies, const F& f, float dt)
@@ -327,7 +338,7 @@ public:
     }
 
 
-    void initSolve(const Proxies& proxies, const F& f)
+    void initSolve(const Proxies& proxies, const F& f, float dt)
     {
         this->initBase();
 
@@ -335,7 +346,7 @@ public:
         func_         = nextFunc(proxies, f);
         canWarmstart_ = (func_ == prev) && (func_ != Func::off);
 
-        KMatrix effMass = this->computeEffectiveMass(proxies, f, true);
+        KMatrix effMass = this->computeEffectiveMass(proxies, f, dt, true);
 
         if (func_ == Func::equality)
             solver_ = KSolver{effMass};
@@ -416,7 +427,7 @@ public:
     void solvePosition(Proxies& proxies, const F& f)
     {
         Value    C       = f.eval(proxies);
-        KMatrix  effMass = this->computeEffectiveMass(proxies, f, false);
+        KMatrix  effMass = this->computeEffectiveMass(proxies, f, 0.f, false);
         Jacobian J       = this->getJacobian();
 
         Value posLambda{};
@@ -491,12 +502,15 @@ private:
         return Func::off;
     }
 
-    Value rhs(const Proxies& proxies, const F& f, float dt)
+    Value rhs(const Proxies& proxies, const F& f, float /*dt*/)
     {
-        Jacobian J              = this->getJacobian();
-        Value    error          = J * proxies.velocity();
-        Value    bias           = f.bias(proxies);
-        Value    baumgarteCoeff = KMatrix::diagonal(this->restitution()) / dt;
+        Jacobian J     = this->getJacobian();
+        Value    error = J * proxies.velocity();
+        Value    bias  = f.bias(proxies);
+
+        // TODO:
+        Value baumgarteCoeff = Value{}; // KMatrix::diagonal(this->restitution()) / dt;
+        Value damping = Value{};        // this->damping();
 
         Value C = f.eval(proxies);
 
@@ -507,7 +521,7 @@ private:
                 if (L_.has_value())
                     C -= L_.value();
 
-                Value previousDamping = KMatrix::diagonal(this->damping())
+                Value previousDamping = KMatrix::diagonal(damping)
                                         * this->getAccumulatedLambda();
                 return -(error + bias + baumgarteCoeff * C + previousDamping);
             }

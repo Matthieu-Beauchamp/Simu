@@ -59,9 +59,9 @@ public:
             return true;
     }
 
-    void initSolve(const Proxies& proxies) override
+    void initSolve(const Proxies& proxies, float dt) override
     {
-        solver.initSolve(proxies, f);
+        solver.initSolve(proxies, f, dt);
     }
     void warmstart(Proxies& proxies, float dt) override
     {
@@ -214,7 +214,7 @@ public:
         return frame_.nContacts != 0;
     }
 
-    void initSolve(const Proxies& proxies) final override
+    void initSolve(const Proxies& proxies, float) final override
     {
         // TODO: Use baumgarte?
         // if (normSquared(penetration_) >= maxPen_ * maxPen_)

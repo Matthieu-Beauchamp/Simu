@@ -195,19 +195,10 @@ public:
             disableContacts
     }
     {
-        // Fully rigid
-        setSpringDamping(0.f);
-        setSpringRestitution(1.f);
+        springSoftness().set(ConstraintSoftness::Feedbacks{1.f, 0.f});
     }
 
-    float springDamping() const { return solver.damping()[0]; }
-    void  setSpringDamping(float damping) { solver.damping()[0] = damping; }
-
-    float springRestitution() const { return solver.restitution()[0]; }
-    void  setSpringRestitution(float restitution)
-    {
-        solver.restitution()[0] = restitution;
-    }
+    ConstraintSoftness& springSoftness() { return solver.softness()[0]; }
 };
 
 

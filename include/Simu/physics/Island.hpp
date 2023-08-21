@@ -121,9 +121,9 @@ public:
     void applyVelocityConstraints(Uint32 nIter, bool warmstartEnabled, float dt)
     {
         for (Constraint* constraint : constraints_)
-            constraint->initSolve(constraint->bodies().getProxies());
+            constraint->initSolve(constraint->bodies().getProxies(), dt);
         for (ContactConstraint* constraint : contacts_)
-            constraint->initSolve(constraint->bodies().getProxies());
+            constraint->initSolve(constraint->bodies().getProxies(), dt);
 
         if (warmstartEnabled)
         {

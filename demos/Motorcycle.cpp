@@ -142,11 +142,8 @@ void Motorcycle::buildMotorcycle()
         simu::Vec2{2.f * wheelRadius, -wheelRadius}
     );
 
-    rearSusp->setSpringDamping(options_.suspensionDamping);
-    frontSusp->setSpringDamping(options_.suspensionDamping);
-
-    rearSusp->setSpringRestitution(options_.suspensionRestitution);
-    frontSusp->setSpringRestitution(options_.suspensionRestitution);
+    rearSusp->springSoftness().set(options_.suspension);
+    frontSusp->springSoftness().set(options_.suspension);
 
 
     auto specs = simu::RotationMotor::Specs::fromTorque(
@@ -226,8 +223,10 @@ void Motorcycle::doGui()
     );
     ImGui::SliderFloat("Max tilt torque", &options_.maxTiltTorque, 0.1f, 1000.f);
 
-    ImGui::SliderFloat("Suspension damping", &options_.suspensionDamping, 0.f, 5.f);
     ImGui::SliderFloat(
-        "Suspension restitution", &options_.suspensionRestitution, 0.f, 2.f
+        "Suspension frequency", &options_.suspension.frequency, 0.f, 100.f
+    );
+    ImGui::SliderFloat(
+        "Suspension half life", &options_.suspension.halfLife, 0.f, 2.f
     );
 }

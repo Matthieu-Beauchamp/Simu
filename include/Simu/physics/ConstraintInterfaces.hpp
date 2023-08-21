@@ -86,8 +86,8 @@ public:
 
     virtual bool isActive(const Proxies& proxies) = 0;
 
-    virtual void initSolve(const Proxies& proxies)     = 0;
-    virtual void warmstart(Proxies& proxies, float dt) = 0;
+    virtual void initSolve(const Proxies& proxies, float dt) = 0;
+    virtual void warmstart(Proxies& proxies, float dt)       = 0;
 
     virtual void solveVelocities(Proxies& proxies, float dt) = 0;
     virtual void solvePositions(Proxies& proxies)            = 0;
@@ -164,7 +164,7 @@ concept ConstraintSolver = requires(
     requires std::constructible_from<S, Bodies, typename S::F>;
 
 
-    { s.initSolve(cProxies, f) };
+    { s.initSolve(cProxies, f, dt) };
     { s.warmstart(proxies, f, dt) };
 
     { s.solveVelocity(proxies, f, dt) };

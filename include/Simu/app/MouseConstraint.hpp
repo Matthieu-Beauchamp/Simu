@@ -92,8 +92,9 @@ public:
             false
     }
     {
-        solver.restitution() = Value::filled(0.1f);
-        solver.damping()     = Value::filled(1.f);
+        ConstraintSoftness::HalfLife params{2.f, 0.5f};
+        solver.softness()[0].set(params);
+        solver.softness()[1].set(params);
     }
 
     Vec2 bodyPos() const

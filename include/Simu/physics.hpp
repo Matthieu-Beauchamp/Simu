@@ -31,3 +31,4 @@
 #include "Simu/physics/Motors.hpp"
 #include "Simu/physics/DistanceConstraint.hpp"
 #include "Simu/physics/SuspensionConstraint.hpp"
+#include "Simu/physics/ConstraintSoftness.hpp"

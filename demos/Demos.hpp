@@ -147,7 +147,7 @@ private:
 
     static constexpr float breakStrengthRatio = 2.f;
 
-    static constexpr float        wheelRadius    = 1.f;
+    static constexpr float wheelRadius = 1.f;
     static constexpr simu::Uint32 wheelPrecision = 160; // TODO: Polygonal wheel jumps
 
     static inline const simu::Rgba chassisColor{50, 100, 200, 255};
@@ -173,8 +173,7 @@ private:
         float maxTiltVelocity = 2.f * pi;
         float maxTiltTorque   = 100.f;
 
-        float suspensionDamping     = 0.f;
-        float suspensionRestitution = 0.05f;
+        simu::ConstraintSoftness::HalfLife suspension{4.f, 0.25f};
     };
 
     Options options_{};
