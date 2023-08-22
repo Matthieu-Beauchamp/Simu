@@ -128,9 +128,9 @@ public:
         if (warmstartEnabled)
         {
             for (Constraint* constraint : constraints_)
-                constraint->warmstart(constraint->bodies().getProxies(), dt);
+                constraint->warmstart(constraint->bodies().getProxies());
             for (ContactConstraint* constraint : contacts_)
-                constraint->warmstart(constraint->bodies().getProxies(), dt);
+                constraint->warmstart(constraint->bodies().getProxies());
         }
 
         for (Uint32 iter = 0; iter < nIter; ++iter)

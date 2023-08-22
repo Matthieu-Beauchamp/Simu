@@ -46,7 +46,7 @@ public:
     typedef S                 Solver;
 
     ConstraintImplementation(const Bodies& bodies, const F& f, bool disableContacts)
-        : Constraint{bodies, disableContacts}, f{f}, solver{bodies, f}
+        : Constraint{bodies, disableContacts}, f{f}, solver{}
     {
     }
 
@@ -63,9 +63,9 @@ public:
     {
         solver.initSolve(proxies, f, dt);
     }
-    void warmstart(Proxies& proxies, float dt) override
+    void warmstart(Proxies& proxies) override
     {
-        solver.warmstart(proxies, f, dt);
+        solver.warmstart(proxies);
     }
 
     void solveVelocities(Proxies& proxies, float dt) override
@@ -232,7 +232,7 @@ public:
         normalLambda_          = Vec2{};
     }
 
-    void warmstart(Proxies& proxies, float /* dt */) final override
+    void warmstart(Proxies& proxies) final override
     {
         Impulse P = transpose(Jf[0]) * previousTangentLambda_[0]
                     + transpose(Jf[1]) * previousTangentLambda_[1];

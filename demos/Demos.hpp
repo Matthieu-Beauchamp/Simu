@@ -56,14 +56,14 @@ private:
 
     // n above 10 is not very stable, increasing velocity iterations does not help.
     //  (issue seems to be with bouncing)
-    int n_ = 5;
+    int n_ = 1;
 
     float circleRadius_ = 1.f;
     float stringLength_ = 7.f;
 
     int circlePrecision_ = 48;
 
-    int initialPush_ = 1;
+    int initialPush_ = 0;
 };
 
 class Pyramid : public simu::Scene

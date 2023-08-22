@@ -152,7 +152,7 @@ public:
         );
 
         SIMU_ASSERT(
-            maxDistance > 0.f,
+            !maxDistance.has_value() || maxDistance.value() > 0.f,
             "Cannot enforce a maximal distance <= 0. Use an Hinge constraint "
             "for a distance of 0."
         );
