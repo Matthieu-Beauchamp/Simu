@@ -165,9 +165,14 @@ private:
 
 
 class SuspensionConstraint
-    : public ConstraintImplementation<SuspensionConstraintFunction>
+    : public ConstraintImplementation<
+          SuspensionConstraintFunction,
+          EqualitySolver<SuspensionConstraintFunction, constraint::Type::soft>>
 {
-    typedef ConstraintImplementation<SuspensionConstraintFunction> Base;
+    typedef ConstraintImplementation<
+        SuspensionConstraintFunction,
+        EqualitySolver<SuspensionConstraintFunction, constraint::Type::soft>>
+        Base;
 
 public:
 
@@ -198,7 +203,7 @@ public:
         springSoftness().set(ConstraintSoftness::Feedbacks{1.f, 0.f});
     }
 
-    ConstraintSoftness& springSoftness() { return solver.softness()[0]; }
+    ConstraintSoftness& springSoftness() { return solver.data().softness[0]; }
 };
 
 

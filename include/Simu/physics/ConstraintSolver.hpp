@@ -46,7 +46,7 @@ template <Uint32 dimension>
 using Value = Vector<float, dimension>;
 
 template <Uint32 dimension>
-using JacobianMatrix = Matrix<float, dimension, 6>;
+using Jacobian = Matrix<float, dimension, 6>;
 
 template <Uint32 dimension>
 using EffectiveMass = Matrix<float, dimension, dimension>;
@@ -58,326 +58,347 @@ typedef typename Proxies::State       State;
 typedef typename Proxies::VelocityVec VelocityVec;
 typedef typename Proxies::Impulse     Impulse;
 
+enum class Type
+{
+    hard,
+    soft
+};
+
+template <Uint32 dimension_, Type t>
+struct SolverData
+{
+    static constexpr Uint32 dimension = dimension_;
+    static constexpr Type   type      = t;
+
+
+    Value<dimension> lambda{};
+    Value<dimension> prevLambda{};
+
+    Jacobian<dimension> J{};
+
+    Value<dimension> bias{};
+};
+
+template <Uint32 dimension_>
+struct SolverData<dimension_, Type::soft>
+    : public SolverData<dimension_, Type::hard>
+{
+    static constexpr Type type = Type::soft;
+
+    std::array<ConstraintSoftness, dimension_> softness{};
+
+    Value<dimension_> damping{};
+};
+
+
+template <class SolverData_, ConstraintFunction F>
+EffectiveMass<SolverData_::dimension>
+computeEffectiveMass(SolverData_& data, const Proxies& proxies, const F& f)
+{
+    data.J = f.jacobian(proxies);
+    return data.J * proxies.inverseMass() * transpose(data.J);
+}
+
+template <class SolverData_, ConstraintFunction F>
+EffectiveMass<SolverData_::dimension>
+initSolve(SolverData_& data, const Proxies& proxies, const F& f, float dt)
+{
+    static_assert(SolverData_::dimension == F::dimension, "");
+
+    data.prevLambda = data.lambda;
+    data.lambda     = Value<F::dimension>{};
+
+    EffectiveMass<F::dimension> effectiveMass = computeEffectiveMass(
+        data, proxies, f
+    );
+
+    data.bias = f.bias(proxies);
+
+    if constexpr (SolverData_::type == Type::soft)
+    {
+        Value<F::dimension> restitution;
+        for (Uint32 i = 0; i < F::dimension; ++i)
+        {
+            ConstraintSoftness::Feedbacks feedback = data.softness[i].getFeedbacks(
+                1.f / effectiveMass(i, i), dt
+            );
+
+            data.damping[i] = feedback.gamma / dt;
+            restitution[i]  = feedback.beta / dt;
+        }
+
+        Value<F::dimension> C = f.eval(proxies);
+        data.bias += elementWiseMul(restitution, C);
+    }
+
+    return effectiveMass;
+}
+
+template <class SolverData_>
+EffectiveMass<SolverData_::dimension>
+applyDampingMass(const SolverData_& data, const EffectiveMass<SolverData_::dimension>& effMass)
+{
+    if constexpr (SolverData_::type == Type::soft)
+        return effMass
+               + EffectiveMass<SolverData_::dimension>::diagonal(data.damping);
+    else
+        return effMass;
+}
+
+template <class SolverData_>
+Value<SolverData_::dimension>
+velocityError(const SolverData_& data, const Proxies& proxies)
+{
+    return data.J * proxies.velocity();
+}
+
+template <class SolverData_>
+Value<SolverData_::dimension>
+velocityBias(const SolverData_& data, bool withDamping)
+{
+    if constexpr (SolverData_::type == Type::soft)
+    {
+        if (withDamping)
+            return data.bias + elementWiseMul(data.damping, data.lambda);
+    }
+
+    return data.bias;
+}
+
+template <class SolverData_>
+void applyImpulse(const SolverData_& data, Proxies& proxies, Value<SolverData_::dimension> dLambda)
+{
+    Impulse P = transpose(data.J) * dLambda;
+    proxies.applyImpulse(P);
+}
+
+
+template <class SolverData_>
+void applyPositionCorrection(
+    const SolverData_&            data,
+    Proxies&                      proxies,
+    Value<SolverData_::dimension> posLambda
+)
+{
+    State dS = transpose(data.J) * posLambda;
+    proxies.applyPositionCorrection(dS);
+}
+
+template <class SolverData_, ConstraintFunction F>
+void incrementLambda(
+    SolverData_&               data,
+    Proxies&                   proxies,
+    const F&                   f,
+    float                      dt,
+    const Value<F::dimension>& dLambda
+)
+{
+    Value<F::dimension> nextLambda = f.clampLambda(data.lambda + dLambda, dt);
+    setLambda(data, proxies, nextLambda);
+}
+
+// assumes properly clamped.
+template <class SolverData_>
+void setLambda(SolverData_& data, Proxies& proxies, const Value<SolverData_::dimension>& lambda)
+{
+    Value<SolverData_::dimension> oldLambda = data.lambda;
+    data.lambda                             = lambda;
+
+    applyImpulse(data, proxies, data.lambda - oldLambda);
+}
+
+template <class SolverData_>
+void warmstart(SolverData_& data, Proxies& proxies)
+{
+    setLambda(data, proxies, data.prevLambda);
+}
+
 } // namespace constraint
 
 
-template <Uint32 dimension>
-class Lambda
-{
-public:
-
-    typedef constraint::Value<dimension> Val;
-
-    Lambda() = default;
-
-    void newStep()
-    {
-        previous_    = accumulated_;
-        accumulated_ = Val{};
-    }
-
-    Val getAccumulated() const { return accumulated_; }
-    Val getPrevious() const { return previous_; }
-
-    template <Callable<Val(const Val&)> Clamp>
-    Val increment(const Val& dLambda, const Clamp& clampFunc)
-    {
-        return setAccumulated(clampFunc(accumulated_ + dLambda));
-    }
-
-    // assumes accumulated is clamped to valid range.
-    // Returns the change in accumulated lambda.
-    Val setAccumulated(const Val& accumulated)
-    {
-        Val dLambda  = accumulated - accumulated_;
-        accumulated_ = accumulated;
-        return dLambda;
-    }
-
-    /// \param damping The Gamma / dt vector
-    Val forceFeedbackBias(const Val& damping)
-    {
-        return elementWiseMul(accumulated_, damping);
-    }
-
-private:
-
-    Val accumulated_;
-    Val previous_;
-};
-
-
-template <Uint32 dimension>
-class Jacobian : public constraint::JacobianMatrix<dimension>
-{
-public:
-
-    typedef constraint::JacobianMatrix<dimension> Base;
-
-    typedef constraint::Value<dimension> Value;
-
-    typedef constraint::EffectiveMass<dimension> EffectiveMass;
-
-    typedef constraint::Mass    Mass;
-    typedef constraint::MassVec MassVec;
-
-    typedef constraint::VelocityVec Velocity;
-    typedef constraint::Impulse     Impulse;
-
-
-    Jacobian() = default;
-
-    using Base::operator=;
-
-    /// This is the non inverted J * M^-1 * J^T
-    EffectiveMass computeEffectiveMass(const MassVec& invMassVec) const
-    {
-        return *this * Mass::diagonal(invMassVec) * transpose(*this);
-    }
-
-    /// This is the non inverted J * M^-1 * J^T + E*Gamma/dt
-    /// \param damping The diagonal of E*Gamma / dt
-    EffectiveMass
-    computeEffectiveMassWithDamping(const MassVec& invMassVec, const Value& damping) const
-    {
-        return computeEffectiveMass(invMassVec) + EffectiveMass::diagonal(damping);
-    }
-
-    Value velocityError(const Velocity& velocity) const
-    {
-        return *this * velocity;
-    }
-
-    Impulse impulse(const Value& lambda) { return transpose(*this) * lambda; }
-};
-
-
-template <ConstraintFunction F_>
-class ConstraintSolverBase
+template <ConstraintFunction F_, constraint::Type type = constraint::Type::hard>
+class EqualitySolver
 {
 public:
 
     typedef F_ F;
 
+    typedef constraint::SolverData<F::dimension, type> SolverData;
 
-    static constexpr Uint32 nBodies   = F::nBodies;
-    static constexpr Uint32 dimension = F::dimension;
+    typedef constraint::Value<F::dimension>         Value;
+    typedef constraint::EffectiveMass<F::dimension> EffectiveMass;
 
-    typedef constraint::Value<dimension>         Value;
-    typedef constraint::EffectiveMass<dimension> EffectiveMass;
-
-    ConstraintSolverBase() = default;
-
-    EffectiveMass initBase(const Proxies& proxies, const F& f, float dt)
-    {
-        lambda_.newStep();
-        EffectiveMass effectiveMass = computeEffectiveMass(proxies, f);
-
-        Value restitution;
-        for (Uint32 i = 0; i < dimension; ++i)
-        {
-            ConstraintSoftness::Feedbacks feedback = softness_[i].getFeedbacks(
-                1.f / effectiveMass(i, i), dt
-            );
-
-            damping_[i]    = feedback.gamma / dt;
-            restitution[i] = feedback.beta / dt;
-        }
-
-        Value C = f.eval(proxies);
-
-        bias_ = f.bias(proxies);
-        bias_ += elementWiseMul(restitution, C);
-
-        return effectiveMass;
-    }
-
-    void warmstartDefault(Proxies& proxies)
-    {
-        Value dLambda         = lambda_.setAccumulated(lambda_.getPrevious());
-        constraint::Impulse P = J_.impulse(dLambda);
-        proxies.applyImpulse(P);
-    }
-
-    /// Updates the Jacobian and returns J * M^-1 * J^T
-    EffectiveMass computeEffectiveMass(const Proxies& proxies, const F& f)
-    {
-        J_ = f.jacobian(proxies);
-        return J_.computeEffectiveMass(proxies.invMassVec());
-    }
-
-    EffectiveMass applyDampingMass(const EffectiveMass& effectiveMass)
-    {
-        return effectiveMass + EffectiveMass::diagonal(damping_);
-    }
-
-    Value computeVelocityError(const Proxies& proxies) const
-    {
-        return J_.velocityError(proxies.velocity());
-    }
-
-    Value bias(bool withForceFeedback = true) const
-    {
-        if (withForceFeedback)
-            return bias_ + elementWiseMul(damping_, lambda_.getAccumulated());
-
-        return bias_;
-    }
-
-    void applyImpulse(Proxies& proxies, Value dLambda)
-    {
-        proxies.applyImpulse(J_.impulse(dLambda));
-    }
-
-    void applyPositionCorrection(Proxies& proxies, Value posLambda)
-    {
-        proxies.applyPositionCorrection(J_.impulse(posLambda));
-    }
-
-    void
-    incrementLambda(Proxies& proxies, const F& f, float dt, const Value& dLambda)
-    {
-        Value change = lambda_.increment(dLambda, [&](const Value& lambda) {
-            return f.clampLambda(lambda, dt);
-        });
-
-        this->applyImpulse(proxies, change);
-    }
-
-    // assumes properly clamped.
-    void setLambda(Proxies& proxies, const Value& lambda)
-    {
-        Value change = lambda_.setAccumulated(lambda);
-        this->applyImpulse(proxies, change);
-    }
-
-    const Lambda<dimension>& lambda() const { return lambda_; }
-    Lambda<dimension>&       lambda() { return lambda_; }
-
-    const Jacobian<dimension>& jacobian() const { return J_; }
-
-    const auto& softness() const { return softness_; }
-    auto&       softness() { return softness_; }
-
-private:
-
-    Lambda<dimension>   lambda_{};
-    Jacobian<dimension> J_{};
-    Value               bias_{};
-
-    std::array<ConstraintSoftness, dimension> softness_{};
-
-    Value damping_{};
-};
-
-
-template <ConstraintFunction F>
-class EqualitySolver : public ConstraintSolverBase<F>
-{
-public:
-
-    typedef ConstraintSolverBase<F> Base;
-
-    typedef constraint::Value<Base::dimension>         Value;
-    typedef constraint::EffectiveMass<Base::dimension> EffectiveMass;
-    typedef Solver<float, Base::dimension>             Solver_;
+    typedef Solver<float, F::dimension> MatrixSolver;
 
 
     EqualitySolver() = default;
 
     void initSolve(const Proxies& proxies, const F& f, float dt)
     {
-        EffectiveMass effMass = this->initBase(proxies, f, dt);
-        solver_               = Solver{this->applyDampingMass(effMass)};
-        SIMU_ASSERT(solver_.isValid(), "Constraint cannot be solved");
+        solver_ = initSolve(data_, proxies, f, dt);
     }
 
-    void warmstart(Proxies& proxies) { this->warmstartDefault(proxies); }
+    void warmstart(Proxies& proxies) { warmstart(data_, proxies); }
 
     void solveVelocity(Proxies& proxies, const F& f, float dt)
     {
-        auto err     = this->computeVelocityError(proxies) + this->bias();
-        auto dLambda = solver_.solve(-err);
-        this->incrementLambda(proxies, f, dt, dLambda);
+        solveVelocity(solver_, data_, proxies, f, dt);
     }
 
     void solvePosition(Proxies& proxies, const F& f)
     {
+        solvePosition(data_, proxies, f);
+    }
+
+    const SolverData& data() const { return data_; }
+    SolverData&       data() { return data_; }
+
+
+    ////////////////////////////////////////////////////////////
+    // Static methods to share implementation
+    ////////////////////////////////////////////////////////////
+
+    static MatrixSolver
+    initSolve(SolverData& data, const Proxies& proxies, const F& f, float dt)
+    {
+        EffectiveMass effMass = constraint::initSolve(data, proxies, f, dt);
+        MatrixSolver  solver{constraint::applyDampingMass(data, effMass)};
+        SIMU_ASSERT(solver.isValid(), "Constraint cannot be solved");
+        return solver;
+    }
+
+    static void warmstart(SolverData& data, Proxies& proxies)
+    {
+        constraint::warmstart(data, proxies);
+    }
+
+    static void solveVelocity(
+        const MatrixSolver& solver,
+        SolverData&         data,
+        Proxies&            proxies,
+        const F&            f,
+        float               dt
+    )
+    {
+        auto err = constraint::velocityError(data, proxies)
+                   + constraint::velocityBias(data, true);
+
+        auto dLambda = solver.solve(-err);
+        constraint::incrementLambda(data, proxies, f, dt, dLambda);
+    }
+
+    static void solvePosition(SolverData& data, Proxies& proxies, const F& f)
+    {
         Value error = f.eval(proxies);
 
-        solver_ = Solver_{this->computeEffectiveMass(proxies, f)};
+        MatrixSolver solver{constraint::computeEffectiveMass(data, proxies, f)};
 
-        Value posLambda = f.clampPositionLambda(solver_.solve(-error));
-        this->applyPositionCorrection(proxies, posLambda);
+        Value posLambda = solver.solve(-error);
+        posLambda       = f.clampPositionLambda(posLambda);
+        constraint::applyPositionCorrection(data, proxies, posLambda);
     }
 
 
 private:
 
-    Solver_ solver_{EffectiveMass{}};
+    MatrixSolver solver_{EffectiveMass{}};
+    SolverData   data_{};
 };
 
 
-template <ConstraintFunction F>
-class InequalitySolver : public ConstraintSolverBase<F>
+template <ConstraintFunction F_, constraint::Type type = constraint::Type::hard>
+class InequalitySolver
 {
 public:
 
-    typedef ConstraintSolverBase<F> Base;
+    typedef F_ F;
 
-    static constexpr Uint32 nBodies   = F::nBodies;
-    static constexpr Uint32 dimension = F::dimension;
+    typedef constraint::SolverData<F::dimension, type> SolverData;
 
-    typedef typename Base::Value    Value;
-    typedef typename Base::Jacobian Jacobian;
-    typedef typename Base::State    State;
-
-    typedef typename Base::KMatrix         KMatrix;
-    typedef Solver<float, Base::dimension> KSolver;
+    typedef constraint::Value<F::dimension>         Value;
+    typedef constraint::EffectiveMass<F::dimension> EffectiveMass;
 
 
     InequalitySolver() = default;
 
+
     void initSolve(const Proxies& proxies, const F& f, float dt)
     {
-        effectiveMass_ = this->initBase(proxies, f, dt);
+        effectiveMass_ = initSolve(data_, proxies, f, dt);
     }
 
-    void warmstart(Proxies& proxies) { this->warmstartDefault(proxies); }
+    void warmstart(Proxies& proxies) { warmstart(data_, proxies); }
 
     void solveVelocity(Proxies& proxies, const F& f, float dt)
     {
-        Value accLambda = this->lambda().getAccumulated();
-        Value error = this->computeVelocityError(proxies) + this->bias(false);
-        Value correctedError = effectiveMass_ * accLambda;
-
-        Value lambda = solveInequalities(
-            this->applyDampingMass(effectiveMass_),
-            -error + correctedError,
-            [&](Value lambda) { return f.clampLambda(lambda, dt); },
-            accLambda
-        );
-
-        this->setLambda(proxies, lambda);
+        solveVelocity(effectiveMass_, data_, proxies, f, dt);
     }
 
     void solvePosition(Proxies& proxies, const F& f)
     {
+        solvePosition(data_, proxies, f);
+    }
+
+    const SolverData& data() const { return data_; }
+    SolverData&       data() { return data_; }
+
+
+    ////////////////////////////////////////////////////////////
+    // Static methods to share implementation
+    ////////////////////////////////////////////////////////////
+
+    static EffectiveMass
+    initSolve(SolverData& data, const Proxies& proxies, const F& f, float dt)
+    {
+        return constraint::initSolve(data, proxies, f, dt);
+    }
+
+    static void warmstart(SolverData& data, Proxies& proxies)
+    {
+        constraint::warmstart(data, proxies);
+    }
+
+    static void solveVelocity(
+        const EffectiveMass& effMass,
+        SolverData&          data,
+        Proxies&             proxies,
+        const F&             f,
+        float                dt
+    )
+    {
+        Value error = constraint::velocityError(data, proxies)
+                      + constraint::velocityBias(data, false);
+
+        Value correctedError = effMass * data.lambda;
+
+        Value lambda = solveInequalities(
+            constraint::applyDampingMass(data, effMass),
+            -error + correctedError,
+            [&](Value lambda) { return f.clampLambda(lambda, dt); },
+            data.lambda
+        );
+
+        constraint::setLambda(data, proxies, lambda);
+    }
+
+    static void solvePosition(SolverData& data, Proxies& proxies, const F& f)
+    {
         Value error = f.eval(proxies);
 
-        effectiveMass_ = this->computeEffectiveMass(proxies, f);
+        EffectiveMass effMass = constraint::computeEffectiveMass(data, proxies, f);
 
-        Value posLambda = solveInequalities(effectiveMass_, -error, [&](Value lambda) {
+        Value posLambda = solveInequalities(effMass, -error, [&](Value lambda) {
             return f.clampPositionLambda(lambda);
         });
 
-        this->applyPositionCorrection(posLambda);
+        constraint::applyPositionCorrection(data, proxies, posLambda);
     }
 
 
 private:
 
-    KMatrix effectiveMass_;
+    EffectiveMass effectiveMass_{};
+    SolverData    data_{};
 };
 
 
@@ -444,23 +465,18 @@ struct WrappedFunc
 /// This is not typically used with constraints of more than one dimension.
 ///
 ////////////////////////////////////////////////////////////
-template <ConstraintFunction F_>
-class LimitsSolver : public ConstraintSolverBase<details::WrappedFunc<F_>>
+template <ConstraintFunction F_, constraint::Type type = constraint::Type::hard>
+class LimitsSolver
 {
 public:
 
+    typedef F_                       F;
     typedef details::WrappedFunc<F_> WF;
-    typedef F_                       F; // for concept
 
-    typedef ConstraintSolverBase<WF> Base;
+    typedef constraint::SolverData<F::dimension, type> SolverData;
 
-    static constexpr Uint32 nBodies   = F_::nBodies;
-    static constexpr Uint32 dimension = F_::dimension;
-
-    typedef typename Base::Value Value;
-
-    typedef typename Base::EffectiveMass   EffectiveMass;
-    typedef Solver<float, Base::dimension> KSolver;
+    typedef constraint::Value<F::dimension>         Value;
+    typedef constraint::EffectiveMass<F::dimension> EffectiveMass;
 
     LimitsSolver() = default;
 
@@ -487,19 +503,19 @@ public:
         funcType_     = nextFunc(proxies, f);
         canWarmstart_ = (funcType_ == prev) && (funcType_ != Func::off);
 
-        EffectiveMass effMass = this->initBase(proxies, wrapFunc(f), dt);
+        WF wf{wrapFunc(f)};
 
         if (funcType_ == Func::equality)
-            solver_ = KSolver{this->applyDampingMass(effMass)};
+            solver_ = Equality::initSolve(data_, proxies, wf, dt);
         else if (funcType_ == Func::lower || funcType_ == Func::upper)
-            effectiveMass_ = effMass;
+            effectiveMass_ = Inequality::initSolve(data_, proxies, wf, dt);
     }
 
     void warmstart(Proxies& proxies)
     {
         if (canWarmstart_)
         {
-            this->warmstartDefault(proxies);
+            constraint::warmstart(data_, proxies);
         }
     }
 
@@ -510,79 +526,31 @@ public:
 
         WF wf{wrapFunc(f)};
 
-        switch (funcType_)
-        {
-            case Func::equality:
-            {
-                Value err = -(this->computeVelocityError(proxies) + this->bias());
-                this->incrementLambda(proxies, wf, dt, solver_.solve(err));
-                break;
-            }
-            case Func::upper: [[fallthrough]];
-            case Func::lower:
-            {
-                Value accLambda = this->lambda().getAccumulated();
-                Value error     = this->computeVelocityError(proxies)
-                              + this->bias(false);
-                Value correctedError = effectiveMass_ * accLambda;
-
-                Value lambda = solveInequalities(
-                    this->applyDampingMass(effectiveMass_),
-                    -error + correctedError,
-                    [&](Value lambda) {
-                        return std::max(
-                            wf.clampLambda(lambda, dt), Value::filled(0.f)
-                        );
-                    },
-                    accLambda
-                );
-
-                this->setLambda(proxies, lambda);
-                break;
-            }
-
-            default: break;
-        }
+        if (funcType_ == Func::equality)
+            Equality::solveVelocity(solver_, data_, proxies, wf, dt);
+        else if (funcType_ == Func::lower || funcType_ == Func::upper)
+            Inequality::solveVelocity(effectiveMass_, data_, proxies, wf, dt);
     }
 
     void solvePosition(Proxies& proxies, const F& f)
     {
         WF wf{wrapFunc(f)};
 
-        Value C = wf.eval(proxies);
-
-        EffectiveMass effMass = this->computeEffectiveMass(proxies, wf);
-
-        Value posLambda{};
-        switch (funcType_)
-        {
-            case Func::equality:
-            {
-                posLambda = wf.clampPositionLambda(solve(effMass, -C));
-                break;
-            }
-            case Func::lower: [[fallthrough]];
-            case Func::upper:
-            {
-                if (all(C >= Value::filled(0.f)))
-                    return;
-
-                posLambda = solveInequalities(effMass, -C, [&](Value lambda) {
-                    return std::max(
-                        wf.clampPositionLambda(lambda), Value::filled(0.f)
-                    );
-                });
-
-                break;
-            }
-
-            default: break;
-        }
-
-        this->applyPositionCorrection(proxies, posLambda);
+        if (funcType_ == Func::equality)
+            Equality::solvePosition(data_, proxies, wf);
+        else if (funcType_ == Func::lower || funcType_ == Func::upper)
+            Inequality::solvePosition(data_, proxies, wf);
     }
 
+    const SolverData& data() const { return data_; }
+    SolverData&       data() { return data_; }
+
+
 private:
+
+    typedef EqualitySolver<WF, type>   Equality;
+    typedef InequalitySolver<WF, type> Inequality;
+
 
     void assertLimits() const
     {
@@ -640,6 +608,8 @@ private:
         return Func::off;
     }
 
+    SolverData data_{};
+
     Func funcType_ = Func::off;
 
     std::optional<Value> L_ = std::nullopt;
@@ -647,8 +617,8 @@ private:
 
     union
     {
-        EffectiveMass effectiveMass_{};
-        KSolver       solver_;
+        EffectiveMass                   effectiveMass_{};
+        typename Equality::MatrixSolver solver_;
     };
 
     bool canWarmstart_ = false;

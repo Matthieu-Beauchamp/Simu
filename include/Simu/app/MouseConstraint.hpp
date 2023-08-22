@@ -79,9 +79,15 @@ private:
 };
 
 
-class MouseConstraint : public ConstraintImplementation<MouseConstraintFunction>
+class MouseConstraint
+    : public ConstraintImplementation<
+          MouseConstraintFunction,
+          EqualitySolver<MouseConstraintFunction, constraint::Type::soft>>
 {
-    typedef ConstraintImplementation<MouseConstraintFunction> Base;
+    typedef ConstraintImplementation<
+        MouseConstraintFunction,
+        EqualitySolver<MouseConstraintFunction, constraint::Type::soft>>
+        Base;
 
 public:
 
@@ -93,8 +99,8 @@ public:
     }
     {
         ConstraintSoftness::HalfLife params{2.f, 0.5f};
-        solver.softness()[0].set(params);
-        solver.softness()[1].set(params);
+        solver.data().softness[0].set(params);
+        solver.data().softness[1].set(params);
     }
 
     Vec2 bodyPos() const

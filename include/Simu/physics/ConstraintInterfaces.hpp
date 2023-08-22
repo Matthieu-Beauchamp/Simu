@@ -159,11 +159,7 @@ concept ConstraintSolver = requires(
     typename S::F;
     requires ConstraintFunction<typename S::F>;
 
-    // TODO: Breaks LimitsSolver.
-    // requires std::derived_from<S, ConstraintSolverBase<typename S::F>>;
-
     requires std::is_default_constructible_v<S>;
-
 
     { s.initSolve(cProxies, f, dt) };
     { s.warmstart(proxies) };
