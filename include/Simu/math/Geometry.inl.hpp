@@ -24,6 +24,8 @@
 
 #pragma once
 
+#include <numbers>
+
 #include "Simu/math/Geometry.hpp"
 #include "Simu/math/Edges.hpp"
 
@@ -31,7 +33,7 @@ namespace simu
 {
 
 template <Geometry T>
-GeometricProperties::GeometricProperties(const T& geometry) noexcept
+inline GeometricProperties::GeometricProperties(const T& geometry) noexcept
 {
     // These formulas can be derived from the definition with a double integral
     //  and using Green's theorem reducing to an integral over the contour
@@ -61,6 +63,17 @@ GeometricProperties::GeometricProperties(const T& geometry) noexcept
         momentOfArea -= area * normSquared(centroid);
         momentOfArea = std::abs(momentOfArea);
     }
+}
+
+inline GeometricProperties::GeometricProperties(const Circle& circle) noexcept
+{
+    centroid = circle.center();
+
+    float r2 = squared(circle.radius());
+    float pi = std::numbers::pi_v<float>;
+
+    area     = pi * r2;
+    momentOfArea = pi / 2.f * squared(r2);
 }
 
 

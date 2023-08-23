@@ -39,13 +39,10 @@ struct MassProperties
 {
     MassProperties() = default;
 
-    // Assumes geometry is positively oriented.
-    template <Geometry G>
-    MassProperties(const G& geometry, float density)
+    MassProperties(const GeometricProperties& properties, float density)
     {
         SIMU_ASSERT(density > 0.f, "Must have a positive density");
 
-        GeometricProperties properties{geometry};
         SIMU_ASSERT(
             !properties.isDegenerate, "Must have a surface. (not a point or line)."
         );
@@ -109,8 +106,6 @@ class Body;
 ///
 /// All of its geometry is always positively oriented.
 ///
-/// The local space geometry will be recentered to have its centroid at origin
-///
 ////////////////////////////////////////////////////////////
 class Collider
 {
@@ -137,7 +132,7 @@ public:
 
     MassProperties properties() const
     {
-        return MassProperties{local_, material_.density};
+        return MassProperties{GeometricProperties{local_}, material_.density};
     }
 
     void replaceAlloc(const Alloc& alloc)

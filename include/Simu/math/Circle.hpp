@@ -24,36 +24,26 @@
 
 #pragma once
 
-#include "Simu/utility/Callable.hpp"
+#include "Simu/config.hpp"
+#include "Simu/math/Matrix.hpp"
 
 namespace simu
 {
 
-template <class T>
-constexpr T clamp(T val, T min, T max)
+class Circle
 {
-    return std::min(std::max(val, min), max);
-}
+public:
 
+    Circle(float radius, Vec2 center) : radius_{radius}, center_{center} {}
 
-template <class T>
-constexpr T squared(const T& x)
-{
-    return x * x;
-}
+    float radius() const { return radius_; }
+    Vec2  center() const { return center_; }
 
-template <std::bidirectional_iterator Iter, Callable<bool(Iter)> GoesLeft>
-Iter booleanSort(Iter begin, Iter end, GoesLeft goesLeft)
-{
-    while (begin != end)
-    {
-        if (goesLeft(begin))
-            ++begin;
-        else
-            std::swap(*begin, *(--end));
-    }
+private:
 
-    return begin;
-}
+    float radius_;
+    Vec2  center_;
+};
+
 
 } // namespace simu

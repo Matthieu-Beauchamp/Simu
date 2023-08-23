@@ -224,7 +224,7 @@ void Motorcycle::doGui()
     ImGui::SliderFloat("Max tilt torque", &options_.maxTiltTorque, 0.1f, 1000.f);
 
     ImGui::SliderFloat(
-        "Suspension frequency", &options_.suspension.frequency, 0.f, 100.f
+        "Suspension frequency", &options_.suspension.frequency, 0.001f, 100.f
     );
     ImGui::SliderFloat(
         "Suspension half life", &options_.suspension.halfLife, 0.f, 2.f

@@ -29,6 +29,7 @@
 
 #include "Simu/math/Matrix.hpp"
 #include "Simu/math/Interval.hpp"
+#include "Simu/math/Circle.hpp"
 
 namespace simu
 {
@@ -144,7 +145,9 @@ struct GeometricProperties
     GeometricProperties() = default;
 
     template <Geometry T>
-    GeometricProperties(const T& geometry) noexcept;
+    inline GeometricProperties(const T& geometry) noexcept;
+
+    inline GeometricProperties(const Circle& circle) noexcept;
 
     Vec2  centroid{};
     float area         = 0.f;

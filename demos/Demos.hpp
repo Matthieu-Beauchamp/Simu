@@ -171,9 +171,9 @@ private:
         float maxTorque   = 1000.f;
 
         float maxTiltVelocity = 2.f * pi;
-        float maxTiltTorque   = 100.f;
+        float maxTiltTorque   = 500.f;
 
-        simu::ConstraintSoftness::HalfLife suspension{4.f, 0.25f};
+        simu::ConstraintSoftness::HalfLife suspension{2.5f, 0.025f};
     };
 
     Options options_{};

@@ -116,7 +116,7 @@ PenaltyBreakBeforeFirstCallParameter: 0
 PenaltyBreakComment: 30000 # Don't break license!
 PenaltyBreakFirstLessLess: 120
 PenaltyBreakOpenParenthesis: 0
-PenaltyBreakString: 1000
+PenaltyBreakString: 10
 PenaltyBreakTemplateDeclaration: 1000
 PenaltyExcessCharacter: 5
 PenaltyReturnTypeOnItsOwnLine: 0
