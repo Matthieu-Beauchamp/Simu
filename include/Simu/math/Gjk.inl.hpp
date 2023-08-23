@@ -39,7 +39,7 @@ Simplex::Simplex(Vec2 initialSearchDir) : initialSearchDir_{initialSearchDir}
         initialSearchDir_ = Vec2::i();
 }
 
-void Simplex::pushPoint(Vertex v)
+void Simplex::pushPoint(Vec2 v)
 {
     if (keepBottomPoint_)
     {
@@ -102,7 +102,7 @@ Vec2 Simplex::nextDirection() const
     }
 }
 
-bool Simplex::hasPoint(Vertex v) const
+bool Simplex::hasPoint(Vec2 v) const
 {
     bool   hasP = false;
     Uint32 max = std::min(nIterations, static_cast<Uint32>(pointStack.size()));
@@ -123,9 +123,9 @@ bool Simplex::containsOrigin() const
 
 Polytope::Polytope(const Simplex& simplex)
 {
-    Vertex first  = simplex.pointStack[0];
-    Vertex second = simplex.pointStack[1];
-    Vertex third  = simplex.pointStack[2];
+    Vec2 first  = simplex.pointStack[0];
+    Vec2 second = simplex.pointStack[1];
+    Vec2 third  = simplex.pointStack[2];
 
     vertices.emplace_back(first);
     vertices.emplace_back(second);
@@ -135,7 +135,7 @@ Polytope::Polytope(const Simplex& simplex)
         std::reverse(vertices.begin(), vertices.end());
 }
 
-bool Polytope::addVertex(const Edge& where, Vertex v)
+bool Polytope::addVertex(const Edge& where, Vec2 v)
 {
     if (where.isOutside(v))
     {
@@ -149,7 +149,7 @@ bool Polytope::addVertex(const Edge& where, Vertex v)
         //  such collinear chains from being accepted in the Polytope.
         // Currently Gjk does not require any epsilon, and we prefer to keep it that way when possible.
         // If our Geometry had many more vertices, this loop becomes expensive and undesirable.
-        for (const Vertex& vert : vertices)
+        for (const Vec2& vert : vertices)
             if (all(vert == v))
                 return false;
 
@@ -173,7 +173,7 @@ Gjk<T>::Gjk(const T& first, const T& second, Vec2 initialDir)
     {
         Vec2 direction = simplex_.nextDirection();
 
-        Vertex v = furthestVertexInDirection(direction);
+        Vec2 v = furthestVec2InDirection(direction);
         if (dot(v, direction) < 0.f)
         {
             done_         = true;
@@ -208,7 +208,7 @@ Vec2 Gjk<T>::separation()
     while (true)
     {
         Vec2   dir = simplex_.nextDirection();
-        Vertex v   = furthestVertexInDirection(dir);
+        Vec2 v   = furthestVec2InDirection(dir);
 
         if (simplex_.hasPoint(v))
             break;
@@ -259,9 +259,9 @@ Vec2 Gjk<T>::penetration() const
             }
         }
 
-        Vertex next = furthestVertexInDirection(best.normal());
+        Vec2 next = furthestVec2InDirection(best.normal());
 
-        if (!polytope.addVertex(best, next))
+        if (!polytope.addVec2(best, next))
             return LineBarycentric{
                 best.from(), best.to(), Vec2{0, 0}
             }

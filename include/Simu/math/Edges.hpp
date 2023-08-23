@@ -24,9 +24,10 @@
 
 #pragma once
 
-#include "Simu/utility/Algo.hpp"
 #include "Simu/math/Geometry.hpp"
 #include "Simu/math/BarycentricCoordinates.hpp"
+
+#include "Simu/utility/Algo.hpp"
 
 namespace simu
 {
@@ -60,10 +61,15 @@ public:
 
         float distanceSquaredToPoint(Vec2 point) const
         {
-            return normSquared(LineBarycentric{from(), to(), point}.closestPoint - point);
+            return normSquared(
+                LineBarycentric{from(), to(), point}.closestPoint - point
+            );
         };
 
-        float distanceSquaredToOrigin() const { return distanceSquaredToPoint(Vec2{}); };
+        float distanceSquaredToOrigin() const
+        {
+            return distanceSquaredToPoint(Vec2{});
+        };
 
         // requires that this is from positively oriented geometry,
         // Here this is considered an infinite line
@@ -75,7 +81,7 @@ public:
         // TODO: Incomplete...
         // if the edges are parallel, assumes they overlap and return this->from()
         // otherwise assumes this intersects the infinite line of other and returns the point of intersection
-        Vertex clipInside(const Edge& other) const
+        Vec2 clipInside(const Edge& other) const
         {
             if (dot(direction(), other.normal()) == 0.f)
                 return from();
@@ -151,6 +157,17 @@ public:
         };
     }
 
+    Iterator nextEdgeOf(It vertex) const
+    {
+        auto next = std::next(vertex);
+        return Iterator{vertex, next == geometry_.end() ? geometry_.begin() : next};
+    }
+
+    Iterator previousEdgeOf(It vertex) const
+    {
+        auto prev = std::prev(vertex == geometry_.begin() ? geometry_.end() : vertex);
+        return Iterator{prev, vertex};
+    }
 
     Iterator next(Iterator edge) const
     {

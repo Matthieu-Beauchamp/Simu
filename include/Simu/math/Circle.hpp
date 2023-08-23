@@ -24,20 +24,43 @@
 
 #pragma once
 
-#include "Simu/config.hpp"
-#include "Simu/math/Matrix.hpp"
+#include "Simu/math/Shape.hpp"
 
 namespace simu
 {
 
-class Circle
+class Circle final : public Shape
 {
 public:
 
-    Circle(float radius, Vec2 center) : radius_{radius}, center_{center} {}
+    Circle(float radius, Vec2 center)
+        : Shape{circle}, radius_{radius}, center_{center}
+    {
+        SIMU_ASSERT(radius_ > 0.f, "");
+    }
 
     float radius() const { return radius_; }
     Vec2  center() const { return center_; }
+
+    Properties properties() const override
+    {
+        Properties p{};
+        
+        p.centroid = center();
+
+        float r2 = squared(radius());
+        float pi = std::numbers::pi_v<float>;
+
+        p.area         = pi * r2;
+        p.momentOfArea = pi / 2.f * squared(r2);
+
+        return p;
+    }
+
+    void transform(const Transform& transform) override
+    {
+        center_ = transform * center_;
+    }
 
 private:
 

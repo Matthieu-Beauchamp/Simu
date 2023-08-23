@@ -195,15 +195,13 @@ private:
 
     static Edge computeContactEdge(const Collider& collider, Vec2 direction)
     {
-        Vec2 v = furthestVertexInDirection(collider, direction);
+        auto v = furthestVertexInDirection(collider, direction);
 
         auto edges = edgesOf(collider);
 
-        auto previous = std::find_if(edges.begin(), edges.end(), [=](Edge e) {
-            return all(e.to() == v);
-        });
+        auto previous = edges.previousEdgeOf(v);
+        auto next = edges.nextEdgeOf(v);
 
-        auto next = edges.next(previous);
 
         if (dot(next->normalizedNormal(), direction)
             > dot(previous->normalizedNormal(), direction))

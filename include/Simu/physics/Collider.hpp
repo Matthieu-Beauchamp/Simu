@@ -39,7 +39,7 @@ struct MassProperties
 {
     MassProperties() = default;
 
-    MassProperties(const GeometricProperties& properties, float density)
+    MassProperties(const Shape::Properties& properties, float density)
     {
         SIMU_ASSERT(density > 0.f, "Must have a positive density");
 

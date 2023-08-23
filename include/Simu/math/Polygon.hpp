@@ -25,11 +25,9 @@
 #pragma once
 
 #include <algorithm>
+#include <array>
 
-#include "Simu/config.hpp"
-#include "Simu/math/Matrix.hpp"
-#include "Simu/math/Geometry.hpp"
-#include "Simu/math/Transform.hpp"
+#include "Simu/math/Shape.hpp"
 
 #include "Simu/utility/View.hpp"
 
@@ -37,30 +35,100 @@ namespace simu
 {
 
 ////////////////////////////////////////////////////////////
-/// \ingroup Geometry
+/// \brief Compute properties of some non self-intersecting Geometry.
+///
+/// Convex, concave and geometry containing holes are all valid input.
+/// The hole(s) should be of opposite Orientation and attached to a vertex
+///     of the outer (solid) perimeter.
+///
+/// if area == 0, then the geometry isDegenerate (collinear) and the
+///     properties are undefined but no exception is raised
+///
+/// If vertices are negatively oriented, then the area is negative, but the
+///     centroid and momentOfArea are unaffected.
+///
+////////////////////////////////////////////////////////////
+template <Geometry G>
+Shape::Properties computeProperties(const G& geometry)
+{
+    // These formulas can be derived from the definitions with a double
+    // integral. Using Green's theorem to reduce to an integral over the contour
+    //  (edges) and evaluating to a sum.
+
+    Shape::Properties p;
+
+    for (const auto& edge : edgesOf(geometry))
+    {
+        float vertexCross = cross(edge.from(), edge.to());
+        p.area += vertexCross;
+
+        p.centroid += (edge.from() + edge.to()) * vertexCross;
+
+        p.momentOfArea += vertexCross
+                          * (normSquared(edge.from()) + dot(edge.from(), edge.to())
+                             + normSquared(edge.to()));
+    }
+
+    if (p.area == 0.f)
+    {
+        p.isDegenerate = true;
+    }
+    else
+    {
+        p.area /= 2;
+        p.centroid /= 6 * p.area;
+        p.momentOfArea /= 12;
+
+        // relative to center of mass (parallel axis theorem).
+        p.momentOfArea -= p.area * normSquared(p.centroid);
+
+        // in case of negative orientation.
+        p.momentOfArea = std::abs(p.momentOfArea);
+    }
+
+    return p;
+}
+
+////////////////////////////////////////////////////////////
 /// \brief A polygon has at least 3 vertices in a positive Orientation
 ///
-/// Polygons are allowed to be concave and have holes as long as they do not
-///     self-intersect, in which case behavior is undefined.
+/// While the Shape::Properties will be correct if the Polygon is concave or has holes
+///  as long as it does not self-intersect.
+/// The collision detection will only take the Polygon's convex hull into accout.
 ///
 /// The vertices are reordered to be positively oriented.
-/// The GeometricProperties are modified to reflect this change.
-///
-/// Polygons are not allowed to modify their vertices after construction.
 ///
 /// \warning no special measures are taken if properties indicate that the geometry isDegenerate.
 ////////////////////////////////////////////////////////////
-class Polygon
+class Polygon final : public Shape
 {
 public:
 
-    Polygon(const std::initializer_list<Vertex>& vertices)
+    // Avoid dealing with allocators.
+    static constexpr Uint32 maxVertices = 10;
+
+    Polygon(const std::initializer_list<Vec2>& vertices)
         : Polygon{vertices.begin(), vertices.end()}
     {
     }
 
-    template <VertexIterator2D It>
-    Polygon(It begin, It end);
+    template <VertexIterator It>
+    Polygon(It begin, It end) : Shape{polygon}
+    {
+        Uint32 n = std::distance(begin, end);
+        SIMU_ASSERT(n >= 3, "Convex Geometry must have at least 3 vertices");
+        SIMU_ASSERT(n <= maxVertices, "Too many vertices.");
+
+        while (begin != end && nVertices < maxVertices)
+            vertices_[nVertices++] = *begin++;
+
+        properties_ = computeProperties(*this);
+        if (properties_.area < 0)
+        {
+            std::reverse(vertices_.data(), vertices_.data() + nVertices);
+            properties_.area = -properties_.area;
+        }
+    }
 
     static Polygon box(Vec2 dim, Vec2 center = Vec2{})
     {
@@ -68,46 +136,36 @@ public:
         float h = dim[1] / 2.f;
 
         return Polygon{
-            center + Vertex{-w, -h},
-            center + Vertex{w,  -h},
-            center + Vertex{w,  h },
-            center + Vertex{-w, h }
+            center + Vec2{-w, -h},
+            center + Vec2{w,  -h},
+            center + Vec2{w,  h },
+            center + Vec2{-w, h }
         };
     }
 
-    static Polygon
-    circle(float radius, Uint32 precision = 16, Vec2 center = Vec2{})
-    {
-        simu::Vertices vertices{};
-        vertices.resize(precision);
 
-        Rotation rot{2.f * std::numbers::pi_v<float> / precision};
-        Vec2     offset = radius * Vec2::i();
-        for (Vec2& v : vertices)
+    Properties properties() const override { return properties_; }
+
+    void transform(const Transform& transform) override
+    {
+        for (Uint32 i = 0; i < nVertices; ++i)
         {
-            v      = center + offset;
-            offset = rot * offset;
+            vertices_[i] = transform * vertices_[i];
         }
 
-        return Polygon{vertices.begin(), vertices.end()};
+        properties_.centroid = transform * properties_.centroid;
     }
 
-    GeometricProperties properties() const { return properties_; }
+    const Vec2* begin() const { return vertices_.data(); }
+    const Vec2* end() const { return vertices_.data() + nVertices; }
 
-    Vertices::const_iterator begin() const { return vertices_.begin(); }
-    Vertices::const_iterator end() const { return vertices_.end(); }
-
-    auto vertexView() const
-    {
-        return makeView(vertices_.data(), vertices_.data() + vertices_.size());
-    }
+    auto vertexView() const { return makeView(*this); }
 
 private:
 
-    GeometricProperties properties_;
-    Vertices            vertices_;
+    std::array<Vec2, maxVertices> vertices_;
+    Uint32                        nVertices = 0;
+    Properties                    properties_;
 };
 
 } // namespace simu
-
-#include "Simu/math/Polygon.inl.hpp"

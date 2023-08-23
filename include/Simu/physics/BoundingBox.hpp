@@ -54,21 +54,21 @@ public:
     ////////////////////////////////////////////////////////////
     /// Creates a bounding box from the specified min and max points.
     ////////////////////////////////////////////////////////////
-    BoundingBox(Vec2 min, Vec2 max);
+    inline BoundingBox(Vec2 min, Vec2 max);
 
     ////////////////////////////////////////////////////////////
     /// Creates a bounding box that contains all the vertices
     ////////////////////////////////////////////////////////////
-    template <VertexIterator2D It>
-    BoundingBox(It begin, It end);
+    template <VertexIterator It>
+    inline BoundingBox(It begin, It end);
 
     ////////////////////////////////////////////////////////////
     /// Creates a bounding box that contains all the vertices of the geometry
     ////////////////////////////////////////////////////////////
     template <Geometry T>
-    BoundingBox(const T& geoemtry);
+    inline BoundingBox(const T& geoemtry);
 
-    static BoundingBox scaled(BoundingBox original, float ratio);
+    inline static BoundingBox scaled(BoundingBox original, float ratio);
 
     ////////////////////////////////////////////////////////////
     /// true if the bounding box covers a valid area,
@@ -95,14 +95,14 @@ public:
     /// true if this overlaps other, if the borders touch, the boxes overlap.
     /// If this or other is invalid, they never overlap.
     ////////////////////////////////////////////////////////////
-    bool overlaps(const BoundingBox& other) const;
+    inline bool overlaps(const BoundingBox& other) const;
 
-    bool contains(const BoundingBox& other) const;
+    inline bool contains(const BoundingBox& other) const;
 
     ////////////////////////////////////////////////////////////
     /// Returns a bounding box that covers this and other.
     ////////////////////////////////////////////////////////////
-    BoundingBox combined(const BoundingBox& other) const;
+    inline BoundingBox combined(const BoundingBox& other) const;
 
     ////////////////////////////////////////////////////////////
     /// true if both boxes are invalid or they have the same min and max coordinates.
@@ -127,7 +127,7 @@ private:
 };
 
 
-template <VertexIterator2D It>
+template <VertexIterator It>
 BoundingBox::BoundingBox(It begin, It end)
 {
     if (begin == end)

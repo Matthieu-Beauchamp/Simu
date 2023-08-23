@@ -29,7 +29,6 @@
 
 #include "Simu/math/Matrix.hpp"
 #include "Simu/math/Interval.hpp"
-#include "Simu/math/Circle.hpp"
 
 namespace simu
 {
@@ -47,20 +46,11 @@ namespace simu
 /// \brief Any iterator that dereferences to a vector of dimension dim
 /// 
 ////////////////////////////////////////////////////////////
-template <class T, Uint32 dim>
+template <class T>
 concept VertexIterator = requires(T it) {
-    { *it } -> std::convertible_to<Vector<float, dim>>;
+    { *it } -> std::convertible_to<Vec2>;
 } && std::forward_iterator<T>;
 
-////////////////////////////////////////////////////////////
-/// \brief Any iterator that dereferences to a Vertex
-/// 
-////////////////////////////////////////////////////////////
-template <class T>
-concept VertexIterator2D = VertexIterator<T, 2>;
-
-typedef Vec2                Vertex;
-typedef std::vector<Vertex> Vertices;
 
 ////////////////////////////////////////////////////////////
 /// \brief Any type that allows iterating over vertices
@@ -68,8 +58,8 @@ typedef std::vector<Vertex> Vertices;
 ////////////////////////////////////////////////////////////
 template<class T>
 concept Geometry = requires(T geo){
-    { geo.begin() } -> VertexIterator2D;
-    { geo.end() }   -> VertexIterator2D;
+    { geo.begin() } -> VertexIterator;
+    { geo.end() }   -> VertexIterator;
 };
 // clang-format on
 
@@ -98,65 +88,43 @@ enum class Orientation
 ///
 /// epsilon is used to approximate collinearity
 ////////////////////////////////////////////////////////////
-Orientation
-orientation(Vertex v0, Vertex v1, Vertex v2, float epsilon = simu::EPSILON);
+Orientation orientation(Vec2 v0, Vec2 v1, Vec2 v2, float epsilon = simu::EPSILON)
+{
+    float c = cross(v1 - v0, v2 - v1);
 
+    if (approx(0.f, epsilon).contains(c))
+        return Orientation::collinear;
+
+    if (c > 0)
+        return Orientation::positive;
+
+    return Orientation::negative;
+}
+
+////////////////////////////////////////////////////////////
+/// \brief geometry must has at least one vertex.
+///
+////////////////////////////////////////////////////////////
 template <Geometry T>
-Vertex furthestVertexInDirection(const T& geometry, Vec2 direction)
+IteratorOf<T> furthestVertexInDirection(const T& geometry, Vec2 direction)
 {
     SIMU_ASSERT(any(direction != Vec2::filled(0.f)), "Any vertex will be returned");
 
-    Vec2  furthest = *geometry.begin();
-    float maxDist  = dot(furthest, direction);
-    for (const Vertex& v : geometry)
+    auto  furthest = geometry.begin();
+    float maxDist  = dot(*furthest, direction);
+    for (auto it = geometry.begin(); it != geometry.end(); ++it)
     {
-        float dist = dot(v, direction);
+        float dist = dot(*it, direction);
         if (dist > maxDist)
         {
             maxDist  = dist;
-            furthest = v;
+            furthest = it;
         }
     }
 
     return furthest;
 }
 
-
-////////////////////////////////////////////////////////////
-/// \brief Compute properties of some non self-intersecting Geometry.
-///
-/// Convex, concave and geometry containing holes are all valid input.
-/// The hole(s) should be of opposite Orientation and attached to a vertex
-///     of the outer (solid) perimeter.
-///
-/// if area == 0, then the geometry isDegenerate (collinear) and the
-///     properties are undefined but no exception is raised
-///
-/// If vertices are negatively oriented, then the area is negative.
-/// Centroid and momentOfArea are unaffected.
-///
-/// Assuming constant density p, then
-///     mass    = p * |area|
-///     inertia = p * momentOfArea
-///
-////////////////////////////////////////////////////////////
-struct GeometricProperties
-{
-    GeometricProperties() = default;
-
-    template <Geometry T>
-    inline GeometricProperties(const T& geometry) noexcept;
-
-    inline GeometricProperties(const Circle& circle) noexcept;
-
-    Vec2  centroid{};
-    float area         = 0.f;
-    float momentOfArea = 0.f;
-    bool  isDegenerate = false;
-};
-
 /// \}
 
 } // namespace simu
-
-#include "Simu/math/Geometry.inl.hpp"

@@ -27,75 +27,37 @@
 #include <array>
 
 #include "Simu/math/Polygon.hpp"
+#include "Simu/math/Edges.hpp"
 
 namespace simu
 {
 
-namespace priv
-{
-
-struct Simplex
-{
-    inline Simplex(Vec2 initialSearchDir = Vec2::i());
-
-    inline void pushPoint(Vec2 v);
-    inline Vec2 nextDirection() const;
-
-    inline bool hasPoint(Vec2 v) const;
-    inline bool containsOrigin() const;
-
-    std::array<Vec2, 3> pointStack{};
-
-    // hold the outwards facing normals of edges P0-P1, P0-P2, P1-P2
-    // respectively, updated on pushPoint once there are 3 valid vertices
-    std::array<Vec2, 3> normals{};
-
-    Vec2   initialSearchDir_;
-    Uint32 nIterations = 0;
-
-private:
-
-    mutable bool keepBottomPoint_ = false;
-};
-
-
-struct Polytope
-{
-    typedef std::vector<Vec2>              Vertices;
-    typedef typename Edges<Vertices>::Edge Edge;
-
-    inline Polytope(const Simplex& simplex);
-
-    inline bool addVertex(const Edge& where, Vec2 v);
-
-    Vertices vertices{};
-};
-
-} // namespace priv
-
-
-////////////////////////////////////////////////////////////
-/// \ingroup Geometry
-/// \brief Determines if two collidable are in collision as well as the
-///     separation/penetration vector between them
-///
-/// The boolean GJK algorithm is used upon construction and results are saved.
-/// If areColliding(), then calling penetration() uses the EPA algorithm (results are not saved)
-///
-/// If the the underlying Geometry of the Collidables is concave or has holes,
-///     only their convex hulls are considered.
-///
-/// \warning changing first or second between construction and calls to any method is undefined.
-////////////////////////////////////////////////////////////
+// currently made to fit the Gjk interface,
+// Could add getters for reference edge to remove some work from the CollisionManifold 
+//  computation
 template <Geometry T = simu::Polygon>
-class Gjk
+class Sat
 {
 public:
 
-    // TODO: initialDir is not correctly taken into account, + what are we supposed to pass in?
-    Gjk(const T& first, const T& second, Vec2 initialDir = Vec2::i());
+    Sat(const T& first, const T& second)
+    {
+        SeparationEdge fromFirst  = maxSeparation(first, second);
+        SeparationEdge fromSecond = maxSeparation(second, first);
 
-    bool areColliding() const { return areColliding_; }
+        if (fromFirst.separation > fromSecond.separation)
+        {
+            maxSep_       = fromFirst;
+            ownerIsFirst_ = true;
+        }
+        else
+        {
+            maxSep_       = fromSecond;
+            ownerIsFirst_ = false;
+        }
+    }
+
+    bool areColliding() const { return maxSep_.separation < 0.f; }
 
     ////////////////////////////////////////////////////////////
     /// \brief Minimum translation vector such that areColliding() would be true
@@ -109,7 +71,12 @@ public:
     ///     - translate seccond by -separation()
     ///
     ////////////////////////////////////////////////////////////
-    Vec2 separation();
+    Vec2 separation()
+    {
+        float sep  = std::max(maxSep_.separation, 0.f);
+        bool  flip = !ownerIsFirst_;
+        return maxSep_.edge.normalizedNormal() * sep * (flip ? -1.f : 1.f);
+    }
 
     ////////////////////////////////////////////////////////////
     /// \brief Minimum translation vector such that first and second are only touching
@@ -123,22 +90,56 @@ public:
     ///     - translate second by penetration()
     ///
     ////////////////////////////////////////////////////////////
-    Vec2 penetration() const;
+    Vec2 penetration() const
+    {
+        float sep  = std::min(maxSep_.separation, 0.f);
+        bool  flip = ownerIsFirst_;
+        return maxSep_.edge.normalizedNormal() * sep * (flip ? -1.f : 1.f);
+    }
+
+    typedef typename Edges<T>::Edge Edge;
+
+    struct SeparationEdge
+    {
+        float separation;
+        Edge  edge;
+    };
+
+    static SeparationEdge maxSeparation(const T& theseEdges, const T& theseVertices)
+    {
+        SeparationEdge maxSep;
+        maxSep.separation = -std::numeric_limits<float>::max();
+        for (const Edge& e : edgesOf(theseEdges))
+        {
+            float sep = separation(e, theseVertices);
+            if (sep > maxSep.separation)
+            {
+                maxSep.separation = sep;
+                maxSep.edge       = e;
+            }
+        }
+
+        return maxSep;
+    }
+
+    static float separation(Edge edge, const T& theseVertices)
+    {
+        Vec2  n      = edge.normalizedNormal();
+        float maxSep = -std::numeric_limits<float>::max();
+        for (const Vec2& v : theseVertices)
+        {
+            float sep = dot(v - edge.from(), n);
+            maxSep    = std::max(maxSep, sep);
+        }
+
+        return maxSep;
+    }
 
 private:
 
-    Vec2 furthestVertexInDirection(const Vec2& direction) const;
-
-    const T& first_;
-    const T& second_;
-
-    priv::Simplex simplex_;
-
-    bool done_         = false;
-    bool areColliding_ = false;
+    SeparationEdge maxSep_;
+    bool           ownerIsFirst_;
 };
 
 
 } // namespace simu
-
-#include "Gjk.inl.hpp"
