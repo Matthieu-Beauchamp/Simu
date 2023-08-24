@@ -93,8 +93,8 @@ Shape::Properties computeProperties(const G& geometry)
 /// \brief A polygon has at least 3 vertices in a positive Orientation
 ///
 /// While the Shape::Properties will be correct if the Polygon is concave or has holes
-///  as long as it does not self-intersect.
-/// The collision detection will only take the Polygon's convex hull into accout.
+///  as long as it does not self-intersect, the collision detection will only
+///  take the Polygon's convex hull into accout.
 ///
 /// The vertices are reordered to be positively oriented.
 ///
@@ -115,7 +115,7 @@ public:
     template <VertexIterator It>
     Polygon(It begin, It end) : Shape{polygon}
     {
-        Uint32 n = std::distance(begin, end);
+        auto n = std::distance(begin, end);
         SIMU_ASSERT(n >= 3, "Convex Geometry must have at least 3 vertices");
         SIMU_ASSERT(n <= maxVertices, "Too many vertices.");
 
@@ -143,8 +143,14 @@ public:
         };
     }
 
+    void copyAt(Shape* dest) const override
+    {
+        *static_cast<Polygon*>(dest) = *this;
+    }
 
     Properties properties() const override { return properties_; }
+
+    BoundingBox boundingBox() const override { return BoundingBox{*this}; }
 
     void transform(const Transform& transform) override
     {

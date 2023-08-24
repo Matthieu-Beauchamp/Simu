@@ -27,6 +27,7 @@
 #include "Simu/config.hpp"
 #include "Simu/math/Matrix.hpp"
 #include "Simu/math/Transform.hpp"
+#include "Simu/math/BoundingBox.hpp"
 
 namespace simu
 {
@@ -82,8 +83,10 @@ public:
 
     Uint32 type() const { return type_; }
 
-    virtual Properties properties() const                    = 0;
-    virtual void       transform(const Transform& transform) = 0;
+    virtual void        copyAt(Shape* dest) const             = 0;
+    virtual Properties  properties() const                    = 0;
+    virtual BoundingBox boundingBox() const                   = 0;
+    virtual void        transform(const Transform& transform) = 0;
 
 private:
 

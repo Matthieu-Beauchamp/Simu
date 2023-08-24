@@ -160,13 +160,17 @@ public:
     Iterator nextEdgeOf(It vertex) const
     {
         auto next = std::next(vertex);
-        return Iterator{vertex, next == geometry_.end() ? geometry_.begin() : next};
+        return Iterator{
+            Edge{vertex, next == geometry_.end() ? geometry_.begin() : next}
+        };
     }
 
     Iterator previousEdgeOf(It vertex) const
     {
         auto prev = std::prev(vertex == geometry_.begin() ? geometry_.end() : vertex);
-        return Iterator{prev, vertex};
+        return Iterator{
+            Edge{prev, vertex}
+        };
     }
 
     Iterator next(Iterator edge) const

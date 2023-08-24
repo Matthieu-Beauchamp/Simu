@@ -27,14 +27,19 @@
 #include <list>
 
 #include "Simu/config.hpp"
-#include "Simu/math/Polygon.hpp"
+#include "Simu/math/Shape.hpp"
+#include "Simu/math/BoundingBox.hpp"
 
-#include "Simu/physics/BoundingBox.hpp"
 #include "Simu/physics/Material.hpp"
+#include "Simu/physics/ColliderTree.hpp"
+
+#include "Simu/utility/Memory.hpp"
 
 namespace simu
 {
 
+// TODO: We often need to transform properties
+//  a simple method can be added.
 struct MassProperties
 {
     MassProperties() = default;
@@ -78,110 +83,94 @@ struct MassProperties
 };
 
 
-struct ColliderDescriptor
-{
-    ////////////////////////////////////////////////////////////
-    /// \brief The Geometry for the Collider. This is put as-is in the Body's local space.
-    ///
-    /// Does not need to be centered on origin.
-    ///
-    ////////////////////////////////////////////////////////////
-    Polygon polygon;
-
-    ////////////////////////////////////////////////////////////
-    /// \brief The Material of the Collider. Affects how it interacts with other bodies.
-    ///
-    ////////////////////////////////////////////////////////////
-    Material material{};
-};
-
-
 class Body;
+class Colliders;
 
 ////////////////////////////////////////////////////////////
-/// \brief Represents geometry that moves
+/// \brief Represents a shape that moves and its mass properties
 ///
-/// The Collider holds a local space Polygon and a set of transformed vertices
-///     that defines the geometry in world space.
+/// Keeps a local space copy and a world space shape that is transformed
+/// on updates.
 ///
-/// All of its geometry is always positively oriented.
+/// A collider is associated with a single body.
 ///
 ////////////////////////////////////////////////////////////
 class Collider
 {
 public:
 
-    typedef FreeListAllocator<Vec2> Alloc;
+    Collider(const Collider&) = delete;
+    Collider(Collider&&)      = delete;
 
-    ////////////////////////////////////////////////////////////
-    /// Creates a Collider from a local space polygon and an initial transform.
-    ////////////////////////////////////////////////////////////
-    Collider(const ColliderDescriptor& descr, Body* body, const Alloc& alloc)
-        : local_{descr.polygon.begin(), descr.polygon.end(), alloc},
-          transformed_{alloc},
-          material_{descr.material},
-          body_{body}
-    {
-        transformed_.resize(local_.size());
-    }
+    ~Collider() { dealloc_(local_); }
 
     Body*       body() { return body_; }
     const Body* body() const { return body_; }
 
     const Material& material() const { return material_; }
 
-    MassProperties properties() const
+    Shape&       shape() { return *world_; }
+    const Shape& shape() const { return *world_; }
+
+    MassProperties localProperties() const
     {
-        return MassProperties{GeometricProperties{local_}, material_.density};
+        return MassProperties{local_->properties(), material_.density};
     }
 
-    void replaceAlloc(const Alloc& alloc)
+    MassProperties worldProperties() const
     {
-        replaceAllocator(local_, alloc);
-        replaceAllocator(transformed_, alloc);
+        return MassProperties{world_->properties(), material_.density};
     }
 
-    ////////////////////////////////////////////////////////////
-    /// The world space bounding box of the Collider
-    ////////////////////////////////////////////////////////////
-    BoundingBox boundingBox() const { return boundingBox_; }
-
-    ////////////////////////////////////////////////////////////
-    /// Iterators for the transformed geometry (world space vertices)
-    ////////////////////////////////////////////////////////////
-    auto begin() { return transformed_.begin(); }
-    auto begin() const { return transformed_.begin(); }
-
-    auto end() { return transformed_.end(); }
-    auto end() const { return transformed_.end(); }
-
-    auto vertexView() const
-    {
-        return makeView(
-            transformed_.data(), transformed_.data() + transformed_.size()
-        );
-    }
-
-    ////////////////////////////////////////////////////////////
-    /// Changes the transform of the Collider applied to the local space geometry
-    ////////////////////////////////////////////////////////////
     void update(const Transform& transform)
     {
-        auto it = transformed_.begin();
-        for (const Vertex& v : local_)
-            *it++ = transform * v;
-
-        boundingBox_ = BoundingBox{transformed_};
+        local_->copyAt(world_);
+        world_->transform(transform);
     }
 
 private:
 
-    std::vector<Vec2, Alloc> local_;
-    std::vector<Vec2, Alloc> transformed_;
+    typedef FreeListAllocator<int> Alloc;
 
-    BoundingBox boundingBox_;
-    Material    material_;
-    Body*       body_;
+    friend Colliders;
+
+    Collider() = default;
+
+    template <std::derived_from<Shape> S, class... Args>
+    void
+    make(Body* body, const Alloc& alloc, const Material& material, Args&&... args)
+    {
+        body_     = body;
+        material_ = material;
+        typedef ReboundTo<Alloc, S> ShapeAlloc;
+        ShapeAlloc                  a{alloc};
+
+        local_ = std::allocator_traits<ShapeAlloc>::allocate(a, 2);
+        world_ = std::next(static_cast<S*>(local_));
+
+        std::allocator_traits<ShapeAlloc>::construct(
+            a, local_, std::forward<Args>(args)...
+        );
+
+        local_->copyAt(world_);
+
+        dealloc_ = [=](Shape* local) {
+            S* first = static_cast<S*>(local);
+
+            std::allocator_traits<ShapeAlloc>::destroy(a, first);
+            std::allocator_traits<ShapeAlloc>::destroy(a, std::next(first));
+
+            std::allocator_traits<ShapeAlloc>::deallocate(a, first, 2);
+        };
+    }
+
+    Body*    body_;
+    Material material_;
+
+    Shape* local_;
+    Shape* world_;
+
+    std::function<void(Shape*)> dealloc_;
 
     friend class World;
     typename ColliderTree::iterator treeLocation_; // only used for removal...
@@ -193,27 +182,24 @@ class Colliders
 public:
 
     typedef Collider::Alloc Alloc;
-    Colliders() = default;
+    Colliders(const Alloc& alloc) : colliders_{alloc} {}
 
     auto begin() const { return colliders_.begin(); }
     auto end() const { return colliders_.end(); }
 
-    bool isEmpty() const { return begin() == end(); }
+    bool isEmpty() const { return colliders_.empty(); }
 
-    void replaceAlloc(const Alloc& alloc)
-    {
-        replaceAllocator(colliders_, alloc);
-        for (Collider& c : colliders_)
-            c.replaceAlloc(alloc);
-    }
-
+    // properties of the local space combined colliders.
     const MassProperties& properties() const { return properties_; }
 
-    Collider* add(const ColliderDescriptor& descr, Body* owner)
+    template <std::derived_from<Shape> S, class... Args>
+    Collider* add(Body* owner, const Material& material, Args&&... args)
     {
-        colliders_.emplace_back(descr, owner, colliders_.get_allocator());
+        colliders_.emplace_back().make<S>(
+            owner, colliders_.get_allocator(), material, std::forward<Args>(args)...
+        );
 
-        MassProperties p = colliders_.back().properties();
+        MassProperties p = colliders_.back().localProperties();
         properties_      = properties_ + p;
 
         return &colliders_.back();
@@ -232,7 +218,7 @@ public:
 
         properties_ = MassProperties{};
         for (const Collider& c : colliders_)
-            properties_ = properties_ + c.properties();
+            properties_ = properties_ + c.localProperties();
     }
 
     void update(const Transform& transform)

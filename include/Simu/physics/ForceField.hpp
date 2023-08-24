@@ -25,7 +25,7 @@
 #pragma once
 
 #include "Simu/config.hpp"
-#include "Simu/physics/BoundingBox.hpp"
+#include "Simu/math/BoundingBox.hpp"
 #include "Simu/physics/Body.hpp"
 
 namespace simu
@@ -85,13 +85,10 @@ public:
 
     void apply(Collider& collider, float dt) const override
     {
-        MassProperties p = collider.properties();
+        MassProperties p = collider.worldProperties();
         Body*          b = collider.body();
-        b->applyForce(
-            force_ * p.m * b->invMass(),
-            dt,
-            b->toWorldSpace().rotation() * (p.centroid - b->localCentroid())
-        );
+
+        b->applyForce(force_ * p.m * b->invMass(), dt, p.centroid - b->centroid());
     }
 
 private:
@@ -110,11 +107,10 @@ public:
 
     void apply(Collider& collider, float dt) const override
     {
-        MassProperties p = collider.properties();
+        MassProperties p = collider.worldProperties();
         Body*          b = collider.body();
 
-        Vec2 whereFromCentroid = b->toWorldSpace().rotation()
-                                 * (p.centroid - b->localCentroid());
+        Vec2 whereFromCentroid = p.centroid - b->centroid();
 
         b->applyForce(acceleration_ * p.m, dt, whereFromCentroid);
     }

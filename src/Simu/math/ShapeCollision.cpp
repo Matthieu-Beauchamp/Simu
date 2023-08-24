@@ -61,10 +61,7 @@ CollisionManifold polygonManifold(const Polygon& A, const Polygon& B, Vec2 mtv)
     bool isReferenceA = dot(edgeA.normalizedNormal(), mtv)
                         > dot(edgeB.normalizedNormal(), -mtv);
 
-    auto computeManifold = [](const Polygon& inc,
-                              const Polygon& ref,
-                              auto           incEdge,
-                              auto           refEdge) {
+    auto computeManifold = [](const Polygon& ref, auto incEdge, auto refEdge) {
         auto edges = edgesOf(ref);
 
         auto previous = *edges.previous(refEdge);
@@ -97,11 +94,11 @@ CollisionManifold polygonManifold(const Polygon& A, const Polygon& B, Vec2 mtv)
         return mani;
     };
 
-    const Polygon&    inc     = isReferenceA ? B : A;
-    const Polygon&    ref     = isReferenceA ? A : B;
-    auto              incEdge = isReferenceA ? edgeB : edgeA;
-    auto              refEdge = isReferenceA ? edgeA : edgeB;
-    CollisionManifold mani    = computeManifold(inc, ref, incEdge, refEdge);
+    const Polygon& ref     = isReferenceA ? A : B;
+    auto           incEdge = isReferenceA ? edgeB : edgeA;
+    auto           refEdge = isReferenceA ? edgeA : edgeB;
+
+    CollisionManifold mani = computeManifold(ref, incEdge, refEdge);
     if (isReferenceA)
         mani.invert();
 
@@ -109,10 +106,10 @@ CollisionManifold polygonManifold(const Polygon& A, const Polygon& B, Vec2 mtv)
 }
 
 
-CollisionManifold collidePolygons(const WorldShape& A, const WorldShape& B)
+CollisionManifold collidePolygons(const Shape& A, const Shape& B)
 {
-    Polygon pA = A.get<Polygon>();
-    Polygon pB = B.get<Polygon>();
+    const Polygon& pA = static_cast<const Polygon&>(A);
+    const Polygon& pB = static_cast<const Polygon&>(B);
 
     CollisionManifold mani{};
 
@@ -126,11 +123,10 @@ CollisionManifold collidePolygons(const WorldShape& A, const WorldShape& B)
     return polygonManifold(pA, pB, mtv);
 }
 
-CollisionManifold
-collidePolygonWithCircle(const WorldShape& A, const WorldShape& B)
+CollisionManifold collidePolygonWithCircle(const Shape& A, const Shape& B)
 {
-    Polygon pA = A.get<Polygon>();
-    Circle  cB = B.get<Circle>();
+    const Polygon& pA = static_cast<const Polygon&>(A);
+    const Circle&  cB = static_cast<const Circle&>(B);
 
     CollisionManifold mani{};
 
@@ -190,10 +186,10 @@ collidePolygonWithCircle(const WorldShape& A, const WorldShape& B)
     return mani;
 }
 
-CollisionManifold collideCircles(const WorldShape& A, const WorldShape& B)
+CollisionManifold collideCircles(const Shape& A, const Shape& B)
 {
-    Circle cA = A.get<Circle>();
-    Circle cB = B.get<Circle>();
+    const Circle& cA = static_cast<const Circle&>(A);
+    const Circle& cB = static_cast<const Circle&>(B);
 
     CollisionManifold mani{};
 

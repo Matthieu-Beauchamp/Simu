@@ -22,50 +22,34 @@
 //
 ////////////////////////////////////////////////////////////
 
-#include "Simu/physics/BoundingBox.hpp"
+#pragma once
+
+#include "Simu/physics/Body.hpp"
+#include "Simu/physics/World.hpp"
 
 namespace simu
 {
 
-
-BoundingBox::BoundingBox(Vec2 min, Vec2 max) : min_{min}, max_{max} {}
-
-BoundingBox BoundingBox::scaled(BoundingBox original, float ratio)
+template <std::derived_from<Shape> S, class... Args>
+Collider* Body::addCollider(const Material& material, Args&&... args)
 {
-    auto transform = [&](Vec2 p) {
-        return original.center() + ratio * (p - original.center());
-    };
+    SIMU_ASSERT(world_ != nullptr, "Body must be owned by a World");
 
-    return BoundingBox{transform(original.min()), transform(original.max())};
-}
+    Vec2 oldCentroid = centroid();
 
+    Collider* c = colliders_.add(this, material, std::forward<Args>(args)...);
 
-bool BoundingBox::overlaps(const BoundingBox& other) const
-{
-    if (!isValid() || !other.isValid())
-        return false;
+    // see removeCollider.
+    // Here we assume the new collider has the Body's velocity, ignoring
+    //  conservation of momentums.
+    Vec2 dvAtCentroid = angularVelocity() * perp(centroid() - oldCentroid);
+    setVelocity(velocity() + dvAtCentroid);
+    position_.setLocalCentroid(colliders_.properties().centroid);
 
-    return all(Interval{min_, max_}.overlaps(Interval{other.min_, other.max_}));
-}
+    update();
+    world_->addCollider(c);
 
-bool BoundingBox::contains(const BoundingBox& other) const
-{
-    if (!isValid() || !other.isValid())
-        return false;
-
-    return this->combined(other) == *this;
-}
-
-
-BoundingBox BoundingBox::combined(const BoundingBox& other) const
-{
-    if (!isValid())
-        return other;
-
-    if (!other.isValid())
-        return *this;
-
-    return BoundingBox{std::min(min_, other.min_), std::max(max_, other.max_)};
+    return c;
 }
 
 } // namespace simu

@@ -28,7 +28,7 @@
 #include <utility>
 
 #include "Simu/config.hpp"
-#include "Simu/physics/BoundingBox.hpp"
+#include "Simu/math/BoundingBox.hpp"
 
 #include "Simu/utility/View.hpp"
 #include "Simu/utility/Algo.hpp"

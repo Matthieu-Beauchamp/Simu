@@ -22,62 +22,50 @@
 //
 ////////////////////////////////////////////////////////////
 
-#pragma once
-
-#include "Simu/math/Shape.hpp"
+#include "Simu/math/BoundingBox.hpp"
 
 namespace simu
 {
 
-class Circle final : public Shape
+
+BoundingBox::BoundingBox(Vec2 min, Vec2 max) : min_{min}, max_{max} {}
+
+BoundingBox BoundingBox::scaled(BoundingBox original, float ratio)
 {
-public:
+    auto transform = [&](Vec2 p) {
+        return original.center() + ratio * (p - original.center());
+    };
 
-    Circle(float radius, Vec2 center)
-        : Shape{circle}, radius_{radius}, center_{center}
-    {
-        SIMU_ASSERT(radius_ > 0.f, "");
-    }
+    return BoundingBox{transform(original.min()), transform(original.max())};
+}
 
-    float radius() const { return radius_; }
-    Vec2  center() const { return center_; }
 
-    void copyAt(Shape* dest) const override
-    {
-        *static_cast<Circle*>(dest) = *this;
-    }
+bool BoundingBox::overlaps(const BoundingBox& other) const
+{
+    if (!isValid() || !other.isValid())
+        return false;
 
-    Properties properties() const override
-    {
-        Properties p{};
+    return all(Interval{min_, max_}.overlaps(Interval{other.min_, other.max_}));
+}
 
-        p.centroid = center();
+bool BoundingBox::contains(const BoundingBox& other) const
+{
+    if (!isValid() || !other.isValid())
+        return false;
 
-        float r2 = squared(radius());
-        float pi = std::numbers::pi_v<float>;
+    return this->combined(other) == *this;
+}
 
-        p.area         = pi * r2;
-        p.momentOfArea = (pi / 2.f) * squared(r2);
 
-        return p;
-    }
+BoundingBox BoundingBox::combined(const BoundingBox& other) const
+{
+    if (!isValid())
+        return other;
 
-    BoundingBox boundingBox() const override
-    {
-        Vec2 offset = Vec2::filled(radius());
-        return BoundingBox{center() - offset, center() + offset};
-    }
+    if (!other.isValid())
+        return *this;
 
-    void transform(const Transform& transform) override
-    {
-        center_ = transform * center_;
-    }
-
-private:
-
-    float radius_;
-    Vec2  center_;
-};
-
+    return BoundingBox{std::min(min_, other.min_), std::max(max_, other.max_)};
+}
 
 } // namespace simu

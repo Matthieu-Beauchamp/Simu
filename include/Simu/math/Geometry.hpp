@@ -88,7 +88,7 @@ enum class Orientation
 ///
 /// epsilon is used to approximate collinearity
 ////////////////////////////////////////////////////////////
-Orientation orientation(Vec2 v0, Vec2 v1, Vec2 v2, float epsilon = simu::EPSILON)
+inline Orientation orientation(Vec2 v0, Vec2 v1, Vec2 v2, float epsilon = simu::EPSILON)
 {
     float c = cross(v1 - v0, v2 - v1);
 

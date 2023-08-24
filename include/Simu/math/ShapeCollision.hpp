@@ -24,33 +24,24 @@
 
 #pragma once
 
+#include <array>
+
 #include "Simu/math/Shape.hpp"
+
+#include "Simu/utility/Algo.hpp"
+#include "Simu/utility/Memory.hpp"
 
 namespace simu
 {
 
-class CollisionManifold;
-
-struct WorldShape
-{
-    const Shape& shape;
-    Transform    transform;
-
-    template <std::derived_from<Shape> T>
-    T get() const
-    {
-        T derived{static_cast<const T&>(shape)};
-        derived.transform(transform);
-        return derived;
-    }
-};
+struct CollisionManifold;
 
 // TODO: Since polygons are limited to only a few vertices, SAT may be a better choice
 //  (implement both and compare run times)
-CollisionManifold collidePolygons(const WorldShape& A, const WorldShape& B);
+CollisionManifold collidePolygons(const Shape& A, const Shape& B);
 CollisionManifold
-collidePolygonWithCircle(const WorldShape& A, const WorldShape& B);
-CollisionManifold collideCircles(const WorldShape& A, const WorldShape& B);
+collidePolygonWithCircle(const Shape& A, const Shape& B);
+CollisionManifold collideCircles(const Shape& A, const Shape& B);
 
 
 ////////////////////////////////////////////////////////////
@@ -146,17 +137,17 @@ struct CollisionManifold
 };
 
 
-typedef CollisionManifold (*CollisionCallback)(const WorldShape& /* A */, const WorldShape& /* B */);
+typedef CollisionManifold (*CollisionCallback)(const Shape& /* A */, const Shape& /* B */);
 
 namespace details
 {
 
 template <Uint32 shapeTypeA, Uint32 shapeTypeB, CollisionCallback callback>
-CollisionManifold symetricCallback(const WorldShape& A, const WorldShape& B)
+CollisionManifold symetricCallback(const Shape& A, const Shape& B)
 {
     static_assert(shapeTypeA > shapeTypeB, "");
-    SIMU_ASSERT(A.shape.type() == shapeTypeA, "");
-    SIMU_ASSERT(B.shape.type() == shapeTypeB, "");
+    SIMU_ASSERT(A.type() == shapeTypeA, "");
+    SIMU_ASSERT(B.type() == shapeTypeB, "");
 
     CollisionManifold inverted = callback(B, A);
     inverted.invert();
@@ -173,9 +164,9 @@ public:
 
     ShapeCollider() = default;
 
-    CollisionManifold collide(const WorldShape& A, const WorldShape& B)
+    CollisionManifold collide(const Shape& A, const Shape& B)
     {
-        CollisionCallback callback = callbacks_[indexOf(A.shape.type(), B.shape.type())];
+        CollisionCallback callback = callbacks_[indexOf(A.type(), B.type())];
         SIMU_ASSERT(
             callback != nullptr, "No callback registered corresponds to the shape types."
         );

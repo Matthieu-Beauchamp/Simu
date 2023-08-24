@@ -28,7 +28,7 @@
 #include "Simu/utility/View.hpp"
 #include "Simu/utility/Memory.hpp"
 
-#include "Simu/physics/BodyTree.hpp"
+#include "Simu/physics/ColliderTree.hpp"
 #include "Simu/physics/Body.hpp"
 #include "Simu/physics/Bodies.hpp"
 #include "Simu/physics/ForceField.hpp"
@@ -189,11 +189,8 @@ public:
     template <std::derived_from<Body> T, class... Args>
     T* makeBody(Args&&... args)
     {
-        auto body = makeUnique<T>(bAlloc_, std::forward<Args>(args)...);
+        auto body = makeObject<T>(this, bAlloc_, std::forward<Args>(args)...);
         T*   b = static_cast<T*>(bodies_.emplace_back(std::move(body)).get());
-        b->world_ = this;
-        b->setAllocator(bAlloc_);
-        b->onConstruction(*this);
 
         return b;
     }
@@ -331,7 +328,7 @@ private:
     void addCollider(Collider* collider)
     {
         collider->treeLocation_ = colliderTree_.emplace(
-            collider->boundingBox(), collider
+            collider->shape().boundingBox(), collider
         );
     }
 
@@ -344,7 +341,6 @@ private:
     UniquePtr<T> makeObject(A& alloc, Args&&... args)
     {
         auto obj = makeUnique<T>(alloc, std::forward<Args>(args)...);
-        obj->setAllocator(alloc);
         obj->onConstruction(*this);
         return obj;
     }

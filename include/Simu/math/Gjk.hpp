@@ -27,6 +27,7 @@
 #include <array>
 
 #include "Simu/math/Polygon.hpp"
+#include "Simu/math/Edges.hpp"
 
 namespace simu
 {

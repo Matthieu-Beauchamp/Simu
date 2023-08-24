@@ -110,7 +110,6 @@ UniquePtr<ContactConstraint>
 World::makeContactConstraint(Collider& first, Collider& second)
 {
     auto c = makeContactConstraint_(first, second, cAlloc_);
-    c->setAllocator(cAlloc_);
     c->onConstruction(*this);
 
     for (Body* body : c->bodies())

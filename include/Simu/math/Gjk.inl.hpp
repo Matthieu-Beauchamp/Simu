@@ -173,7 +173,7 @@ Gjk<T>::Gjk(const T& first, const T& second, Vec2 initialDir)
     {
         Vec2 direction = simplex_.nextDirection();
 
-        Vec2 v = furthestVec2InDirection(direction);
+        Vec2 v = furthestVertexInDirection(direction);
         if (dot(v, direction) < 0.f)
         {
             done_         = true;
@@ -208,7 +208,7 @@ Vec2 Gjk<T>::separation()
     while (true)
     {
         Vec2   dir = simplex_.nextDirection();
-        Vec2 v   = furthestVec2InDirection(dir);
+        Vec2 v   = furthestVertexInDirection(dir);
 
         if (simplex_.hasPoint(v))
             break;
@@ -259,9 +259,9 @@ Vec2 Gjk<T>::penetration() const
             }
         }
 
-        Vec2 next = furthestVec2InDirection(best.normal());
+        Vec2 next = furthestVertexInDirection(best.normal());
 
-        if (!polytope.addVec2(best, next))
+        if (!polytope.addVertex(best, next))
             return LineBarycentric{
                 best.from(), best.to(), Vec2{0, 0}
             }
@@ -272,8 +272,8 @@ Vec2 Gjk<T>::penetration() const
 template <Geometry T>
 Vec2 Gjk<T>::furthestVertexInDirection(const Vec2& direction) const
 {
-    return simu::furthestVertexInDirection(first_, direction)
-           - simu::furthestVertexInDirection(second_, -direction);
+    return *simu::furthestVertexInDirection(first_, direction)
+           - *simu::furthestVertexInDirection(second_, -direction);
 }
 
 } // namespace simu

@@ -74,8 +74,6 @@ protected:
 
     friend World;
 
-    virtual void setAllocator(const PhysicsAlloc& /* alloc */) {}
-
     ////////////////////////////////////////////////////////////
     /// \brief Called when a World creates this object
     ///

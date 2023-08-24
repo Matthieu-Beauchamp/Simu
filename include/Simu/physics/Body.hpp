@@ -31,7 +31,7 @@
 #include "Simu/math/Transform.hpp"
 
 #include "Simu/physics/PhysicsObject.hpp"
-#include "Simu/physics/BodyTree.hpp"
+#include "Simu/physics/ColliderTree.hpp"
 #include "Simu/physics/Collider.hpp"
 
 #include "Simu/utility/View.hpp"
@@ -77,44 +77,6 @@ struct BodyDescriptor
 };
 
 
-////////////////////////////////////////////////////////////
-/// \brief Mass properties of a Body
-///
-/// The mass and inertia are always strictly positive for a Body.
-///
-////////////////////////////////////////////////////////////
-class Mass
-{
-public:
-
-    Mass() = default;
-
-    Mass(float mass, float inertia)
-        : invMass_{1.f / mass}, invInertia_{1.f / inertia}
-    {
-        SIMU_ASSERT(mass > 0, "Invalid mass");
-        SIMU_ASSERT(inertia > 0, "Invalid inertia");
-    }
-
-    Mass(const GeometricProperties& properties, float density)
-        : Mass(properties.area * density, properties.momentOfArea * density)
-    {
-        SIMU_ASSERT(density > 0, "Invalid density");
-    }
-
-    float invMass() const { return invMass_; }
-    float invInertia() const { return invInertia_; }
-
-    float mass() const { return 1.f / invMass_; }
-    float inertia() const { return 1.f / invInertia_; }
-
-private:
-
-    float invMass_{};
-    float invInertia_{};
-};
-
-
 class Velocity
 {
 public:
@@ -157,9 +119,7 @@ class Position
 public:
 
     Position(Vec2 position, float orientation, Vec2 localCentroid)
-        : pos_{position},
-          orientation_{orientation},
-          localCentroid_{localCentroid}
+        : pos_{position}, orientation_{orientation}, localCentroid_{localCentroid}
     {
     }
 
@@ -203,12 +163,16 @@ public:
     ////////////////////////////////////////////////////////////
     /// \brief Constructs a Body
     ///
+    /// All subclasses must take Alloc and World* as first parameters
     ////////////////////////////////////////////////////////////
-    Body(const BodyDescriptor& descriptor)
+    Body(World* world, const Alloc& alloc, const BodyDescriptor& descriptor)
         : position_{descriptor.position, descriptor.orientation, Vec2{}},
-          dominance_{descriptor.dominance}
+          dominance_{descriptor.dominance},
+          colliders_{alloc},
+          constraints_{alloc},
+          contacts_{alloc},
+          world_{world}
     {
-        update();
     }
 
     Body(const Body& other) = delete;
@@ -220,8 +184,9 @@ public:
             removeCollider(&c);
     }
 
-    Collider* addCollider(const ColliderDescriptor& descriptor);
-    void removeCollider(Collider* collider);
+    template <std::derived_from<Shape> S, class... Args>
+    Collider* addCollider(const Material& material, Args&&... args);
+    void      removeCollider(Collider* collider);
 
     ////////////////////////////////////////////////////////////
     /// \brief Applies a force for some time on an object
@@ -379,14 +344,6 @@ private:
 
     friend class Bodies;
 
-    void setAllocator(const PhysicsAlloc& alloc) override
-    {
-        replaceAllocator(constraints_, alloc);
-        replaceAllocator(contacts_, alloc);
-
-        colliders_.replaceAlloc(alloc);
-    }
-
     void update() { colliders_.update(toWorldSpace()); }
 
     bool isImmobile(float velocityTreshold, float angularVelocityTreshold) const
@@ -414,9 +371,9 @@ private:
 
     Position position_;
     Velocity velocity_{};
+    float    dominance_;
 
     Colliders colliders_;
-    float     dominance_;
 
     bool  isAsleep_     = false;
     float timeImmobile_ = 0.f;
@@ -432,3 +389,5 @@ private:
 
 
 } // namespace simu
+
+#include "Simu/physics/Body.inl.hpp"

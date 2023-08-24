@@ -41,26 +41,6 @@ bool Body::interactsAsStructural() const
     return isStruct;
 }
 
-Collider* Body::addCollider(const ColliderDescriptor& descriptor)
-{
-    SIMU_ASSERT(world_ != nullptr, "Body must be owned by a World");
-
-    Vec2 oldCentroid = centroid();
-
-    Collider* c = colliders_.add(descriptor, this);
-
-    // see removeCollider.
-    // Here we assume the new collider has the Body's velocity, ignoring
-    //  conservation of momentums.
-    Vec2 dvAtCentroid = angularVelocity() * perp(centroid() - oldCentroid);
-    setVelocity(velocity() + dvAtCentroid);
-    position_.setLocalCentroid(colliders_.properties().centroid);
-
-    update();
-    world_->addCollider(c);
-
-    return c;
-}
 
 void Body::removeCollider(Collider* collider)
 {
