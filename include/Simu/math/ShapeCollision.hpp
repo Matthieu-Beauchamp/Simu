@@ -39,8 +39,7 @@ struct CollisionManifold;
 // TODO: Since polygons are limited to only a few vertices, SAT may be a better choice
 //  (implement both and compare run times)
 CollisionManifold collidePolygons(const Shape& A, const Shape& B);
-CollisionManifold
-collidePolygonWithCircle(const Shape& A, const Shape& B);
+CollisionManifold collidePolygonWithCircle(const Shape& A, const Shape& B);
 CollisionManifold collideCircles(const Shape& A, const Shape& B);
 
 
@@ -162,16 +161,26 @@ class ShapeCollider
 {
 public:
 
-    ShapeCollider() = default;
+    ShapeCollider(const Alloc& alloc) : callbacks_{alloc}
+    {
+        registerCollisionCallback<Shape::polygon, Shape::polygon, collidePolygons>();
+        registerCollisionCallback<Shape::polygon, Shape::circle, collidePolygonWithCircle>();
+        registerCollisionCallback<Shape::circle, Shape::circle, collideCircles>();
+    }
 
-    CollisionManifold collide(const Shape& A, const Shape& B)
+    CollisionCallback getCallback(const Shape& A, const Shape& B)
     {
         CollisionCallback callback = callbacks_[indexOf(A.type(), B.type())];
         SIMU_ASSERT(
             callback != nullptr, "No callback registered corresponds to the shape types."
         );
 
-        return callback(A, B);
+        return callback;
+    }
+
+    CollisionManifold collide(const Shape& A, const Shape& B)
+    {
+        return getCallback(A, B)(A, B);
     }
 
     template <Uint32 shapeTypeA, Uint32 shapeTypeB, CollisionCallback callback>
@@ -228,7 +237,7 @@ private:
 
     typedef std::vector<CollisionCallback, ReboundTo<Alloc, CollisionCallback>> Callbacks;
 
-    Callbacks callbacks_{};
+    Callbacks callbacks_;
     Uint32    nTypes_ = 0;
 };
 

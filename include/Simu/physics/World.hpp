@@ -24,19 +24,40 @@
 
 #pragma once
 
+#include <array>
+
 #include "Simu/config.hpp"
+
+#include "Simu/math/ShapeCollision.hpp"
+
+#include "Simu/physics/PhysicsObject.hpp"
+#include "Simu/physics/ColliderTree.hpp"
+#include "Simu/physics/Profiler.hpp"
+
 #include "Simu/utility/View.hpp"
 #include "Simu/utility/Memory.hpp"
 
-#include "Simu/physics/ColliderTree.hpp"
-#include "Simu/physics/Body.hpp"
-#include "Simu/physics/Bodies.hpp"
-#include "Simu/physics/ForceField.hpp"
 
-#include "Simu/physics/Profiler.hpp"
+namespace simu
+{
+
+class Body;
+struct BodyDescriptor;
+class Collider;
+
+class Constraint;
+class ContactConstraint;
+
+class ForceField;
+
+class Island;
+
+} // namespace simu
+
 
 namespace details
 {
+
 // https://youngforest.github.io/2020/05/27/best-implement-to-use-pair-as-key-to-std-unordered-map-in-C/
 // from boost (functional/hash):
 // see http://www.boost.org/doc/libs/1_35_0/doc/html/hash/combine.html template
@@ -90,10 +111,6 @@ struct hash<std::array<simu::Collider*, 2>>
 namespace simu
 {
 
-class Constraint;
-class ContactConstraint;
-class Island;
-
 ////////////////////////////////////////////////////////////
 /// \brief The World class makes the ForceField, Body and Constraint classes interact.
 ///
@@ -113,7 +130,8 @@ public:
 
     typedef ReboundTo<Alloc, UniquePtr<ContactConstraint>> ContactAlloc;
 
-    typedef std::function<UniquePtr<ContactConstraint>(Collider&, Collider&, const ContactAlloc&)>
+    typedef std::function<
+        UniquePtr<ContactConstraint>(Collider&, Collider&, CollisionCallback, const ContactAlloc&)>
         ContactFactory;
 
     static ContactFactory defaultContactFactory;
@@ -127,20 +145,12 @@ public:
     World(const World& other) = delete;
     World(World&& other)      = delete;
 
-    void clear()
-    {
-        bodies_.clear();
-        forces_.clear();
-        contacts_.clear();
-        constraints_.clear();
-        colliderTree_.clear();
-    }
+    void clear();
 
-    void setContactFactory(ContactFactory makeContact)
-    {
-        contacts_.clear();
-        makeContactConstraint_ = makeContact;
-    }
+    void setContactFactory(ContactFactory makeContact);
+
+    auto&       shapeCollider() { return shapeCollider_; }
+    const auto& shapeCollider() const { return shapeCollider_; }
 
     ////////////////////////////////////////////////////////////
     /// \brief Gives a view over the Bodies in the world
@@ -187,39 +197,15 @@ public:
     ///
     ////////////////////////////////////////////////////////////
     template <std::derived_from<Body> T, class... Args>
-    T* makeBody(Args&&... args)
-    {
-        auto body = makeObject<T>(this, bAlloc_, std::forward<Args>(args)...);
-        T*   b = static_cast<T*>(bodies_.emplace_back(std::move(body)).get());
-
-        return b;
-    }
-    Body* makeBody(const BodyDescriptor& descr)
-    {
-        return makeBody<Body>(descr);
-    }
+    T*    makeBody(Args&&... args);
+    Body* makeBody(const BodyDescriptor& descr);
 
     ////////////////////////////////////////////////////////////
     /// \brief Construct a Constraint and puts it in the world
     ///
     ////////////////////////////////////////////////////////////
     template <std::derived_from<Constraint> T, class... Args>
-    T* makeConstraint(Args&&... args)
-    {
-        T* c = static_cast<T*>(
-            constraints_
-                .emplace_back(makeObject<T>(cAlloc_, std::forward<Args>(args)...))
-                .get()
-        );
-
-        for (Body* body : c->bodies())
-        {
-            body->constraints_.emplace_back(c);
-            body->wake();
-        }
-
-        return c;
-    }
+    T* makeConstraint(Args&&... args);
 
     ////////////////////////////////////////////////////////////
     /// \brief Construct a ForceField and puts it in the world
@@ -227,25 +213,7 @@ public:
     ///
     ////////////////////////////////////////////////////////////
     template <std::derived_from<ForceField> T, class... Args>
-    T* makeForceField(Args&&... args)
-    {
-        T* f = static_cast<T*>(
-            forces_
-                .emplace_back(makeObject<T>(fAlloc_, std::forward<Args>(args)...))
-                .get()
-        );
-
-        if (f->domain().type == ForceField::DomainType::global)
-            for (Body& body : bodies())
-                body.wake();
-        else
-            colliderTree_.forEachIn(
-                f->domain().region,
-                [](ColliderTree::iterator it) { (*it)->body()->wake(); }
-            );
-
-        return f;
-    }
+    T* makeForceField(Args&&... args);
 
     ////////////////////////////////////////////////////////////
     /// \brief Makes the world progress in time.
@@ -287,14 +255,7 @@ public:
     /// \brief Updates the world's settings
     ///
     ////////////////////////////////////////////////////////////
-    void updateSettings(const Settings& settings)
-    {
-        if (!settings.enableSleeping && settings_.enableSleeping)
-            for (Body& body : bodies())
-                body.wake();
-
-        settings_ = settings;
-    }
+    void updateSettings(const Settings& settings);
 
     ////////////////////////////////////////////////////////////
     /// \brief Read the world's settings
@@ -304,20 +265,10 @@ public:
 
 
     template <Callable<void(Body*)> F>
-    void forEachIn(BoundingBox box, const F& func)
-    {
-        colliderTree_.forEachIn(box, [&](ColliderTree::iterator it) {
-            func((*it)->body());
-        });
-    }
+    void forEachIn(BoundingBox box, const F& func);
 
     template <Callable<void(Body*)> F>
-    void forEachAt(Vec2 point, const F& func)
-    {
-        colliderTree_.forEachAt(point, [&](ColliderTree::iterator it) {
-            func((*it)->body());
-        });
-    }
+    void forEachAt(Vec2 point, const F& func);
 
     Profiler&       profiler() { return profiler_; }
     const Profiler& profiler() const { return profiler_; }
@@ -325,25 +276,14 @@ public:
 private:
 
     friend Body;
-    void addCollider(Collider* collider)
-    {
-        collider->treeLocation_ = colliderTree_.emplace(
-            collider->shape().boundingBox(), collider
-        );
-    }
-
+    void addCollider(Collider* collider);
     void removeCollider(Collider* collider);
 
     UniquePtr<ContactConstraint>
     makeContactConstraint(Collider& first, Collider& second);
 
     template <std::derived_from<PhysicsObject> T, class A, class... Args>
-    UniquePtr<T> makeObject(A& alloc, Args&&... args)
-    {
-        auto obj = makeUnique<T>(alloc, std::forward<Args>(args)...);
-        obj->onConstruction(*this);
-        return obj;
-    }
+    UniquePtr<T> makeObject(A& alloc, Args&&... args);
 
 
     void applyForces(float dt);
@@ -406,15 +346,7 @@ private:
     };
 
     ContactList::iterator
-    inContacts(const std::array<simu::Collider*, 2>& colliders)
-    {
-        auto asIs = contacts_.find(colliders);
-        if (asIs != contacts_.end())
-            return asIs;
-        else
-            return contacts_.find(std::array<simu::Collider*, 2>{
-                colliders[1], colliders[0]});
-    }
+    inContacts(const std::array<simu::Collider*, 2>& colliders);
 
     ColliderTree colliderTree_{bAlloc_};
 
@@ -425,8 +357,11 @@ private:
     Settings settings_;
     Profiler profiler_;
 
-    ContactFactory makeContactConstraint_;
+    ContactFactory       makeContactConstraint_;
+    ShapeCollider<Alloc> shapeCollider_{miscAlloc_};
 };
 
 
 } // namespace simu
+
+#include "Simu/physics/World.inl.hpp"

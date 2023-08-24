@@ -25,6 +25,7 @@
 #pragma once
 
 #include "Simu/math/Shape.hpp"
+#include "Simu/utility/Algo.hpp"
 
 namespace simu
 {
@@ -44,7 +45,7 @@ public:
 
     void copyAt(Shape* dest) const override
     {
-        *static_cast<Circle*>(dest) = *this;
+        std::construct_at(static_cast<Circle*>(dest), *this);
     }
 
     Properties properties() const override

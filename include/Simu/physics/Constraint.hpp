@@ -26,7 +26,8 @@
 
 #include <memory>
 
-#include "Simu/math/Gjk.hpp"
+#include "Simu/math/ShapeCollision.hpp"
+
 #include "Simu/physics/ContactManifold.hpp"
 
 #include "Simu/physics/Body.hpp"
@@ -63,10 +64,7 @@ public:
     {
         solver.initSolve(proxies, f, dt);
     }
-    void warmstart(Proxies& proxies) override
-    {
-        solver.warmstart(proxies);
-    }
+    void warmstart(Proxies& proxies) override { solver.warmstart(proxies); }
 
     void solveVelocities(Proxies& proxies, float dt) override
     {
@@ -157,16 +155,6 @@ private:
 };
 
 
-struct ContactInfo
-{
-    std::array<Vec2, 2> refContacts;
-    std::array<Vec2, 2> incContacts;
-    Uint32              nContacts;
-
-    Vec2 normal;
-};
-
-
 class ContactConstraint : public Constraint
 {
 public:
@@ -175,43 +163,31 @@ public:
     //  no position correction is needed
     static constexpr float sinkTolerance = 3.f; // [1.f, inf[
 
-    ContactConstraint(Collider& first, Collider& second)
+    ContactConstraint(Collider& first, Collider& second, CollisionCallback collide)
         : Constraint{Bodies{first.body(), second.body()}, false}, 
-          manifold_{first, second}, 
+          collide_{collide}, A_{&first}, B_{&second},
           restitutionCoeff_{CombinableProperty{first.material().bounciness, 
                                                second.material().bounciness}.value},
           frictionCoeff_{CombinableProperty{first.material().friction, 
-                                            second.material().friction}.value}
+                                            second.material().friction}.value},
+          minPen_{CombinableProperty{first.material().penetration, 
+                                     second.material().penetration}.value}
     {
-        frame_ = manifold_.frameManifold(this->bodies());
+        updateContacts();
     }
 
-    const std::array<const Collider*, 2>& colliders() const
-    {
-        return manifold_.colliders();
-    }
+    std::array<const Collider*, 2> colliders() const { return {A_, B_}; }
 
-    ContactInfo contactInfo() const
-    {
-        ContactInfo info;
-        info.nContacts = manifold_.nContacts();
-
-        info.refContacts[0] = frame_.contacts[ref][0];
-        info.incContacts[0] = frame_.contacts[inc][0];
-        info.refContacts[1] = frame_.contacts[ref][1];
-        info.incContacts[1] = frame_.contacts[inc][1];
-
-        info.normal = frame_.normal;
-
-        return info;
-    }
+    const CollisionManifold& contactInfo() const { return worldManifold_; }
 
     void preStep() override { updateContacts(); }
 
-    bool isActive(const Proxies& proxies) final override
+    bool isActive(const Proxies&) final override
     {
-        frame_ = manifold_.frameManifold(proxies);
-        return frame_.nContacts != 0;
+        // preStep should not be used, update here instead.
+        // But currently Islands may call isActive multiple times, since
+        //  updateContacts is expensive, we cheat a bit.
+        return localManifold_.nContacts != 0;
     }
 
     void initSolve(const Proxies& proxies, float) final override
@@ -248,7 +224,7 @@ public:
         const auto invMassVec = proxies.invMassVec();
         auto       velocity   = proxies.velocity();
 
-        for (Uint32 c = 0; c < frame_.nContacts; ++c)
+        for (Uint32 c = 0; c < worldManifold_.nContacts; ++c)
         {
             auto  J              = Jf[c];
             float tangentVel     = (J * velocity)[0];
@@ -264,7 +240,7 @@ public:
             velocity += elementWiseMul(invMassVec, transpose(J) * dTangentLambda);
         }
 
-        if (frame_.nContacts == 1)
+        if (worldManifold_.nContacts == 1)
         {
             auto  J             = normalJacobian(0);
             float normalVel     = (J * velocity)[0];
@@ -277,7 +253,7 @@ public:
 
             velocity += elementWiseMul(invMassVec, transpose(J) * dNormalLambda);
         }
-        else if (frame_.nContacts == 2)
+        else if (worldManifold_.nContacts == 2)
         {
             Vec2 err             = Jn * velocity;
             Vec2 alreadyComputed = normalKSolver_.original() * normalLambda_;
@@ -313,38 +289,36 @@ public:
 
     void solvePositions(Proxies& proxies) final override
     {
-        frame_ = manifold_.frameManifold(proxies);
+        updateWorldManifold();
         computeJacobians(proxies, false);
         computeKs(proxies, false);
 
         Vec2 C{};
         auto relPos = relativePosition();
-        for (Uint32 c = 0; c < frame_.nContacts; ++c)
-            C[c] = dot(frame_.normal, relPos[c]);
+        for (Uint32 c = 0; c < worldManifold_.nContacts; ++c)
+            C[c] = dot(worldManifold_.normal, relPos[c]);
 
 
-        Vec2 acceptablePen = -sinkTolerance
-                             * Vec2::filled(manifold_.minimumPenetration());
+        Vec2 acceptablePen = -sinkTolerance * Vec2::filled(minPen_);
         if (all(C > acceptablePen))
             return;
 
         Vec2 error = clamp(
-            posCorrectionFactor
-                * (C + Vec2::filled(manifold_.minimumPenetration())),
+            posCorrectionFactor * (C + Vec2::filled(minPen_)),
             -Vec2::filled(maxCorrection),
             Vec2::filled(0.f)
         );
 
         // TODO: Sequential solving should be faster
 
-        if (frame_.nContacts == 1)
+        if (worldManifold_.nContacts == 1)
         {
             float posLambda = -error[0] * invNormalK11_;
             posLambda       = std::max(posLambda, 0.f);
 
             proxies.applyPositionCorrection(transpose(normalJacobian(0)) * posLambda);
         }
-        else if (frame_.nContacts == 2)
+        else if (worldManifold_.nContacts == 2)
         {
             Vec2 posLambda;
             // PGS /////////////////////////////////
@@ -369,65 +343,75 @@ public:
 
 private:
 
+    void updateWorldManifold()
+    {
+        worldManifold_ = localManifold_.transformed(
+            A_->body()->toWorldSpace(), B_->body()->toWorldSpace()
+        );
+    }
+
     // frame and manifold will be updated after this call,
     //  until the positions of the bodies change.
     void updateContacts()
     {
-        frame_ = manifold_.frameManifold(bodies());
+        // TODO: Specific to Polygon-Polygon...
+        // frame_ = manifold_.frameManifold(bodies());
 
         // TODO: Use vertex matching in contact manifold
         // TODO: All of this goes into contact manifold's update logic
-        bool needsNewManifold = frame_.nContacts == 0;
+        // bool needsNewManifold = frame_.nContacts == 0;
 
-        if (!needsNewManifold)
+        // if (!needsNewManifold)
+        // {
+        //     auto  relPos        = relativePosition();
+        //     float distTolerance = manifold_.minimumPenetration();
+
+        //     bool tangentDistanceExceeded = false;
+        //     bool roseTooHigh             = false;
+        //     for (Uint32 c = 0; c < frame_.nContacts; ++c)
+        //     {
+        //         float tangentDist = dot(relPos[c], frame_.tangent);
+        //         if (squared(tangentDist) > squared(distTolerance))
+        //             tangentDistanceExceeded = true;
+
+        //         float separation = dot(relPos[c], frame_.normal);
+        //         if (separation > distTolerance)
+        //             roseTooHigh = true;
+        //     }
+
+        //     const Uint32 incident = manifold_.incidentIndex();
+
+        //     Vec2 refN = (incident == 1) ? -frame_.normal : frame_.normal;
+        //     Vec2 nearestIncident = furthestVertexInDirection(
+        //         *manifold_.colliders()[incident], -(refN)
+        //     );
+
+        //     bool hasNewCandidate = any(frame_.contacts[incident][0] != nearestIncident);
+
+        //     if (frame_.nContacts == 2)
+        //         hasNewCandidate = hasNewCandidate
+        //                           && any(frame_.contacts[incident][1] != nearestIncident);
+
+        //     needsNewManifold = tangentDistanceExceeded || roseTooHigh
+        //                        || hasNewCandidate;
+        // }
+
+        // if (needsNewManifold)
         {
-            auto  relPos        = relativePosition();
-            float distTolerance = manifold_.minimumPenetration();
+            Uint32 nPreviousContacts = worldManifold_.nContacts;
 
-            bool tangentDistanceExceeded = false;
-            bool roseTooHigh             = false;
-            for (Uint32 c = 0; c < frame_.nContacts; ++c)
-            {
-                float tangentDist = dot(relPos[c], frame_.tangent);
-                if (squared(tangentDist) > squared(distTolerance))
-                    tangentDistanceExceeded = true;
-
-                float separation = dot(relPos[c], frame_.normal);
-                if (separation > distTolerance)
-                    roseTooHigh = true;
-            }
-
-            const Uint32 incident = manifold_.incidentIndex();
-
-            Vec2 refN = (incident == 1) ? -frame_.normal : frame_.normal;
-            Vec2 nearestIncident = furthestVertexInDirection(
-                *manifold_.colliders()[incident], -(refN)
+            worldManifold_ = collide_(A_->shape(), B_->shape());
+            localManifold_ = worldManifold_.transformed(
+                A_->body()->toLocalSpace(), B_->body()->toLocalSpace()
             );
-
-            bool hasNewCandidate = any(frame_.contacts[incident][0] != nearestIncident);
-
-            if (frame_.nContacts == 2)
-                hasNewCandidate = hasNewCandidate
-                                  && any(frame_.contacts[incident][1] != nearestIncident);
-
-            needsNewManifold = tangentDistanceExceeded || roseTooHigh
-                               || hasNewCandidate;
-        }
-
-        if (needsNewManifold)
-        {
-            Uint32 nPreviousContacts = frame_.nContacts;
-
-            manifold_.update();
-            frame_ = manifold_.frameManifold(bodies());
 
             tangentLambda_ = Vec2{};
 
             if (nPreviousContacts == 0)
                 normalLambda_ = Vec2{};
-            else if (nPreviousContacts == 1 && frame_.nContacts == 2)
+            else if (nPreviousContacts == 1 && worldManifold_.nContacts == 2)
                 normalLambda_ = Vec2{normalLambda_[0] / 2, normalLambda_[0] / 2};
-            else if (nPreviousContacts == 2 && frame_.nContacts == 1)
+            else if (nPreviousContacts == 2 && worldManifold_.nContacts == 1)
             {
                 normalLambda_[0] += normalLambda_[1];
                 normalLambda_[1] = 0.f;
@@ -444,13 +428,13 @@ private:
         const float incInertia = invMass[3 * inc + 2];
 
         const float linearMass = refMass + incMass;
-        const float normalMass = linearMass * normSquared(frame_.normal);
+        const float normalMass = linearMass * normSquared(worldManifold_.normal);
 
         if (computeFrictionK)
         {
-            for (Uint32 c = 0; c < frame_.nContacts; ++c)
+            for (Uint32 c = 0; c < worldManifold_.nContacts; ++c)
             {
-                invTangentKs_[c] = linearMass * normSquared(frame_.tangent)
+                invTangentKs_[c] = linearMass * normSquared(worldManifold_.tangent)
                                    + refInertia * squared(Jf[c][3 * ref + 2])
                                    + incInertia * squared(Jf[c][3 * inc + 2]);
 
@@ -460,17 +444,17 @@ private:
 
 
         Mat2 normalK;
-        for (Uint32 c = 0; c < manifold_.nContacts(); ++c)
+        for (Uint32 c = 0; c < worldManifold_.nContacts; ++c)
         {
             normalK(c, c) = normalMass + refInertia * squared(Jn(c, 3 * ref + 2))
                             + incInertia * squared(Jn(c, 3 * inc + 2));
         }
 
-        if (manifold_.nContacts() == 1)
+        if (worldManifold_.nContacts == 1)
         {
             invNormalK11_ = 1.f / normalK(0, 0);
         }
-        else if (manifold_.nContacts() == 2)
+        else if (worldManifold_.nContacts == 2)
         {
             normalK(0, 1) = normalMass
                             + refInertia * Jn(0, 3 * ref + 2) * Jn(1, 3 * ref + 2)
@@ -486,7 +470,7 @@ private:
     {
         bounce_ = Jn * proxies.velocity();
 
-        for (Uint32 c = 0; c < manifold_.nContacts(); ++c)
+        for (Uint32 c = 0; c < worldManifold_.nContacts; ++c)
         {
             if (bounce_[c] > -restitutionTreshold)
                 bounce_[c] = 0.f;
@@ -500,42 +484,44 @@ private:
 
     void computeJacobians(const Proxies& proxies, bool computeFriction)
     {
-        std::array<std::array<Vec2, 2>, 2> r{};
-        for (Uint32 b = 0; b < 2; ++b)
+        std::array<Vec2, 2> rA;
+        std::array<Vec2, 2> rB;
+
+        Vec2 cA = proxies[0].centroid();
+        Vec2 cB = proxies[1].centroid();
+        for (Uint32 c = 0; c < worldManifold_.nContacts; ++c)
         {
-            Vec2 centroid = proxies[b].centroid();
-            for (Uint32 c = 0; c < frame_.nContacts; ++c)
-            {
-                r[b][c] = frame_.contacts[b][c] - centroid;
-            }
+            rA[c] = worldManifold_.contactsA[c] - cA;
+            rB[c] = worldManifold_.contactsB[c] - cB;
         }
+
 
         Jf = JacobianRows{};
         Jn = Jacobian{};
 
-        Vec2 n = frame_.normal;
-        Vec2 t = frame_.tangent;
+        Vec2 n = worldManifold_.normal;
+        Vec2 t = worldManifold_.tangent;
 
         Uint32 incIndex = 3 * inc;
         Uint32 refIndex = 3 * ref;
-        for (Uint32 c = 0; c < frame_.nContacts; ++c)
+        for (Uint32 c = 0; c < worldManifold_.nContacts; ++c)
         {
             if (computeFriction)
             {
                 Jf[c][incIndex + 0] = t[0];
                 Jf[c][incIndex + 1] = t[1];
-                Jf[c][incIndex + 2] = cross(r[inc][c], t);
+                Jf[c][incIndex + 2] = cross(rA[c], t);
                 Jf[c][refIndex + 0] = -t[0];
                 Jf[c][refIndex + 1] = -t[1];
-                Jf[c][refIndex + 2] = -cross(r[ref][c], t);
+                Jf[c][refIndex + 2] = -cross(rB[c], t);
             }
 
             Jn(c, incIndex + 0) = n[0];
             Jn(c, incIndex + 1) = n[1];
-            Jn(c, incIndex + 2) = cross(r[inc][c], n);
+            Jn(c, incIndex + 2) = cross(rA[c], n);
             Jn(c, refIndex + 0) = -n[0];
             Jn(c, refIndex + 1) = -n[1];
-            Jn(c, refIndex + 2) = -cross(r[ref][c], n);
+            Jn(c, refIndex + 2) = -cross(rB[c], n);
         }
     }
 
@@ -547,17 +533,13 @@ private:
     std::array<Vec2, 2> relativePosition() const
     {
         std::array<Vec2, 2> relPos;
-        for (Uint32 c = 0; c < frame_.nContacts; ++c)
+        for (Uint32 c = 0; c < worldManifold_.nContacts; ++c)
         {
-            relPos[c] = frame_.contacts[inc][c] - frame_.contacts[ref][c];
+            relPos[c] = worldManifold_.contactsA[c] - worldManifold_.contactsB[c];
         }
 
         return relPos;
     }
-
-    ContactManifold manifold_;
-
-    typename ContactManifold::FrameManifold frame_;
 
     typedef Matrix<float, 2, 6>        Jacobian;
     typedef Matrix<float, 1, 6>        JacobianRow;
@@ -581,8 +563,16 @@ private:
 
     Vec2 bounce_{};
 
+    CollisionManifold worldManifold_{};
+    CollisionManifold localManifold_{};
+
+    CollisionCallback collide_;
+    const Collider*   A_;
+    const Collider*   B_;
+
     float restitutionCoeff_;
     float frictionCoeff_;
+    float minPen_;
 
     // normal points out of ref.
     static constexpr Uint32 inc = 0;

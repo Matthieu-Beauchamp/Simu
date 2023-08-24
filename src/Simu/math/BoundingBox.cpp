@@ -27,9 +27,6 @@
 namespace simu
 {
 
-
-BoundingBox::BoundingBox(Vec2 min, Vec2 max) : min_{min}, max_{max} {}
-
 BoundingBox BoundingBox::scaled(BoundingBox original, float ratio)
 {
     auto transform = [&](Vec2 p) {

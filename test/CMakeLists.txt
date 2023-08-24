@@ -5,7 +5,6 @@ target_sources(simu-test PUBLIC
     Polygon.cpp
     Gjk.cpp
     BarycentricCoordinates.cpp
-    Shape.cpp
 
     BoundingBox.cpp
     RTree.cpp

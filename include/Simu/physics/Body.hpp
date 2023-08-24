@@ -163,7 +163,7 @@ public:
     ////////////////////////////////////////////////////////////
     /// \brief Constructs a Body
     ///
-    /// All subclasses must take Alloc and World* as first parameters
+    /// All subclasses must take World* and Alloc as first parameters
     ////////////////////////////////////////////////////////////
     Body(World* world, const Alloc& alloc, const BodyDescriptor& descriptor)
         : position_{descriptor.position, descriptor.orientation, Vec2{}},

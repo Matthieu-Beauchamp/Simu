@@ -54,7 +54,7 @@ public:
     ////////////////////////////////////////////////////////////
     /// Creates a bounding box from the specified min and max points.
     ////////////////////////////////////////////////////////////
-    inline BoundingBox(Vec2 min, Vec2 max);
+    BoundingBox(Vec2 min, Vec2 max) : min_{min}, max_{max} {}
 
     ////////////////////////////////////////////////////////////
     /// Creates a bounding box that contains all the vertices
@@ -68,7 +68,7 @@ public:
     template <Geometry T>
     inline BoundingBox(const T& geoemtry);
 
-    inline static BoundingBox scaled(BoundingBox original, float ratio);
+    static BoundingBox scaled(BoundingBox original, float ratio);
 
     ////////////////////////////////////////////////////////////
     /// true if the bounding box covers a valid area,
@@ -95,14 +95,14 @@ public:
     /// true if this overlaps other, if the borders touch, the boxes overlap.
     /// If this or other is invalid, they never overlap.
     ////////////////////////////////////////////////////////////
-    inline bool overlaps(const BoundingBox& other) const;
+    bool overlaps(const BoundingBox& other) const;
 
-    inline bool contains(const BoundingBox& other) const;
+    bool contains(const BoundingBox& other) const;
 
     ////////////////////////////////////////////////////////////
     /// Returns a bounding box that covers this and other.
     ////////////////////////////////////////////////////////////
-    inline BoundingBox combined(const BoundingBox& other) const;
+    BoundingBox combined(const BoundingBox& other) const;
 
     ////////////////////////////////////////////////////////////
     /// true if both boxes are invalid or they have the same min and max coordinates.

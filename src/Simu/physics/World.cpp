@@ -24,6 +24,8 @@
 
 #include "Simu/physics/World.hpp"
 
+#include "Simu/physics/Body.hpp"
+#include "Simu/physics/ForceField.hpp"
 #include "Simu/physics/Island.hpp"
 
 namespace simu
@@ -31,6 +33,26 @@ namespace simu
 
 World::World(ContactFactory makeContact) : makeContactConstraint_{makeContact}
 {
+}
+
+void World::clear()
+{
+    bodies_.clear();
+    forces_.clear();
+    contacts_.clear();
+    constraints_.clear();
+    colliderTree_.clear();
+}
+
+void World::setContactFactory(ContactFactory makeContact)
+{
+    contacts_.clear();
+    makeContactConstraint_ = makeContact;
+}
+
+Body* World::makeBody(const BodyDescriptor& descr)
+{
+    return makeBody<Body>(descr);
 }
 
 void World::step(float dt)
@@ -102,14 +124,30 @@ void World::step(float dt)
         f.postStep();
 }
 
+void World::updateSettings(const Settings& settings)
+{
+    if (!settings.enableSleeping && settings_.enableSleeping)
+        for (Body& body : bodies())
+            body.wake();
+
+    settings_ = settings;
+}
+
 typename World::ContactFactory World::defaultContactFactory =
-    [](Collider& first, Collider& second, const typename World::ContactAlloc& alloc
-    ) { return makeUnique<ContactConstraint>(alloc, first, second); };
+    [](Collider&                           first,
+       Collider&                           second,
+       CollisionCallback                   callback,
+       const typename World::ContactAlloc& alloc) {
+        return makeUnique<ContactConstraint>(alloc, first, second, callback);
+    };
 
 UniquePtr<ContactConstraint>
 World::makeContactConstraint(Collider& first, Collider& second)
 {
-    auto c = makeContactConstraint_(first, second, cAlloc_);
+    auto c = makeContactConstraint_(
+        first, second, shapeCollider_.getCallback(first.shape(), second.shape()), cAlloc_
+    );
+
     c->onConstruction(*this);
 
     for (Body* body : c->bodies())
@@ -207,6 +245,13 @@ private:
     }
 };
 
+
+void World::addCollider(Collider* collider)
+{
+    collider->treeLocation_ = colliderTree_.emplace(
+        collider->shape().boundingBox(), collider
+    );
+}
 
 void World::removeCollider(Collider* collider)
 {
@@ -315,7 +360,7 @@ void World::updateBodies(float dt)
         SIMU_PROFILE_ENTRY(profiler_.treeUpdateAndCollision);
 
         colliderTree_.updateAndCollide(
-            [](ColliderIt it) { return (*it)->boundingBox(); }, registerContact
+            [](ColliderIt it) { return (*it)->shape().boundingBox(); }, registerContact
         );
     }
 
@@ -333,5 +378,15 @@ void World::updateBodies(float dt)
     }
 }
 
+World::ContactList::iterator
+World::inContacts(const std::array<simu::Collider*, 2>& colliders)
+{
+    auto asIs = contacts_.find(colliders);
+    if (asIs != contacts_.end())
+        return asIs;
+    else
+        return contacts_.find(std::array<simu::Collider*, 2>{
+            colliders[1], colliders[0]});
+}
 
 } // namespace simu

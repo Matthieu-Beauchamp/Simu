@@ -84,7 +84,6 @@ struct MassProperties
 
 
 class Body;
-class Colliders;
 
 ////////////////////////////////////////////////////////////
 /// \brief Represents a shape that moves and its mass properties
@@ -98,6 +97,39 @@ class Colliders;
 class Collider
 {
 public:
+
+    typedef FreeListAllocator<int> Alloc;
+
+    // Must call make<>() after, otherwise the Collider is in an invalid state.
+    Collider(Body* body, const Material& material)
+        : body_{body}, material_{material}
+    {
+    }
+
+    template <std::derived_from<Shape> S, class... Args>
+    void make(const Alloc& alloc, Args&&... args)
+    {
+        typedef ReboundTo<Alloc, S> ShapeAlloc;
+        ShapeAlloc                  a{alloc};
+
+        local_ = std::allocator_traits<ShapeAlloc>::allocate(a, 2);
+        world_ = std::next(static_cast<S*>(local_));
+
+        std::allocator_traits<ShapeAlloc>::construct(
+            a, static_cast<S*>(local_), std::forward<Args>(args)...
+        );
+
+        local_->copyAt(world_);
+
+        dealloc_ = [=](Shape* local) mutable {
+            S* first = static_cast<S*>(local);
+
+            std::allocator_traits<ShapeAlloc>::destroy(a, first);
+            std::allocator_traits<ShapeAlloc>::destroy(a, std::next(first));
+
+            std::allocator_traits<ShapeAlloc>::deallocate(a, first, 2);
+        };
+    }
 
     Collider(const Collider&) = delete;
     Collider(Collider&&)      = delete;
@@ -130,47 +162,13 @@ public:
 
 private:
 
-    typedef FreeListAllocator<int> Alloc;
-
-    friend Colliders;
-
-    Collider() = default;
-
-    template <std::derived_from<Shape> S, class... Args>
-    void
-    make(Body* body, const Alloc& alloc, const Material& material, Args&&... args)
-    {
-        body_     = body;
-        material_ = material;
-        typedef ReboundTo<Alloc, S> ShapeAlloc;
-        ShapeAlloc                  a{alloc};
-
-        local_ = std::allocator_traits<ShapeAlloc>::allocate(a, 2);
-        world_ = std::next(static_cast<S*>(local_));
-
-        std::allocator_traits<ShapeAlloc>::construct(
-            a, local_, std::forward<Args>(args)...
-        );
-
-        local_->copyAt(world_);
-
-        dealloc_ = [=](Shape* local) {
-            S* first = static_cast<S*>(local);
-
-            std::allocator_traits<ShapeAlloc>::destroy(a, first);
-            std::allocator_traits<ShapeAlloc>::destroy(a, std::next(first));
-
-            std::allocator_traits<ShapeAlloc>::deallocate(a, first, 2);
-        };
-    }
-
     Body*    body_;
     Material material_;
 
-    Shape* local_;
-    Shape* world_;
+    Shape* local_ = nullptr;
+    Shape* world_ = nullptr;
 
-    std::function<void(Shape*)> dealloc_;
+    std::function<void(Shape*)> dealloc_{};
 
     friend class World;
     typename ColliderTree::iterator treeLocation_; // only used for removal...
@@ -195,9 +193,8 @@ public:
     template <std::derived_from<Shape> S, class... Args>
     Collider* add(Body* owner, const Material& material, Args&&... args)
     {
-        colliders_.emplace_back().make<S>(
-            owner, colliders_.get_allocator(), material, std::forward<Args>(args)...
-        );
+        colliders_.emplace_back(owner, material)
+            .make<S>(colliders_.get_allocator(), std::forward<Args>(args)...);
 
         MassProperties p = colliders_.back().localProperties();
         properties_      = properties_ + p;

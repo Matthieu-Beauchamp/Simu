@@ -28,6 +28,7 @@
 #include <array>
 
 #include "Simu/math/Shape.hpp"
+#include "Simu/math/Edges.hpp"
 
 #include "Simu/utility/View.hpp"
 
@@ -145,7 +146,7 @@ public:
 
     void copyAt(Shape* dest) const override
     {
-        *static_cast<Polygon*>(dest) = *this;
+        std::construct_at(static_cast<Polygon*>(dest), *this);
     }
 
     Properties properties() const override { return properties_; }

@@ -37,7 +37,7 @@ Collider* Body::addCollider(const Material& material, Args&&... args)
 
     Vec2 oldCentroid = centroid();
 
-    Collider* c = colliders_.add(this, material, std::forward<Args>(args)...);
+    Collider* c = colliders_.add<S>(this, material, std::forward<Args>(args)...);
 
     // see removeCollider.
     // Here we assume the new collider has the Body's velocity, ignoring

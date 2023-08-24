@@ -1,6 +1,6 @@
 #include "catch2/catch_test_macros.hpp"
 
-#include "Simu/physics/BoundingBox.hpp"
+#include "Simu/math/BoundingBox.hpp"
 
 using namespace simu;
 
@@ -119,11 +119,11 @@ TEST_CASE("Bounding Box")
 
     SECTION("From geometry and point boxes")
     {
-        Vertices vertices{
-            Vertex{0,   0.5},
-            Vertex{0.5, 0  },
-            Vertex{1,   0.5},
-            Vertex{0.5, 1  },
+        std::vector<Vec2> vertices{
+            Vec2{0,   0.5},
+            Vec2{0.5, 0  },
+            Vec2{1,   0.5},
+            Vec2{0.5, 1  },
         };
 
         BoundingBox box{vertices};
@@ -131,7 +131,7 @@ TEST_CASE("Bounding Box")
         REQUIRE(all(box.min() == Vec2{0, 0}));
         REQUIRE(all(box.max() == Vec2{1, 1}));
 
-        for (const Vertex& v : vertices)
+        for (const Vec2& v : vertices)
         {
             testOverlap(box, BoundingBox{v, v});
         }

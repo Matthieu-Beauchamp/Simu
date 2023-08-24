@@ -14,11 +14,11 @@ TEST_CASE("Geometry")
             // not enough vertices
             REQUIRE_THROWS(Polygon{});
             REQUIRE_THROWS(Polygon{
-                Vertex{0, 0}
+                Vec2{0, 0}
             });
             REQUIRE_THROWS(Polygon{
-                Vertex{0, 0},
-                Vertex{1, 0}
+                Vec2{0, 0},
+                Vec2{1, 0}
             });
         }
 
@@ -26,33 +26,34 @@ TEST_CASE("Geometry")
         SECTION("Geometric properties")
         {
             Polygon square{
-                Vertex{0, 0},
-                Vertex{1, 0},
-                Vertex{1, 1},
-                Vertex{0, 1},
+                Vec2{0, 0},
+                Vec2{1, 0},
+                Vec2{1, 1},
+                Vec2{0, 1},
             };
 
-            GeometricProperties properties{square};
+            Shape::Properties properties = square.properties();
+
 
             REQUIRE(properties.area == 1.f);
             REQUIRE(all(properties.centroid == Vec2{0.5f, 0.5f}));
             REQUIRE(approx(1.f / 6, 1e-6f).contains(properties.momentOfArea));
 
             REQUIRE(all(
-                furthestVertexInDirection(square, Vec2{1, 1}) == Vertex{1.f, 1.f}
+                *furthestVertexInDirection(square, Vec2{1, 1}) == Vec2{1.f, 1.f}
             ));
         }
 
         SECTION("Polygons are always positively oriented")
         {
             Polygon square{
-                Vertex{0, 0},
-                Vertex{0, 1},
-                Vertex{1, 1},
-                Vertex{1, 0},
+                Vec2{0, 0},
+                Vec2{0, 1},
+                Vec2{1, 1},
+                Vec2{1, 0},
             };
 
-            GeometricProperties properties = square.properties();
+            Shape::Properties properties = square.properties();
 
             // vertex order is reversed to be positive
             REQUIRE(properties.area == 1.f);
@@ -60,7 +61,7 @@ TEST_CASE("Geometry")
             REQUIRE(approx(1.f / 6, 1e-6f).contains(properties.momentOfArea));
 
             REQUIRE(all(
-                furthestVertexInDirection(square, Vec2{1, 1}) == Vertex{1.f, 1.f}
+                *furthestVertexInDirection(square, Vec2{1, 1}) == Vec2{1.f, 1.f}
             ));
         }
 
@@ -68,56 +69,56 @@ TEST_CASE("Geometry")
         {
             // null area
             Polygon line{
-                Vertex{0, 0},
-                Vertex{1, 1},
-                Vertex{2, 2}
+                Vec2{0, 0},
+                Vec2{1, 1},
+                Vec2{2, 2}
             };
 
-            GeometricProperties properties{line};
+            Shape::Properties properties = line.properties();
 
             REQUIRE(properties.area == 0.f);
 
             REQUIRE(properties.isDegenerate);
 
-            REQUIRE(all(
-                furthestVertexInDirection(line, Vec2{1, 1}) == Vertex{2.f, 2.f}
-            ));
+            REQUIRE(
+                all(*furthestVertexInDirection(line, Vec2{1, 1}) == Vec2{2.f, 2.f})
+            );
         }
 
         SECTION("With holes")
         {
             Polygon box{
-                Vertex{0, 0},
+                Vec2{0, 0},
 
  // hole is negatively oriented
-                Vertex{1, 1},
-                Vertex{1, 3},
-                Vertex{3, 3},
-                Vertex{3, 1},
-                Vertex{1, 1},
+                Vec2{1, 1},
+                Vec2{1, 3},
+                Vec2{3, 3},
+                Vec2{3, 1},
+                Vec2{1, 1},
 
-                Vertex{0, 0},
-                Vertex{4, 0},
-                Vertex{4, 4},
-                Vertex{0, 4}
+                Vec2{0, 0},
+                Vec2{4, 0},
+                Vec2{4, 4},
+                Vec2{0, 4}
             };
 
             Polygon outer{
-                Vertex{0, 0},
-                Vertex{4, 0},
-                Vertex{4, 4},
-                Vertex{0, 4}
+                Vec2{0, 0},
+                Vec2{4, 0},
+                Vec2{4, 4},
+                Vec2{0, 4}
             };
 
             // here positively oriented
             Polygon hole{
-                Vertex{1, 1},
-                Vertex{3, 1},
-                Vertex{3, 3},
-                Vertex{1, 3},
+                Vec2{1, 1},
+                Vec2{3, 1},
+                Vec2{3, 3},
+                Vec2{1, 3},
             };
 
-            GeometricProperties properties{box};
+            Shape::Properties properties = box.properties();
 
             REQUIRE_FALSE(properties.isDegenerate);
 
@@ -130,13 +131,12 @@ TEST_CASE("Geometry")
             // this form is only true since they share the same centroid
             REQUIRE(approx(properties.momentOfArea, 1e-5f)
                         .contains(
-                            outer.properties().momentOfArea
-                            - hole.properties().momentOfArea
+                            outer.properties().momentOfArea - hole.properties().momentOfArea
                         ));
 
-            REQUIRE(all(
-                furthestVertexInDirection(box, Vec2{1, 1}) == Vertex{4.f, 4.f}
-            ));
+            REQUIRE(
+                all(*furthestVertexInDirection(box, Vec2{1, 1}) == Vec2{4.f, 4.f})
+            );
         }
     }
 }

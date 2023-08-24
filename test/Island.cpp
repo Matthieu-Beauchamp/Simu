@@ -2,6 +2,8 @@
 
 #include "catch2/catch_test_macros.hpp"
 
+#include "Simu/math/Polygon.hpp"
+
 #include "Simu/physics/World.hpp"
 #include "Simu/physics/Body.hpp"
 #include "Simu/physics/Constraint.hpp"
@@ -80,7 +82,7 @@ Body* makeBox(World& w, Vec2 pos = Vec2{0, 0}, Vec2 dim = Vec2{2, 2})
     descr.position = pos;
     auto b         = w.makeBody(descr);
 
-    b->addCollider(ColliderDescriptor{Polygon::box(dim)});
+    b->addCollider<Polygon>(Material{}, Polygon::box(dim));
     return b;
 }
 
@@ -157,8 +159,9 @@ TEST_CASE("Island")
                 float w = 2.f * nStacks + 1.f;
                 float h = 1.f;
                 world.makeBody(floorDescr)
-                    ->addCollider(ColliderDescriptor{
-                        Polygon::box(Vec2{w, h}, Vec2{w / 2, -h / 2})});
+                    ->addCollider<Polygon>(
+                        Material{}, Polygon::box(Vec2{w, h}, Vec2{w / 2, -h / 2})
+                    );
 
                 for (Uint32 i = 0; i < nStacks; ++i)
                     makeStack(i, stackHeight);

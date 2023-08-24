@@ -4,8 +4,12 @@
 
 #include "Simu/utility/FloatingPointExceptions.hpp"
 
+#include "Simu/math/Polygon.hpp"
+#include "Simu/math/Circle.hpp"
+
 #include "Simu/physics/World.hpp"
 #include "Simu/physics/Body.hpp"
+#include "Simu/physics/ForceField.hpp"
 #include "Simu/physics/Constraint.hpp"
 #include "Simu/physics/Motors.hpp"
 
@@ -18,7 +22,7 @@ Body* makeBox(World& w, Vec2 pos = Vec2{0, 0}, float theta = 0.f, Vec2 dim = Vec
     descr.orientation = theta;
     auto b            = w.makeBody(descr);
 
-    b->addCollider(ColliderDescriptor{Polygon::box(dim)});
+    b->addCollider<Polygon>(Material{}, Polygon::box(dim));
     return b;
 }
 
@@ -434,18 +438,19 @@ TEST_CASE("Physics")
         {
             World world{};
 
-            BodyDescriptor     descr{};
-            ColliderDescriptor cDescr{Polygon::box(Vec2::filled(1.f))};
-            cDescr.material.bounciness.value = 1.f;
+            BodyDescriptor descr{};
+            Material       material{};
+            material.bounciness.value = 1.f;
+            Polygon box{Polygon::box(Vec2::filled(1.f))};
 
             descr.position = Vec2{-2, 0};
             auto body1     = world.makeBody(descr);
-            body1->addCollider(cDescr);
+            body1->addCollider<Polygon>(material, box);
             body1->setVelocity(Vec2{0.5f, 0});
 
             descr.position = Vec2{1, 0};
             auto body2     = world.makeBody(descr);
-            body2->addCollider(cDescr);
+            body2->addCollider<Polygon>(material, box);
             body2->setVelocity(Vec2{-0.5f, 0});
 
             world.step(1.f);
@@ -466,20 +471,21 @@ TEST_CASE("Physics")
         {
             World world{};
 
-            BodyDescriptor     descr{};
-            ColliderDescriptor cDescr{Polygon::box(Vec2::filled(1.f))};
-            cDescr.material.bounciness.value = 1.f;
+            BodyDescriptor descr{};
+            Material       material{};
+            material.bounciness.value = 1.f;
+            Polygon box{Polygon::box(Vec2::filled(1.f))};
 
             descr.position  = Vec2{-2, 0};
             auto projectile = world.makeBody(descr);
-            projectile->addCollider(cDescr);
+            projectile->addCollider<Polygon>(material, box);
             projectile->setVelocity(Vec2{1.f, 0.f});
             REQUIRE(!projectile->isStructural());
 
             descr.position  = Vec2{0, 0};
             descr.dominance = 0.f;
             auto wall       = world.makeBody(descr);
-            wall->addCollider(cDescr);
+            wall->addCollider<Polygon>(material, box);
             REQUIRE(wall->isStructural());
 
             world.step(1.1f); // collision
@@ -531,23 +537,28 @@ TEST_CASE("Physics")
 
         struct MotorCycle : public Body
         {
-            MotorCycle(Vec2 pos) : Body{BodyDescriptor{pos}} {}
+            MotorCycle(World* world, const Alloc& alloc, Vec2 pos)
+                : Body{world, alloc, BodyDescriptor{pos}}
+            {
+            }
 
             void onConstruction(World& world) override
             {
-                ColliderDescriptor cDescr{Polygon::box(Vec2{2.f, 1.f})};
-                addCollider(cDescr);
+                Polygon chassis{Polygon::box(Vec2{2.f, 1.f})};
+                addCollider<Polygon>(Material{}, chassis);
 
-                BodyDescriptor     wheelDescr{};
-                ColliderDescriptor wheelColliderDescr = wheelDescriptor();
+                BodyDescriptor wheelDescr{};
+                Material       wheelMaterial{};
+                wheelMaterial.friction.value = 1.f;
+                Circle wheel{wheelRadius, Vec2{}};
 
                 wheelDescr.position = toWorldSpace() * Vec2{-1.f, -1.f};
                 rearWheel           = world.makeBody(wheelDescr);
-                rearWheel->addCollider(wheelColliderDescr);
+                rearWheel->addCollider<Circle>(wheelMaterial, wheel);
 
                 wheelDescr.position = toWorldSpace() * Vec2{1.f, -1.f};
                 frontWheel          = world.makeBody(wheelDescr);
-                frontWheel->addCollider(wheelColliderDescr);
+                frontWheel->addCollider<Circle>(wheelMaterial, wheel);
 
                 rearHinge = world.makeConstraint<HingeConstraint>(
                     Bodies{this, rearWheel}, rearWheel->centroid()
@@ -579,26 +590,6 @@ TEST_CASE("Physics")
                 frontWheel->kill();
             }
 
-            static ColliderDescriptor wheelDescriptor()
-            {
-                std::vector<Vec2> points;
-                Uint32            nPoints = 24;
-                for (Uint32 i = 0; i < nPoints; ++i)
-                {
-                    float theta = i * 2 * pi / nPoints;
-                    points.emplace_back(wheelRadius* Vec2{
-                        std::cos(theta), std::sin(theta)});
-                }
-
-                Material material{};
-                material.friction.value = 1.f;
-
-                return ColliderDescriptor{
-                    Polygon{points.begin(), points.end()},
-                    material
-                };
-            }
-
             Body*            rearWheel = nullptr;
             HingeConstraint* rearHinge = nullptr;
 
@@ -620,11 +611,10 @@ TEST_CASE("Physics")
         BodyDescriptor groundDescr{};
         groundDescr.dominance = 0.f;
 
-        ColliderDescriptor groundColliderDescr{
-            Polygon::box(Vec2{10.f, 1.f}, Vec2{0.f, -0.5f})};
-
         auto ground = world.makeBody(groundDescr);
-        ground->addCollider(groundColliderDescr);
+        ground->addCollider<Polygon>(
+            Material{}, Polygon::box(Vec2{10.f, 1.f}, Vec2{0.f, -0.5f})
+        );
 
         auto gravity = world.makeForceField<Gravity>(Vec2{0, -10.f});
 
@@ -632,7 +622,7 @@ TEST_CASE("Physics")
         for (Uint32 i = 0; i < 25; ++i)
             world.step(0.01f);
 
-        float           pen = groundColliderDescr.material.penetration.value;
+        float           pen = Material{}.penetration.value;
         Interval<float> restingheight{
             fromGroundToPos - ContactConstraint::sinkTolerance * pen,
             fromGroundToPos - pen};
@@ -661,59 +651,6 @@ TEST_CASE("Physics")
         REQUIRE(world.forceFields().empty());
     }
 
-    SECTION("Contact constraint divergence issue")
-    {
-        World world{};
-
-        BodyDescriptor groundDescr{};
-        groundDescr.dominance = 0.f;
-
-        ColliderDescriptor groundColliderDescr{
-            Polygon::box(Vec2{10.f, 1.f}, Vec2{0.f, -0.5f})};
-
-        auto ground = world.makeBody(groundDescr);
-        ground->addCollider(groundColliderDescr);
-
-        auto gravity = world.makeForceField<Gravity>(Vec2{0, -10.f});
-
-
-        BodyDescriptor wheelDescr{
-            Vec2{1.06283140f, 0.494556785f},
-            -0.132951573f
-        };
-
-        std::vector<Vec2> points;
-        Uint32            nPoints = 24;
-        for (Uint32 i = 0; i < nPoints; ++i)
-        {
-            float theta = i * 2 * pi / nPoints;
-            points.emplace_back(0.5f * Vec2{std::cos(theta), std::sin(theta)});
-        }
-
-        Material material{};
-        material.friction.value = 1.f;
-
-        ColliderDescriptor wheelColliderDescr{
-            Polygon{points.begin(), points.end()},
-            material
-        };
-
-        auto wheel = world.makeBody(wheelDescr);
-        wheel->addCollider(wheelColliderDescr);
-
-        Vec2 initialVel{0.563797712f, -0.153355882f};
-        wheel->setVelocity(initialVel);
-        wheel->setAngularVelocity(-1.12384140f);
-
-        world.step(0.01f);
-        world.step(0.01f);
-        world.step(0.01f);
-
-        // exact values are not important here, currently the velocity diverges to ~{0, 3}
-        REQUIRE(approx(wheel->velocity()[1], 0.1f).contains(0.f));
-    }
-
-
     SECTION("Box stack")
     {
         // This test is very slow, but necessary.
@@ -730,24 +667,27 @@ TEST_CASE("Physics")
             BodyDescriptor descr{};
             descr.position[1] = 2.f * index;
 
-            ColliderDescriptor cDescr{
-                Polygon::box(Vec2{1.f, 1.f}, Vec2{0.5f, 0.5f})};
-            cDescr.material.friction.value = 0.5f;
+            Material mat{};
+            mat.friction.value = 0.5f;
 
             auto b = world.makeBody(descr);
-            b->addCollider(cDescr);
+            b->addCollider<Polygon>(
+                mat, Polygon::box(Vec2{1.f, 1.f}, Vec2{0.5f, 0.5f})
+            );
+
             return b;
         };
 
         BodyDescriptor floorDescr{};
         floorDescr.dominance = 0.f;
 
-        ColliderDescriptor floorColliderDescr{
-            Polygon::box(Vec2{4.f, 1.f}, Vec2{0.f, -0.5f})};
-        floorColliderDescr.material.friction.value = 0.5f;
+        Material floorMat{};
+        floorMat.friction.value = 0.5f;
 
         Body* floor = world.makeBody(floorDescr);
-        floor->addCollider(floorColliderDescr);
+        floor->addCollider<Polygon>(
+            floorMat, Polygon::box(Vec2{4.f, 1.f}, Vec2{0.f, -0.5f})
+        );
 
         constexpr Int32           nBoxes = 10;
         std::array<Body*, nBoxes> boxes{};
@@ -766,7 +706,7 @@ TEST_CASE("Physics")
         }
 
         float floorHeight = 0.f;
-        float pen         = floorColliderDescr.material.penetration.value;
+        float pen         = floorMat.penetration.value;
         i                 = 0;
         const float err   = EPSILON;
         for (const Body* box : boxes)

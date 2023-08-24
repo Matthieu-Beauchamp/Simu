@@ -118,7 +118,11 @@ CollisionManifold collidePolygons(const Shape& A, const Shape& B)
         return mani;
 
     Vec2 mtv = gjk.penetration();
+
     // TODO: minimum penetration length to avoid incorrect manifolds.
+    //  (this should use Material::penetration in physics.)
+    if (normSquared(mtv) < squared(simu::EPSILON))
+        return mani;
 
     return polygonManifold(pA, pB, mtv);
 }
