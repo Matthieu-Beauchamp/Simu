@@ -61,8 +61,8 @@ class VisibleBody : public Body, public Visible
 {
 public:
 
-    VisibleBody(BodyDescriptor descr, Rgba color, Renderer* renderer)
-        : Body{descr}, Visible{renderer}, color_{color}
+    VisibleBody(World* world, const Alloc& alloc, BodyDescriptor descr, Rgba color, Renderer* renderer)
+        : Body{world, alloc, descr}, Visible{renderer}, color_{color}
     {
     }
 
@@ -76,7 +76,7 @@ protected:
         Transform toWorld = toWorldSpace();
         for (const Collider& collider : colliders())
         {
-            BoundingBox bounds = collider.boundingBox();
+            BoundingBox bounds = collider.shape().boundingBox();
 
             std::array<const Vec2, 4> box{
                 bounds.min(),
@@ -87,13 +87,34 @@ protected:
 
             Rgba boundsColor{color_};
             boundsColor[3] = 80;
+
             renderer.drawPolygon(
                 bounds.center(), makeView(box.data(), box.data() + box.size()), boundsColor
             );
 
-            renderer.drawPolygon(
-                toWorld * collider.properties().centroid, collider.vertexView(), color_
-            );
+            switch (collider.shape().type())
+            {
+                case Shape::polygon:
+                    renderer.drawPolygon(
+                        collider.shape().properties().centroid,
+                        static_cast<const Polygon&>(collider.shape()).vertexView(),
+                        color_
+                    );
+                    break;
+                case Shape::circle:
+                    auto& c = static_cast<const Circle&>(collider.shape());
+                    
+                    auto  prevPrec = renderer.getPointPrecision();
+                    auto  prevRad  = renderer.getPointRadius();
+                    renderer.setPointPrecision(24);
+                    renderer.setPointRadius(c.radius());
+
+                    renderer.drawPoint(c.center(), color_);
+
+                    renderer.setPointPrecision(prevPrec);
+                    renderer.setPointRadius(prevRad);
+                    break;
+            }
         }
     }
 
@@ -107,8 +128,13 @@ class VisibleContactConstraint : public ContactConstraint, public Visible
 {
 public:
 
-    VisibleContactConstraint(Collider& first, Collider& second, Renderer* renderer)
-        : ContactConstraint{first, second}, Visible{renderer}
+    VisibleContactConstraint(
+        Collider&         first,
+        Collider&         second,
+        CollisionCallback collide,
+        Renderer*         renderer
+    )
+        : ContactConstraint{first, second, collide}, Visible{renderer}
     {
     }
 
@@ -118,21 +144,21 @@ protected:
 
     void draw(Renderer& renderer) override
     {
-        ContactInfo info = contactInfo();
+        CollisionManifold info = contactInfo();
 
         float normalLength = renderer.getLineWidth() * 10.f;
         for (Uint32 i = 0; i < info.nContacts; ++i)
         {
             Rgba white = Rgba::filled(255);
-            renderer.drawPoint(info.refContacts[i], white);
+            renderer.drawPoint(info.contactsB[i], white);
 
             renderer.drawLine(
-                info.refContacts[i],
-                info.refContacts[i] + info.normal * normalLength,
+                info.contactsB[i],
+                info.contactsB[i] + info.normal * normalLength,
                 white
             );
 
-            renderer.drawPoint(info.incContacts[i], white);
+            renderer.drawPoint(info.contactsA[i], white);
         }
 
         if (info.nContacts == 0)

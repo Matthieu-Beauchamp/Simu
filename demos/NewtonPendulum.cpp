@@ -70,23 +70,25 @@ void NewtonPendulum::init(simu::Renderer& renderer)
     float barWidth  = n_ * circleRadius_ * 2.f;
     float barBottom = circleRadius_ + stringLength_;
 
-    simu::BodyDescriptor     descr{};
-    simu::ColliderDescriptor cDescr{simu::Polygon::box(
-        simu::Vec2{barWidth, 1.f}, simu::Vec2{0.f, barBottom + 0.5f}
-    )};
+    simu::BodyDescriptor descr{};
+    descr.dominance = 0.f;
 
-    descr.dominance                = 0.f;
-    cDescr.material.friction.value = 0.5f;
-    auto bar                       = world().makeBody<simu::VisibleBody>(
+    simu::Material barMaterial{};
+    barMaterial.friction.value = 0.5f;
+
+    auto bar = world().makeBody<simu::VisibleBody>(
         descr, simu::Rgba{0, 0, 0, 255}, &renderer
     );
 
-    bar->addCollider(cDescr);
+    bar->addCollider<simu::Polygon>(
+        barMaterial,
+        simu::Polygon::box(simu::Vec2{barWidth, 1.f}, simu::Vec2{0.f, barBottom + 0.5f})
+    );
 
     descr.dominance = 1.f;
-    cDescr.polygon  = simu::Polygon::circle(circleRadius_, circlePrecision_);
-    cDescr.material.density          = 10.f;
-    cDescr.material.bounciness.value = 1.f;
+    simu::Material ballMaterial{};
+    ballMaterial.density          = 10.f;
+    ballMaterial.bounciness.value = 1.f;
     for (int i = 0; i < n_; ++i)
     {
         float gapRatio = 0.1f;
@@ -97,7 +99,7 @@ void NewtonPendulum::init(simu::Renderer& renderer)
         auto ball      = world().makeBody<simu::VisibleBody>(
             descr, simu::Rgba::filled(200), &renderer
         );
-        ball->addCollider(cDescr);
+        ball->addCollider<simu::Circle>(ballMaterial, circleRadius_);
 
         world().makeConstraint<simu::VisibleDistanceConstraint>(
             simu::Bodies{

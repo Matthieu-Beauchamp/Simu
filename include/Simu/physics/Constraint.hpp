@@ -289,6 +289,7 @@ public:
 
     void solvePositions(Proxies& proxies) final override
     {
+        // updateContacts();
         updateWorldManifold();
         computeJacobians(proxies, false);
         computeKs(proxies, false);

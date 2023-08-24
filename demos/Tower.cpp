@@ -45,15 +45,15 @@ void Tower::init(simu::Renderer& renderer)
 
     world().makeForceField<simu::Gravity>(simu::Vec2{0.f, -10.f});
 
-    simu::BodyDescriptor     descr{};
-    simu::ColliderDescriptor cDescr{
-        simu::Polygon::box(simu::Vec2{200.f, 20.f}, simu::Vec2{0.f, -10.f})};
+    simu::BodyDescriptor descr{};
 
-    descr.dominance                = 0.f;
-    cDescr.material.friction.value = 0.8f;
+    descr.dominance = 0.f;
     world()
         .makeBody<simu::VisibleBody>(descr, simu::Rgba{0, 0, 0, 255}, &renderer)
-        ->addCollider(cDescr);
+        ->addCollider<simu::Polygon>(
+            simu::Material{},
+            simu::Polygon::box(simu::Vec2{200.f, 20.f}, simu::Vec2{0.f, -10.f})
+        );
 
     for (int y = 0; y < height_; ++y)
     {
@@ -73,22 +73,18 @@ void Tower::makeSlab(simu::Vec2 pos, bool vertical)
 {
     float width = vertical ? w : 2.f * w;
 
-    simu::BodyDescriptor     d{};
-    simu::ColliderDescriptor cDescr{
-        simu::Polygon{
-                      simu::Vec2{-width / 2.f, -thickness / 2.f},
-                      simu::Vec2{width / 2.f, -thickness / 2.f},
-                      simu::Vec2{width / 2.f, thickness / 2.f},
-                      simu::Vec2{-width / 2.f, thickness / 2.f}}
-    };
-
+    simu::BodyDescriptor d{};
     d.position    = pos;
     d.orientation = vertical ? std::numbers::pi_v<float> / 2 : 0.f;
-    cDescr.material.friction.value = 0.5f;
+
+    simu::Material material{};
+    material.friction.value = 0.5f;
 
     world()
         .makeBody<simu::VisibleBody>(d, simu::Rgba::filled(200), app()->renderer())
-        ->addCollider(cDescr);
+        ->addCollider<simu::Polygon>(
+            material, simu::Polygon::box(simu::Vec2{width, thickness})
+        );
 }
 
 void Tower::doGui() { ImGui::SliderInt("Height", &height_, 1, 100); }

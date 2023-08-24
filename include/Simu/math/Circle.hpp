@@ -34,7 +34,7 @@ class Circle final : public Shape
 {
 public:
 
-    Circle(float radius, Vec2 center)
+    Circle(float radius, Vec2 center = Vec2{})
         : Shape{circle}, radius_{radius}, center_{center}
     {
         SIMU_ASSERT(radius_ > 0.f, "");

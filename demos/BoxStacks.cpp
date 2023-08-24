@@ -51,7 +51,7 @@ void BoxStacks::init(simu::Renderer& renderer)
     {
         for (int h = 0; h < height_; ++h)
         {
-            float x = -floorWidth / 2.f + dims[0] * (1 + (stack+1) * 2);
+            float x = -floorWidth / 2.f + dims[0] * (1 + (stack + 1) * 2);
             float y = h * dims[1];
             spawner.makeBox(simu::Vec2{x, y});
         }
@@ -59,15 +59,20 @@ void BoxStacks::init(simu::Renderer& renderer)
 
     world().makeForceField<simu::Gravity>(simu::Vec2{0.f, -10.f});
 
-    simu::BodyDescriptor     descr{};
-    simu::ColliderDescriptor cDescr{
-        simu::Polygon::box(simu::Vec2{floorWidth + 2.f*height_*dims[1], floorHeight}, center)};
+    simu::BodyDescriptor descr{};
+    descr.dominance = 0.f;
 
-    descr.dominance                = 0.f;
-    cDescr.material.friction.value = 0.8f;
+    simu::Material material{};
+    material.friction.value = 0.8f;
+
     world()
         .makeBody<simu::VisibleBody>(descr, simu::Rgba{0, 0, 0, 255}, &renderer)
-        ->addCollider(cDescr);
+        ->addCollider<simu::Polygon>(
+            material,
+            simu::Polygon::box(
+                simu::Vec2{floorWidth + 2.f * height_ * dims[1], floorHeight}, center
+            )
+        );
 }
 
 void BoxStacks::doGui()

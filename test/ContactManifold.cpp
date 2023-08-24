@@ -1,249 +1,201 @@
 #include "catch2/catch_test_macros.hpp"
 
-#include "Simu/physics/World.hpp"
-#include "Simu/physics/ContactManifold.hpp"
-#include "Simu/math/Gjk.hpp"
+#include "Simu/math/ShapeCollision.hpp"
+#include "Simu/math/Polygon.hpp"
 
 using namespace simu;
 
 // TODO: Adapt to Shape collisions
 
-// struct Manifold : public ContactManifold
-// {
-//     Manifold(Collider& first, Collider& second)
-//         : ContactManifold{first, second},
-//           frame{frameManifold(Bodies{first.body(), second.body()})}
-//     {
-//     }
+typedef CollisionManifold Manifold;
 
-//     typename ContactManifold::FrameManifold frame;
-// };
+bool inContacts(auto contacts, Vec2 v)
+{
+    for (const Vec2& c : contacts)
+    {
+        if (all(c == v))
+            return true;
+    }
 
-// Manifold makeManifold(const Polygon& first, const Polygon& second)
-// {
-//     static World   w{};
-//     BodyDescriptor descr{};
+    return false;
+}
 
-//     return Manifold{
-//         *w.makeBody(descr)->addCollider(ColliderDescriptor{first}),
-//         *w.makeBody(descr)->addCollider(ColliderDescriptor{second})};
-// }
+void checkIsInvert(Manifold mani, Manifold inv)
+{
+    REQUIRE(mani.nContacts == inv.nContacts);
+    REQUIRE(all(mani.normal == -inv.normal));
+    REQUIRE(all(mani.tangent == -inv.tangent));
 
-// bool inContacts(auto contacts, Vertex v)
-// {
-//     for (const Vertex& c : contacts)
-//     {
-//         if (all(c == v))
-//             return true;
-//     }
+    for (Uint32 i = 0; i < mani.nContacts; ++i)
+    {
+        REQUIRE(inContacts(inv.contactsB, mani.contactsA[i]));
+        REQUIRE(inContacts(inv.contactsA, mani.contactsB[i]));
+    }
+}
 
-//     return false;
-// }
+Manifold makeManifold(const Polygon& first, const Polygon& second)
+{
+    static ShapeCollider<std::allocator<int>> collider(std::allocator<int>{});
 
-// float flipNormal(const ContactManifold& manifold)
-// {
-//     // normal points outwards of collider[1]
-//     return (manifold.referenceIndex() == 0) ? -1.f : 1.f;
-// }
+    Manifold manifold = collider.collide(first, second);
 
-// TEST_CASE("Contact manifolds")
-// {
-//     SECTION("Vertex to Vertex")
-//     {
-//         // never happens, unless the bodies are only touching -> nothing to do
-//     }
+    Manifold inv = collider.collide(second, first);
+    checkIsInvert(manifold, inv);
 
-//     SECTION("Vertex to Edge")
-//     {
-//         Polygon bottom{
-//             Vertex{0, 0},
-//             Vertex{2, 0},
-//             Vertex{2, 2},
-//             Vertex{0, 2}
-//         };
-
-//         Polygon top{
-//             Vertex{1, 1.5f},
-//             Vertex{2, 3   },
-//             Vertex{0, 3   }
-//         };
-
-//         {
-//             auto manifold = makeManifold(bottom, top);
-//             auto frame    = manifold.frame;
-
-//             REQUIRE(manifold.referenceIndex() == 0);
-//             REQUIRE(manifold.incidentIndex() == 1);
-
-//             Vec2 n = flipNormal(manifold) * frame.normal;
-//             REQUIRE(all(approx(Vec2{0, 1}, Vec2::filled(simu::EPSILON)).contains(n)));
-//             REQUIRE(frame.nContacts == 1);
-//             REQUIRE(
-//                 all(frame.contacts[manifold.incidentIndex()][0] == Vertex{1, 1.5f})
-//             );
-//         }
-//         {
-//             auto manifold = makeManifold(top, bottom);
-//             auto frame    = manifold.frame;
-
-//             REQUIRE(manifold.referenceIndex() == 1);
-//             REQUIRE(manifold.incidentIndex() == 0);
-
-//             Vec2 n = flipNormal(manifold) * frame.normal;
-//             REQUIRE(all(approx(Vec2{0, 1}, Vec2::filled(simu::EPSILON)).contains(n)));
-//             REQUIRE(frame.nContacts == 1);
-//             REQUIRE(
-//                 all(frame.contacts[manifold.incidentIndex()][0] == Vertex{1, 1.5f})
-//             );
-//         }
-//     }
-
-//     SECTION("Edge to Edge")
-//     {
-//         SECTION("Flush sides")
-//         {
-//             Polygon bottom{
-//                 Vertex{0, 0},
-//                 Vertex{2, 0},
-//                 Vertex{2, 2},
-//                 Vertex{0, 2}
-//             };
-
-//             Polygon top{
-//                 Vertex{0, 1},
-//                 Vertex{2, 1},
-//                 Vertex{2, 3},
-//                 Vertex{0, 3}
-//             };
+    return manifold;
+}
 
 
-//             auto manifold = makeManifold(bottom, top);
-//             auto frame    = manifold.frame;
+TEST_CASE("Contact manifolds")
+{
+    SECTION("Vertex to Vertex")
+    {
+        // never happens, unless the bodies are only touching -> nothing to do
+    }
 
-//             REQUIRE(frame.nContacts == 2);
-//             if (manifold.referenceIndex() == 0)
-//             {
-//                 REQUIRE(all(approx(Vec2{0, 1}, Vec2::filled(simu::EPSILON))
-//                                 .contains(flipNormal(manifold) * frame.normal)));
+    SECTION("Vertex to Edge")
+    {
+        Polygon bottom{
+            Vec2{0, 0},
+            Vec2{2, 0},
+            Vec2{2, 2},
+            Vec2{0, 2}
+        };
 
-//                 REQUIRE(inContacts(
-//                     frame.contacts[manifold.incidentIndex()], Vertex{0, 1}
-//                 ));
-//                 REQUIRE(inContacts(
-//                     frame.contacts[manifold.incidentIndex()], Vertex{2, 1}
-//                 ));
-//             }
-//             else
-//             {
-//                 REQUIRE(all(approx(Vec2{0, -1}, Vec2::filled(simu::EPSILON))
-//                                 .contains(flipNormal(manifold) * frame.normal)));
+        Polygon top{
+            Vec2{1, 1.5f},
+            Vec2{2, 3   },
+            Vec2{0, 3   }
+        };
 
-//                 REQUIRE(inContacts(
-//                     frame.contacts[manifold.incidentIndex()], Vertex{0, 2}
-//                 ));
-//                 REQUIRE(inContacts(
-//                     frame.contacts[manifold.incidentIndex()], Vertex{2, 2}
-//                 ));
-//             }
-//         }
+        {
+            auto manifold = makeManifold(bottom, top);
 
-//         SECTION("Uneven sides")
-//         {
-//             Polygon bottom{
-//                 Vertex{0, 0},
-//                 Vertex{2, 0},
-//                 Vertex{2, 2},
-//                 Vertex{0, 2}
-//             };
 
-//             Polygon top{
-//                 Vertex{0.5f, 1.5f},
-//                 Vertex{2.5f, 1.5f},
-//                 Vertex{2.5f, 3.5f},
-//                 Vertex{0.5f, 3.5f}
-//             };
+            Vec2 n = manifold.normal;
+            REQUIRE(
+                all(approx(Vec2{0, -1}, Vec2::filled(simu::EPSILON)).contains(n))
+            );
+            REQUIRE(manifold.nContacts == 1);
+            REQUIRE(all(manifold.contactsB[0] == Vec2{1, 1.5f}));
+        }
+        {
+            auto manifold = makeManifold(top, bottom);
 
-//             auto manifold = makeManifold(bottom, top);
-//             auto frame    = manifold.frame;
 
-//             REQUIRE(frame.nContacts == 2);
-//             if (manifold.referenceIndex() == 0)
-//             {
-//                 REQUIRE(all(approx(Vec2{0, 1}, Vec2::filled(simu::EPSILON))
-//                                 .contains(flipNormal(manifold) * frame.normal)));
+            Vec2 n = manifold.normal;
+            REQUIRE(all(approx(Vec2{0, 1}, Vec2::filled(simu::EPSILON)).contains(n)));
+            REQUIRE(manifold.nContacts == 1);
+            REQUIRE(all(manifold.contactsA[0] == Vec2{1, 1.5f}));
+        }
+    }
 
-//                 REQUIRE(inContacts(
-//                     frame.contacts[manifold.incidentIndex()], Vertex{0.5f, 1.5f}
-//                 ));
-//                 REQUIRE(inContacts(
-//                     frame.contacts[manifold.incidentIndex()], Vertex{2.f, 1.5f}
-//                 )); // clipped
-//             }
-//             else
-//             {
-//                 REQUIRE(all(approx(Vec2{0, -1}, Vec2::filled(simu::EPSILON))
-//                                 .contains(flipNormal(manifold) * frame.normal)));
+    SECTION("Edge to Edge")
+    {
+        SECTION("Flush sides")
+        {
+            Polygon bottom{
+                Vec2{0, 0},
+                Vec2{2, 0},
+                Vec2{2, 2},
+                Vec2{0, 2}
+            };
 
-//                 REQUIRE(inContacts(
-//                     frame.contacts[manifold.incidentIndex()], Vertex{0.5f, 2}
-//                 )); // clipped
-//                 REQUIRE(inContacts(
-//                     frame.contacts[manifold.incidentIndex()], Vertex{2, 2}
-//                 ));
-//             }
-//         }
-//     }
+            Polygon top{
+                Vec2{0, 1},
+                Vec2{2, 1},
+                Vec2{2, 3},
+                Vec2{0, 3}
+            };
 
-//     SECTION("Leaning inside")
-//     {
-//         Polygon bottom{
-//             Vertex{0, 0},
-//             Vertex{2, 0},
-//             Vertex{2, 2},
-//             Vertex{0, 2}
-//         };
 
-//         Polygon top{
-//             Vertex{0.25f, 1.75f},
-//             Vertex{2.f,   2.f  },
-//             Vertex{1.75f, 3.f  },
-//             Vertex{0.f,   2.75f},
-//         };
+            auto manifold = makeManifold(bottom, top);
+            REQUIRE(manifold.nContacts == 2);
 
-//         auto manifold = makeManifold(top, bottom);
-//         auto frame    = manifold.frame;
 
-//         REQUIRE(manifold.referenceIndex() == 1);
-//         REQUIRE(manifold.incidentIndex() == 0);
+            REQUIRE(all(approx(Vec2{0, -1}, Vec2::filled(simu::EPSILON))
+                            .contains(manifold.normal)));
 
-//         REQUIRE(all(approx(Vec2{0, 1}, Vec2::filled(simu::EPSILON))
-//                         .contains(flipNormal(manifold) * frame.normal)));
+            REQUIRE(inContacts(manifold.contactsA, Vec2{0, 2}));
+            REQUIRE(inContacts(manifold.contactsA, Vec2{2, 2}));
+        }
 
-//         REQUIRE(frame.nContacts == 2);
+        SECTION("Uneven sides")
+        {
+            Polygon bottom{
+                Vec2{0, 0},
+                Vec2{2, 0},
+                Vec2{2, 2},
+                Vec2{0, 2}
+            };
 
-//         REQUIRE(inContacts(frame.contacts[0], Vertex{0.25f, 1.75f}));
-//         REQUIRE(inContacts(frame.contacts[0], Vertex{2.f, 2.f}));
+            Polygon top{
+                Vec2{0.5f, 1.5f},
+                Vec2{2.5f, 1.5f},
+                Vec2{2.5f, 3.5f},
+                Vec2{0.5f, 3.5f}
+            };
 
-//         REQUIRE(inContacts(frame.contacts[1], Vertex{0.25f, 2.f}));
-//         REQUIRE(inContacts(frame.contacts[1], Vertex{2.f, 2.f}));
-//     }
+            auto manifold = makeManifold(bottom, top);
 
-//     SECTION("Edge distance to origin")
-//     {
-//         // hard to find a test that will encounter this situation,
-//         //  but did happen in practice
+            REQUIRE(manifold.nContacts == 2);
 
-//         Vertices v{
-//             Vertex{-1,    1e-8f},
-//             Vertex{1e-6f, 1e-8f},
-//             Vertex{1,     1e-8f},
-//         };
 
-//         auto it = v.begin();
+            REQUIRE(all(approx(Vec2{0, -1}, Vec2::filled(simu::EPSILON))
+                            .contains(manifold.normal)));
 
-//         Edges<Vertices>::Edge e1{it, it + 1};
-//         Edges<Vertices>::Edge e2{it + 1, it + 2};
+            REQUIRE(inContacts(manifold.contactsA, Vec2{0.5f, 2})); // clipped
+            REQUIRE(inContacts(manifold.contactsA, Vec2{2, 2}));
+        }
+    }
 
-//         REQUIRE(e1.distanceSquaredToOrigin() < e2.distanceSquaredToOrigin());
-//     }
-// }
+    SECTION("Leaning inside")
+    {
+        Polygon bottom{
+            Vec2{0, 0},
+            Vec2{2, 0},
+            Vec2{2, 2},
+            Vec2{0, 2}
+        };
+
+        Polygon top{
+            Vec2{0.25f, 1.75f},
+            Vec2{2.f,   2.f  },
+            Vec2{1.75f, 3.f  },
+            Vec2{0.f,   2.75f},
+        };
+
+        auto manifold = makeManifold(top, bottom);
+
+        REQUIRE(all(
+            approx(Vec2{0, 1}, Vec2::filled(simu::EPSILON)).contains(manifold.normal)
+        ));
+
+        REQUIRE(manifold.nContacts == 2);
+
+        REQUIRE(inContacts(manifold.contactsA, Vec2{0.25f, 1.75f}));
+        REQUIRE(inContacts(manifold.contactsA, Vec2{2.f, 2.f}));
+
+        REQUIRE(inContacts(manifold.contactsB, Vec2{0.25f, 2.f}));
+        REQUIRE(inContacts(manifold.contactsB, Vec2{2.f, 2.f}));
+    }
+
+    SECTION("Edge distance to origin")
+    {
+        // hard to find a test that will encounter this situation,
+        //  but did happen in practice
+
+        std::array<Vec2, 3> v{
+            Vec2{-1,    1e-8f},
+            Vec2{1e-6f, 1e-8f},
+            Vec2{1,     1e-8f},
+        };
+
+        auto it = v.begin();
+
+        Edges<std::array<Vec2, 3>>::Edge e1{it, it + 1};
+        Edges<std::array<Vec2, 3>>::Edge e2{it + 1, it + 2};
+
+        REQUIRE(e1.distanceSquaredToOrigin() < e2.distanceSquaredToOrigin());
+    }
+}

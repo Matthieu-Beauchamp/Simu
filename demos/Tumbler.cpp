@@ -64,17 +64,22 @@ void Tumbler::init(simu::Renderer& renderer)
     simu::Vec2 xOffset{size / 2.f, 0.f};
     simu::Vec2 yOffset{0.f, size / 2.f};
 
-    simu::ColliderDescriptor cDescr{simu::Polygon::box(horizontalDim, yOffset)};
-    cDescr.material.density        = 5.f;
-    cDescr.material.friction.value = 0.8f;
+    simu::Material material{};
+    material.density        = 5.f;
+    material.friction.value = 0.8f;
 
-    tumbler->addCollider(cDescr);
-    cDescr.polygon = simu::Polygon::box(horizontalDim, -yOffset);
-    tumbler->addCollider(cDescr);
-    cDescr.polygon = simu::Polygon::box(verticalDim, xOffset);
-    tumbler->addCollider(cDescr);
-    cDescr.polygon = simu::Polygon::box(verticalDim, -xOffset);
-    tumbler->addCollider(cDescr);
+    tumbler->addCollider<simu::Polygon>(
+        material, simu::Polygon::box(horizontalDim, yOffset)
+    );
+    tumbler->addCollider<simu::Polygon>(
+        material, simu::Polygon::box(horizontalDim, -yOffset)
+    );
+    tumbler->addCollider<simu::Polygon>(
+        material, simu::Polygon::box(verticalDim, xOffset)
+    );
+    tumbler->addCollider<simu::Polygon>(
+        material, simu::Polygon::box(verticalDim, -xOffset)
+    );
 
     auto motor = world().makeConstraint<simu::RotationMotor>(
         simu::Bodies::singleBody(tumbler),
@@ -96,10 +101,12 @@ void Tumbler::postStep(float)
             descr, simu::Rgba{200, 100, 200, 255}, getRenderer()
         );
 
-        simu::ColliderDescriptor cDescr{
-            simu::Polygon::box(simu::Vec2{0.25f, 0.25f})};
-        cDescr.material.friction.value = 0.5f;
-        b->addCollider(cDescr);
+        simu::Material material{};
+        material.friction.value = 0.5f;
+        b->addCollider<simu::Polygon>(
+            material, simu::Polygon::box(simu::Vec2{0.25f, 0.25f})
+        );
+        
         ++count_;
     }
 }

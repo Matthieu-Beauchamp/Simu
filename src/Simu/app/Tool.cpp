@@ -137,9 +137,7 @@ Body* BoxSpawner::makeBox(Vec2 pos, std::optional<Vec2> dimensions)
     material.friction.value   = friction;
     material.bounciness.value = bounciness;
 
-    ColliderDescriptor cDescr{
-        Polygon::box(dimensions.value_or(this->dims)), material};
-    b->addCollider(cDescr);
+    b->addCollider<Polygon>(material, Polygon::box(dimensions.value_or(this->dims)));
 
     return b;
 }

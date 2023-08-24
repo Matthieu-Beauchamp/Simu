@@ -50,11 +50,13 @@ void Pyramid::init(simu::Renderer& renderer)
         descr, simu::Rgba{0, 0, 0, 255}, &renderer
     );
 
-    simu::ColliderDescriptor cDescr{
-        simu::Polygon::box(simu::Vec2{400.f, 20.f}, simu::Vec2{0.f, -11.f})};
-    cDescr.material.friction.value = 0.8f;
+    simu::Material material{};
+    material.friction.value = 0.8f;
 
-    ground->addCollider(cDescr);
+    ground->addCollider<simu::Polygon>(
+        material,
+        simu::Polygon::box(simu::Vec2{400.f, 20.f}, simu::Vec2{0.f, -11.f})
+    );
 
     simu::BoxSpawner spawn{*this};
 

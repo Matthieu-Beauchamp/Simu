@@ -32,10 +32,18 @@
 ////////////////////////////////////////////////////////////
 
 #include "math/Matrix.hpp"
+#include "math/Transform.hpp"
+
+#include "math/BarycentricCoordinates.hpp"
 
 #include "math/Interval.hpp"
+#include "math/BoundingBox.hpp"
+
+#include "math/Shape.hpp"
+#include "math/ShapeCollision.hpp"
+#include "math/Circle.hpp"
+#include "math/Polygon.hpp"
 
 #include "math/Geometry.hpp"
-#include "math/BarycentricCoordinates.hpp"
-#include "math/Polygon.hpp"
+#include "math/Edges.hpp"
 #include "math/Gjk.hpp"

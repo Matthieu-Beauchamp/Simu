@@ -82,10 +82,10 @@ void Motorcycle::buildMap()
     simu::BodyDescriptor descr{};
     descr.dominance = 0.f;
 
-    simu::ColliderDescriptor floor{
-        simu::Polygon::box(simu::Vec2{200.f, 20.f}, simu::Vec2{0.f, -30.f})};
-
-    w.makeBody<simu::VisibleBody>(descr, bodyColor, r)->addCollider(floor);
+    w.makeBody<simu::VisibleBody>(descr, bodyColor, r)
+        ->addCollider<simu::Polygon>(simu::Material{},
+            simu::Polygon::box(simu::Vec2{200.f, 20.f}, simu::Vec2{0.f, -30.f})
+        );
 }
 
 void Motorcycle::buildMotorcycle()
@@ -97,27 +97,25 @@ void Motorcycle::buildMotorcycle()
 
     simu::Material chassisMaterial{};
     chassisMaterial.density = 5.f;
-    simu::ColliderDescriptor chassisColliderDescr{
-        simu::Polygon::box(simu::Vec2{6.f * wheelRadius, 2 * wheelRadius}),
-        chassisMaterial};
 
     motorcycle_ = w.makeBody<simu::VisibleBody>(descr, chassisColor, r);
-    motorcycle_->addCollider(chassisColliderDescr);
+    motorcycle_->addCollider<simu::Polygon>(
+        chassisMaterial,
+        simu::Polygon::box(simu::Vec2{6.f * wheelRadius, 2 * wheelRadius})
+    );
 
     descr.position = simu::Vec2{-2.f * wheelRadius, -2.f * wheelRadius};
 
     simu::Material wheelMaterial{};
     wheelMaterial.friction.value = 2.f;
-    simu::ColliderDescriptor wheelColliderDescr{
-        simu::Polygon::circle(wheelRadius, wheelPrecision), wheelMaterial};
 
     rearWheel_ = w.makeBody<simu::VisibleBody>(descr, wheelColor, r);
-    rearWheel_->addCollider(wheelColliderDescr);
+    rearWheel_->addCollider<simu::Circle>(wheelMaterial, wheelRadius);
 
 
     descr.position[0] = 2.f * wheelRadius;
     frontWheel_       = w.makeBody<simu::VisibleBody>(descr, wheelColor, r);
-    frontWheel_->addCollider(wheelColliderDescr);
+    frontWheel_->addCollider<simu::Circle>(wheelMaterial, wheelRadius);
 
     simu::Vec2 springDir{0.f, -1.f};
     float      springLength = wheelRadius * 1.25f;
@@ -163,18 +161,17 @@ void Motorcycle::buildMotorcycle()
 
     float chestHeight = 3.f * wheelRadius;
     descr.position    = simu::Vec2{0.f, wheelRadius + chestHeight / 2.f};
-    simu::ColliderDescriptor chestDescr{
-        simu::Polygon::box(simu::Vec2{0.3f * wheelRadius, chestHeight})};
-
-    simu::ColliderDescriptor headDescr{simu::Polygon::circle(
-        0.5f * wheelRadius,
-        wheelPrecision,
-        simu::Vec2{0.f, chestHeight / 2.f + 0.25f * wheelRadius}
-    )};
 
     rider_ = w.makeBody<simu::VisibleBody>(descr, bodyColor, r);
-    rider_->addCollider(chestDescr);
-    rider_->addCollider(headDescr);
+    rider_->addCollider<simu::Polygon>(
+        simu::Material{},
+        simu::Polygon::box(simu::Vec2{0.3f * wheelRadius, chestHeight})
+    );
+    rider_->addCollider<simu::Circle>(
+        simu::Material{},
+        0.5f * wheelRadius,
+        simu::Vec2{0.f, chestHeight / 2.f + 0.25f * wheelRadius}
+    );
 
     simu::Vec2 shoulder = simu::Vec2{0.f, descr.position[1] + 0.4f * chestHeight};
 

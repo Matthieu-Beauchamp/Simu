@@ -121,7 +121,7 @@ CollisionManifold collidePolygons(const Shape& A, const Shape& B)
 
     // TODO: minimum penetration length to avoid incorrect manifolds.
     //  (this should use Material::penetration in physics.)
-    if (normSquared(mtv) < squared(simu::EPSILON))
+    if (normSquared(mtv) < squared(0.005))
         return mani;
 
     return polygonManifold(pA, pB, mtv);

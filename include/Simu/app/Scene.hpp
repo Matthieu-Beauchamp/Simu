@@ -50,10 +50,11 @@ public:
         auto contactFactory = [this](
                                   Collider&                           first,
                                   Collider&                           second,
+                                  CollisionCallback collide,
                                   const typename World::ContactAlloc& alloc
                               ) {
             return makeUnique<VisibleContactConstraint>(
-                alloc, first, second, this->renderer_
+                alloc, first, second, collide, this->renderer_
             );
         };
 

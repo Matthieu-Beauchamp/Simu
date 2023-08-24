@@ -27,7 +27,10 @@
 #include "Simu/math.hpp"
 
 #include "Simu/physics/World.hpp"
+
+#include "Simu/physics/ForceField.hpp"
 #include "Simu/physics/Constraint.hpp"
+
 #include "Simu/physics/Motors.hpp"
 #include "Simu/physics/DistanceConstraint.hpp"
 #include "Simu/physics/SuspensionConstraint.hpp"
