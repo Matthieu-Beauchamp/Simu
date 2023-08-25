@@ -289,8 +289,7 @@ public:
 
     void solvePositions(Proxies& proxies) final override
     {
-        // updateContacts();
-        updateWorldManifold();
+        updateWorldManifold(proxies);
         computeJacobians(proxies, false);
         computeKs(proxies, false);
 
@@ -344,10 +343,10 @@ public:
 
 private:
 
-    void updateWorldManifold()
+    void updateWorldManifold(const Proxies& proxies)
     {
         worldManifold_ = localManifold_.transformed(
-            A_->body()->toWorldSpace(), B_->body()->toWorldSpace()
+            proxies[0].toWorldSpace(), proxies[1].toWorldSpace()
         );
     }
 
