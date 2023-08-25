@@ -27,6 +27,7 @@
 #include <memory>
 
 #include "Simu/math/ShapeCollision.hpp"
+#include "Simu/math/Polygon.hpp"
 
 #include "Simu/physics/ContactManifold.hpp"
 
@@ -354,49 +355,45 @@ private:
     //  until the positions of the bodies change.
     void updateContacts()
     {
-        // TODO: Specific to Polygon-Polygon...
-        // frame_ = manifold_.frameManifold(bodies());
+        bool isPolyCollision = A_->shape().type() == Shape::polygon
+                               && B_->shape().type() == Shape::polygon;
 
-        // TODO: Use vertex matching in contact manifold
-        // TODO: All of this goes into contact manifold's update logic
-        // bool needsNewManifold = frame_.nContacts == 0;
+        bool needsNewManifold = worldManifold_.nContacts == 0 || !isPolyCollision;
 
-        // if (!needsNewManifold)
-        // {
-        //     auto  relPos        = relativePosition();
-        //     float distTolerance = manifold_.minimumPenetration();
+        if (!needsNewManifold)
+        {
+            // TODO: Specific to Polygon-Polygon...
+            auto  relPos        = relativePosition();
+            float distTolerance = minPen_;
 
-        //     bool tangentDistanceExceeded = false;
-        //     bool roseTooHigh             = false;
-        //     for (Uint32 c = 0; c < frame_.nContacts; ++c)
-        //     {
-        //         float tangentDist = dot(relPos[c], frame_.tangent);
-        //         if (squared(tangentDist) > squared(distTolerance))
-        //             tangentDistanceExceeded = true;
+            bool tangentDistanceExceeded = false;
+            bool roseTooHigh             = false;
+            for (Uint32 c = 0; c < worldManifold_.nContacts; ++c)
+            {
+                float tangentDist = dot(relPos[c], worldManifold_.tangent);
+                if (squared(tangentDist) > squared(distTolerance))
+                    tangentDistanceExceeded = true;
 
-        //         float separation = dot(relPos[c], frame_.normal);
-        //         if (separation > distTolerance)
-        //             roseTooHigh = true;
-        //     }
+                float separation = dot(relPos[c], worldManifold_.normal);
+                if (separation > distTolerance)
+                    roseTooHigh = true;
+            }
 
-        //     const Uint32 incident = manifold_.incidentIndex();
+            Vec2 nearestIncident = *furthestVertexInDirection(
+                static_cast<const Polygon&>(A_->shape()), -worldManifold_.normal
+            );
 
-        //     Vec2 refN = (incident == 1) ? -frame_.normal : frame_.normal;
-        //     Vec2 nearestIncident = furthestVertexInDirection(
-        //         *manifold_.colliders()[incident], -(refN)
-        //     );
+            bool hasNewCandidate = any(worldManifold_.contactsA[0] != nearestIncident);
 
-        //     bool hasNewCandidate = any(frame_.contacts[incident][0] != nearestIncident);
+            if (worldManifold_.nContacts == 2)
+                hasNewCandidate = hasNewCandidate
+                                  && any(worldManifold_.contactsA[1] != nearestIncident);
 
-        //     if (frame_.nContacts == 2)
-        //         hasNewCandidate = hasNewCandidate
-        //                           && any(frame_.contacts[incident][1] != nearestIncident);
+            needsNewManifold = tangentDistanceExceeded || roseTooHigh
+                               || hasNewCandidate;
+        }
 
-        //     needsNewManifold = tangentDistanceExceeded || roseTooHigh
-        //                        || hasNewCandidate;
-        // }
-
-        // if (needsNewManifold)
+        if (needsNewManifold)
         {
             Uint32 nPreviousContacts = worldManifold_.nContacts;
 
