@@ -30,7 +30,9 @@
 #include "Simu/math/Geometry.hpp"
 #include "Simu/math/Edges.hpp"
 #include "Simu/math/BarycentricCoordinates.hpp"
+
 #include "Simu/math/Gjk.hpp"
+#include "Simu/math/Sat.hpp"
 
 #include "Simu/utility/Algo.hpp"
 
@@ -105,8 +107,28 @@ CollisionManifold polygonManifold(const Polygon& A, const Polygon& B, Vec2 mtv)
     return mani;
 }
 
+CollisionManifold collidePolygonsSat(const Shape& A, const Shape& B)
+{
+    const Polygon& pA = static_cast<const Polygon&>(A);
+    const Polygon& pB = static_cast<const Polygon&>(B);
 
-CollisionManifold collidePolygons(const Shape& A, const Shape& B)
+    CollisionManifold mani{};
+
+    Sat<Polygon> sat{pA, pB};
+    if (!sat.areColliding())
+        return mani;
+
+    Vec2 mtv = sat.penetration();
+
+    // Minimum mtv is not required here since the mtv is always
+    //  parallel to the contact edge normal.
+    // Unlike with Gjk where we might have numerical error due to the
+    //  projection.
+
+    return polygonManifold(pA, pB, mtv);
+}
+
+CollisionManifold collidePolygonsGjkEpa(const Shape& A, const Shape& B)
 {
     const Polygon& pA = static_cast<const Polygon&>(A);
     const Polygon& pB = static_cast<const Polygon&>(B);

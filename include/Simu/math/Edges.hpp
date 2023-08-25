@@ -45,6 +45,9 @@ public:
     {
     public:
 
+        // must be assigned before use.
+        Edge() = default;
+
         Edge(It from, It to) : from_{from}, to_{to} {}
 
         Vec2 from() const { return *from_; }

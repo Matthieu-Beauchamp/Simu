@@ -33,7 +33,7 @@ namespace simu
 {
 
 // currently made to fit the Gjk interface,
-// Could add getters for reference edge to remove some work from the CollisionManifold 
+// Could add getters for reference edge to remove some work from the CollisionManifold
 //  computation
 template <Geometry T = simu::Polygon>
 class Sat
@@ -124,15 +124,12 @@ public:
 
     static float separation(Edge edge, const T& theseVertices)
     {
-        Vec2  n      = edge.normalizedNormal();
-        float maxSep = -std::numeric_limits<float>::max();
-        for (const Vec2& v : theseVertices)
-        {
-            float sep = dot(v - edge.from(), n);
-            maxSep    = std::max(maxSep, sep);
-        }
+        Vec2 n       = edge.normalizedNormal();
 
-        return maxSep;
+        // TODO: Cache this vertex iterator for polygonManifold.
+        auto nearest = furthestVertexInDirection(theseVertices, -n);
+        
+        return dot(*nearest - edge.from(), n);
     }
 
 private:

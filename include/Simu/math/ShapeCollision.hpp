@@ -38,7 +38,9 @@ struct CollisionManifold;
 
 // TODO: Since polygons are limited to only a few vertices, SAT may be a better choice
 //  (implement both and compare run times)
-CollisionManifold collidePolygons(const Shape& A, const Shape& B);
+CollisionManifold collidePolygonsSat(const Shape& A, const Shape& B);
+CollisionManifold collidePolygonsGjkEpa(const Shape& A, const Shape& B);
+
 CollisionManifold collidePolygonWithCircle(const Shape& A, const Shape& B);
 CollisionManifold collideCircles(const Shape& A, const Shape& B);
 
@@ -163,7 +165,7 @@ public:
 
     ShapeCollider(const Alloc& alloc) : callbacks_{alloc}
     {
-        registerCollisionCallback<Shape::polygon, Shape::polygon, collidePolygons>();
+        registerCollisionCallback<Shape::polygon, Shape::polygon, collidePolygonsSat>();
         registerCollisionCallback<Shape::polygon, Shape::circle, collidePolygonWithCircle>();
         registerCollisionCallback<Shape::circle, Shape::circle, collideCircles>();
     }
