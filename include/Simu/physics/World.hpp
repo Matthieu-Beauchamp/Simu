@@ -35,7 +35,7 @@
 #include "Simu/physics/Profiler.hpp"
 
 #include "Simu/utility/View.hpp"
-#include "Simu/utility/Memory.hpp"
+#include "Simu/utility/PolymorphicList.hpp"
 
 
 namespace simu
@@ -104,7 +104,6 @@ struct hash<std::array<simu::Collider*, 2>>
 
 } // namespace std
 
-#include <list>
 #include <unordered_map>
 
 
@@ -305,13 +304,10 @@ private:
     typedef ReboundTo<Alloc, UniquePtr<ForceField>> ForceFieldAlloc;
     ForceFieldAlloc                                 fAlloc_{miscAlloc_};
 
-    typedef std::list<UniquePtr<Constraint>, ConstraintAlloc> ConstraintList;
-    ConstraintList constraints_{cAlloc_};
+    PolymorphicList<Constraint, Alloc> constraints_{cAlloc_};
 
 
-    typedef std::list<UniquePtr<ForceField>, ForceFieldAlloc> ForceFieldList;
-
-    ForceFieldList forces_{fAlloc_};
+    PolymorphicList<ForceField, Alloc> forces_{fAlloc_};
 
 
     struct ContactStatus
@@ -350,8 +346,7 @@ private:
 
     ColliderTree colliderTree_{bAlloc_};
 
-    typedef std::list<UniquePtr<Body>, BodyAlloc> BodyList;
-    BodyList                                      bodies_{bAlloc_};
+    PolymorphicList<Body, Alloc> bodies_{bAlloc_};
 
 
     Settings settings_;

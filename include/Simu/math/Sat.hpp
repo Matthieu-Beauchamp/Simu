@@ -124,11 +124,11 @@ public:
 
     static float separation(Edge edge, const T& theseVertices)
     {
-        Vec2 n       = edge.normalizedNormal();
+        Vec2 n = edge.normalizedNormal();
 
         // TODO: Cache this vertex iterator for polygonManifold.
         auto nearest = furthestVertexInDirection(theseVertices, -n);
-        
+
         return dot(*nearest - edge.from(), n);
     }
 

@@ -82,10 +82,37 @@ void Motorcycle::buildMap()
     simu::BodyDescriptor descr{};
     descr.dominance = 0.f;
 
-    w.makeBody<simu::VisibleBody>(descr, bodyColor, r)
-        ->addCollider<simu::Polygon>(simu::Material{},
-            simu::Polygon::box(simu::Vec2{200.f, 20.f}, simu::Vec2{0.f, -30.f})
-        );
+    auto           floor = w.makeBody<simu::VisibleBody>(descr, bodyColor, r);
+    simu::Material material{};
+    material.friction.value = 1.f;
+
+    floor->addCollider<simu::Polygon>(
+        material,
+        simu::Polygon::box(simu::Vec2{200.f, 20.f}, simu::Vec2{0.f, -30.f})
+    );
+
+    floor->addCollider<simu::Polygon>(
+        material,
+        simu::Polygon{
+            simu::Vec2{80.f,  -20.f},
+            simu::Vec2{120.f, -20.f},
+            simu::Vec2{120.f, 0.f  }
+    }
+    );
+
+    floor->addCollider<simu::Polygon>(
+        material,
+        simu::Polygon{
+            simu::Vec2{200.f, 0.f  },
+            simu::Vec2{200.f, -20.f},
+            simu::Vec2{250.f, -20.f}
+    }
+    );
+
+    floor->addCollider<simu::Polygon>(
+        material,
+        simu::Polygon::box(simu::Vec2{200.f, 20.f}, simu::Vec2{350.f, -30.f})
+    );
 }
 
 void Motorcycle::buildMotorcycle()
@@ -107,7 +134,7 @@ void Motorcycle::buildMotorcycle()
     descr.position = simu::Vec2{-2.f * wheelRadius, -2.f * wheelRadius};
 
     simu::Material wheelMaterial{};
-    wheelMaterial.friction.value = 2.f;
+    wheelMaterial.friction.value = 1.f;
 
     rearWheel_ = w.makeBody<simu::VisibleBody>(descr, wheelColor, r);
     rearWheel_->addCollider<simu::Circle>(wheelMaterial, wheelRadius);
@@ -120,12 +147,6 @@ void Motorcycle::buildMotorcycle()
     simu::Vec2 springDir{0.f, -1.f};
     float      springLength = wheelRadius * 1.25f;
 
-    // w.makeConstraint<simu::HingeConstraint>(
-    //     simu::Bodies{motorcycle_, rearWheel_}, rearWheel_->centroid()
-    // );
-    // w.makeConstraint<simu::HingeConstraint>(
-    //     simu::Bodies{motorcycle_, frontWheel_}, frontWheel_->centroid()
-    // );
 
     auto rearSusp = w.makeConstraint<simu::SuspensionConstraint>(
         simu::Bodies{motorcycle_, rearWheel_},
