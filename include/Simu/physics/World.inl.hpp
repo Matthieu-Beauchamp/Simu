@@ -33,9 +33,10 @@ namespace simu
 template <std::derived_from<Body> T, class... Args>
 T* World::makeBody(Args&&... args)
 {
-    auto body = makeObject<T>(bAlloc_, this, bAlloc_, std::forward<Args>(args)...);
-
-    T* b = static_cast<T*>(bodies_.emplace_back(std::move(body)).get());
+    T* b = static_cast<T*>(
+        &*bodies_.emplace_back<T>(this, bAlloc_, std::forward<Args>(args)...)
+    );
+    b->onConstruction(*this);
 
     return b;
 }
@@ -43,11 +44,9 @@ T* World::makeBody(Args&&... args)
 template <std::derived_from<Constraint> T, class... Args>
 T* World::makeConstraint(Args&&... args)
 {
-    T* c = static_cast<T*>(
-        constraints_
-            .emplace_back(makeObject<T>(cAlloc_, std::forward<Args>(args)...))
-            .get()
-    );
+    T* c = static_cast<T*>(&*constraints_.emplace_back<T>(std::forward<Args>(args
+    )...));
+    c->onConstruction(*this);
 
     for (Body* body : c->bodies())
     {
@@ -61,11 +60,8 @@ T* World::makeConstraint(Args&&... args)
 template <std::derived_from<ForceField> T, class... Args>
 T* World::makeForceField(Args&&... args)
 {
-    T* f = static_cast<T*>(
-        forces_
-            .emplace_back(makeObject<T>(fAlloc_, std::forward<Args>(args)...))
-            .get()
-    );
+    T* f = static_cast<T*>(&*forces_.emplace_back<T>(std::forward<Args>(args)...));
+    f->onConstruction(*this);
 
     if (f->domain().type == ForceField::DomainType::global)
         for (Body& body : bodies())

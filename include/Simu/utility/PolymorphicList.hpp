@@ -38,7 +38,76 @@ namespace simu
 template <class T, class Alloc_>
 class PolymorphicList
 {
+    template <bool>
+    struct Iterator;
+
+    struct Node;
+
+    template <std::derived_from<T>>
+    struct PolyNode;
+
 public:
+
+    typedef T                 value_type;
+    typedef value_type*       pointer;
+    typedef const value_type* const_pointer;
+    typedef value_type&       reference;
+    typedef const value_type& const_reference;
+
+
+    typedef Iterator<false> iterator;
+    typedef Iterator<true>  const_iterator;
+
+
+    PolymorphicList(const Alloc_& alloc = Alloc_{}) : alloc_{alloc}
+    {
+        head_       = mem::allocate<Node>(alloc_, 1);
+        head_->prev = head_; // will be the last element
+        head_->next = head_; // will be the first element
+    }
+
+    ~PolymorphicList()
+    {
+        clear();
+        mem::destroy<Node>(alloc_, head_);
+        mem::deallocate<Node>(alloc_, head_, 1);
+    }
+
+    iterator begin() { return iterator{head_->next}; }
+    iterator end() { return iterator{head_}; }
+
+    const_iterator begin() const { return const_iterator{head_->next}; }
+    const_iterator end() const { return const_iterator{head_}; }
+
+    template <std::derived_from<T> U, class... Args>
+    iterator emplace_back(Args&&... args)
+    {
+        PolyNode<U>* node = allocate<U>();
+        std::construct_at<U>(&node->data, std::forward<Args>(args)...);
+
+        insert(node, head_);
+        return iterator{node};
+    }
+
+    iterator erase(iterator it)
+    {
+        Node* node = it.node;
+        Node* prev = node->prev;
+        Node* next = node->next;
+
+        prev->next = next;
+        next->prev = prev;
+
+        destroyAndDealloc(node);
+        return iterator{next};
+    }
+
+    void clear()
+    {
+        auto it = begin();
+        while (it != end())
+            it = erase(it);
+    }
 
 private:
 
@@ -53,7 +122,7 @@ private:
         Node* next = nullptr;
         Node* prev = nullptr;
         Index type;
-    }
+    };
 
     template <std::derived_from<T> U>
     struct PolyNode : public Node
@@ -64,12 +133,12 @@ private:
     struct VTable
     {
         template <class U>
-        static void destructorForU(const Alloc_& alloc, Node* node)
+        static void destructorForU(Alloc_& alloc, Node* node)
         {
             auto derivedNode = static_cast<PolyNode<U>*>(node);
 
-            std::allocator_traits<AllocatorFor<U>>::destroy(alloc, derivedNode);
-            std::allocator_traits<AllocatorFor<U>>::deallocate(alloc, derivedNode);
+            mem::destroy<PolyNode<U>>(alloc, derivedNode);
+            mem::deallocate<PolyNode<U>>(alloc, derivedNode, 1);
         }
 
         // is this needed?
@@ -77,10 +146,10 @@ private:
         // class U : SomeClass, T
         // -> U* != T*
         template <class U>
-        static T* castForU(Node* node)
+        static const T* castForU(const Node* node)
         {
-            auto derivedNode = static_cast<PolyNode<U>*>(node);
-            return static_cast<T*>(&derivedNode->data);
+            auto derivedNode = static_cast<const PolyNode<U>*>(node);
+            return static_cast<const T*>(&derivedNode->data);
         }
 
         template <class U>
@@ -89,14 +158,97 @@ private:
             VTable table;
             table.destructor = destructorForU<U>;
             table.cast       = castForU<U>;
+            return table;
         }
 
 
-        typedef void (*Destructor)(const Alloc_& alloc, Node*);
+        typedef void (*Destructor)(Alloc_& alloc, Node*);
         Destructor destructor;
 
-        typedef T* (*Cast)(Node*);
+        typedef const T* (*Cast)(const Node*);
         Cast cast;
+    };
+
+
+    template <bool isConst>
+    class Iterator
+    {
+        typedef std::conditional_t<isConst, const Node*, Node*> NodePtr;
+
+        friend Iterator<!isConst>;
+        friend PolymorphicList;
+
+    public:
+
+        // TODO: Ensure we satisfy standard iterator requirements
+        typedef std::ptrdiff_t difference_type;
+        typedef std::conditional_t<isConst, const PolymorphicList::value_type, PolymorphicList::value_type>
+            value_type;
+
+        typedef std::conditional_t<isConst, PolymorphicList::const_pointer, PolymorphicList::pointer>
+            pointer;
+        typedef std::conditional_t<isConst, PolymorphicList::const_reference, PolymorphicList::reference>
+            reference;
+
+        typedef std::bidirectional_iterator_tag iterator_category;
+
+        // behavior is undefined if n is nullptr, but is required for the std::semi_regular concept
+        Iterator(NodePtr n = nullptr) : node{n} {}
+
+        template <bool otherIsConst>
+            requires(isConst || !otherIsConst)
+        Iterator(const Iterator<otherIsConst>& other) : node{other.node}
+        {
+        }
+
+        Iterator& operator++()
+        {
+            node = node->next;
+            return *this;
+        }
+
+        Iterator operator++(int)
+        {
+            Iterator copy{*this};
+            ++(*this);
+            return copy;
+        }
+
+        Iterator& operator--()
+        {
+            node = node->prev;
+            return *this;
+        }
+
+        Iterator operator--(int)
+        {
+            Iterator copy{*this};
+            --(*this);
+            return copy;
+        }
+
+
+        template <bool otherIsConst>
+        bool operator==(const Iterator<otherIsConst>& other) const
+        {
+            return node == other.node;
+        }
+
+        template <bool otherIsConst>
+        bool operator!=(const Iterator<otherIsConst>& other) const
+        {
+            return !(*this == other);
+        }
+
+        reference operator*() const { return *this->operator->(); }
+        pointer   operator->() const
+        {
+            return const_cast<pointer>(tables_[node->type].cast(node));
+        }
+
+    private:
+
+        NodePtr node;
     };
 
     template <class U>
@@ -112,24 +264,42 @@ private:
             );
 
             tableIndex          = nTables_++;
-            tables_[tableIndex] = VTable::makeVTable<U>();
+            tables_[tableIndex] = VTable::template makeVTable<U>();
         }
 
-        PolyNode<U>* polyNode = std::allocator_traits<AllocatorFor<U>>::allocate(
-            alloc_, 1
-        );
-        polyNode->type = tableIndex;
+        PolyNode<U>* polyNode = mem::allocate<PolyNode<U>>(alloc_, 1);
+        polyNode->type        = tableIndex;
         return polyNode;
     }
 
-    void erase(Node* node) { tables_[node->type].destructor(alloc_, node); }
+    void destroyAndDealloc(Node* node)
+    {
+        tables_[node->type].destructor(alloc_, node);
+    }
+
+    void insert(Node* that, Node* beforeThis)
+    {
+        Node* prev = beforeThis->prev;
+        prev->next = that;
+        that->prev = prev;
+
+        beforeThis->prev = that;
+        that->next       = beforeThis;
+    }
 
     static std::array<VTable, maxIndex> tables_;
-    static Index                        nTables_ = 0;
+    static Index                        nTables_;
 
 
     Alloc_ alloc_;
+    Node*  head_;
 };
 
+template <class T, class A>
+std::array<typename PolymorphicList<T, A>::VTable, PolymorphicList<T, A>::maxIndex>
+    PolymorphicList<T, A>::tables_{};
+
+template <class T, class A>
+PolymorphicList<T, A>::Index PolymorphicList<T, A>::nTables_ = 0;
 
 } // namespace simu

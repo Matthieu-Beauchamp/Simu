@@ -241,7 +241,7 @@ private:
     template <class Iter>
     PhysicsObject* access(Iter it)
     {
-        return it->get();
+        return &*it;
     }
 };
 
@@ -295,9 +295,9 @@ void World::cleanup()
 
     for (auto c : deadConstraints)
     {
-        for (Body* body : (*c)->bodies())
+        for (Body* body : c->bodies())
         {
-            std::erase(body->constraints_, c->get());
+            std::erase(body->constraints_, &*c);
             body->wake();
         }
     }

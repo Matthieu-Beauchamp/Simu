@@ -157,8 +157,8 @@ public:
     /// ie for ( [const] Body& body : world.bodies())
     ///
     ////////////////////////////////////////////////////////////
-    auto bodies() { return makeView(bodies_, DoubleDereference{}); }
-    auto bodies() const { return makeView(bodies_, DoubleDereference{}); }
+    auto bodies() { return makeView(bodies_); }
+    auto bodies() const { return makeView(bodies_); }
 
     ////////////////////////////////////////////////////////////
     /// \brief Gives a view over the ForceFields in the world
@@ -166,8 +166,8 @@ public:
     /// ie for ( [const] ForceField& force : world.forceFields())
     ///
     ////////////////////////////////////////////////////////////
-    auto forceFields() { return makeView(forces_, DoubleDereference{}); }
-    auto forceFields() const { return makeView(forces_, DoubleDereference{}); }
+    auto forceFields() { return makeView(forces_); }
+    auto forceFields() const { return makeView(forces_); }
 
     ////////////////////////////////////////////////////////////
     /// \brief Gives a view over the Constraints in the world
@@ -175,11 +175,8 @@ public:
     /// ie for ( [const] Constraint& constraint : world.constraints())
     ///
     ////////////////////////////////////////////////////////////
-    auto constraints() { return makeView(constraints_, DoubleDereference{}); }
-    auto constraints() const
-    {
-        return makeView(constraints_, DoubleDereference{});
-    }
+    auto constraints() { return makeView(constraints_); }
+    auto constraints() const { return makeView(constraints_); }
 
     ////////////////////////////////////////////////////////////
     /// \brief Gives a view over the ContactConstraints in the world

@@ -35,6 +35,40 @@
 namespace simu
 {
 
+namespace mem
+{
+
+template <class A>
+using SizeType = typename std::allocator_traits<A>::size_type;
+
+// TODO: Duplicated
+template <class Alloc, class T>
+using ReboundTo = typename std::allocator_traits<Alloc>::template rebind_alloc<T>;
+
+template <class T, class A>
+T* allocate(A& alloc, SizeType<A> n)
+{
+    ReboundTo<A, T> reboundAlloc{alloc};
+    return std::allocator_traits<ReboundTo<A, T>>::allocate(reboundAlloc, n);
+}
+
+template <class T, class A>
+void destroy(A& alloc, T* p)
+{
+    ReboundTo<A, T> reboundAlloc{alloc};
+    std::allocator_traits<ReboundTo<A, T>>::destroy(reboundAlloc, p);
+}
+
+template <class T, class A>
+void deallocate(A& alloc, T* p, SizeType<A> n)
+{
+    ReboundTo<A, T> reboundAlloc{alloc};
+    std::allocator_traits<ReboundTo<A, T>>::deallocate(reboundAlloc, p, n);
+}
+
+
+} // namespace mem
+
 template <class Alloc, class T>
 using ReboundTo = typename std::allocator_traits<Alloc>::template rebind_alloc<T>;
 
