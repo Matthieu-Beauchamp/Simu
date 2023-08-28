@@ -127,10 +127,12 @@ public:
 
     typedef typename PhysicsObject::PhysicsAlloc Alloc;
 
-    typedef ReboundTo<Alloc, UniquePtr<ContactConstraint>> ContactAlloc;
+    typedef PolymorphicList<ContactConstraint, Alloc> ContactList;
+    typedef typename ContactList::iterator            ContactIterator;
 
-    typedef std::function<
-        UniquePtr<ContactConstraint>(Collider&, Collider&, CollisionCallback, const ContactAlloc&)>
+    // must construct a single contact constraint in the contact list and return
+    //  its iterator.
+    typedef std::function<ContactIterator(Collider&, Collider&, CollisionCallback, ContactList&)>
         ContactFactory;
 
     static ContactFactory defaultContactFactory;
@@ -184,8 +186,8 @@ public:
     /// ie for ( [const] ContactConstraint& contact : world.contacts())
     ///
     ////////////////////////////////////////////////////////////
-    auto contacts() { return makeView(contacts_, DerefContact{}); }
-    auto contacts() const { return makeView(contacts_, DerefContact{}); }
+    auto contacts() { return makeView(contacts_); }
+    auto contacts() const { return makeView(contacts_); }
 
 
     ////////////////////////////////////////////////////////////
@@ -275,8 +277,7 @@ private:
     void addCollider(Collider* collider);
     void removeCollider(Collider* collider);
 
-    UniquePtr<ContactConstraint>
-    makeContactConstraint(Collider& first, Collider& second);
+    ContactIterator makeContactConstraint(Collider& first, Collider& second);
 
     template <std::derived_from<PhysicsObject> T, class A, class... Args>
     UniquePtr<T> makeObject(A& alloc, Args&&... args);
@@ -302,16 +303,17 @@ private:
     ForceFieldAlloc                                 fAlloc_{miscAlloc_};
 
     PolymorphicList<Constraint, Alloc> constraints_{cAlloc_};
-
+    ContactList                        contacts_{cAlloc_};
 
     PolymorphicList<ForceField, Alloc> forces_{fAlloc_};
 
+    ColliderTree                 colliderTree_{bAlloc_};
+    PolymorphicList<Body, Alloc> bodies_{bAlloc_};
 
     struct ContactStatus
     {
-        UniquePtr<ContactConstraint> existingContact = nullptr;
-
-        bool hit = false;
+        ContactIterator existingContact{};
+        bool            hit = false;
     };
 
     typedef std::unordered_map<
@@ -320,30 +322,12 @@ private:
         std::hash<std::array<simu::Collider*, 2>>,
         std::equal_to<std::array<simu::Collider*, 2>>,
         ReboundTo<Alloc, std::pair<const std::array<simu::Collider*, 2>, ContactStatus>>>
-        ContactList;
+        ContactTable;
 
-    ContactList contacts_{miscAlloc_};
+    ContactTable contactsTable_{miscAlloc_};
 
-    struct DerefContact
-    {
-        ContactConstraint& operator()(typename ContactList::value_type& s) const
-        {
-            return *s.second.existingContact;
-        }
-
-        const ContactConstraint&
-        operator()(const typename ContactList::value_type& s) const
-        {
-            return *s.second.existingContact;
-        }
-    };
-
-    ContactList::iterator
+    typename ContactTable::iterator
     inContacts(const std::array<simu::Collider*, 2>& colliders);
-
-    ColliderTree colliderTree_{bAlloc_};
-
-    PolymorphicList<Body, Alloc> bodies_{bAlloc_};
 
 
     Settings settings_;

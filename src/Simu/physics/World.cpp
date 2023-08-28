@@ -89,9 +89,8 @@ void World::step(float dt)
     {
         SIMU_PROFILE_ENTRY(profiler_.narrowPhaseCollision);
 
-        for (auto& c : contacts_)
-            if (c.second.existingContact != nullptr)
-                c.second.existingContact.get()->preStep();
+        for (ContactConstraint& c : contacts())
+            c.preStep();
     }
 
     for (ForceField& f : forceFields())
@@ -117,9 +116,8 @@ void World::step(float dt)
         b.postStep();
     for (Constraint& c : constraints())
         c.postStep();
-    for (auto& c : contacts_)
-        if (c.second.existingContact != nullptr)
-            c.second.existingContact->postStep();
+    for (ContactConstraint& c : contacts())
+        c.postStep();
     for (ForceField& f : forceFields())
         f.postStep();
 }
@@ -134,25 +132,25 @@ void World::updateSettings(const Settings& settings)
 }
 
 typename World::ContactFactory World::defaultContactFactory =
-    [](Collider&                           first,
-       Collider&                           second,
-       CollisionCallback                   callback,
-       const typename World::ContactAlloc& alloc) {
-        return makeUnique<ContactConstraint>(alloc, first, second, callback);
+    [](Collider&                    first,
+       Collider&                    second,
+       CollisionCallback            callback,
+       typename World::ContactList& contacts) {
+        return contacts.emplace_back<ContactConstraint>(first, second, callback);
     };
 
-UniquePtr<ContactConstraint>
+typename World::ContactIterator
 World::makeContactConstraint(Collider& first, Collider& second)
 {
     auto c = makeContactConstraint_(
-        first, second, shapeCollider_.getCallback(first.shape(), second.shape()), cAlloc_
+        first, second, shapeCollider_.getCallback(first.shape(), second.shape()), contacts_
     );
 
     c->onConstruction(*this);
 
     for (Body* body : c->bodies())
     {
-        body->contacts_.emplace_back(c.get());
+        body->contacts_.emplace_back(std::addressof(*c));
         body->wake();
     }
 
@@ -267,18 +265,19 @@ void World::removeCollider(Collider* collider)
 
 void World::cleanup()
 {
-    for (auto it = contacts_.begin(); it != contacts_.end();)
+    for (auto it = contactsTable_.begin(); it != contactsTable_.end();)
     {
-        ContactConstraint* contact = it->second.existingContact.get();
-        if (contact != nullptr && contact->isDead())
+        auto contact = it->second.existingContact;
+        if (contact->isDead())
         {
             for (Body* b : contact->bodies())
             {
-                std::erase(b->contacts_, contact);
+                std::erase(b->contacts_, std::addressof(*contact));
                 b->wake();
             }
 
-            it = contacts_.erase(it);
+            contacts_.erase(contact);
+            it = contactsTable_.erase(it);
         }
         else
         {
@@ -349,8 +348,8 @@ void World::updateBodies(float dt)
 
         auto contact = inContacts(colliders);
 
-        if (contact == contacts_.end())
-            contacts_[colliders] = ContactStatus{
+        if (contact == contactsTable_.end())
+            contactsTable_[colliders] = ContactStatus{
                 makeContactConstraint(**first, **second), true};
         else
             contact->second.hit = true;
@@ -366,10 +365,10 @@ void World::updateBodies(float dt)
 
     SIMU_PROFILE_TREE_HEIGHT(profiler_, colliderTree_);
 
-    for (auto& contact : contacts_)
+    for (auto& contact : contactsTable_)
     {
         ContactStatus& cs = contact.second;
-        if (!cs.hit && cs.existingContact != nullptr)
+        if (!cs.hit)
         {
             cs.existingContact->kill();
         }
@@ -378,14 +377,14 @@ void World::updateBodies(float dt)
     }
 }
 
-World::ContactList::iterator
+typename World::ContactTable::iterator
 World::inContacts(const std::array<simu::Collider*, 2>& colliders)
 {
-    auto asIs = contacts_.find(colliders);
-    if (asIs != contacts_.end())
+    auto asIs = contactsTable_.find(colliders);
+    if (asIs != contactsTable_.end())
         return asIs;
     else
-        return contacts_.find(std::array<simu::Collider*, 2>{
+        return contactsTable_.find(std::array<simu::Collider*, 2>{
             colliders[1], colliders[0]});
 }
 

@@ -48,13 +48,13 @@ public:
     Scene() : world_{}
     {
         auto contactFactory = [this](
-                                  Collider&                           first,
-                                  Collider&                           second,
-                                  CollisionCallback collide,
-                                  const typename World::ContactAlloc& alloc
+                                  Collider&                    first,
+                                  Collider&                    second,
+                                  CollisionCallback            collide,
+                                  typename World::ContactList& contacts
                               ) {
-            return makeUnique<VisibleContactConstraint>(
-                alloc, first, second, collide, this->renderer_
+            return contacts.emplace_back<VisibleContactConstraint>(
+                first, second, collide, this->renderer_
             );
         };
 
