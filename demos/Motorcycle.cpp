@@ -126,6 +126,7 @@ void Motorcycle::buildMotorcycle()
     chassisMaterial.density = 5.f;
 
     motorcycle_ = w.makeBody<simu::VisibleBody>(descr, chassisColor, r);
+    motorcycle_->setVelocity(simu::Vec2{0.f, -500.f});
     motorcycle_->addCollider<simu::Polygon>(
         chassisMaterial,
         simu::Polygon::box(simu::Vec2{6.f * wheelRadius, 2 * wheelRadius})
@@ -143,6 +144,10 @@ void Motorcycle::buildMotorcycle()
     descr.position[0] = 2.f * wheelRadius;
     frontWheel_       = w.makeBody<simu::VisibleBody>(descr, wheelColor, r);
     frontWheel_->addCollider<simu::Circle>(wheelMaterial, wheelRadius);
+
+    rearWheel_->setVelocity(simu::Vec2{0.f, -500.f});
+    frontWheel_->setVelocity(simu::Vec2{0.f, -500.f});
+
 
     simu::Vec2 springDir{0.f, -1.f};
     float      springLength = wheelRadius * 1.25f;

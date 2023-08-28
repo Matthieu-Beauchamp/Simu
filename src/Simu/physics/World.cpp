@@ -40,6 +40,7 @@ void World::clear()
     bodies_.clear();
     forces_.clear();
     contacts_.clear();
+    contactsTable_.clear();
     constraints_.clear();
     colliderTree_.clear();
 }
@@ -85,14 +86,8 @@ void World::step(float dt)
         b.preStep();
     for (Constraint& c : constraints())
         c.preStep();
-
-    {
-        SIMU_PROFILE_ENTRY(profiler_.narrowPhaseCollision);
-
-        for (ContactConstraint& c : contacts())
-            c.preStep();
-    }
-
+    for (ContactConstraint& c : contacts())
+        c.preStep();
     for (ForceField& f : forceFields())
         f.preStep();
 
@@ -106,6 +101,13 @@ void World::step(float dt)
         // Instead forces can be applied and stored in the Body.
         //  if an island is sleeping, all its bodies' forces and velocities are set to 0
         applyForces(dt);
+
+        {
+            SIMU_PROFILE_ENTRY(profiler_.narrowPhaseCollision);
+
+            for (ContactConstraint& c : contacts())
+                c.updateContacts();
+        }
 
         solveIslands(bodies(), cAlloc_, settings(), dt, profiler());
 

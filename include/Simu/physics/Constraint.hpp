@@ -181,7 +181,70 @@ public:
 
     const CollisionManifold& contactInfo() const { return worldManifold_; }
 
-    void preStep() override { updateContacts(); }
+    // frame and manifold will be updated after this call,
+    //  until the positions of the bodies change.
+    void updateContacts()
+    {
+        bool isPolyCollision = A_->shape().type() == Shape::polygon
+                               && B_->shape().type() == Shape::polygon;
+
+        bool needsNewManifold = worldManifold_.nContacts == 0 || !isPolyCollision;
+
+        if (!needsNewManifold)
+        {
+            // TODO: Specific to Polygon-Polygon...
+            auto  relPos        = relativePosition();
+            float distTolerance = minPen_;
+
+            bool tangentDistanceExceeded = false;
+            bool roseTooHigh             = false;
+            for (Uint32 c = 0; c < worldManifold_.nContacts; ++c)
+            {
+                float tangentDist = dot(relPos[c], worldManifold_.tangent);
+                if (squared(tangentDist) > squared(distTolerance))
+                    tangentDistanceExceeded = true;
+
+                float separation = dot(relPos[c], worldManifold_.normal);
+                if (separation > distTolerance)
+                    roseTooHigh = true;
+            }
+
+            Vec2 nearestIncident = *furthestVertexInDirection(
+                static_cast<const Polygon&>(A_->shape()), -worldManifold_.normal
+            );
+
+            bool hasNewCandidate = any(worldManifold_.contactsA[0] != nearestIncident);
+
+            if (worldManifold_.nContacts == 2)
+                hasNewCandidate = hasNewCandidate
+                                  && any(worldManifold_.contactsA[1] != nearestIncident);
+
+            needsNewManifold = tangentDistanceExceeded || roseTooHigh
+                               || hasNewCandidate;
+        }
+
+        if (needsNewManifold)
+        {
+            Uint32 nPreviousContacts = worldManifold_.nContacts;
+
+            worldManifold_ = collide_(A_->shape(), B_->shape());
+            localManifold_ = worldManifold_.transformed(
+                A_->body()->toLocalSpace(), B_->body()->toLocalSpace()
+            );
+
+            tangentLambda_ = Vec2{};
+
+            if (nPreviousContacts == 0)
+                normalLambda_ = Vec2{};
+            else if (nPreviousContacts == 1 && worldManifold_.nContacts == 2)
+                normalLambda_ = Vec2{normalLambda_[0] / 2, normalLambda_[0] / 2};
+            else if (nPreviousContacts == 2 && worldManifold_.nContacts == 1)
+            {
+                normalLambda_[0] += normalLambda_[1];
+                normalLambda_[1] = 0.f;
+            }
+        }
+    }
 
     bool isActive(const Proxies&) final override
     {
@@ -193,12 +256,6 @@ public:
 
     void initSolve(const Proxies& proxies, float) final override
     {
-        // TODO: Use baumgarte?
-        // if (normSquared(penetration_) >= maxPen_ * maxPen_)
-        //     contactConstraint_->setRestitution(0.05f);
-        // else
-        //     contactConstraint_->setRestitution(0.f);
-
         computeJacobians(proxies, true);
         computeKs(proxies, true);
         computeBounce(proxies);
@@ -349,71 +406,6 @@ private:
         worldManifold_ = localManifold_.transformed(
             proxies[0].toWorldSpace(), proxies[1].toWorldSpace()
         );
-    }
-
-    // frame and manifold will be updated after this call,
-    //  until the positions of the bodies change.
-    void updateContacts()
-    {
-        bool isPolyCollision = A_->shape().type() == Shape::polygon
-                               && B_->shape().type() == Shape::polygon;
-
-        bool needsNewManifold = worldManifold_.nContacts == 0 || !isPolyCollision;
-
-        if (!needsNewManifold)
-        {
-            // TODO: Specific to Polygon-Polygon...
-            auto  relPos        = relativePosition();
-            float distTolerance = minPen_;
-
-            bool tangentDistanceExceeded = false;
-            bool roseTooHigh             = false;
-            for (Uint32 c = 0; c < worldManifold_.nContacts; ++c)
-            {
-                float tangentDist = dot(relPos[c], worldManifold_.tangent);
-                if (squared(tangentDist) > squared(distTolerance))
-                    tangentDistanceExceeded = true;
-
-                float separation = dot(relPos[c], worldManifold_.normal);
-                if (separation > distTolerance)
-                    roseTooHigh = true;
-            }
-
-            Vec2 nearestIncident = *furthestVertexInDirection(
-                static_cast<const Polygon&>(A_->shape()), -worldManifold_.normal
-            );
-
-            bool hasNewCandidate = any(worldManifold_.contactsA[0] != nearestIncident);
-
-            if (worldManifold_.nContacts == 2)
-                hasNewCandidate = hasNewCandidate
-                                  && any(worldManifold_.contactsA[1] != nearestIncident);
-
-            needsNewManifold = tangentDistanceExceeded || roseTooHigh
-                               || hasNewCandidate;
-        }
-
-        if (needsNewManifold)
-        {
-            Uint32 nPreviousContacts = worldManifold_.nContacts;
-
-            worldManifold_ = collide_(A_->shape(), B_->shape());
-            localManifold_ = worldManifold_.transformed(
-                A_->body()->toLocalSpace(), B_->body()->toLocalSpace()
-            );
-
-            tangentLambda_ = Vec2{};
-
-            if (nPreviousContacts == 0)
-                normalLambda_ = Vec2{};
-            else if (nPreviousContacts == 1 && worldManifold_.nContacts == 2)
-                normalLambda_ = Vec2{normalLambda_[0] / 2, normalLambda_[0] / 2};
-            else if (nPreviousContacts == 2 && worldManifold_.nContacts == 1)
-            {
-                normalLambda_[0] += normalLambda_[1];
-                normalLambda_[1] = 0.f;
-            }
-        }
     }
 
     void computeKs(const Proxies& proxies, bool computeFrictionK)

@@ -196,8 +196,14 @@ CollisionManifold collidePolygonWithCircle(const Shape& A, const Shape& B)
 
     // TODO: Can this early exit check be done earlier?
     dir = closest - cB.center();
-    if (normSquared(dir) > squared(cB.radius()))
+    Vec2 outwards = closest - pA.properties().centroid;
+
+    bool circleIsInsidePoly = dot(dir, outwards) > 0.f;
+    if (circleIsInsidePoly)
+        dir = -dir;
+    else if (normSquared(dir) > squared(cB.radius()))
         return mani;
+
 
     if (normSquared(dir) == 0.f)
         mani.normal = normalized(backupNormalDir);
