@@ -279,10 +279,6 @@ private:
 
     ContactIterator makeContactConstraint(Collider& first, Collider& second);
 
-    template <std::derived_from<PhysicsObject> T, class A, class... Args>
-    UniquePtr<T> makeObject(A& alloc, Args&&... args);
-
-
     void applyForces(float dt);
 
     struct Cleaner;
@@ -291,24 +287,15 @@ private:
     void updateBodies(float dt);
 
 
-    Alloc miscAlloc_{};
+    Alloc alloc_{};
 
-    typedef ReboundTo<Alloc, UniquePtr<Body>> BodyAlloc;
-    BodyAlloc                                 bAlloc_{miscAlloc_};
+    PolymorphicList<Constraint, Alloc> constraints_{alloc_};
+    ContactList                        contacts_{alloc_};
+    PolymorphicList<ForceField, Alloc> forces_{alloc_};
 
-    typedef ReboundTo<Alloc, UniquePtr<Constraint>> ConstraintAlloc;
-    ConstraintAlloc                                 cAlloc_{bAlloc_};
 
-    typedef ReboundTo<Alloc, UniquePtr<ForceField>> ForceFieldAlloc;
-    ForceFieldAlloc                                 fAlloc_{miscAlloc_};
-
-    PolymorphicList<Constraint, Alloc> constraints_{cAlloc_};
-    ContactList                        contacts_{cAlloc_};
-
-    PolymorphicList<ForceField, Alloc> forces_{fAlloc_};
-
-    ColliderTree                 colliderTree_{bAlloc_};
-    PolymorphicList<Body, Alloc> bodies_{bAlloc_};
+    ColliderTree                 colliderTree_{alloc_};
+    PolymorphicList<Body, Alloc> bodies_{alloc_};
 
     struct ContactStatus
     {
@@ -316,15 +303,18 @@ private:
         bool            hit = false;
     };
 
+
+    typedef mem::ReboundTo<Alloc, std::pair<const std::array<simu::Collider*, 2>, ContactStatus>>
+        ContactTableAlloc;
     typedef std::unordered_map<
         std::array<simu::Collider*, 2>,
         ContactStatus,
         std::hash<std::array<simu::Collider*, 2>>,
         std::equal_to<std::array<simu::Collider*, 2>>,
-        ReboundTo<Alloc, std::pair<const std::array<simu::Collider*, 2>, ContactStatus>>>
+        ContactTableAlloc>
         ContactTable;
 
-    ContactTable contactsTable_{miscAlloc_};
+    ContactTable contactsTable_{alloc_};
 
     typename ContactTable::iterator
     inContacts(const std::array<simu::Collider*, 2>& colliders);
@@ -334,7 +324,7 @@ private:
     Profiler profiler_;
 
     ContactFactory       makeContactConstraint_;
-    ShapeCollider<Alloc> shapeCollider_{miscAlloc_};
+    ShapeCollider<Alloc> shapeCollider_{alloc_};
 };
 
 

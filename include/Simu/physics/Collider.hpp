@@ -109,10 +109,10 @@ public:
     template <std::derived_from<Shape> S, class... Args>
     void make(const Alloc& alloc, Args&&... args)
     {
-        typedef ReboundTo<Alloc, S> ShapeAlloc;
+        typedef mem::ReboundTo<Alloc, S> ShapeAlloc;
         ShapeAlloc                  a{alloc};
 
-        local_ = std::allocator_traits<ShapeAlloc>::allocate(a, 2);
+        local_ = mem::allocate<S>(a, 2);
         world_ = std::next(static_cast<S*>(local_));
 
         std::allocator_traits<ShapeAlloc>::construct(
@@ -124,10 +124,10 @@ public:
         dealloc_ = [=](Shape* local) mutable {
             S* first = static_cast<S*>(local);
 
-            std::allocator_traits<ShapeAlloc>::destroy(a, first);
-            std::allocator_traits<ShapeAlloc>::destroy(a, std::next(first));
+            mem::destroy<S>(a, first);
+            mem::destroy<S>(a, std::next(first));
 
-            std::allocator_traits<ShapeAlloc>::deallocate(a, first, 2);
+            mem::deallocate<S>(a, first, 2);
         };
     }
 
@@ -227,7 +227,7 @@ public:
 private:
 
     friend class Body;
-    typedef std::list<Collider, ReboundTo<Alloc, Collider>> ColliderList;
+    typedef std::list<Collider, mem::ReboundTo<Alloc, Collider>> ColliderList;
 
     ColliderList   colliders_{};
     MassProperties properties_{};

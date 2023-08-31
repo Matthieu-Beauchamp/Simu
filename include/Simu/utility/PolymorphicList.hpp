@@ -35,7 +35,7 @@ namespace simu
 // template <class T, class Alloc>
 // using PolymorphicList = std::vector<UniquePtr<T>, ReboundTo<Alloc, UniquePtr<T>>>;
 
-template <class T, class Alloc_>
+template <class T, mem::Allocator Alloc_>
 class PolymorphicList
 {
     template <bool>
@@ -65,6 +65,14 @@ public:
         head_->prev = head_; // will be the last element
         head_->next = head_; // will be the first element
     }
+
+    PolymorphicList(const PolymorphicList&) = delete;
+
+    PolymorphicList(PolymorphicList&&other){
+        std::swap(head_, other.head_);
+
+    }
+    
 
     ~PolymorphicList()
     {
@@ -115,7 +123,7 @@ private:
     static constexpr Index maxIndex = std::numeric_limits<Index>::max();
 
     template <class U>
-    using AllocatorFor = ReboundTo<Alloc_, PolyNode<U>>;
+    using AllocatorFor = mem::ReboundTo<Alloc_, PolyNode<U>>;
 
     struct Node
     {
@@ -192,7 +200,7 @@ private:
 
         typedef std::bidirectional_iterator_tag iterator_category;
 
-        // behavior is undefined if n is nullptr, but is required for the std::semi_regular concept
+        // iterator is invalid if n is nullptr, but is required for the std::semi_regular concept
         Iterator(NodePtr n = nullptr) : node{n} {}
 
         template <bool otherIsConst>
@@ -295,11 +303,11 @@ private:
     Node*  head_;
 };
 
-template <class T, class A>
+template <class T,  mem::Allocator A>
 std::array<typename PolymorphicList<T, A>::VTable, PolymorphicList<T, A>::maxIndex>
     PolymorphicList<T, A>::tables_{};
 
-template <class T, class A>
+template <class T,  mem::Allocator A>
 PolymorphicList<T, A>::Index PolymorphicList<T, A>::nTables_ = 0;
 
 } // namespace simu

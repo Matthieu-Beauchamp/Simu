@@ -237,7 +237,7 @@ private:
         return typeA * nTypes_ + typeB;
     }
 
-    typedef std::vector<CollisionCallback, ReboundTo<Alloc, CollisionCallback>> Callbacks;
+    typedef std::vector<CollisionCallback, mem::ReboundTo<Alloc, CollisionCallback>> Callbacks;
 
     Callbacks callbacks_;
     Uint32    nTypes_ = 0;

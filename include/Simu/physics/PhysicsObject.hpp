@@ -26,7 +26,7 @@
 
 #include "Simu/config.hpp"
 
-#include "Simu/utility/Memory.hpp"
+#include "Simu/utility/FreeListAllocator.hpp"
 
 namespace simu
 {

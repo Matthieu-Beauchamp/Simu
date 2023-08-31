@@ -378,8 +378,8 @@ private:
     bool  isAsleep_     = false;
     float timeImmobile_ = 0.f;
 
-    std::vector<Constraint*, ReboundTo<Alloc, Constraint*>> constraints_;
-    std::vector<ContactConstraint*, ReboundTo<Alloc, ContactConstraint*>> contacts_;
+    std::vector<Constraint*, mem::ReboundTo<Alloc, Constraint*>> constraints_;
+    std::vector<ContactConstraint*, mem::ReboundTo<Alloc, ContactConstraint*>> contacts_;
 
     static constexpr Int32 NO_INDEX   = -1;
     Int32                  proxyIndex = NO_INDEX;

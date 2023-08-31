@@ -45,11 +45,9 @@ namespace simu
 
 // TODO: If root has the same left and right child, we can remove some nullptr checks.
 
-template <class T, class Allocator = std::allocator<T>>
+template <class T, mem::Allocator Allocator = std::allocator<T>>
 class RTree
 {
-    typedef std::allocator_traits<Allocator> AllocTraits;
-
     struct Node;
 
     template <bool>
@@ -80,7 +78,6 @@ public:
     RTree& operator=(RTree&& other) noexcept
     {
         std::swap(alloc_, other.alloc_);
-        std::swap(nodeAlloc_, other.nodeAlloc_);
         std::swap(root_, other.root_);
         return *this;
     }
@@ -130,8 +127,8 @@ public:
         // Using the RTree's allocator will result in fragmented Node allocations
         //  and drastically decrease performance.
         Allocator updateAlloc{};
+        std::vector<Node*, mem::ReboundTo<Allocator, Node*>> nodes{updateAlloc};
 
-        std::vector<Node*, ReboundTo<Allocator, Node*>> nodes{updateAlloc};
         for (iterator it = this->begin(); it != this->end(); ++it)
         {
             nodes.emplace_back(it.node);
@@ -211,14 +208,11 @@ public:
 
 private:
 
-    typedef typename AllocTraits::template rebind_alloc<Node>  NodeAllocator;
-    typedef typename AllocTraits::template rebind_traits<Node> NodeAllocTraits;
-
     class RecycleBin
     {
     public:
 
-        typedef ReboundTo<Allocator, Node*> Alloc;
+        typedef mem::ReboundTo<Allocator, Node*> Alloc;
 
         RecycleBin(RTree& tree, Alloc alloc) : bin_{alloc}, tree_{tree} {}
         ~RecycleBin()
@@ -263,15 +257,10 @@ private:
         RTree&                    tree_;
     };
 
-    Allocator     alloc_;
-    NodeAllocator nodeAlloc_{alloc_};
-
-    Node* root_;
-
     Node* makeNode(const BoundingBox& bounds = BoundingBox{})
     {
-        Node* node = NodeAllocTraits::allocate(nodeAlloc_, 1);
-        NodeAllocTraits::construct(nodeAlloc_, node, bounds);
+        Node* node = mem::allocate<Node>(alloc_, 1);
+        mem::construct(node, bounds);
 
         return node;
     }
@@ -279,8 +268,8 @@ private:
     template <class... Args>
     Node* makeLeaf(const BoundingBox& bounds, Args&&... args)
     {
-        pointer data = AllocTraits::allocate(alloc_, 1);
-        AllocTraits::construct(alloc_, data, std::forward<Args>(args)...);
+        pointer data = mem::allocate<T>(alloc_, 1);
+        mem::construct(data, std::forward<Args>(args)...);
 
         Node* node = makeNode(bounds);
         node->data = data;
@@ -298,12 +287,12 @@ private:
 
         if (node->data != nullptr)
         {
-            AllocTraits::destroy(alloc_, node->data);
-            AllocTraits::deallocate(alloc_, node->data, 1);
+            mem::destroy<T>(alloc_, node->data);
+            mem::deallocate<T>(alloc_, node->data, 1);
         }
 
-        NodeAllocTraits::destroy(nodeAlloc_, node);
-        NodeAllocTraits::deallocate(nodeAlloc_, node, 1);
+        mem::destroy<Node>(alloc_, node);
+        mem::deallocate<Node>(alloc_, node, 1);
     }
 
     void swapNodes(Node* first, Node* second)
@@ -553,7 +542,7 @@ private:
     {
     public:
 
-        typedef ReboundTo<Allocator, Node*> Alloc;
+        typedef mem::ReboundTo<Allocator, Node*> Alloc;
 
         OverlapList(const Alloc& alloc = Alloc{}) : nodes_{alloc} {}
 
@@ -747,6 +736,9 @@ private:
         node->bounds = newBounds;
         insert(node);
     }
+
+    Allocator alloc_;
+    Node*     root_;
 };
 
 

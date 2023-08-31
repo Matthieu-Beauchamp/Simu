@@ -109,7 +109,7 @@ void World::step(float dt)
                 c.updateContacts();
         }
 
-        solveIslands(bodies(), cAlloc_, settings(), dt, profiler());
+        solveIslands(bodies(), alloc_, settings(), dt, profiler());
 
         updateBodies(dt);
     }

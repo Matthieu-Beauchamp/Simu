@@ -34,7 +34,7 @@ template <std::derived_from<Body> T, class... Args>
 T* World::makeBody(Args&&... args)
 {
     T* b = static_cast<T*>(
-        &*bodies_.emplace_back<T>(this, bAlloc_, std::forward<Args>(args)...)
+        &*bodies_.emplace_back<T>(this, alloc_, std::forward<Args>(args)...)
     );
     b->onConstruction(*this);
 
@@ -72,14 +72,6 @@ T* World::makeForceField(Args&&... args)
         });
 
     return f;
-}
-
-template <std::derived_from<PhysicsObject> T, class A, class... Args>
-UniquePtr<T> World::makeObject(A& alloc, Args&&... args)
-{
-    auto obj = makeUnique<T>(alloc, std::forward<Args>(args)...);
-    obj->onConstruction(*this);
-    return obj;
 }
 
 template <Callable<void(Body*)> F>

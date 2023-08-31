@@ -244,12 +244,12 @@ private:
         return true;
     }
 
-    std::vector<Body*, ReboundTo<Alloc, Body*>>             bodies_;
-    std::vector<Constraint*, ReboundTo<Alloc, Constraint*>> constraints_;
-    std::vector<ContactConstraint*, ReboundTo<Alloc, ContactConstraint*>> contacts_;
+    std::vector<Body*, mem::ReboundTo<Alloc, Body*>>             bodies_;
+    std::vector<Constraint*, mem::ReboundTo<Alloc, Constraint*>> constraints_;
+    std::vector<ContactConstraint*, mem::ReboundTo<Alloc, ContactConstraint*>> contacts_;
 
-    std::vector<Position, ReboundTo<Alloc, Position>> positions_;
-    std::vector<Velocity, ReboundTo<Alloc, Velocity>> velocities_;
+    std::vector<Position, mem::ReboundTo<Alloc, Position>> positions_;
+    std::vector<Velocity, mem::ReboundTo<Alloc, Velocity>> velocities_;
 
     bool isAwake_ = false;
 };
@@ -262,10 +262,10 @@ concept BodyRange = std::ranges::range<T> && requires(T t) {
 };
 
 
-template <BodyRange T, class Alloc>
+template <BodyRange T, mem::Allocator Alloc>
 void solveIslands(const T& bodies, const Alloc& alloc, World::Settings s, float dt, Profiler& profiler)
 {
-    std::vector<Body*, ReboundTo<Alloc, Body*>> bodiesToProcess{alloc};
+    std::vector<Body*, mem::ReboundTo<Alloc, Body*>> bodiesToProcess{alloc};
     for (Body& body : bodies)
         bodiesToProcess.emplace_back(&body);
 

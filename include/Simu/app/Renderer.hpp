@@ -29,7 +29,8 @@
 #include "Simu/config.hpp"
 #include "Simu/math/Geometry.hpp"
 #include "Simu/utility/View.hpp"
-#include "Simu/utility/Memory.hpp"
+
+#include "Simu/utility/FreeListAllocator.hpp"
 
 namespace simu
 {

@@ -29,7 +29,7 @@
 namespace simu
 {
 
-template <class T, class Allocator>
+template <class T,  mem::Allocator Allocator>
 struct RTree<T, Allocator>::Node
 {
     Node(const BoundingBox& bounds, pointer value = nullptr)
@@ -82,7 +82,7 @@ struct RTree<T, Allocator>::Node
 };
 
 
-template <class T, class Allocator>
+template <class T,  mem::Allocator Allocator>
 template <bool isConst>
 class RTree<T, Allocator>::Iterator
 {
