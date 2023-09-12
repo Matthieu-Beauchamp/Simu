@@ -127,17 +127,25 @@ private:
 
     struct WorldSpace
     {
+        WorldSpace(
+            const Transform& chassisToWorld,
+            const Transform& wheelToWorld
+        )
+            : chassisToWorld{chassisToWorld}, wheelToWorld{wheelToWorld}
+        {
+        }
+
         Transform chassisToWorld;
         Transform wheelToWorld;
 
-        Vec2 springDir;
-        Vec2 perpSpringDir;
+        Vec2 springDir{};
+        Vec2 perpSpringDir{};
 
-        Vec2 chassisPoint;
-        Vec2 chassisRadius;
+        Vec2 chassisPoint{};
+        Vec2 chassisRadius{};
 
-        Vec2 wheelPoint;
-        Vec2 wheelRadius;
+        Vec2 wheelPoint{};
+        Vec2 wheelRadius{};
     };
 
     WorldSpace worldSpaceInfo(const Proxies& proxies) const
@@ -193,10 +201,7 @@ public:
     )
         : Base{
             bodies,
-            SuspensionConstraintFunction{
-                                         bodies, springDir,
-                                         springHeight, chassisPoint,
-                                         wheelPoint},
+            SuspensionConstraintFunction{bodies, springDir, springHeight, chassisPoint, wheelPoint},
             disableContacts
     }
     {

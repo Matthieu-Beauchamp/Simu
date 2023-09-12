@@ -39,7 +39,7 @@ template <class T, mem::Allocator Alloc_>
 class PolymorphicList
 {
     template <bool>
-    struct Iterator;
+    class Iterator;
 
     struct Node;
 

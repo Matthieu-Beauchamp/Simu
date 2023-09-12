@@ -73,7 +73,6 @@ protected:
 
     void draw(Renderer& renderer) override
     {
-        Transform toWorld = toWorldSpace();
         for (const Collider& collider : colliders())
         {
             BoundingBox bounds = collider.shape().boundingBox();

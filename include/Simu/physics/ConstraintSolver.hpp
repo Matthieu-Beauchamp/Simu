@@ -506,9 +506,9 @@ public:
         WF wf{wrapFunc(f)};
 
         if (funcType_ == Func::equality)
-            solver_ = Equality::initSolve(data_, proxies, wf, dt);
+            solver_.matSolver_ = Equality::initSolve(data_, proxies, wf, dt);
         else if (funcType_ == Func::lower || funcType_ == Func::upper)
-            effectiveMass_ = Inequality::initSolve(data_, proxies, wf, dt);
+            solver_.effectiveMass_ = Inequality::initSolve(data_, proxies, wf, dt);
     }
 
     void warmstart(Proxies& proxies)
@@ -527,9 +527,9 @@ public:
         WF wf{wrapFunc(f)};
 
         if (funcType_ == Func::equality)
-            Equality::solveVelocity(solver_, data_, proxies, wf, dt);
+            Equality::solveVelocity(solver_.matSolver_, data_, proxies, wf, dt);
         else if (funcType_ == Func::lower || funcType_ == Func::upper)
-            Inequality::solveVelocity(effectiveMass_, data_, proxies, wf, dt);
+            Inequality::solveVelocity(solver_.effectiveMass_, data_, proxies, wf, dt);
     }
 
     void solvePosition(Proxies& proxies, const F& f)
@@ -617,9 +617,9 @@ private:
 
     union
     {
-        EffectiveMass                   effectiveMass_{};
-        typename Equality::MatrixSolver solver_;
-    };
+        EffectiveMass                   effectiveMass_;
+        typename Equality::MatrixSolver matSolver_;
+    } solver_ = {EffectiveMass{}};
 
     bool canWarmstart_ = false;
 };

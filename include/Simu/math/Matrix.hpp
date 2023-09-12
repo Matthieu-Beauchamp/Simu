@@ -217,13 +217,15 @@ inline Matrix<T, n, m> transpose(const Matrix<T, m, n>& original);
 ///
 ////////////////////////////////////////////////////////////
 template <class T, class U, Uint32 n>
-inline Vector<Promoted<T, U>, n> solve(const Matrix<T, n, n>& A, const Vector<U, n>& b);
+inline Vector<Promoted<T, U>, n>
+solve(const Matrix<T, n, n>& A, const Vector<U, n>& b);
 
 template <class T, Uint32 n>
 class Solver
 {
 public:
 
+    Solver() : isValid_{false} {}
     inline Solver(const Matrix<T, n, n>& A);
 
     template <class U>

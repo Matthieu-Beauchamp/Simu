@@ -26,6 +26,8 @@
 
 #include "Simu/physics/World.hpp"
 #include "Simu/physics/Collider.hpp"
+#include "Simu/physics/Body.hpp"
+#include "Simu/physics/ForceField.hpp"
 
 namespace simu
 {
