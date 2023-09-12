@@ -63,6 +63,28 @@ endforeach()
 include(FetchContent)
 if (SIMU_BUILD_DEMOS)
 
+    # https://stackoverflow.com/a/62233098
+    if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+        execute_process(
+            COMMAND ping www.google.com /n 2 /w 1000
+            RESULT_VARIABLE NO_CONNECTION
+        )
+    else()
+        execute_process(
+            COMMAND ping www.google.com -n -c 2 -w 1000
+            RESULT_VARIABLE NO_CONNECTION
+        )
+    endif()
+
+    if(NO_CONNECTION GREATER 0)
+        set(FETCHCONTENT_FULLY_DISCONNECTED ON)
+        message(WARNING "No internet, cannot update submodules.")    
+    else()
+        set(FETCHCONTENT_FULLY_DISCONNECTED OFF)
+        message(STATUS "Interter ok, will update submodules.")    
+    endif()
+
+    
     set(GLFW_BUILD_DOCS OFF CACHE INTERNAL "" FORCE)
     set(GLFW_BUILD_TESTS OFF CACHE INTERNAL "" FORCE)
     set(GLFW_BUILD_EXAMPLES OFF CACHE INTERNAL "" FORCE)
