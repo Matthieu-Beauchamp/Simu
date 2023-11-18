@@ -18,8 +18,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Install lcov
-      run: sudo apt install lcov
+    - name: Install dependencies 
+      run: sudo apt install lcov libxrandr-dev
 
     - uses: actions/checkout@v3
 
