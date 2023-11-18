@@ -1,6 +1,8 @@
 [![License](https://img.shields.io/github/license/Matthieu-Beauchamp/Simu)](https://github.com/Matthieu-Beauchamp/Simu/blob/master/LICENSE)
 
-[![Build](https://github.com/Matthieu-Beauchamp/Simu/actions/workflows/build.yml/badge.svg)](https://github.com/Matthieu-Beauchamp/Simu/actions/workflows/build.yml)
+[![Build Windows](https://github.com/Matthieu-Beauchamp/Simu/actions/workflows/build_windows.yml/badge.svg)](https://github.com/Matthieu-Beauchamp/Simu/actions/workflows/build_windows.yml)
+[![Build Ubuntu](https://github.com/Matthieu-Beauchamp/Simu/actions/workflows/build_ubuntu.yml/badge.svg)](https://github.com/Matthieu-Beauchamp/Simu/actions/workflows/build_ubuntu.yml)
+[![Build MacOs](https://github.com/Matthieu-Beauchamp/Simu/actions/workflows/build_macos.yml/badge.svg)](https://github.com/Matthieu-Beauchamp/Simu/actions/workflows/build_macos.yml)
 
 [![codecov](https://codecov.io/gh/Matthieu-Beauchamp/Simu/branch/master/graph/badge.svg?token=AYAKQV1UZI)](https://codecov.io/gh/Matthieu-Beauchamp/Simu)
 
