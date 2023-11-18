@@ -64,8 +64,6 @@
 #endif
 
 
-#define SIMU_NO_ASSERT 1
-
 #if defined(NDEBUG) && defined(SIMU_NO_ASSERT)
 #    define SIMU_ASSERT(c, m)                                                  \
         (void)(c);                                                             \

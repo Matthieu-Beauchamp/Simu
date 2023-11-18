@@ -24,6 +24,7 @@
 
 #pragma once
 
+#define SIMU_NO_ASSERT 1
 #include "Simu/app.hpp"
 
 

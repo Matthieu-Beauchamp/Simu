@@ -76,7 +76,7 @@ static_assert(
         TransformView<int**, DoubleDereference>::Iterator>,
     ""
 );
-static_assert(std::ranges::range<TransformView<int**, DoubleDereference>>, "");
+static_assert(Range<TransformView<int**, DoubleDereference>>, "");
 
 
 template <std::forward_iterator Iter, std::invocable<decltype(*std::declval<Iter>())> Deref>

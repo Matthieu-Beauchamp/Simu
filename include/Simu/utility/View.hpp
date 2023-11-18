@@ -24,18 +24,26 @@
 
 #pragma once
 
-#include <ranges>
-
 
 #if !defined(__clang__) || (__clang_major__ >= 16)
 #    define SIMU_HAS_STD_VIEW 1
+#    include <ranges>
 #else
 #    define SIMU_HAS_STD_VIEW 0
+#    include <iterator>
 #endif
 
 
 namespace simu
 {
+
+#if SIMU_HAS_STD_VIEW
+template <class R>
+concept Range = std::ranges::range<R>;
+#else
+template <class R>
+concept Range = true;
+#endif
 
 namespace details
 {
@@ -181,13 +189,13 @@ auto makeView(Iter begin, Iter end)
 /// \brief Creates a view of the range and applies Deref to every dereferenced element
 ///
 ////////////////////////////////////////////////////////////
-template <std::ranges::range R, class Deref>
+template <Range R, class Deref>
 auto makeView(R& range, Deref deref)
 {
     return makeView(range.begin(), range.end(), deref);
 }
 
-template <std::ranges::range R>
+template <Range R>
 auto makeView(R& range)
 {
     return makeView(range.begin(), range.end());
@@ -195,8 +203,7 @@ auto makeView(R& range)
 
 
 template <class Iter>
-using ViewType
-    = decltype(simu::makeView(std::declval<Iter>(), std::declval<Iter>()));
+using ViewType = decltype(simu::makeView(std::declval<Iter>(), std::declval<Iter>()));
 
 } // namespace simu
 
