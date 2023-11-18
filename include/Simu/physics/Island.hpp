@@ -255,7 +255,7 @@ private:
 };
 
 template <class T>
-concept BodyRange = std::ranges::range<T> && requires(T t) {
+concept BodyRange = Range<T> && requires(T t) {
     // clang-format off
     { *t.begin() } -> std::convertible_to<Body&>;
     // clang-format on
