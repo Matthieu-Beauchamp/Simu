@@ -20,8 +20,6 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-        
-  # Single deploy job since we're just deploying
   deploy:
     
     environment:
@@ -44,9 +42,6 @@ jobs:
         # Build your program with the given configuration
         run: cmake --build ${{github.workspace}}/build --config RELEASE -t Simu-docs
       
-      - name: Show
-        run: pwd && ls ${{github.workspace}}/docs/build
-    
     # DEPLOY -------------------------------------------------------------------
       - name: Setup Pages
         uses: actions/configure-pages@v4

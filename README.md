@@ -23,6 +23,8 @@ Simu resolves collisions by solving colliding object pairs iteratively, the limi
 
 Set the CMake variable `SIMU_BUILD_DOCS` to `ON` and build the `Simu-docs` target. The documentation can be opened from `docs/out/index.html`.
 
+Alternatively, they are hosted at https://matthieu-beauchamp.github.io/Simu 
+
 __Documentation is largely incomplete__
 
 Refer to `test/Physics.cpp` and `demos/` for examples.
