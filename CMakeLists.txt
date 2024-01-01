@@ -25,7 +25,7 @@ simu_define_option(SIMU_BUILD_DEMOS   ON BOOL  "Build demos")
 simu_define_option(SIMU_BUILD_TESTS   ON BOOL  "Build tests")
 simu_define_option(SIMU_TEST_COVERAGE OFF BOOL "Produce coverage report for tests")
 
-simu_define_option(SIMU_BUILD_DOCS    ON BOOL "Build documentation")
+simu_define_option(SIMU_BUILD_DOCS    OFF BOOL "Build documentation")
 
 
 ############################################################
