@@ -35,7 +35,7 @@ jobs:
 
       - name: Build
         # Build your program with the given configuration
-        run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -t Simu-docs
+        run: cmake --build ${{github.workspace}}/build --config RELEASE -t Simu-docs
   
   # Single deploy job since we're just deploying
   deploy:
