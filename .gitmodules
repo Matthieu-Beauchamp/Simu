@@ -1,6 +1,6 @@
-[submodule "docs/Spirit-Doxygen"]
-	path = docs/Spirit-Doxygen
-	url = https://github.com/Matthieu-Beauchamp/Spirit-Doxgen
 [submodule "cmake/cmake-modules"]
 	path = cmake/cmake-modules
 	url = https://github.com/bilke/cmake-modules
+[submodule "docs"]
+	path = docs
+	url = https://github.com/Matthieu-Beauchamp/CppReadTheDocs

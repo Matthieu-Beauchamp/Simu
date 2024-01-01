@@ -25,7 +25,7 @@ simu_define_option(SIMU_BUILD_DEMOS   ON BOOL  "Build demos")
 simu_define_option(SIMU_BUILD_TESTS   ON BOOL  "Build tests")
 simu_define_option(SIMU_TEST_COVERAGE OFF BOOL "Produce coverage report for tests")
 
-simu_define_option(SIMU_BUILD_DOCS    OFF BOOL "Build documentation")
+simu_define_option(SIMU_BUILD_DOCS    ON BOOL "Build documentation")
 
 
 ############################################################
@@ -148,6 +148,31 @@ endif()
 ############################################################
 
 if (SIMU_BUILD_DOCS)
+    set(DOCS_TARGET_NAME "Simu") # Must not have spaces
+    set(DOCS_PROJECT_NAME "Simu") # A pretty name to show in documentation
+
+    set(DOCS_AUTHOR "Matthieu Beauchamp") # Your name
+    set(DOCS_PROJECT_RELEASE "0.0.1") # Your project's version
+
+    # The following are relative to the docs directory
+    set(DOCS_HEADER_INPUT_DIR "../include")
+    set(DOCS_INPUT_DIR "source")
+    set(DOCS_OUTPUT_DIR "build")
+
+    set(DOCS_LANGUAGE "en") # https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-language
+    set(DOCS_FORMAT "html") # https://www.sphinx-doc.org/en/master/usage/builders/index.html
+
+    # When this is true, a ${DOCS_TARGET_NAME}-docs CMake target is available
+    set(BUILD_DOCS TRUE)
+
+    # The root directory of your project (absolute directory) to be removed
+    # in the documentation
+    set(DOCS_STRIP_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}")
+
+    # A comma separated list of include directories (absolute) for the proper #include 
+    # directives to appear in the documentation
+    set(DOCS_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/include")
+
     add_subdirectory(docs)
 endif()
 
