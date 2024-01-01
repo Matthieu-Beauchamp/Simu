@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install dependencies 
-        run: sudo apt install doxygen python3
+        run: sudo apt install doxygen python3 xorg-dev
     
       - uses: actions/checkout@v3
 
