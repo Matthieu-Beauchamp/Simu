@@ -84,7 +84,7 @@ macro(setupDoxygen)
         message(FATAL_ERROR "Doxygen is needed to build the documentation.")
     endif()
     
-    set(DOXYGEN_INDEX_FILE ${DOCS_DOXYGEN_OUTPUT_DIR}/xml/index.xml)
+    set(DOXYGEN_INDEX_FILE ${CMAKE_CURRENT_SOURCE_DIR}/${DOCS_DOXYGEN_OUTPUT_DIR}/xml/index.xml)
     set(DOXYFILE ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile)
 
     configure_file(Doxyfile.in ${DOXYFILE} @ONLY)
