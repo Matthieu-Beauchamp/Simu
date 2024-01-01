@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install dependencies 
-        run: sudo apt install doxygen python
+        run: sudo apt install doxygen python3
     
       - uses: actions/checkout@v3
 
