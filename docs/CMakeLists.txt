@@ -63,7 +63,7 @@ macro(setupPython)
         set(BREATHE "${BIN_DIR}/breathe-apidoc")
     endif()
 
-    add_custom_command(OUTPUT ${PIP} ${PY}
+    add_custom_command(OUTPUT ${VENV}
         COMMAND ${Python3_EXECUTABLE} -m venv ${VENV} 
         COMMENT "Creating VENV at ${VENV} using ${Python3_EXECUTABLE}"
     )
@@ -72,7 +72,7 @@ macro(setupPython)
     #       but on POSIX we have lib/PythonX.XX/site-packages which is troublesome
     add_custom_command(OUTPUT ${SPHINX} ${BREATHE}
         COMMAND ${PIP} install -r ${REQUIREMENTS}
-        DEPENDS ${PIP} 
+        DEPENDS ${VENV} 
         COMMENT "Installing python packages in VENV"
     )
 endmacro()
