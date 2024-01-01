@@ -20,9 +20,16 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
+        
+  # Single deploy job since we're just deploying
+  deploy:
+    
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
+    # BUILD --------------------------------------------------------------------
       - name: Install dependencies 
         run: sudo apt install doxygen python3 xorg-dev
     
@@ -38,19 +45,9 @@ jobs:
         run: cmake --build ${{github.workspace}}/build --config RELEASE -t Simu-docs
       
       - name: Show
-        run: pwd && ls ${{github.workspace}} && ls ${{github.workspace}}/docs/build
-        
-  # Single deploy job since we're just deploying
-  deploy:
-    needs: build
+        run: pwd && ls ${{github.workspace}}/docs/build
     
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Show
-        run: pwd && ls ${{github.workspace}} && ls ${{github.workspace}}/docs/build
+    # DEPLOY -------------------------------------------------------------------
       - name: Setup Pages
         uses: actions/configure-pages@v4
       - name: Upload artifact
