@@ -1,0 +1,38 @@
+# Configuration file for the Sphinx documentation builder.
+#
+# For the full list of built-in configuration values, see the documentation:
+# https://www.sphinx-doc.org/en/master/usage/configuration.html
+
+# -- Project information -----------------------------------------------------
+# https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
+
+project = "@DOCS_PROJECT_NAME@"
+copyright = '2023, @DOCS_AUTHOR@'
+author = '@DOCS_AUTHOR@'
+release = '@DOCS_RELEASE@'
+
+# -- General configuration ---------------------------------------------------
+# https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
+
+extensions = ['sphinx.ext.mathjax', 'sphinx.ext.todo', 'sphinx.ext.graphviz', 'breathe' ]
+
+docs_headers = '@HEADERS@'.split(';')
+breathe_projects_source = {
+    "@DOCS_TARGET_NAME@" : ( "", docs_headers )
+}
+
+breathe_domain_by_extension = {
+    "h" : "cpp",
+    "hpp" : "cpp",
+}
+
+templates_path = ['_templates']
+exclude_patterns = []
+
+language = '@DOCS_LANGUAGE@'
+
+# -- Options for HTML output -------------------------------------------------
+# https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
+
+html_theme = 'sphinx_rtd_theme'
+html_static_path = ['_static']

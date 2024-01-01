@@ -1,0 +1,9 @@
+.venv
+
+# builds
+**/build*/**
+doxygenOut/
+
+# Configurated files
+Doxyfile
+source/conf.py
