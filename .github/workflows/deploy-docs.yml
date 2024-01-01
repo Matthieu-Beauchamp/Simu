@@ -36,7 +36,10 @@ jobs:
       - name: Build
         # Build your program with the given configuration
         run: cmake --build ${{github.workspace}}/build --config RELEASE -t Simu-docs
-  
+      
+      - name: Show
+        run: pwd && ls ${{github.workspace}} && ls ${{github.workspace}}/docs/build
+        
   # Single deploy job since we're just deploying
   deploy:
     needs: build
@@ -46,6 +49,8 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
+      - name: Show
+        run: pwd && ls ${{github.workspace}} && ls ${{github.workspace}}/docs/build
       - name: Setup Pages
         uses: actions/configure-pages@v4
       - name: Upload artifact
