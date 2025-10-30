@@ -45,7 +45,7 @@ public:
     {
         // https://github.com/ocornut/imgui/issues/2109#issuecomment-426204357
         viewPortDock_ = ImGui::DockSpaceOverViewport(
-            ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode
+            0, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode
         );
 
         if (!isFirstFrame)

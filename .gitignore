@@ -7,6 +7,10 @@
 **/build*/**
 **/cmake-build*/**
 
+# clangd
+compile_commands.json
+.cache/
+
 # Misc
 docs/out/
 **/__pycache__/**

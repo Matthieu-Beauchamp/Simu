@@ -14,6 +14,8 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 simu_update_submodules(${CMAKE_CURRENT_LIST_DIR})
 
 ############################################################
@@ -85,7 +87,7 @@ if (SIMU_BUILD_DEMOS)
     FetchContent_Declare(
         glbinding
         GIT_REPOSITORY https://github.com/cginternals/glbinding.git
-        GIT_TAG        aedb549 # v3.3.0
+        GIT_TAG        c8a66c92e8a81d82e384a4c80207913519c1f17e # v3.5.0
     )
 
     FetchContent_MakeAvailable(GLFW glBinding)
