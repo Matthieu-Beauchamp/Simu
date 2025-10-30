@@ -1,4 +1,6 @@
 target_sources(simu-test PUBLIC
+    SparseSet.cpp
+
     Interval.cpp
     Matrix.cpp
     Assertion.cpp
