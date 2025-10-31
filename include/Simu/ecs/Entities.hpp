@@ -29,6 +29,7 @@
 #include "Simu/ecs/Entity.hpp"
 #include "Simu/ecs/SparseSet.hpp"
 #include <tuple>
+
 namespace simu
 {
 

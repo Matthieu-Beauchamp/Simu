@@ -27,6 +27,7 @@
 #include "Simu/ecs/Entity.hpp"
 #include <cstddef>
 #include <functional>
+#include <iterator>
 #include <optional>
 #include <unordered_map>
 #include <utility>
@@ -51,6 +52,12 @@ private:
     Sparse sparse{};
 
 public:
+
+    template <bool is_const>
+    class DataIterator;
+
+    template <bool is_const>
+    class ZippedIterator;
 
     T&       get_data(std::size_t index) { return data[index]; }
     const T& get_data(std::size_t index) const { return data[index]; }
@@ -116,6 +123,94 @@ public:
 
         return true;
     }
+};
+
+template <class T>
+template <bool is_const>
+class SparseSet<T>::DataIterator
+{
+    using SetType = std::conditional_t<is_const, const SparseSet<T>, SparseSet<T>>;
+
+public:
+
+    using difference_type = std::ptrdiff_t;
+    using value_type      = std::conditional_t<is_const, const T, T>;
+    using reference_type  = value_type&;
+
+    DataIterator() : DataIterator(nullptr, 0) {};
+
+    DataIterator(SetType& set, std::size_t index = 0)
+        : DataIterator(std::addressof(set), index) {}
+
+    DataIterator(SetType* set, std::size_t index = 0)
+        : _set(set), _index(index) {};
+
+    DataIterator(const DataIterator&)            = default;
+    DataIterator& operator=(const DataIterator&) = default;
+
+    reference_type operator*() const { return _set->get_data(_index); }
+
+    DataIterator& operator++() {
+        _index++;
+        return *this;
+    }
+
+    DataIterator operator++(int) {
+        auto tmp = *this;
+        ++*this;
+        return tmp;
+    }
+
+    DataIterator& operator--() {
+        _index--;
+        return *this;
+    }
+
+    DataIterator operator--(int) {
+        auto tmp = *this;
+        --*this;
+        return tmp;
+    }
+
+    DataIterator& operator+=(std::ptrdiff_t n) {
+        _index += n;
+        return *this;
+    }
+
+    DataIterator& operator-=(std::ptrdiff_t n) {
+        _index -= n;
+        return *this;
+    }
+
+    DataIterator operator-(std::ptrdiff_t n) const {
+        return DataIterator(_set, _index - n);
+    }
+
+    difference_type operator-(const DataIterator& it) const {
+        return _index - it._index;
+    }
+
+    DataIterator operator+(std::ptrdiff_t n) const {
+        return DataIterator(_set, _index + n);
+    }
+
+    friend DataIterator operator+(std::ptrdiff_t n, const DataIterator& it) {
+        return it + n;
+    }
+
+    reference_type operator[](std::ptrdiff_t n) const {
+        return _set->get_data(_index + n);
+    }
+
+    auto operator<=>(const DataIterator& other) const {
+        return this->_index <=> other._index;
+    }
+    bool operator==(const DataIterator&) const = default;
+
+private:
+
+    SetType*    _set;
+    std::size_t _index;
 };
 
 } // namespace simu

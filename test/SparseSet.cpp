@@ -62,4 +62,12 @@ TEST_CASE("SparseSet") {
         REQUIRE(c_pair.first == c);
         REQUIRE(c_pair.second == 3);
     };
+
+    SECTION("Iterator requirements") {
+        STATIC_REQUIRE(
+            std::random_access_iterator<SparseSet<int>::DataIterator<false>>
+        );
+
+        // STATIC_REQUIRE( std::contiguous_iterator<SparseSet<int>::ZippedIterator<false>>);
+    }
 }
