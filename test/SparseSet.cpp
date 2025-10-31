@@ -63,10 +63,37 @@ TEST_CASE("SparseSet") {
         REQUIRE(c_pair.second == 3);
     };
 
+    SECTION("Iterator") {
+        Set s;
+        s.add(a, 1);
+        s.add(b, 2);
+        s.add(c, 3);
+        s.add(d, 4);
+
+        auto it  = s.begin();
+        auto end = s.end();
+
+        REQUIRE(it.get_entity() == a);
+        REQUIRE(*it == 1);
+        ++it;
+
+        REQUIRE(it.get_entity() == b);
+        REQUIRE(*it == 2);
+        ++it;
+
+        REQUIRE(it.get_entity() == c);
+        REQUIRE(*it == 3);
+        ++it;
+
+        REQUIRE(it.get_entity() == d);
+        REQUIRE(*it == 4);
+        ++it;
+
+        REQUIRE(it == end);
+    }
+
     SECTION("Iterator requirements") {
-        STATIC_REQUIRE(
-            std::random_access_iterator<SparseSet<int>::DataIterator<false>>
-        );
+        STATIC_REQUIRE(std::random_access_iterator<SparseSet<int>::Iterator<false>>);
 
         // STATIC_REQUIRE( std::contiguous_iterator<SparseSet<int>::ZippedIterator<false>>);
     }

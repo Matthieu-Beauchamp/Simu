@@ -54,10 +54,7 @@ private:
 public:
 
     template <bool is_const>
-    class DataIterator;
-
-    template <bool is_const>
-    class ZippedIterator;
+    class Iterator;
 
     T&       get_data(std::size_t index) { return data[index]; }
     const T& get_data(std::size_t index) const { return data[index]; }
@@ -68,6 +65,8 @@ public:
     const T& get_data(const Entity& entity) const {
         return data[sparse.find(entity)->second];
     }
+
+    const Entity& get_entity(std::size_t index) const { return ids[index]; }
 
     std::optional<std::size_t> index_of(const Entity& entity) const {
         auto iter = sparse.find(entity);
@@ -123,11 +122,16 @@ public:
 
         return true;
     }
+
+    auto begin() { return Iterator<false>(this, 0); }
+    auto end() { return Iterator<false>(this, size()); }
+    auto begin() const { return Iterator<true>(this, 0); }
+    auto end() const { return Iterator<true>(this, size()); }
 };
 
 template <class T>
 template <bool is_const>
-class SparseSet<T>::DataIterator
+class SparseSet<T>::Iterator
 {
     using SetType = std::conditional_t<is_const, const SparseSet<T>, SparseSet<T>>;
 
@@ -137,64 +141,64 @@ public:
     using value_type      = std::conditional_t<is_const, const T, T>;
     using reference_type  = value_type&;
 
-    DataIterator() : DataIterator(nullptr, 0) {};
+    Iterator() : Iterator(nullptr, 0) {};
 
-    DataIterator(SetType& set, std::size_t index = 0)
-        : DataIterator(std::addressof(set), index) {}
+    Iterator(SetType& set, std::size_t index = 0)
+        : Iterator(std::addressof(set), index) {}
 
-    DataIterator(SetType* set, std::size_t index = 0)
-        : _set(set), _index(index) {};
+    Iterator(SetType* set, std::size_t index = 0) : _set(set), _index(index) {};
 
-    DataIterator(const DataIterator&)            = default;
-    DataIterator& operator=(const DataIterator&) = default;
+    Iterator(const Iterator&)            = default;
+    Iterator& operator=(const Iterator&) = default;
 
     reference_type operator*() const { return _set->get_data(_index); }
+    const Entity&  get_entity() const { return _set->get_entity(_index); }
 
-    DataIterator& operator++() {
+    Iterator& operator++() {
         _index++;
         return *this;
     }
 
-    DataIterator operator++(int) {
+    Iterator operator++(int) {
         auto tmp = *this;
         ++*this;
         return tmp;
     }
 
-    DataIterator& operator--() {
+    Iterator& operator--() {
         _index--;
         return *this;
     }
 
-    DataIterator operator--(int) {
+    Iterator operator--(int) {
         auto tmp = *this;
         --*this;
         return tmp;
     }
 
-    DataIterator& operator+=(std::ptrdiff_t n) {
+    Iterator& operator+=(std::ptrdiff_t n) {
         _index += n;
         return *this;
     }
 
-    DataIterator& operator-=(std::ptrdiff_t n) {
+    Iterator& operator-=(std::ptrdiff_t n) {
         _index -= n;
         return *this;
     }
 
-    DataIterator operator-(std::ptrdiff_t n) const {
-        return DataIterator(_set, _index - n);
+    Iterator operator-(std::ptrdiff_t n) const {
+        return Iterator(_set, _index - n);
     }
 
-    difference_type operator-(const DataIterator& it) const {
+    difference_type operator-(const Iterator& it) const {
         return _index - it._index;
     }
 
-    DataIterator operator+(std::ptrdiff_t n) const {
-        return DataIterator(_set, _index + n);
+    Iterator operator+(std::ptrdiff_t n) const {
+        return Iterator(_set, _index + n);
     }
 
-    friend DataIterator operator+(std::ptrdiff_t n, const DataIterator& it) {
+    friend Iterator operator+(std::ptrdiff_t n, const Iterator& it) {
         return it + n;
     }
 
@@ -202,10 +206,10 @@ public:
         return _set->get_data(_index + n);
     }
 
-    auto operator<=>(const DataIterator& other) const {
+    auto operator<=>(const Iterator& other) const {
         return this->_index <=> other._index;
     }
-    bool operator==(const DataIterator&) const = default;
+    bool operator==(const Iterator&) const = default;
 
 private:
 

@@ -25,7 +25,6 @@
 #pragma once
 
 
-#include "Simu/ecs/ComponentIterator.hpp"
 #include "Simu/ecs/SparseSet.hpp"
 #include <memory>
 
@@ -41,8 +40,8 @@ public:
 
     ComponentQuery(SetType& set) : _set(std::addressof(set)) {}
 
-    auto begin() { return ComponentIterator<T, is_const>(_set, 0); }
-    auto end() { return ComponentIterator<T, is_const>(_set, _set->size()); }
+    auto begin() { return _set->begin(); }
+    auto end() { return _set->end(); }
 
 private:
 
