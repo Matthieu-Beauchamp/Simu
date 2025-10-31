@@ -25,58 +25,28 @@
 #pragma once
 
 
-#include <cstddef>
-#include <functional>
+#include "Simu/ecs/ComponentIterator.hpp"
+#include "Simu/ecs/SparseSet.hpp"
+#include <memory>
 
 namespace simu
 {
 
-namespace internal
+template <class T, bool is_const>
+class ComponentQuery
 {
-
-class EntityGenerator;
-
-}
-
-class Entity
-{
-private:
-
-    std::size_t _id;
-
-    explicit Entity(std::size_t id) : _id(id) {}
-    friend internal::EntityGenerator;
+    using SetType = std::conditional_t<is_const, const SparseSet<T>, SparseSet<T>>;
 
 public:
 
-    std::size_t id() const { return _id; }
+    ComponentQuery(SetType& set) : _set(std::addressof(set)) {}
 
-    bool operator==(const Entity&) const = default;
-};
+    auto begin() { return ComponentIterator<T, is_const>(_set, 0); }
+    auto end() { return ComponentIterator<T, is_const>(_set, _set->size()); }
 
-
-namespace internal
-{
-
-class EntityGenerator
-{
 private:
 
-    std::size_t next_id = 1;
-
-public:
-
-    Entity create() { return Entity(next_id++); }
+    SetType* _set;
 };
-
-} // namespace internal
 
 } // namespace simu
-
-template <>
-struct std::hash<simu::Entity>
-{
-    std::size_t operator()(const simu::Entity& s) const noexcept {
-        return std::hash<std::size_t>{}(s.id());
-    }
-};

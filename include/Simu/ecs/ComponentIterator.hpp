@@ -25,58 +25,54 @@
 #pragma once
 
 
+#include "Simu/ecs/SparseSet.hpp"
 #include <cstddef>
-#include <functional>
+#include <memory>
+#include <type_traits>
 
 namespace simu
 {
 
-namespace internal
+template <class T, bool is_const>
+class ComponentIterator
 {
-
-class EntityGenerator;
-
-}
-
-class Entity
-{
-private:
-
-    std::size_t _id;
-
-    explicit Entity(std::size_t id) : _id(id) {}
-    friend internal::EntityGenerator;
+    using SetType = std::conditional_t<is_const, const SparseSet<T>, SparseSet<T>>;
 
 public:
 
-    std::size_t id() const { return _id; }
 
-    bool operator==(const Entity&) const = default;
-};
+    using difference_type = std::ptrdiff_t;
+    using value_type      = std::conditional_t<is_const, const T, T>;
+    using reference_type  = value_type&;
 
+    ComponentIterator(SetType& set, std::size_t index = 0)
+        : ComponentIterator(std::addressof(set), index) {}
 
-namespace internal
-{
+    ComponentIterator(SetType* set, std::size_t index = 0)
+        : _set(set), _index(index) {};
 
-class EntityGenerator
-{
+    ComponentIterator(const ComponentIterator&)            = default;
+    ComponentIterator& operator=(const ComponentIterator&) = default;
+
+    reference_type operator*() const { return _set->get_data(_index); }
+
+    ComponentIterator& operator++() {
+        _index++;
+        return *this;
+    }
+
+    ComponentIterator operator++(int) {
+        auto tmp = *this;
+        ++*this;
+        return tmp;
+    }
+
+    bool operator==(const ComponentIterator&) const = default;
+
 private:
 
-    std::size_t next_id = 1;
-
-public:
-
-    Entity create() { return Entity(next_id++); }
+    SetType*    _set;
+    std::size_t _index;
 };
-
-} // namespace internal
 
 } // namespace simu
-
-template <>
-struct std::hash<simu::Entity>
-{
-    std::size_t operator()(const simu::Entity& s) const noexcept {
-        return std::hash<std::size_t>{}(s.id());
-    }
-};

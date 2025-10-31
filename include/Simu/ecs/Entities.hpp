@@ -25,58 +25,62 @@
 #pragma once
 
 
-#include <cstddef>
-#include <functional>
-
+#include "Simu/ecs/ComponentQuery.hpp"
+#include "Simu/ecs/Entity.hpp"
+#include "Simu/ecs/SparseSet.hpp"
+#include <tuple>
 namespace simu
 {
 
-namespace internal
-{
-
-class EntityGenerator;
-
-}
-
-class Entity
+template <class... Components>
+class Entities
 {
 private:
 
-    std::size_t _id;
+    template <class Component>
+    using SetType = SparseSet<Component>;
 
-    explicit Entity(std::size_t id) : _id(id) {}
-    friend internal::EntityGenerator;
+    using Storage = std::tuple<SetType<Components>...>;
+
+
+    Storage                   storage;
+    internal::EntityGenerator generator;
 
 public:
 
-    std::size_t id() const { return _id; }
+    Entity create() { return generator.create(); };
 
-    bool operator==(const Entity&) const = default;
-};
+    template <class T>
+    bool add(const Entity& entity, const T& value) {
+        return set_of<T>().add(entity, value);
+    }
 
+    template <class T>
+    bool remove(const Entity& entity) {
+        return set_of<T>().remove(entity);
+    }
 
-namespace internal
-{
+    template <class T>
+    auto query() {
+        return ComponentQuery<T, false>(set_of<T>());
+    }
 
-class EntityGenerator
-{
+    template <class T>
+    auto query() const {
+        return ComponentQuery<T, true>(set_of<T>());
+    }
+
 private:
 
-    std::size_t next_id = 1;
+    template <class T>
+    SetType<T>& set_of() {
+        return std::get<SetType<T>>(storage);
+    }
 
-public:
-
-    Entity create() { return Entity(next_id++); }
-};
-
-} // namespace internal
-
-} // namespace simu
-
-template <>
-struct std::hash<simu::Entity>
-{
-    std::size_t operator()(const simu::Entity& s) const noexcept {
-        return std::hash<std::size_t>{}(s.id());
+    template <class T>
+    const SetType<T>& set_of() const {
+        return std::get<SetType<T>>(storage);
     }
 };
+
+} // namespace simu

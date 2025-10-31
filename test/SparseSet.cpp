@@ -8,10 +8,12 @@ using namespace simu;
 
 TEST_CASE("SparseSet") {
     using Set = SparseSet<int>;
-    Entity a{10};
-    Entity b{11};
-    Entity c{12};
-    Entity d{13};
+    internal::EntityGenerator gen;
+
+    Entity a = gen.create();
+    Entity b = gen.create();
+    Entity c = gen.create();
+    Entity d = gen.create();
 
     SECTION("Single element") {
         Set s;
@@ -21,7 +23,7 @@ TEST_CASE("SparseSet") {
         REQUIRE(s.get_data(a) == 1);
         REQUIRE(s.has_data(a));
 
-        std::optional<std::size_t> index = s.get_index(a);
+        std::optional<std::size_t> index = s.index_of(a);
         REQUIRE(index);
         auto pair = s.get_pair(*index);
         REQUIRE(pair.first == a);
@@ -45,13 +47,13 @@ TEST_CASE("SparseSet") {
 
         s.remove(a);
         REQUIRE(s.size() == 3);
-        REQUIRE(s.get_index(d) == 0);
-        REQUIRE(!s.get_index(a));
+        REQUIRE(s.index_of(d) == 0);
+        REQUIRE(!s.index_of(a));
 
         s.remove(b);
         REQUIRE(s.size() == 2);
-        REQUIRE(s.get_index(c) == 1);
-        REQUIRE(!s.get_index(b));
+        REQUIRE(s.index_of(c) == 1);
+        REQUIRE(!s.index_of(b));
 
         auto d_pair = s.get_pair(0);
         auto c_pair = s.get_pair(1);

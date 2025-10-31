@@ -52,6 +52,9 @@ private:
 
 public:
 
+    T&       get_data(std::size_t index) { return data[index]; }
+    const T& get_data(std::size_t index) const { return data[index]; }
+
     T& get_data(const Entity& entity) {
         return data[sparse.find(entity)->second];
     }
@@ -59,7 +62,7 @@ public:
         return data[sparse.find(entity)->second];
     }
 
-    std::optional<std::size_t> get_index(const Entity& entity) const {
+    std::optional<std::size_t> index_of(const Entity& entity) const {
         auto iter = sparse.find(entity);
         return iter == sparse.end() ? std::nullopt : std::optional(iter->second);
     }
