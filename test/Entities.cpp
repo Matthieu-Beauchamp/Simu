@@ -1,5 +1,5 @@
-#include "Simu/ecs/Entities.hpp"
-#include "Simu/ecs/Entity.hpp"
+#include "Simu/entities/Entities.hpp"
+#include "Simu/entities/Entity.hpp"
 #include "catch2/catch_test_macros.hpp"
 
 using namespace simu;

@@ -1,8 +1,8 @@
-#include "Simu/ecs/Entity.hpp"
+#include "Simu/entities/Entity.hpp"
 #include "catch2/catch_test_macros.hpp"
 #include <cstddef>
 
-#include "Simu/ecs/SparseSet.hpp"
+#include "Simu/entities/SparseSet.hpp"
 
 using namespace simu;
 

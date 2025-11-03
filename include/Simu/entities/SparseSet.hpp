@@ -24,10 +24,9 @@
 
 #pragma once
 
-#include "Simu/ecs/Entity.hpp"
+#include "Simu/entities/Entity.hpp"
 #include <cstddef>
 #include <functional>
-#include <iterator>
 #include <optional>
 #include <unordered_map>
 #include <utility>

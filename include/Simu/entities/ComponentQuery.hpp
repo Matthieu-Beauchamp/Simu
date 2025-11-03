@@ -25,63 +25,27 @@
 #pragma once
 
 
-#include "Simu/ecs/ComponentQuery.hpp"
-#include "Simu/ecs/Entity.hpp"
-#include "Simu/ecs/SparseSet.hpp"
-#include <tuple>
+#include "Simu/entities/SparseSet.hpp"
+#include <memory>
 
 namespace simu
 {
 
-template <class... Components>
-class Entities
+template <class T, bool is_const>
+class ComponentQuery
 {
-private:
-
-    template <class Component>
-    using SetType = SparseSet<Component>;
-
-    using Storage = std::tuple<SetType<Components>...>;
-
-
-    Storage                   storage;
-    internal::EntityGenerator generator;
+    using SetType = std::conditional_t<is_const, const SparseSet<T>, SparseSet<T>>;
 
 public:
 
-    Entity create() { return generator.create(); };
+    ComponentQuery(SetType& set) : _set(std::addressof(set)) {}
 
-    template <class T>
-    bool add(const Entity& entity, const T& value) {
-        return set_of<T>().add(entity, value);
-    }
-
-    template <class T>
-    bool remove(const Entity& entity) {
-        return set_of<T>().remove(entity);
-    }
-
-    template <class T>
-    auto query() {
-        return ComponentQuery<T, false>(set_of<T>());
-    }
-
-    template <class T>
-    auto query() const {
-        return ComponentQuery<T, true>(set_of<T>());
-    }
+    auto begin() { return _set->begin(); }
+    auto end() { return _set->end(); }
 
 private:
 
-    template <class T>
-    SetType<T>& set_of() {
-        return std::get<SetType<T>>(storage);
-    }
-
-    template <class T>
-    const SetType<T>& set_of() const {
-        return std::get<SetType<T>>(storage);
-    }
+    SetType* _set;
 };
 
 } // namespace simu
