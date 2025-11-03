@@ -21,7 +21,7 @@ TEST_CASE("SparseSet") {
 
         REQUIRE(s.size() == 1);
         REQUIRE(s.get_data(a) == 1);
-        REQUIRE(s.has_data(a));
+        REQUIRE(s.has_entity(a));
 
         std::optional<std::size_t> index = s.index_of(a);
         REQUIRE(index);

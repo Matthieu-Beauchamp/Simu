@@ -27,11 +27,37 @@
 
 #include "Simu/entities/ComponentQuery.hpp"
 #include "Simu/entities/Entity.hpp"
+#include "Simu/entities/JoinQuery.hpp"
 #include "Simu/entities/SparseSet.hpp"
+#include <memory>
 #include <tuple>
+#include <type_traits>
 
 namespace simu
 {
+
+namespace internal
+{
+
+template <class T, class... Components>
+struct exists
+{
+};
+
+template <class T, class First, class... Components>
+struct exists<T, First, Components...>
+{
+    static constexpr bool value = std::is_same_v<T, First>
+                                  || exists<T, Components...>::value;
+};
+
+template <class T, class Component>
+struct exists<T, Component>
+{
+    static constexpr bool value = std::is_same_v<T, Component>;
+};
+
+} // namespace internal
 
 template <class... Components>
 class Entities
@@ -71,15 +97,33 @@ public:
         return ComponentQuery<T, true>(set_of<T>());
     }
 
+    template <class... Ts, std::enable_if_t<sizeof...(Ts) >= 2, bool> = false>
+    auto query() {
+        return JoinQuery<false, Ts...>(std::tuple(std::addressof(set_of<Ts>())...));
+    }
+
+    template <class... Ts, std::enable_if_t<sizeof...(Ts) >= 2, bool> = false>
+    auto query() const {
+        return JoinQuery<true, Ts...>(std::tuple(std::addressof(set_of<Ts>())...));
+    }
+
 private:
 
     template <class T>
     SetType<T>& set_of() {
+        static_assert(
+            internal::exists<T, Components...>::value, "T is not a Component"
+        );
+
         return std::get<SetType<T>>(storage);
     }
 
     template <class T>
     const SetType<T>& set_of() const {
+        static_assert(
+            internal::exists<T, Components...>::value, "T is not a Component"
+        );
+
         return std::get<SetType<T>>(storage);
     }
 };

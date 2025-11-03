@@ -15,8 +15,7 @@
 //    If you use this software in a product, an acknowledgment
 //    in the product documentation would be appreciated but is not required.
 //
-// 2. Altered source versions must be plainly marked as such,
-//    and must not be misrepresented as being the original software.
+// 2. Altered source versions must be plainly marked as such, and must not be misrepresented as being the original software.
 //
 // 3. This notice may not be removed or altered from any source distribution.
 //
@@ -35,20 +34,47 @@
 namespace simu
 {
 
-template <class T>
-class SparseSet
+namespace internal
 {
-private:
 
-    using Data = std::vector<T>;
-    using Ids  = std::vector<Entity>;
+class BasicSparseSet
+{
+protected:
+
+    using Ids = std::vector<Entity>;
 
     // FIXME: use vector / custom hashmap to avoid allocations?
     using Sparse = std::unordered_map<Entity, std::size_t>;
 
-    Data   data{};
     Ids    ids{};
     Sparse sparse{};
+
+public:
+
+    const Entity& get_entity(std::size_t index) const { return ids[index]; }
+
+    bool has_entity(const Entity& entity) const {
+        return sparse.contains(entity);
+    }
+
+    std::optional<std::size_t> index_of(const Entity& entity) const {
+        auto iter = sparse.find(entity);
+        return iter == sparse.end() ? std::nullopt : std::optional(iter->second);
+    }
+
+    std::size_t size() const { return ids.size(); }
+};
+
+} // namespace internal
+
+template <class T>
+class SparseSet : public internal::BasicSparseSet
+{
+private:
+
+    using Data = std::vector<T>;
+
+    Data data{};
 
 public:
 
@@ -65,17 +91,6 @@ public:
         return data[sparse.find(entity)->second];
     }
 
-    const Entity& get_entity(std::size_t index) const { return ids[index]; }
-
-    std::optional<std::size_t> index_of(const Entity& entity) const {
-        auto iter = sparse.find(entity);
-        return iter == sparse.end() ? std::nullopt : std::optional(iter->second);
-    }
-
-    bool has_data(const Entity& entity) const {
-        return sparse.contains(entity);
-    }
-
     std::pair<Entity, std::reference_wrapper<T>> get_pair(std::size_t index) {
         return std::make_pair(ids[index], std::ref(data[index]));
     }
@@ -83,8 +98,6 @@ public:
     get_pair(std::size_t index) const {
         return std::make_pair(ids[index], std::cref(data[index]));
     }
-
-    std::size_t size() const { return data.size(); }
 
     bool add(const Entity& entity, const T& value) {
         auto result = sparse.emplace(entity, data.size());
