@@ -30,4 +30,38 @@ TEST_CASE("Entities") {
         }
         REQUIRE(current == 4);
     };
+
+    SECTION("callback iteration") {
+        int current = 1;
+        entities.query<int>().each([&](int& x) { REQUIRE(current++ == x); });
+        REQUIRE(current == 4);
+
+        const Entities<int>& c_entities = entities;
+        current                         = 1;
+        c_entities.query<int>().each([&](const int& x) {
+            REQUIRE(current++ == x);
+        });
+        REQUIRE(current == 4);
+    };
+
+    SECTION("callback zipped iteration") {
+        int current = 1;
+        entities.query<int>().each([&](Entity e, int& x) {
+            switch (current++) {
+                case 1:
+                    REQUIRE(x == 1);
+                    REQUIRE(e == a);
+                    break;
+                case 2:
+                    REQUIRE(x == 2);
+                    REQUIRE(e == b);
+                    break;
+                case 3:
+                    REQUIRE(x == 3);
+                    REQUIRE(e == c);
+                    break;
+            }
+        });
+        REQUIRE(current == 4);
+    };
 }
