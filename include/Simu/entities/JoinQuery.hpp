@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include "Simu/entities/utils.hpp"
 #include "Simu/entities/Entity.hpp"
 #include "Simu/entities/SparseSet.hpp"
 #include <cstddef>
@@ -37,33 +38,6 @@ namespace simu
 
 namespace internal
 {
-
-template <class T, std::size_t i, class... Components>
-struct element_index
-{
-    static_assert(i < sizeof...(Components), "T not in Components");
-
-    static constexpr std::size_t value() {
-        if constexpr (std::is_same_v<T, std::tuple_element_t<i, std::tuple<Components...>>>) {
-            return i;
-        } else {
-            return element_index<T, i + 1, Components...>::value();
-        }
-    }
-};
-
-template <class T, class... Components>
-constexpr std::size_t index_of() {
-    return element_index<T, 0, Components...>::value();
-}
-
-template <class Tuple, class Func, std::size_t i = 0>
-    requires std::invocable<Func, std::size_t, std::tuple_element_t<i, Tuple>&>
-constexpr void forEach(Tuple& tuple, Func&& func) {
-    func(i, std::get<i>(tuple));
-    if constexpr (i + 1 < std::tuple_size_v<Tuple>)
-        forEach<Tuple, Func, i + 1>(tuple, std::forward<Func>(func));
-}
 
 template <bool is_const, class... Components>
 class JoinIterator
@@ -91,7 +65,7 @@ public:
     using reference_type = std::tuple<std::reference_wrapper<DataType<Components>>...>;
 
     JoinIterator(std::array<SetType*, N> sets, std::size_t ref_set, std::size_t index = 0)
-        : _sets(sets), _index(index), _ref_set(ref_set) {
+        : _sets(sets), _ref_set(ref_set), _index(index) {
         if (_index < _sets[ref_set]->size() && !has_all_components()) {
             operator++();
         }
@@ -110,7 +84,7 @@ public:
         );
     }
 
-    const Entity& get_entity() const {
+    [[nodiscard]] const Entity& get_entity() const {
         return _sets[_ref_set]->get_entity(_index);
     }
 
@@ -175,7 +149,7 @@ class JoinQuery
 
 public:
 
-    JoinQuery(std::tuple<SetType<Components>*...> sets) : _sets(), _ref_set(0) {
+    explicit JoinQuery(std::tuple<SetType<Components>*...> sets) : _sets(), _ref_set(0) {
         std::size_t min_size = std::numeric_limits<std::size_t>::max();
 
         forEach(sets, [this, &min_size](std::size_t i, auto* set) {

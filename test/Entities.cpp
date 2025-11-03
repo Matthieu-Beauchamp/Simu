@@ -96,6 +96,43 @@ TEST_CASE("Entities") {
                 REQUIRE(x.x == 2);
                 REQUIRE(y.y == 2);
             });
+
+            entities.remove<Y>(b);
+            entities.add<Y>(a, Y{1});
+
+            query = entities.query<X, Y>();
+            query.each([](X& x, Y& y) {
+                REQUIRE(x.x == 1);
+                REQUIRE(y.y == 1);
+            });
         }
+
+        SECTION("callback zipped iteration") {
+            entities.add<Y>(a, Y{1});
+            entities.add<Y>(c, Y{3});
+
+            int current = 1;
+            entities.query<X, Y>().each([&](Entity e, X& x, Y& y) {
+                switch (current++) {
+                    case 1:
+                        REQUIRE(y.y == 1);
+                        REQUIRE(x.x == 1);
+                        REQUIRE(e == a);
+                        break;
+                    case 2:
+                        REQUIRE(y.y == 2);
+                        REQUIRE(x.x == 2);
+                        REQUIRE(e == b);
+                        break;
+                    case 3:
+                        REQUIRE(y.y == 3);
+                        REQUIRE(x.x == 3);
+                        REQUIRE(e == c);
+                        break;
+                }
+            });
+
+            REQUIRE(current == 4);
+        };
     }
 }

@@ -36,34 +36,10 @@
 namespace simu
 {
 
-namespace internal
-{
-
-template <class T, class... Components>
-struct exists
-{
-};
-
-template <class T, class First, class... Components>
-struct exists<T, First, Components...>
-{
-    static constexpr bool value = std::is_same_v<T, First>
-                                  || exists<T, Components...>::value;
-};
-
-template <class T, class Component>
-struct exists<T, Component>
-{
-    static constexpr bool value = std::is_same_v<T, Component>;
-};
-
-} // namespace internal
 
 template <class... Components>
 class Entities
 {
-private:
-
     template <class Component>
     using SetType = SparseSet<Component>;
 
@@ -77,53 +53,45 @@ public:
 
     Entity create() { return generator.create(); };
 
-    template <class T>
+    template <element_of<Components...> T>
     bool add(const Entity& entity, const T& value) {
         return set_of<T>().add(entity, value);
     }
 
-    template <class T>
+    template <element_of<Components...> T>
     bool remove(const Entity& entity) {
         return set_of<T>().remove(entity);
     }
 
-    template <class T>
+    template <element_of<Components...> T>
     auto query() {
         return ComponentQuery<T, false>(set_of<T>());
     }
 
-    template <class T>
+    template <element_of<Components...> T>
     auto query() const {
         return ComponentQuery<T, true>(set_of<T>());
     }
 
-    template <class... Ts, std::enable_if_t<sizeof...(Ts) >= 2, bool> = false>
+    template <element_of<Components...>... Ts, std::enable_if_t<sizeof...(Ts) >= 2, bool> = false>
     auto query() {
         return JoinQuery<false, Ts...>(std::tuple(std::addressof(set_of<Ts>())...));
     }
 
-    template <class... Ts, std::enable_if_t<sizeof...(Ts) >= 2, bool> = false>
+    template <element_of<Components...>... Ts, std::enable_if_t<sizeof...(Ts) >= 2, bool> = false>
     auto query() const {
         return JoinQuery<true, Ts...>(std::tuple(std::addressof(set_of<Ts>())...));
     }
 
 private:
 
-    template <class T>
+    template <element_of<Components...> T>
     SetType<T>& set_of() {
-        static_assert(
-            internal::exists<T, Components...>::value, "T is not a Component"
-        );
-
         return std::get<SetType<T>>(storage);
     }
 
-    template <class T>
+    template <element_of<Components...> T>
     const SetType<T>& set_of() const {
-        static_assert(
-            internal::exists<T, Components...>::value, "T is not a Component"
-        );
-
         return std::get<SetType<T>>(storage);
     }
 };

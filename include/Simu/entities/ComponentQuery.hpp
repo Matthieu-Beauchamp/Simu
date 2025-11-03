@@ -40,7 +40,7 @@ class ComponentQuery
 
 public:
 
-    ComponentQuery(SetType& set) : _set(std::addressof(set)) {}
+    explicit ComponentQuery(SetType& set) : _set(std::addressof(set)) {}
 
     template<std::invocable<DataType&> F>
     void each(F&& f) {

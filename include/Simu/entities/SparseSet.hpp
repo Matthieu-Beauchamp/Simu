@@ -70,8 +70,6 @@ public:
 template <class T>
 class SparseSet : public internal::BasicSparseSet
 {
-private:
-
     using Data = std::vector<T>;
 
     Data data{};
@@ -111,7 +109,7 @@ public:
     }
 
     bool remove(const Entity& entity) {
-        auto iter = sparse.find(entity);
+        const auto iter = sparse.find(entity);
         if (iter == sparse.end()) {
             return false;
         }
@@ -155,16 +153,22 @@ public:
 
     Iterator() : Iterator(nullptr, 0) {};
 
-    Iterator(SetType& set, std::size_t index = 0)
+    explicit Iterator(SetType& set, std::size_t index = 0)
         : Iterator(std::addressof(set), index) {}
 
-    Iterator(SetType* set, std::size_t index = 0) : _set(set), _index(index) {};
+    explicit Iterator(SetType* set, std::size_t index = 0)
+        : _set(set), _index(index) {};
 
     Iterator(const Iterator&)            = default;
     Iterator& operator=(const Iterator&) = default;
 
-    reference_type operator*() const { return _set->get_data(_index); }
-    const Entity&  get_entity() const { return _set->get_entity(_index); }
+    [[nodiscard]] reference_type operator*() const {
+        return _set->get_data(_index);
+    }
+
+    [[nodiscard]] const Entity& get_entity() const {
+        return _set->get_entity(_index);
+    }
 
     Iterator& operator++() {
         _index++;

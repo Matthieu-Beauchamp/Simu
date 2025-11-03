@@ -40,7 +40,6 @@ class EntityGenerator;
 
 class Entity
 {
-private:
 
     std::size_t _id;
 
@@ -49,7 +48,7 @@ private:
 
 public:
 
-    std::size_t id() const { return _id; }
+    [[nodiscard]] std::size_t id() const { return _id; }
 
     bool operator==(const Entity&) const = default;
 };
@@ -60,7 +59,6 @@ namespace internal
 
 class EntityGenerator
 {
-private:
 
     std::size_t next_id = 1;
 
