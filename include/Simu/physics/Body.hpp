@@ -90,28 +90,26 @@ public:
     Mass() = default;
 
     Mass(float mass, float inertia)
-        : invMass_{1.f / mass}, invInertia_{1.f / inertia}
-    {
+        : _invMass{1.f / mass}, _invInertia{1.f / inertia} {
         SIMU_ASSERT(mass > 0, "Invalid mass");
         SIMU_ASSERT(inertia > 0, "Invalid inertia");
     }
 
     Mass(const GeometricProperties& properties, float density)
-        : Mass(properties.area * density, properties.momentOfArea * density)
-    {
+        : Mass(properties.area * density, properties.momentOfArea * density) {
         SIMU_ASSERT(density > 0, "Invalid density");
     }
 
-    float invMass() const { return invMass_; }
-    float invInertia() const { return invInertia_; }
+    float invMass() const { return _invMass; }
+    float invInertia() const { return _invInertia; }
 
-    float mass() const { return 1.f / invMass_; }
-    float inertia() const { return 1.f / invInertia_; }
+    float mass() const { return 1.f / _invMass; }
+    float inertia() const { return 1.f / _invInertia; }
 
 private:
 
-    float invMass_{};
-    float invInertia_{};
+    float _invMass{};
+    float _invInertia{};
 };
 
 
@@ -128,14 +126,12 @@ public:
     float angular() const { return angular_; }
     void  setAngular(float w) { angular_ = w; }
 
-    void set(Vec2 v, float w)
-    {
+    void set(Vec2 v, float w) {
         setLinear(v);
         setAngular(w);
     }
 
-    void increment(Vec2 dLinear, float dAngular)
-    {
+    void increment(Vec2 dLinear, float dAngular) {
         linear_ += dLinear;
         angular_ += dAngular;
     }
@@ -159,9 +155,7 @@ public:
     Position(Vec2 position, float orientation, Vec2 localCentroid)
         : pos_{position},
           orientation_{orientation},
-          localCentroid_{localCentroid}
-    {
-    }
+          localCentroid_{localCentroid} {}
 
     Vec2  position() const { return pos_.offset(); }
     float orientation() const { return orientation_.theta(); }
@@ -169,14 +163,12 @@ public:
     Vec2 centroid() const { return toWorldSpace() * localCentroid(); }
     Vec2 localCentroid() const { return localCentroid_.offset(); }
 
-    void advance(Vec2 dPos, float dTheta)
-    {
+    void advance(Vec2 dPos, float dTheta) {
         pos_ *= Translation{dPos};
         orientation_ *= Rotation{dTheta};
     }
 
-    Transform toWorldSpace() const
-    {
+    Transform toWorldSpace() const {
         return pos_ * localCentroid_ * orientation_ * localCentroid_.inverse();
     }
 
@@ -206,22 +198,20 @@ public:
     ////////////////////////////////////////////////////////////
     Body(const BodyDescriptor& descriptor)
         : position_{descriptor.position, descriptor.orientation, Vec2{}},
-          dominance_{descriptor.dominance}
-    {
+          dominance_{descriptor.dominance} {
         update();
     }
 
     Body(const Body& other) = delete;
     Body(Body&& other)      = delete;
 
-    ~Body() override
-    {
+    ~Body() override {
         for (Collider& c : colliders_.colliders_)
             removeCollider(&c);
     }
 
     Collider* addCollider(const ColliderDescriptor& descriptor);
-    void removeCollider(Collider* collider);
+    void      removeCollider(Collider* collider);
 
     ////////////////////////////////////////////////////////////
     /// \brief Applies a force for some time on an object
@@ -229,8 +219,7 @@ public:
     /// whereFromCentroid does not need to lie inside the Body's world space geometry.
     ///
     ////////////////////////////////////////////////////////////
-    void applyForce(Vec2 force, float dt, Vec2 whereFromCentroid = Vec2{0, 0})
-    {
+    void applyForce(Vec2 force, float dt, Vec2 whereFromCentroid = Vec2{0, 0}) {
         applyImpulse(force * dt, whereFromCentroid);
     }
 
@@ -240,8 +229,7 @@ public:
     /// whereFromCentroid does not need to lie inside the Body's world space geometry.
     ///
     ////////////////////////////////////////////////////////////
-    void applyImpulse(Vec2 impulse, Vec2 whereFromCentroid = Vec2{0, 0})
-    {
+    void applyImpulse(Vec2 impulse, Vec2 whereFromCentroid = Vec2{0, 0}) {
         setVelocity(velocity() + impulse * invMass());
         setAngularVelocity(
             angularVelocity() + cross(whereFromCentroid, impulse) * invInertia()
@@ -264,8 +252,7 @@ public:
     /// \brief Change the Body's linear velocity to velocity
     ///
     ////////////////////////////////////////////////////////////
-    void setVelocity(Vec2 velocity)
-    {
+    void setVelocity(Vec2 velocity) {
         velocity_.setLinear(velocity);
         wake();
     }
@@ -274,8 +261,7 @@ public:
     /// \brief Change the Body's angularVelocity to angularVelocity in radians/s
     ///
     ////////////////////////////////////////////////////////////
-    void setAngularVelocity(float angularVelocity)
-    {
+    void setAngularVelocity(float angularVelocity) {
         velocity_.setAngular(angularVelocity);
         wake();
     }
@@ -379,8 +365,7 @@ private:
 
     friend class Bodies;
 
-    void setAllocator(const PhysicsAlloc& alloc) override
-    {
+    void setAllocator(const PhysicsAlloc& alloc) override {
         replaceAllocator(constraints_, alloc);
         replaceAllocator(contacts_, alloc);
 
@@ -389,23 +374,20 @@ private:
 
     void update() { colliders_.update(toWorldSpace()); }
 
-    bool isImmobile(float velocityTreshold, float angularVelocityTreshold) const
-    {
+    bool isImmobile(float velocityTreshold, float angularVelocityTreshold) const {
         return normSquared(velocity()) < velocityTreshold * velocityTreshold
                && angularVelocity() < angularVelocityTreshold;
     }
 
     void
-    updateTimeImmobile(float dt, float velocityTreshold, float angularVelocityTreshold)
-    {
+    updateTimeImmobile(float dt, float velocityTreshold, float angularVelocityTreshold) {
         if (isImmobile(velocityTreshold, angularVelocityTreshold))
             timeImmobile_ += dt;
         else
             timeImmobile_ = 0.f;
     }
 
-    bool canSleep(float minTimeImmobile) const
-    {
+    bool canSleep(float minTimeImmobile) const {
         return timeImmobile_ >= minTimeImmobile;
     }
 
