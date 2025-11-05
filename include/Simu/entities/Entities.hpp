@@ -37,7 +37,8 @@ namespace simu
 {
 
 
-template <class... Components>
+template <simple_type... Components>
+    requires all_different<Components...>
 class Entities
 {
     template <class Component>
@@ -55,43 +56,49 @@ public:
 
     template <element_of<Components...> T>
     bool add(const Entity& entity, const T& value) {
-        return set_of<T>().add(entity, value);
+        return get_component<T>().add(entity, value);
     }
 
     template <element_of<Components...> T>
     bool remove(const Entity& entity) {
-        return set_of<T>().remove(entity);
+        return get_component<T>().remove(entity);
+    }
+
+    void destroy(const Entity& entity) {
+        (get_component<Components>().remove(entity), ...);
     }
 
     template <element_of<Components...> T>
     auto query() {
-        return ComponentQuery<T, false>(set_of<T>());
+        return ComponentQuery<T, false>(get_component<T>());
     }
 
     template <element_of<Components...> T>
     auto query() const {
-        return ComponentQuery<T, true>(set_of<T>());
+        return ComponentQuery<T, true>(get_component<T>());
     }
 
     template <element_of<Components...>... Ts, std::enable_if_t<sizeof...(Ts) >= 2, bool> = false>
     auto query() {
-        return JoinQuery<false, Ts...>(std::tuple(std::addressof(set_of<Ts>())...));
+        return JoinQuery<false, Ts...>(
+            std::tuple(std::addressof(get_component<Ts>())...)
+        );
     }
 
     template <element_of<Components...>... Ts, std::enable_if_t<sizeof...(Ts) >= 2, bool> = false>
     auto query() const {
-        return JoinQuery<true, Ts...>(std::tuple(std::addressof(set_of<Ts>())...));
+        return JoinQuery<true, Ts...>(
+            std::tuple(std::addressof(get_component<Ts>())...)
+        );
     }
 
-private:
-
     template <element_of<Components...> T>
-    SetType<T>& set_of() {
+    SetType<T>& get_component() {
         return std::get<SetType<T>>(storage);
     }
 
     template <element_of<Components...> T>
-    const SetType<T>& set_of() const {
+    const SetType<T>& get_component() const {
         return std::get<SetType<T>>(storage);
     }
 };

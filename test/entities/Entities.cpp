@@ -90,6 +90,12 @@ TEST_CASE("Entities") {
 
         entities.add(c, X{3});
 
+        SECTION("destroy") {
+            entities.destroy(b);
+            REQUIRE_FALSE(entities.get_component<X>().has_entity(b));
+            REQUIRE_FALSE(entities.get_component<Y>().has_entity(b));
+        }
+
         SECTION("callback iteration") {
             auto query = entities.query<X, Y>();
             query.each([](X& x, Y& y) {

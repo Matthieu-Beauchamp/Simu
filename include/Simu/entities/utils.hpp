@@ -23,12 +23,36 @@
 ////////////////////////////////////////////////////////////
 
 #pragma once
+#include "Simu/app/Event.hpp"
 
 namespace simu
 {
 
 namespace internal
 {
+
+template <class... Ts>
+struct all_different
+{
+};
+
+template <class T, class U, class... Ts>
+struct all_different<T, U, Ts...>
+    : std::bool_constant<
+          all_different<T, U>::value && all_different<T, Ts...>::value
+          && all_different<U, Ts...>::value>
+{
+};
+
+template <class T, class U>
+struct all_different<T, U> : std::bool_constant<!std::is_same_v<T, U>>
+{
+};
+
+template <class T>
+struct all_different<T> : std::true_type
+{
+};
 
 template <class T, std::size_t i, class... Components>
 struct element_index
@@ -79,5 +103,11 @@ struct element_of<T, Component>
 
 template <class T, class... Components>
 concept element_of = internal::element_of<T, Components...>::value;
+
+template <class T>
+concept simple_type = std::is_same_v<std::decay_t<T>, T>;
+
+template <class... Ts>
+concept all_different = internal::all_different<Ts...>::value;
 
 } // namespace simu
