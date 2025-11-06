@@ -41,27 +41,23 @@ namespace details
 // from boost (functional/hash):
 // see http://www.boost.org/doc/libs/1_35_0/doc/html/hash/combine.html template
 template <typename T>
-inline void hash_combine(std::size_t& seed, const T& val)
-{
+inline void hash_combine(std::size_t& seed, const T& val) {
     seed ^= std::hash<T>()(val) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 }
 
 // auxiliary generic functions to create a hash value using a seed
 template <typename T>
-inline void hash_val(std::size_t& seed, const T& val)
-{
+inline void hash_val(std::size_t& seed, const T& val) {
     hash_combine(seed, val);
 }
 template <typename T, typename... Types>
-inline void hash_val(std::size_t& seed, const T& val, const Types&... args)
-{
+inline void hash_val(std::size_t& seed, const T& val, const Types&... args) {
     hash_combine(seed, val);
     hash_val(seed, args...);
 }
 
 template <typename... Types>
-inline std::size_t hash_val(const Types&... args)
-{
+inline std::size_t hash_val(const Types&... args) {
     std::size_t seed = 0;
     hash_val(seed, args...);
     return seed;
@@ -75,8 +71,7 @@ namespace std
 template <>
 struct hash<std::array<simu::Collider*, 2>>
 {
-    size_t operator()(const std::array<simu::Collider*, 2>& colliders) const
-    {
+    size_t operator()(const std::array<simu::Collider*, 2>& colliders) const {
         return ::details::hash_val(colliders[0], colliders[1]);
     }
 };
@@ -127,8 +122,7 @@ public:
     World(const World& other) = delete;
     World(World&& other)      = delete;
 
-    void clear()
-    {
+    void clear() {
         bodies_.clear();
         forces_.clear();
         contacts_.clear();
@@ -136,8 +130,7 @@ public:
         colliderTree_.clear();
     }
 
-    void setContactFactory(ContactFactory makeContact)
-    {
+    void setContactFactory(ContactFactory makeContact) {
         contacts_.clear();
         makeContactConstraint_ = makeContact;
     }
@@ -167,8 +160,7 @@ public:
     ///
     ////////////////////////////////////////////////////////////
     auto constraints() { return makeView(constraints_, DoubleDereference{}); }
-    auto constraints() const
-    {
+    auto constraints() const {
         return makeView(constraints_, DoubleDereference{});
     }
 
@@ -187,8 +179,7 @@ public:
     ///
     ////////////////////////////////////////////////////////////
     template <std::derived_from<Body> T, class... Args>
-    T* makeBody(Args&&... args)
-    {
+    T* makeBody(Args&&... args) {
         auto body = makeUnique<T>(bAlloc_, std::forward<Args>(args)...);
         T*   b = static_cast<T*>(bodies_.emplace_back(std::move(body)).get());
         b->world_ = this;
@@ -197,8 +188,7 @@ public:
 
         return b;
     }
-    Body* makeBody(const BodyDescriptor& descr)
-    {
+    Body* makeBody(const BodyDescriptor& descr) {
         return makeBody<Body>(descr);
     }
 
@@ -207,16 +197,14 @@ public:
     ///
     ////////////////////////////////////////////////////////////
     template <std::derived_from<Constraint> T, class... Args>
-    T* makeConstraint(Args&&... args)
-    {
+    T* makeConstraint(Args&&... args) {
         T* c = static_cast<T*>(
             constraints_
                 .emplace_back(makeObject<T>(cAlloc_, std::forward<Args>(args)...))
                 .get()
         );
 
-        for (Body* body : c->bodies())
-        {
+        for (Body* body : c->bodies()) {
             body->constraints_.emplace_back(c);
             body->wake();
         }
@@ -230,8 +218,7 @@ public:
     ///
     ////////////////////////////////////////////////////////////
     template <std::derived_from<ForceField> T, class... Args>
-    T* makeForceField(Args&&... args)
-    {
+    T* makeForceField(Args&&... args) {
         T* f = static_cast<T*>(
             forces_
                 .emplace_back(makeObject<T>(fAlloc_, std::forward<Args>(args)...))
@@ -290,8 +277,7 @@ public:
     /// \brief Updates the world's settings
     ///
     ////////////////////////////////////////////////////////////
-    void updateSettings(const Settings& settings)
-    {
+    void updateSettings(const Settings& settings) {
         if (!settings.enableSleeping && settings_.enableSleeping)
             for (Body& body : bodies())
                 body.wake();
@@ -307,16 +293,14 @@ public:
 
 
     template <Callable<void(Body*)> F>
-    void forEachIn(BoundingBox box, const F& func)
-    {
+    void forEachIn(BoundingBox box, const F& func) {
         colliderTree_.forEachIn(box, [&](ColliderTree::iterator it) {
             func((*it)->body());
         });
     }
 
     template <Callable<void(Body*)> F>
-    void forEachAt(Vec2 point, const F& func)
-    {
+    void forEachAt(Vec2 point, const F& func) {
         colliderTree_.forEachAt(point, [&](ColliderTree::iterator it) {
             func((*it)->body());
         });
@@ -328,8 +312,7 @@ public:
 private:
 
     friend Body;
-    void addCollider(Collider* collider)
-    {
+    void addCollider(Collider* collider) {
         collider->treeLocation_ = colliderTree_.emplace(
             collider->boundingBox(), collider
         );
@@ -341,8 +324,7 @@ private:
     makeContactConstraint(Collider& first, Collider& second);
 
     template <std::derived_from<PhysicsObject> T, class A, class... Args>
-    UniquePtr<T> makeObject(A& alloc, Args&&... args)
-    {
+    UniquePtr<T> makeObject(A& alloc, Args&&... args) {
         auto obj = makeUnique<T>(alloc, std::forward<Args>(args)...);
         obj->setAllocator(alloc);
         obj->onConstruction(*this);
@@ -397,27 +379,25 @@ private:
 
     struct DerefContact
     {
-        ContactConstraint& operator()(typename ContactList::value_type& s) const
-        {
+        ContactConstraint& operator()(typename ContactList::value_type& s) const {
             return *s.second.existingContact;
         }
 
         const ContactConstraint&
-        operator()(const typename ContactList::value_type& s) const
-        {
+        operator()(const typename ContactList::value_type& s) const {
             return *s.second.existingContact;
         }
     };
 
     ContactList::iterator
-    inContacts(const std::array<simu::Collider*, 2>& colliders)
-    {
+    inContacts(const std::array<simu::Collider*, 2>& colliders) {
         auto asIs = contacts_.find(colliders);
         if (asIs != contacts_.end())
             return asIs;
         else
-            return contacts_.find(std::array<simu::Collider*, 2>{
-                colliders[1], colliders[0]});
+            return contacts_.find(
+                std::array<simu::Collider*, 2>{colliders[1], colliders[0]}
+            );
     }
 
     ColliderTree colliderTree_{bAlloc_};

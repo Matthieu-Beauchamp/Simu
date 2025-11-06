@@ -8,8 +8,7 @@ using namespace simu;
 typedef RTree<int> Tree;
 
 template <class T>
-void testEmpty(const RTree<T>& t)
-{
+void testEmpty(const RTree<T>& t) {
     REQUIRE(t.size() == 0);
     REQUIRE(t.isEmpty());
     REQUIRE(t.bounds() == BoundingBox{});
@@ -25,17 +24,14 @@ typedef RTree<TestType> TestTree;
 
 void hit(TestTree::iterator it) { it->hit = true; }
 
-TEST_CASE("R-Tree")
-{
-    SECTION("Empty tree")
-    {
+TEST_CASE("R-Tree") {
+    SECTION("Empty tree") {
         Tree t{};
         REQUIRE(t.begin() == t.end());
         REQUIRE(t.height() == 0);
     }
 
-    SECTION("Iterator conversions")
-    {
+    SECTION("Iterator conversions") {
         Tree        t{};
         const Tree& ct = static_cast<const Tree&>(t);
 
@@ -51,8 +47,7 @@ TEST_CASE("R-Tree")
         );
     }
 
-    SECTION("Insertion")
-    {
+    SECTION("Insertion") {
         RTree<TestType*> t{};
 
         // must be a power of 2 for height checks
@@ -77,8 +72,7 @@ TEST_CASE("R-Tree")
         REQUIRE(t.height() < size - 1);
     }
 
-    SECTION("Removal")
-    {
+    SECTION("Removal") {
         Tree          t{};
         constexpr int size = 16;
 
@@ -89,8 +83,7 @@ TEST_CASE("R-Tree")
 
         {
             auto it = t.begin();
-            while (it != t.end())
-            {
+            while (it != t.end()) {
                 if (*it & 1)
                     it = t.erase(it);
                 else
@@ -98,9 +91,7 @@ TEST_CASE("R-Tree")
             }
 
             REQUIRE(t.size() == size / 2);
-            REQUIRE(
-                t.bounds() == BoundingBox{Vec2::filled(0), Vec2::filled(size - 1)}
-            );
+            REQUIRE(t.bounds() == BoundingBox{Vec2::filled(0), Vec2::filled(size - 1)});
         }
         {
             auto it = t.begin();
@@ -117,8 +108,7 @@ TEST_CASE("R-Tree")
         testEmpty(t);
     }
 
-    SECTION("Box queries")
-    {
+    SECTION("Box queries") {
         TestTree t{};
 
         // clang-format off
@@ -160,8 +150,7 @@ TEST_CASE("R-Tree")
         testHits(true, true, true, true);
     }
 
-    SECTION("Update")
-    {
+    SECTION("Update") {
         TestTree t{};
 
         BoundingBox b{
@@ -186,8 +175,7 @@ TEST_CASE("R-Tree")
         REQUIRE(right->hit);
     }
 
-    SECTION("Batch operations")
-    {
-        // TODO: 
+    SECTION("Batch operations") {
+        // TODO:
     }
 }
