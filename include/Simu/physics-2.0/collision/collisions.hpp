@@ -42,12 +42,87 @@ inline bool collides(const BoundingBox& a, const BoundingBox& b) {
     );
 }
 
-inline bool collides(const Circle& a, const Circle& b) {
+template <std::size_t max_contacts>
+struct Contacts
+{
+    static constexpr Contacts none() { return Contacts{}; }
+
+    /// The unit normal pointing out of the `a` body
+    Vec2 normal;
+
+    /// The contacts on body a
+    std::array<Vec2, max_contacts> contacts_a;
+    /// The contacts on body b
+    std::array<Vec2, max_contacts> contacts_b;
+
+    /// Actual number of contacts, 0 if no collision
+    Uint32 n_contacts = 0;
+};
+
+inline Contacts<1> collides(const Circle& a, const Circle& b) {
     float min_dist = a.radius() + b.radius();
-    return normSquared(a.center() - b.center()) <= min_dist * min_dist;
+    Vec2  dir      = b.center() - a.center();
+    bool  collides = normSquared(dir) <= min_dist * min_dist;
+    dir            = normalized(dir);
+
+    if (collides) {
+        return {
+            .normal     = dir,
+            .contacts_a = {a.center() + a.radius() * dir},
+            .contacts_b = {b.center() - b.radius() * dir},
+            .n_contacts = 1
+        };
+    } else {
+        return Contacts<1>::none();
+    }
 }
 
-inline bool collides(const Circle& a, const Capsule& b) {}
+inline Contacts<1> collides(const Circle& a, const Capsule& b) {
+    Vec2  axis     = normalized(b.top() - b.bottom());
+    float axis_len = norm(b.top() - b.bottom());
+
+    float circle_pos_along_axis = dot(a.center() - b.bottom(), axis);
+
+    bool is_under = circle_pos_along_axis + a.radius() <= 0.f;
+    bool is_over  = circle_pos_along_axis - a.radius() >= axis_len;
+    if (is_under || is_over) {
+        return Contacts<1>::none();
+    }
+
+    Vec2  perp         = simu::perp(axis);
+    float perp_dist    = dot(a.center() - b.bottom(), perp);
+    bool  is_near_axis = std::abs(perp_dist) <= a.radius() + b.radius();
+    if (!is_near_axis) {
+        return Contacts<1>::none();
+    }
+
+    if (circle_pos_along_axis <= b.radius()) {
+        // Collision with bottom circle
+        return collides(a, Circle(b.bottom() + axis * b.radius(), b.radius()));
+    }
+
+    if (circle_pos_along_axis >= axis_len - b.radius()) {
+        // Collision with top circle
+        return collides(a, Circle(b.top() - axis * b.radius(), b.radius()));
+    }
+
+    // Collision with axis
+    if (perp_dist > 0.f) {
+        return {
+            .normal     = -perp,
+            .contacts_a = {a.center() - perp * a.radius()},
+            .contacts_b = {b.bottom() + axis * circle_pos_along_axis + perp * b.radius()},
+            .n_contacts = 1
+        };
+    } else {
+        return {
+            .normal     = perp,
+            .contacts_a = {a.center() + perp * a.radius()},
+            .contacts_b = {b.bottom() + axis * circle_pos_along_axis - perp * b.radius()},
+            .n_contacts = 1
+        };
+    }
+}
 
 inline bool collides(const Circle& a, const Polygon& b) {}
 

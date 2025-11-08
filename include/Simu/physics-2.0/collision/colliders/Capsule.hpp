@@ -32,6 +32,10 @@ class Capsule
 {
 public:
 
+    /// The top and bottom points are not inside the capsule but are the very edges of it
+    /// @param bottom The bottom point of the capsule (ground)
+    /// @param top The top point of the capsule
+    /// @param radius The radius of the capsule
     Capsule(Vec2 bottom, Vec2 top, float radius)
         : _bottom{bottom}, _top{top}, _radius{radius} {}
 
