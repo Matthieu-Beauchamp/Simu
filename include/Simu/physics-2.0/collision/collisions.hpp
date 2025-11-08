@@ -63,9 +63,9 @@ inline Contacts<1> collides(const Circle& a, const Circle& b) {
     float min_dist = a.radius() + b.radius();
     Vec2  dir      = b.center() - a.center();
     bool  collides = normSquared(dir) <= min_dist * min_dist;
-    dir            = normalized(dir);
 
     if (collides) {
+        dir = normalized(dir);
         return {
             .normal     = dir,
             .contacts_a = {a.center() + a.radius() * dir},
@@ -124,7 +124,68 @@ inline Contacts<1> collides(const Circle& a, const Capsule& b) {
     }
 }
 
-inline bool collides(const Circle& a, const Polygon& b) {}
+inline Contacts<1> collides(const Circle& a, const Polygon& b) {
+    Contacts<1> contact;
+    float       min_pen = std::numeric_limits<float>::max();
+
+    /// Create a normal from the circle to each vertex
+    /// Can exit early if all vertices are away
+    /// Can only define a contact with the vertex used to create the normal
+    for (std::size_t i = 0; i < b.n_vertices(); ++i) {
+        Vec2 vertex = b.vertex(i);
+        Vec2 normal = normalized(vertex - a.center());
+
+        float current_dist = dot(normal, b.vertex(i) - a.center()) - a.radius();
+        float min_dist     = current_dist;
+        for (std::size_t j = 0; j < b.n_vertices() && i != j; ++j) {
+            float dist = dot(normal, b.vertex(j) - a.center()) - a.radius();
+            if (dist < min_dist) {
+                min_dist = dist;
+            }
+        }
+
+        if (min_dist > 0.f) {
+            return Contacts<1>::none();
+        }
+
+        if (current_dist <= 0.f && -current_dist < min_pen) {
+            min_pen = -current_dist;
+            contact = {
+                .normal     = normal,
+                .contacts_a = {a.center() + a.radius() * normal},
+                .contacts_b = {vertex},
+                .n_contacts = 1
+            };
+        }
+    }
+
+    /// Test all face normals (regular SAT)
+    for (std::size_t i = 0; i < b.n_vertices(); ++i) {
+        Vec2 current_vertex = b.vertex(i);
+        Vec2 next_vertex    = b.vertex((i + 1) == b.n_vertices() ? 0 : i + 1);
+        ;
+
+        Vec2 edge   = normalized(next_vertex - current_vertex);
+        Vec2 normal = perp(edge);
+
+        float dist = dot(a.center() - current_vertex, normal);
+        if (dist > 0.f) {
+            return Contacts<1>::none();
+        }
+
+        if (-dist < min_pen) {
+            min_pen = -dist;
+            contact = {
+                .normal     = -normal,
+                .contacts_a = {a.center() + a.radius() * contact.normal},
+                .contacts_b = {current_vertex + edge * dot(edge, a.center() - current_vertex)},
+                .n_contacts = 1
+            };
+        }
+    }
+
+    return contact;
+}
 
 inline bool collides(const Capsule& a, const Capsule& b) {}
 

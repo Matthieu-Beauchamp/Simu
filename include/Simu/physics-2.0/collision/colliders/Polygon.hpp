@@ -25,6 +25,7 @@
 #pragma once
 
 #include <array>
+#include <format>
 #include "Simu/math/Matrix.hpp"
 
 namespace simu
@@ -37,8 +38,15 @@ public:
 
     static constexpr int max_vertices = 16;
 
-    Polygon(const std::array<Vec2, max_vertices>& vertices)
-        : _vertices{vertices} {}
+    Polygon(const std::initializer_list<Vec2>& vertices)
+        : _n_vertices{vertices.size()} {
+        SIMU_ASSERT(
+            vertices.size() <= max_vertices,
+            std::format("Polygon cannot have more than {} vertices", max_vertices)
+        );
+
+        std::copy(vertices.begin(), vertices.end(), _vertices.begin());
+    };
 
     /// Creates a box-shaped polygon from the given dimensions (width, height) and center
     static Polygon box(Vec2 dim, Vec2 center = Vec2{}) {
@@ -54,11 +62,15 @@ public:
     }
 
     auto begin() const { return _vertices.begin(); }
-    auto end() const { return _vertices.end(); }
+    auto end() const { return _vertices.begin() + n_vertices(); }
+
+    std::size_t n_vertices() const { return _n_vertices; }
+    const Vec2& vertex(std::size_t i) const { return _vertices[i]; }
 
 private:
 
     std::array<Vec2, max_vertices> _vertices;
+    std::size_t                    _n_vertices;
 };
 
 } // namespace simu
