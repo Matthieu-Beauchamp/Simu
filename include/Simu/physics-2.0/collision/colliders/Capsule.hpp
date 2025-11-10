@@ -39,6 +39,14 @@ public:
     Capsule(Vec2 bottom, Vec2 top, float radius)
         : _bottom{bottom}, _top{top}, _radius{radius} {}
 
+    Vec2 top_center() const {
+        return _top - radius() * normalized(_top - _bottom);
+    }
+
+    Vec2 bottom_center() const {
+        return _bottom + radius() * normalized(_top - _bottom);
+    }
+
     Vec2  bottom() const { return _bottom; }
     Vec2  top() const { return _top; }
     float radius() const { return _radius; }

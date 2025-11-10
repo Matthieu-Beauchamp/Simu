@@ -187,7 +187,116 @@ inline Contacts<1> collides(const Circle& a, const Polygon& b) {
     return contact;
 }
 
-inline bool collides(const Capsule& a, const Capsule& b) {}
+inline Contacts<2> collides(const Capsule& a, const Capsule& b, float epsilon) {
+    Vec2 a_top_center    = a.top_center();
+    Vec2 a_bottom_center = a.bottom_center();
+    Vec2 b_top_center    = b.top_center();
+    Vec2 b_bottom_center = b.bottom_center();
+
+    // Project each of the capsule's centers onto the other capsule's axis
+    Vec2 proj_a_top_center
+        = LineBarycentric{b_bottom_center, b_top_center, a_top_center}.closestPoint;
+    Vec2 proj_a_bottom_center
+        = LineBarycentric{b_bottom_center, b_top_center, a_bottom_center}.closestPoint;
+    Vec2 proj_b_top_center
+        = LineBarycentric{a_bottom_center, a_top_center, b_top_center}.closestPoint;
+    Vec2 proj_b_bottom_center
+        = LineBarycentric{a_bottom_center, a_top_center, b_bottom_center}.closestPoint;
+
+    float dist_a_top_center = normSquared(proj_a_top_center - a_top_center);
+    float dist_a_bottom_center = normSquared(proj_a_bottom_center - a_bottom_center);
+    float dist_b_top_center = normSquared(proj_b_top_center - b_top_center);
+    float dist_b_bottom_center = normSquared(proj_b_bottom_center - b_bottom_center);
+
+    float min_dist = (a.radius() + b.radius()) * (a.radius() + b.radius());
+
+    bool has_contact_a_top_center    = dist_a_top_center < min_dist;
+    bool has_contact_a_bottom_center = dist_a_bottom_center < min_dist;
+    bool has_contact_b_top_center    = dist_b_top_center < min_dist;
+    bool has_contact_b_bottom_center = dist_b_bottom_center < min_dist;
+
+    if (has_contact_a_top_center) {
+        Vec2 normal = normalized(proj_a_top_center - a_top_center);
+
+        Contacts<2> result = {
+            .normal     = normal,
+            .contacts_a = {a_top_center + normal * a.radius()},
+            .contacts_b = {proj_a_top_center - normal * b.radius()},
+            .n_contacts = 1,
+        };
+
+        if (has_contact_a_bottom_center) {
+            result.contacts_a[1] = a_bottom_center + normal * a.radius();
+            result.contacts_b[1] = proj_a_bottom_center - normal * b.radius();
+            result.n_contacts    = 2;
+        } else if (has_contact_b_top_center) {
+            result.contacts_a[1] = proj_b_top_center + normal * a.radius();
+            result.contacts_b[1] = b_top_center - normal * b.radius();
+            result.n_contacts    = 2;
+        } else if (has_contact_b_bottom_center) {
+            result.contacts_a[1] = proj_b_bottom_center + normal * a.radius();
+            result.contacts_b[1] = b_bottom_center - normal * b.radius();
+            result.n_contacts    = 2;
+        }
+
+        return result;
+    }
+
+    if (has_contact_a_bottom_center) {
+        Vec2 normal = normalized(proj_a_bottom_center - a_bottom_center);
+
+        Contacts<2> result = {
+            .normal     = normal,
+            .contacts_a = {a_bottom_center + normal * a.radius()},
+            .contacts_b = {proj_a_bottom_center - normal * b.radius()},
+            .n_contacts = 1,
+        };
+
+        if (has_contact_b_top_center) {
+            result.contacts_a[1] = proj_b_top_center + normal * a.radius();
+            result.contacts_b[1] = b_top_center - normal * b.radius();
+            result.n_contacts    = 2;
+        } else if (has_contact_b_bottom_center) {
+            result.contacts_a[1] = proj_b_bottom_center + normal * a.radius();
+            result.contacts_b[1] = b_bottom_center - normal * b.radius();
+            result.n_contacts    = 2;
+        }
+
+        return result;
+    }
+
+    if (has_contact_b_top_center) {
+        Vec2 normal = -normalized(proj_b_top_center - b_top_center);
+
+        Contacts<2> result = {
+            .normal     = normal,
+            .contacts_a = {proj_b_top_center + normal * a.radius()},
+            .contacts_b = {b_top_center - normal * b.radius()},
+            .n_contacts = 1
+        };
+
+        if (has_contact_b_bottom_center) {
+            result.contacts_a[1] = proj_b_bottom_center + normal * a.radius();
+            result.contacts_b[1] = b_bottom_center - normal * b.radius();
+            result.n_contacts    = 2;
+        }
+
+        return result;
+    }
+
+    if (has_contact_b_bottom_center) {
+        Vec2 normal = -normalized(proj_b_bottom_center - b_bottom_center);
+
+        return Contacts<2>{
+            .normal     = normal,
+            .contacts_a = {proj_b_bottom_center + normal * a.radius()},
+            .contacts_b = {b_bottom_center - normal * b.radius()},
+            .n_contacts = 1
+        };
+    }
+
+    return Contacts<2>::none();
+}
 
 inline bool collides(const Capsule& a, const Polygon& b) {}
 
