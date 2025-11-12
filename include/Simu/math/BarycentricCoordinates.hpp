@@ -26,6 +26,7 @@
 
 #include "Simu/math/Matrix.hpp"
 #include "Simu/utility/Algo.hpp"
+#include "Interval.hpp"
 
 namespace simu
 {
@@ -56,20 +57,24 @@ namespace simu
 ////////////////////////////////////////////////////////////
 struct LineBarycentric
 {
-    LineBarycentric(Vec2 A, Vec2 B, Vec2 Q)
-    {
+    LineBarycentric(Vec2 A, Vec2 B, Vec2 Q) {
         Vec2  AB     = B - A;
         float norm   = normSquared(AB);
-        float t      = (norm == 0.f) ? 0.f : dot(Q - A, AB) / norm;
+        t            = (norm == 0.f) ? 0.f : dot(Q - A, AB) / norm;
         closestPoint = A + clamp(t, 0.f, 1.f) * AB;
 
         v = t;
         u = 1.f - t;
     }
 
+    [[nodiscard]] bool is_projection_inside_segment() const {
+        return Interval(0.f, 1.f).contains(t);
+    }
+
     Vec2  closestPoint;
     float u;
     float v;
+    float t; /// The unnormalized v parameter
 };
 
 ////////////////////////////////////////////////////////////

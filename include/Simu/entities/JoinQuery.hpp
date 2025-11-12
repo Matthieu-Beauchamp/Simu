@@ -32,6 +32,7 @@
 #include <limits>
 #include <tuple>
 #include <type_traits>
+#include <array>
 
 namespace simu
 {
@@ -149,7 +150,8 @@ class JoinQuery
 
 public:
 
-    explicit JoinQuery(std::tuple<SetType<Components>*...> sets) : _sets(), _ref_set(0) {
+    explicit JoinQuery(std::tuple<SetType<Components>*...> sets)
+        : _sets(), _ref_set(0) {
         std::size_t min_size = std::numeric_limits<std::size_t>::max();
 
         forEach(sets, [this, &min_size](std::size_t i, auto* set) {
