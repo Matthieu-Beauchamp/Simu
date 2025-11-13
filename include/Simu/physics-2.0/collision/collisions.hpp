@@ -32,6 +32,9 @@
 namespace simu
 {
 
+// TODO: all the calls to perp() assume it rotates clockwise, but it does not.
+//         The normals are thus pointing inwards
+
 inline bool collides(const BoundingBox& a, const BoundingBox& b) {
     if (!a.isValid() || !b.isValid())
         return false;
@@ -42,6 +45,8 @@ inline bool collides(const BoundingBox& a, const BoundingBox& b) {
     );
 }
 
+// TODO: In case of no contact, store the separating axis as the normal.
+//          It can be reused in the next timestep to quickly determine no contact
 template <std::size_t max_contacts>
 struct Contacts
 {
@@ -300,10 +305,10 @@ inline Contacts<2> collides(const Capsule& a, const Capsule& b) {
 }
 
 inline Contacts<2> collides(const Capsule& a, const Polygon& b, float epsilon) {
-    Contacts<2> contact        = Contacts<2>::none();
-    float       min_pen        = std::numeric_limits<float>::max();
-    Vec2        top_center     = a.top_center();
-    Vec2        bottom_center  = a.bottom_center();
+    Contacts<2> contact       = Contacts<2>::none();
+    float       min_pen       = std::numeric_limits<float>::max();
+    Vec2        top_center    = a.top_center();
+    Vec2        bottom_center = a.bottom_center();
 
     // Project each vertex onto the capsule
     for (std::size_t i = 0; i < b.n_vertices(); ++i) {
@@ -313,17 +318,17 @@ inline Contacts<2> collides(const Capsule& a, const Polygon& b, float epsilon) {
 
         float current_dist = norm(normal) - a.radius();
         if (current_dist <= 0.f && -current_dist < min_pen) {
-            normal         = normalized(normal);
-            min_pen        = -current_dist;
-            contact        = {
-                       .normal     = normal,
-                       .contacts_a = {projection + a.radius() * normal},
-                       .contacts_b = {vertex},
-                       .n_contacts = 1
+            normal  = normalized(normal);
+            min_pen = -current_dist;
+            contact = {
+                .normal     = normal,
+                .contacts_a = {projection + a.radius() * normal},
+                .contacts_b = {vertex},
+                .n_contacts = 1
             };
         } else if (min_pen == std::numeric_limits<float>::max()) {
             // Check if a separating plane exists if penetration is not already found
-            normal = normalized(normal);
+            normal         = normalized(normal);
             float min_dist = current_dist;
             for (std::size_t j = 0; j < b.n_vertices() && i != j; ++j) {
                 float dist = dot(normal, b.vertex(j) - projection) - a.radius();
@@ -339,7 +344,7 @@ inline Contacts<2> collides(const Capsule& a, const Polygon& b, float epsilon) {
     }
 
     // Regular SAT
-    for (std::size_t i = 0 ; i < b.n_vertices(); i++) {
+    for (std::size_t i = 0; i < b.n_vertices(); i++) {
         Vec2 current_vertex = b.vertex(i);
         Vec2 next_vertex    = b.vertex((i + 1) == b.n_vertices() ? 0 : i + 1);
 
@@ -373,9 +378,7 @@ inline Contacts<2> collides(const Capsule& a, const Polygon& b, float epsilon) {
 
 
         float dist_proj_top_center = norm(reverse_proj_top_center - top_center);
-        float dist_proj_bottom_center = norm(
-            reverse_proj_bottom_center - bottom_center
-        );
+        float dist_proj_bottom_center = norm(reverse_proj_bottom_center - bottom_center);
 
         bool has_contact_top_center    = dist_proj_top_center < a.radius();
         bool has_contact_bottom_center = dist_proj_bottom_center < a.radius();
@@ -391,8 +394,7 @@ inline Contacts<2> collides(const Capsule& a, const Polygon& b, float epsilon) {
         }
 
         bool produces_same_contacts
-            = all(approx(reverse_proj_top_center, Vec2::filled(epsilon))
-                      .contains(reverse_proj_bottom_center))
+            = all(approx(reverse_proj_top_center, Vec2::filled(epsilon)).contains(reverse_proj_bottom_center))
               || all(approx(proj_top_center_along_edge.closestPoint, Vec2::filled(epsilon))
                          .contains(proj_bottom_center_along_edge.closestPoint));
 
@@ -431,6 +433,169 @@ inline Contacts<2> collides(const Capsule& a, const Polygon& b, float epsilon) {
     return contact;
 }
 
-inline bool collides(const Polygon& a, const Polygon& b) {}
+inline float closest_point(const Polygon& polygon, const Vec2& point, Vec2 normal) {
+    float min_dist = std::numeric_limits<float>::max();
+
+    for (std::size_t j = 0; j < polygon.n_vertices(); ++j) {
+        min_dist = std::min(min_dist, dot(normal, polygon.vertex(j) - point));
+    }
+
+    return min_dist;
+}
+
+inline std::size_t most_opposite_face(const Polygon& polygon, Vec2 normal) {
+    float       min_dot_prod = std::numeric_limits<float>::max();
+    std::size_t edge_index   = std::numeric_limits<std::size_t>::max();
+
+    for (std::size_t j = 0; j < polygon.n_vertices(); ++j) {
+        Vec2 edge_normal = perp(normalized(
+            polygon.vertex((j + 1) % polygon.n_vertices()) - polygon.vertex(j)
+        ));
+
+        float dot_prod = dot(normal, edge_normal);
+        if (dot_prod < min_dot_prod) {
+            min_dot_prod = dot_prod;
+            edge_index   = j;
+        }
+    }
+
+    return edge_index;
+}
+
+/// Clips the edge along the given normal starting from the reference point
+std::optional<Vec2>
+clip_edge(Vec2 reference_point, Vec2 normal, Vec2 edge_start, Vec2 edge_end) {
+    Vec2 edge_direction = edge_end - edge_start;
+    if (dot(edge_direction, normal) == 0.f)
+        return std::nullopt;
+
+    Vec2 parametricCoefficients = solve(
+        Mat2::fromCols({normal, -edge_direction}), edge_start - reference_point
+    );
+
+    float u = parametricCoefficients[1]; // along edge
+    if (u > 1.f) {
+        return edge_end;
+    } else if (u < 0.f) {
+        return edge_start;
+    }
+
+    return edge_start + u * edge_direction;
+}
+
+inline Contacts<2> create_contacts(
+    Vec2 ref_edge_start,
+    Vec2 ref_edge_end,
+    Vec2 opposite_edge_start,
+    Vec2 opposite_edge_end,
+    Vec2 normal
+) {
+    // Due to positive vertex ordering, the start of the ref edge is matched to
+    // the end of the opposite edge
+
+    // Clip opposite edge
+    Vec2 opposite_contact = clip_edge(ref_edge_end, normal, opposite_edge_start, opposite_edge_end)
+                                .value_or(opposite_edge_start);
+
+    Vec2 next_opposite_contact = clip_edge(ref_edge_start, normal, opposite_edge_start, opposite_edge_end)
+                                     .value_or(opposite_edge_end);
+
+    // Project back onto the reference edge
+    Vec2 ref_contact
+        = LineBarycentric(ref_edge_start, ref_edge_end, next_opposite_contact).closestPoint;
+
+    Vec2 next_ref_contact
+        = LineBarycentric(ref_edge_start, ref_edge_end, opposite_contact).closestPoint;
+
+    bool first_has_contact = dot(normal, next_opposite_contact - ref_contact) < 0.f;
+    bool second_has_contact = dot(normal, opposite_contact - next_ref_contact) < 0.f;
+
+    Contacts<2> contacts = {.normal = normal, .n_contacts = 0};
+    if (first_has_contact) {
+        contacts.contacts_a[0] = ref_contact;
+        contacts.contacts_b[0] = next_opposite_contact;
+        contacts.n_contacts    = contacts.n_contacts + 1;
+    }
+    if (second_has_contact) {
+        contacts.contacts_a[contacts.n_contacts] = next_ref_contact;
+        contacts.contacts_b[contacts.n_contacts] = opposite_contact;
+        contacts.n_contacts                      = contacts.n_contacts + 1;
+    }
+
+    return contacts;
+}
+
+inline Contacts<2> collides(const Polygon& a, const Polygon& b) {
+    std::size_t current_contact_edge = std::numeric_limits<std::size_t>::max();
+    float       min_pen              = std::numeric_limits<float>::max();
+    bool        contact_edge_is_on_a = true;
+
+    for (std::size_t i = 0; i < a.n_vertices(); ++i) {
+        Vec2 current_vertex = a.vertex(i);
+        Vec2 next_vertex    = a.vertex((i + 1) == a.n_vertices() ? 0 : i + 1);
+        Vec2 normal         = perp(next_vertex - current_vertex);
+
+        float dist = closest_point(b, current_vertex, normal);
+        if (dist > 0.f) {
+            return Contacts<2>::none();
+        } else if (-dist < min_pen) {
+            min_pen              = -dist;
+            current_contact_edge = i;
+        }
+    }
+
+    for (std::size_t i = 0; i < b.n_vertices(); ++i) {
+        Vec2 current_vertex = b.vertex(i);
+        Vec2 next_vertex    = b.vertex((i + 1) == b.n_vertices() ? 0 : i + 1);
+        Vec2 normal         = perp(next_vertex - current_vertex);
+
+        float dist = closest_point(a, current_vertex, normal);
+        if (dist > 0.f) {
+            return Contacts<2>::none();
+        } else if (-dist < min_pen) {
+            min_pen              = -dist;
+            current_contact_edge = i;
+            contact_edge_is_on_a = false;
+        }
+    }
+
+    if (contact_edge_is_on_a) {
+        std::size_t next_index = current_contact_edge == a.n_vertices()
+                                     ? 0
+                                     : current_contact_edge + 1;
+
+        Vec2 edge   = a.vertex(next_index) - a.vertex(current_contact_edge);
+        Vec2 normal = perp(normalized(edge));
+
+        std::size_t opposite_edge_index  = most_opposite_face(b, normal);
+        Vec2        opposite_vertex      = b.vertex(opposite_edge_index);
+        Vec2        next_opposite_vertex = b.vertex(
+            opposite_edge_index == b.n_vertices() ? 0 : opposite_edge_index + 1
+        );
+
+        return create_contacts(
+            a.vertex(current_contact_edge), a.vertex(next_index), opposite_vertex, next_opposite_vertex, normal
+        );
+    } else {
+        std::size_t next_index = current_contact_edge == b.n_vertices()
+                                     ? 0
+                                     : current_contact_edge + 1;
+        Vec2 edge   = b.vertex(next_index) - b.vertex(current_contact_edge);
+        Vec2 normal = perp(normalized(edge));
+
+        std::size_t opposite_edge_index  = most_opposite_face(a, normal);
+        Vec2        opposite_vertex      = a.vertex(opposite_edge_index);
+        Vec2        next_opposite_vertex = a.vertex(
+            opposite_edge_index == a.n_vertices() ? 0 : opposite_edge_index + 1
+        );
+
+        Contacts<2> contacts = create_contacts(
+            b.vertex(current_contact_edge), b.vertex(next_index), opposite_vertex, next_opposite_vertex, normal
+        );
+        contacts.normal = -contacts.normal;
+        std::swap(contacts.contacts_a, contacts.contacts_b);
+        return contacts;
+    }
+}
 
 } // namespace simu
