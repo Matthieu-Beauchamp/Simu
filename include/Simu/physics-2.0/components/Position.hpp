@@ -64,8 +64,8 @@ public:
 
 private:
 
-    Translation pos_;
-    Rotation    orientation_;
+    Translation pos_         = Translation(Vec2{0.f, 0.f});
+    Rotation    orientation_ = Rotation(0.f);
 };
 
 } // namespace simu

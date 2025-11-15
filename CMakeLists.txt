@@ -41,29 +41,40 @@ simu_define_option(SIMU_BUILD_DOCS    OFF BOOL "Build documentation")
 # Build our components
 ############################################################
 
-set(simuComponents 
-    math
-    physics
+simu_add_library(simu
+        src/Simu/math/BarycentricCoordinates.cpp
+        src/Simu/math/Geometry.cpp
+        src/Simu/math/Random.cpp
+
+        src/Simu/physics/Body.cpp
+        src/Simu/physics/BoundingBox.cpp
+        src/Simu/physics/World.cpp
+
+        src/Simu/physics-2.0/collisions.cpp
+        src/Simu/physics-2.0/Simulation.cpp
 )
 
-if (SIMU_BUILD_DEMOS)
-    list(APPEND simuComponents app)
-endif()
-
-set(simuLibs ${simuComponents})
-list(TRANSFORM simuLibs PREPEND simu-)
-
-foreach(lib IN LISTS simuLibs)
-    simu_add_library(${lib} "")
-
-    target_include_directories(${lib} PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>
-        $<INSTALL_INTERFACE:include>  # <prefix>/include
-    )
-endforeach()
+target_include_directories(simu PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>
+    $<INSTALL_INTERFACE:include>  # <prefix>/include
+)
 
 include(FetchContent)
 if (SIMU_BUILD_DEMOS)
+    simu_add_library(simu-app
+        src/Simu/app/Application.cpp
+        src/Simu/app/Camera.cpp
+        src/Simu/app/Renderer.cpp
+        src/Simu/app/Scene.cpp
+        src/Simu/app/Tool.cpp
+    )
+
+    target_link_libraries(simu-app     simu)
+
+    target_include_directories(simu-app PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>
+        $<INSTALL_INTERFACE:include>  # <prefix>/include
+    )
 
     set(GLFW_BUILD_DOCS OFF CACHE INTERNAL "" FORCE)
     set(GLFW_BUILD_TESTS OFF CACHE INTERNAL "" FORCE)
@@ -94,16 +105,9 @@ if (SIMU_BUILD_DEMOS)
     buildImgui() # Links to glfw, providing symbols
 
     target_link_libraries(simu-app glbinding::glbinding imgui)
-    
+
     add_subdirectory(demos)
 endif()
-
-
-add_subdirectory(include/Simu)
-add_subdirectory(src/Simu)
-
-target_link_libraries(simu-physics simu-math)
-target_link_libraries(simu-app     simu-physics)
 
 
 ############################################################
@@ -122,23 +126,38 @@ if (SIMU_BUILD_TESTS)
 
     # hack to prevent CTest targets from showing up
     # https://stackoverflow.com/a/57240389
-    set_property(GLOBAL PROPERTY CTEST_TARGETS_ADDED 1) 
+    set_property(GLOBAL PROPERTY CTEST_TARGETS_ADDED 1)
     include(CTest)
 
     include(Catch)
 
     enable_testing()
 
-    add_executable(simu-test "")
-    target_link_libraries(simu-test PRIVATE 
-        Catch2::Catch2WithMain
-        simu-math
-        simu-physics
+    add_executable(simu-test
+            test/entities/SparseSet.cpp
+            test/entities/Entities.cpp
+
+            test/Interval.cpp
+            test/Matrix.cpp
+            test/Assertion.cpp
+            test/Polygon.cpp
+            test/Gjk.cpp
+            test/BarycentricCoordinates.cpp
+
+            test/BoundingBox.cpp
+            test/RTree.cpp
+            test/ContactManifold.cpp
+            test/Island.cpp
+            test/Physics.cpp
     )
+
+    target_link_libraries(simu-test PRIVATE
+        Catch2::Catch2WithMain
+        simu
+    )
+
     catch_discover_tests(simu-test)
 
-    add_subdirectory(test)
-    
     if (SIMU_TEST_COVERAGE)
         simu_coverage(simu-test)
     endif()

@@ -22,9 +22,9 @@
 //
 ////////////////////////////////////////////////////////////
 
-#include "Simulation.hpp"
+#include "Simu/physics-2.0/Simulation.hpp"
 
-#include "components/Velocity.hpp"
+#include "Simu/physics-2.0/components/Velocity.hpp"
 
 namespace
 {
