@@ -25,9 +25,6 @@
 
 #include "Simu/physics-2.0/collision/collisions.hpp"
 
-// TODO: all the calls to perp() assume it rotates clockwise, but it does not.
-//         The normals are thus pointing inwards
-
 
 namespace
 {
@@ -49,9 +46,9 @@ inline std::size_t most_opposite_face(const Polygon& polygon, Vec2 normal) {
     std::size_t edge_index   = std::numeric_limits<std::size_t>::max();
 
     for (std::size_t j = 0; j < polygon.n_vertices(); ++j) {
-        Vec2 edge_normal = perp(normalized(
-            polygon.vertex((j + 1) % polygon.n_vertices()) - polygon.vertex(j)
-        ));
+        Vec2 edge_normal = perp(
+            normalized(polygon.vertex((j + 1) % polygon.n_vertices()) - polygon.vertex(j)), true
+        );
 
         float dot_prod = dot(normal, edge_normal);
         if (dot_prod < min_dot_prod) {
@@ -134,7 +131,7 @@ inline Contacts<2> create_contacts(
 namespace simu
 {
 
-inline Contacts<1> collides(const Circle& a, const Circle& b) {
+Contacts<1> collides(const Circle& a, const Circle& b) {
     float min_dist = a.radius() + b.radius();
     Vec2  dir      = b.center() - a.center();
     bool  collides = normSquared(dir) <= min_dist * min_dist;
@@ -152,19 +149,19 @@ inline Contacts<1> collides(const Circle& a, const Circle& b) {
     }
 }
 
-inline Contacts<1> collides(const Circle& a, const Capsule& b) {
+Contacts<1> collides(const Circle& a, const Capsule& b) {
     Vec2  axis     = normalized(b.top() - b.bottom());
     float axis_len = norm(b.top() - b.bottom());
 
     float circle_pos_along_axis = dot(a.center() - b.bottom(), axis);
 
-    bool is_under = circle_pos_along_axis + a.radius() <= 0.f;
-    bool is_over  = circle_pos_along_axis - a.radius() >= axis_len;
+    bool is_under = circle_pos_along_axis + a.radius() < 0.f;
+    bool is_over  = circle_pos_along_axis - a.radius() > axis_len;
     if (is_under || is_over) {
         return Contacts<1>::none();
     }
 
-    Vec2  perp         = simu::perp(axis);
+    Vec2  perp         = simu::perp(axis, true);
     float perp_dist    = dot(a.center() - b.bottom(), perp);
     bool  is_near_axis = std::abs(perp_dist) <= a.radius() + b.radius();
     if (!is_near_axis) {
@@ -199,7 +196,7 @@ inline Contacts<1> collides(const Circle& a, const Capsule& b) {
     }
 }
 
-inline Contacts<1> collides(const Circle& a, const Polygon& b) {
+Contacts<1> collides(const Circle& a, const Polygon& b) {
     Contacts<1> contact;
     float       min_pen = std::numeric_limits<float>::max();
 
@@ -223,7 +220,7 @@ inline Contacts<1> collides(const Circle& a, const Polygon& b) {
         } else if (min_pen == std::numeric_limits<float>::max()) {
             // Check if a separating plane exists if penetration is not already found
             float min_dist = current_dist;
-            for (std::size_t j = 0; j < b.n_vertices() && i != j; ++j) {
+            for (std::size_t j = 0; j < b.n_vertices(); ++j) {
                 float dist = dot(normal, b.vertex(j) - a.center()) - a.radius();
                 if (dist < min_dist) {
                     min_dist = dist;
@@ -242,7 +239,7 @@ inline Contacts<1> collides(const Circle& a, const Polygon& b) {
         Vec2 next_vertex    = b.vertex((i + 1) == b.n_vertices() ? 0 : i + 1);
 
         Vec2 edge   = normalized(next_vertex - current_vertex);
-        Vec2 normal = perp(edge);
+        Vec2 normal = perp(edge, true);
 
         float dist = dot(a.center() - current_vertex, normal);
         if (dist > 0.f) {
@@ -263,7 +260,7 @@ inline Contacts<1> collides(const Circle& a, const Polygon& b) {
     return contact;
 }
 
-inline Contacts<2> collides(const Capsule& a, const Capsule& b) {
+Contacts<2> collides(const Capsule& a, const Capsule& b, float epsilon) {
     Vec2 a_top_center    = a.top_center();
     Vec2 a_bottom_center = a.bottom_center();
     Vec2 b_top_center    = b.top_center();
@@ -286,15 +283,16 @@ inline Contacts<2> collides(const Capsule& a, const Capsule& b) {
 
     float min_dist = (a.radius() + b.radius()) * (a.radius() + b.radius());
 
-    bool has_contact_a_top_center    = dist_a_top_center < min_dist;
-    bool has_contact_a_bottom_center = dist_a_bottom_center < min_dist;
-    bool has_contact_b_top_center    = dist_b_top_center < min_dist;
-    bool has_contact_b_bottom_center = dist_b_bottom_center < min_dist;
+    bool has_contact_a_top_center    = dist_a_top_center <= min_dist;
+    bool has_contact_a_bottom_center = dist_a_bottom_center <= min_dist;
+    bool has_contact_b_top_center    = dist_b_top_center <= min_dist;
+    bool has_contact_b_bottom_center = dist_b_bottom_center <= min_dist;
 
+    Contacts<2> result = Contacts<2>::none();
     if (has_contact_a_top_center) {
         Vec2 normal = normalized(proj_a_top_center - a_top_center);
 
-        Contacts<2> result = {
+        result = {
             .normal     = normal,
             .contacts_a = {a_top_center + normal * a.radius()},
             .contacts_b = {proj_a_top_center - normal * b.radius()},
@@ -314,14 +312,10 @@ inline Contacts<2> collides(const Capsule& a, const Capsule& b) {
             result.contacts_b[1] = b_bottom_center - normal * b.radius();
             result.n_contacts    = 2;
         }
-
-        return result;
-    }
-
-    if (has_contact_a_bottom_center) {
+    } else if (has_contact_a_bottom_center) {
         Vec2 normal = normalized(proj_a_bottom_center - a_bottom_center);
 
-        Contacts<2> result = {
+        result = {
             .normal     = normal,
             .contacts_a = {a_bottom_center + normal * a.radius()},
             .contacts_b = {proj_a_bottom_center - normal * b.radius()},
@@ -337,14 +331,10 @@ inline Contacts<2> collides(const Capsule& a, const Capsule& b) {
             result.contacts_b[1] = b_bottom_center - normal * b.radius();
             result.n_contacts    = 2;
         }
-
-        return result;
-    }
-
-    if (has_contact_b_top_center) {
+    } else if (has_contact_b_top_center) {
         Vec2 normal = -normalized(proj_b_top_center - b_top_center);
 
-        Contacts<2> result = {
+        result = {
             .normal     = normal,
             .contacts_a = {proj_b_top_center + normal * a.radius()},
             .contacts_b = {b_top_center - normal * b.radius()},
@@ -356,14 +346,10 @@ inline Contacts<2> collides(const Capsule& a, const Capsule& b) {
             result.contacts_b[1] = b_bottom_center - normal * b.radius();
             result.n_contacts    = 2;
         }
-
-        return result;
-    }
-
-    if (has_contact_b_bottom_center) {
+    } else if (has_contact_b_bottom_center) {
         Vec2 normal = -normalized(proj_b_bottom_center - b_bottom_center);
 
-        return Contacts<2>{
+        result = {
             .normal     = normal,
             .contacts_a = {proj_b_bottom_center + normal * a.radius()},
             .contacts_b = {b_bottom_center - normal * b.radius()},
@@ -371,10 +357,19 @@ inline Contacts<2> collides(const Capsule& a, const Capsule& b) {
         };
     }
 
-    return Contacts<2>::none();
+    if (result.n_contacts == 2) {
+        if (all(approx(result.contacts_a[0], Vec2::filled(epsilon))
+                    .contains(result.contacts_a[1]))
+            || all(approx(result.contacts_b[0], Vec2::filled(epsilon))
+                       .contains(result.contacts_b[1]))) {
+            result.n_contacts = 1;
+        }
+    }
+
+    return result;
 }
 
-inline Contacts<2> collides(const Capsule& a, const Polygon& b, float epsilon) {
+Contacts<2> collides(const Capsule& a, const Polygon& b, float epsilon) {
     Contacts<2> contact       = Contacts<2>::none();
     float       min_pen       = std::numeric_limits<float>::max();
     Vec2        top_center    = a.top_center();
@@ -400,7 +395,7 @@ inline Contacts<2> collides(const Capsule& a, const Polygon& b, float epsilon) {
             // Check if a separating plane exists if penetration is not already found
             normal         = normalized(normal);
             float min_dist = current_dist;
-            for (std::size_t j = 0; j < b.n_vertices() && i != j; ++j) {
+            for (std::size_t j = 0; j < b.n_vertices(); ++j) {
                 float dist = dot(normal, b.vertex(j) - projection) - a.radius();
                 if (dist < min_dist) {
                     min_dist = dist;
@@ -419,7 +414,7 @@ inline Contacts<2> collides(const Capsule& a, const Polygon& b, float epsilon) {
         Vec2 next_vertex    = b.vertex((i + 1) == b.n_vertices() ? 0 : i + 1);
 
         Vec2 edge   = next_vertex - current_vertex;
-        Vec2 normal = perp(edge);
+        Vec2 normal = perp(edge, true);
 
         // Project centers on the edge
         LineBarycentric proj_top_center_along_edge = LineBarycentric{
@@ -468,6 +463,7 @@ inline Contacts<2> collides(const Capsule& a, const Polygon& b, float epsilon) {
               || all(approx(proj_top_center_along_edge.closestPoint, Vec2::filled(epsilon))
                          .contains(proj_bottom_center_along_edge.closestPoint));
 
+        normal = normalized(normal);
         if (has_contact_top_center && has_contact_bottom_center
             && !produces_same_contacts) {
             normal             = -normal;
@@ -503,7 +499,7 @@ inline Contacts<2> collides(const Capsule& a, const Polygon& b, float epsilon) {
     return contact;
 }
 
-inline Contacts<2> collides(const Polygon& a, const Polygon& b) {
+Contacts<2> collides(const Polygon& a, const Polygon& b) {
     std::size_t current_contact_edge = std::numeric_limits<std::size_t>::max();
     float       min_pen              = std::numeric_limits<float>::max();
     bool        contact_edge_is_on_a = true;
@@ -511,7 +507,7 @@ inline Contacts<2> collides(const Polygon& a, const Polygon& b) {
     for (std::size_t i = 0; i < a.n_vertices(); ++i) {
         Vec2 current_vertex = a.vertex(i);
         Vec2 next_vertex    = a.vertex((i + 1) == a.n_vertices() ? 0 : i + 1);
-        Vec2 normal         = perp(next_vertex - current_vertex);
+        Vec2 normal         = perp(next_vertex - current_vertex, true);
 
         float dist = closest_point(b, current_vertex, normal);
         if (dist > 0.f) {
@@ -525,7 +521,7 @@ inline Contacts<2> collides(const Polygon& a, const Polygon& b) {
     for (std::size_t i = 0; i < b.n_vertices(); ++i) {
         Vec2 current_vertex = b.vertex(i);
         Vec2 next_vertex    = b.vertex((i + 1) == b.n_vertices() ? 0 : i + 1);
-        Vec2 normal         = perp(next_vertex - current_vertex);
+        Vec2 normal         = perp(next_vertex - current_vertex, true);
 
         float dist = closest_point(a, current_vertex, normal);
         if (dist > 0.f) {
@@ -543,7 +539,7 @@ inline Contacts<2> collides(const Polygon& a, const Polygon& b) {
                                      : current_contact_edge + 1;
 
         Vec2 edge   = a.vertex(next_index) - a.vertex(current_contact_edge);
-        Vec2 normal = perp(normalized(edge));
+        Vec2 normal = perp(normalized(edge), true);
 
         std::size_t opposite_edge_index  = most_opposite_face(b, normal);
         Vec2        opposite_vertex      = b.vertex(opposite_edge_index);
@@ -559,7 +555,7 @@ inline Contacts<2> collides(const Polygon& a, const Polygon& b) {
                                      ? 0
                                      : current_contact_edge + 1;
         Vec2 edge   = b.vertex(next_index) - b.vertex(current_contact_edge);
-        Vec2 normal = perp(normalized(edge));
+        Vec2 normal = perp(normalized(edge), true);
 
         std::size_t opposite_edge_index  = most_opposite_face(a, normal);
         Vec2        opposite_vertex      = a.vertex(opposite_edge_index);

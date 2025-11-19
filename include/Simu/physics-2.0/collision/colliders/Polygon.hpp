@@ -25,11 +25,13 @@
 #pragma once
 
 #include <array>
+#include <ranges>
 #include <format>
 #include "Simu/math/Matrix.hpp"
 
 namespace simu
 {
+
 
 /// A convex polygon with vertices in a positive orientation (vertices are ordered counter-clockwise)
 class Polygon
@@ -37,6 +39,18 @@ class Polygon
 public:
 
     static constexpr int max_vertices = 16;
+
+    template <class R>
+        requires std::ranges::sized_range<R>
+                 && std::same_as<std::ranges::range_value_t<R>, Vec2>
+    Polygon(const R& vertices) : _n_vertices{vertices.size()} {
+        SIMU_ASSERT(
+            vertices.size() <= max_vertices,
+            std::format("Polygon cannot have more than {} vertices", max_vertices)
+        );
+
+        std::copy(vertices.begin(), vertices.end(), _vertices.begin());
+    };
 
     Polygon(const std::initializer_list<Vec2>& vertices)
         : _n_vertices{vertices.size()} {

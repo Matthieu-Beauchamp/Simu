@@ -137,6 +137,8 @@ if (SIMU_BUILD_TESTS)
             test/entities/SparseSet.cpp
             test/entities/Entities.cpp
 
+            test/physics/Collisions.cpp
+
             test/Interval.cpp
             test/Matrix.cpp
             test/Assertion.cpp
