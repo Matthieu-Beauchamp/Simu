@@ -241,7 +241,7 @@ Contacts<1> collides(const Circle& a, const Polygon& b) {
         Vec2 edge   = normalized(next_vertex - current_vertex);
         Vec2 normal = perp(edge, true);
 
-        float dist = dot(a.center() - current_vertex, normal);
+        float dist = dot(a.center() - current_vertex, normal) - a.radius();
         if (dist > 0.f) {
             return Contacts<1>::none();
         }
@@ -459,7 +459,8 @@ Contacts<2> collides(const Capsule& a, const Polygon& b, float epsilon) {
         }
 
         bool produces_same_contacts
-            = all(approx(reverse_proj_top_center, Vec2::filled(epsilon)).contains(reverse_proj_bottom_center))
+            = all(approx(reverse_proj_top_center, Vec2::filled(epsilon)).contains(reverse_proj_bottom_center)
+              )
               || all(approx(proj_top_center_along_edge.closestPoint, Vec2::filled(epsilon))
                          .contains(proj_bottom_center_along_edge.closestPoint));
 

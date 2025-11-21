@@ -368,18 +368,15 @@ TEST_CASE("Capsule-Polygon collision detection", "[collision]") {
     }
 
     SECTION("Zero-length capsule (becomes circle) with polygon") {
-        Capsule           capsule(Vec2(.5f, .5f), Vec2(.5f, .5f), .8f);
+        Capsule           capsule(Vec2(-1.f, 0.f), Vec2(-1.f, 2.f), 1.f);
         std::vector<Vec2> vertices = {
             Vec2(0.f, 0.f), Vec2(2, 0.f), Vec2(2, 2), Vec2(0.f, 2)
         };
         Polygon polygon(vertices);
 
         auto contacts = collides(capsule, polygon, epsilon);
-        REQUIRE(contacts.n_contacts >= 1);
-        REQUIRE(contacts.n_contacts <= 2);
-        if (contacts.n_contacts > 0) {
-            REQUIRE(isUnitVector(contacts.normal));
-        }
+        REQUIRE(contacts.n_contacts == 1);
+        REQUIRE(isUnitVector(contacts.normal));
     }
 
     SECTION("Vertex on capsule's center") {
