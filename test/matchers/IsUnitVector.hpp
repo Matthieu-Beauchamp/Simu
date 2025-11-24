@@ -13,6 +13,10 @@ public:
     explicit IsUnitVectorMatcher(float eps = 1e-5f) : epsilon(eps) {}
 
     bool match(const Vec2& vec) const override {
+        if (std::isnan(vec[0]) || std::isnan(vec[1])) {
+            return false;
+        }
+
         float len = norm(vec);
         return std::abs(len - 1.0f) < epsilon;
     }

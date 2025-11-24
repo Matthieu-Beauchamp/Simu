@@ -71,6 +71,6 @@ Contacts<2> collides(const Capsule& a, const Capsule& b, float epsilon);
 
 Contacts<2> collides(const Capsule& a, const Polygon& b, float epsilon);
 
-Contacts<2> collides(const Polygon& a, const Polygon& b);
+Contacts<2> collides(const Polygon& a, const Polygon& b, float epsilon);
 
 } // namespace simu

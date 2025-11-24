@@ -86,7 +86,8 @@ inline Contacts<2> create_contacts(
     Vec2 ref_edge_end,
     Vec2 opposite_edge_start,
     Vec2 opposite_edge_end,
-    Vec2 normal
+    Vec2 normal,
+    float epsilon
 ) {
     // Due to positive vertex ordering, the start of the ref edge is matched to
     // the end of the opposite edge
@@ -107,6 +108,8 @@ inline Contacts<2> create_contacts(
 
     bool first_has_contact = dot(normal, next_opposite_contact - ref_contact) <= 0.f;
     bool second_has_contact = dot(normal, opposite_contact - next_ref_contact) <= 0.f;
+    bool duplicated_contact = all(approx(ref_contact, Vec2::filled(epsilon)).contains(next_ref_contact))
+        || all(approx(opposite_contact, Vec2::filled(epsilon)).contains(next_opposite_contact));
 
     Contacts<2> contacts;
     contacts.normal     = normal;
@@ -117,7 +120,7 @@ inline Contacts<2> create_contacts(
         contacts.contacts_b[0] = next_opposite_contact;
         contacts.n_contacts    = contacts.n_contacts + 1;
     }
-    if (second_has_contact) {
+    if (second_has_contact && !duplicated_contact) {
         contacts.contacts_a[contacts.n_contacts] = next_ref_contact;
         contacts.contacts_b[contacts.n_contacts] = opposite_contact;
         contacts.n_contacts                      = contacts.n_contacts + 1;
@@ -168,14 +171,22 @@ Contacts<1> collides(const Circle& a, const Capsule& b) {
         return Contacts<1>::none();
     }
 
-    if (circle_pos_along_axis <= b.radius()) {
-        // Collision with bottom circle
-        return collides(a, Circle(b.bottom() + axis * b.radius(), b.radius()));
+    Vec2 top_center = b.top_center();
+    Vec2 bottom_center = b.bottom_center();
+    float squared_dist_to_top = normSquared(a.center() - top_center);
+    float squared_dist_to_bottom = normSquared(a.center() - bottom_center);
+
+    Vec2 closest_point_on_axis = LineBarycentric{bottom_center, top_center, a.center()}.closestPoint;
+    float squared_dist_to_axis = normSquared(closest_point_on_axis - a.center());
+
+    if (squared_dist_to_top <= squared_dist_to_bottom && squared_dist_to_top <= squared_dist_to_axis) {
+        // Collision with top circle
+        return collides(a, Circle(top_center, b.radius()));
     }
 
-    if (circle_pos_along_axis >= axis_len - b.radius()) {
-        // Collision with top circle
-        return collides(a, Circle(b.top() - axis * b.radius(), b.radius()));
+    if (squared_dist_to_bottom <= squared_dist_to_top && squared_dist_to_bottom <= squared_dist_to_axis) {
+        // Collision with bottom circle
+        return collides(a, Circle(bottom_center, b.radius()));
     }
 
     // Collision with axis
@@ -247,10 +258,11 @@ Contacts<1> collides(const Circle& a, const Polygon& b) {
         }
 
         if (-dist < min_pen) {
+            normal = -normal;
             min_pen = -dist;
             contact = {
-                .normal     = -normal,
-                .contacts_a = {a.center() + a.radius() * contact.normal},
+                .normal     = normal,
+                .contacts_a = {a.center() + a.radius() * normal},
                 .contacts_b = {current_vertex + edge * dot(edge, a.center() - current_vertex)},
                 .n_contacts = 1
             };
@@ -500,7 +512,7 @@ Contacts<2> collides(const Capsule& a, const Polygon& b, float epsilon) {
     return contact;
 }
 
-Contacts<2> collides(const Polygon& a, const Polygon& b) {
+Contacts<2> collides(const Polygon& a, const Polygon& b, float epsilon) {
     std::size_t current_contact_edge = std::numeric_limits<std::size_t>::max();
     float       min_pen              = std::numeric_limits<float>::max();
     bool        contact_edge_is_on_a = true;
@@ -535,7 +547,7 @@ Contacts<2> collides(const Polygon& a, const Polygon& b) {
     }
 
     if (contact_edge_is_on_a) {
-        std::size_t next_index = current_contact_edge == a.n_vertices()
+        std::size_t next_index = current_contact_edge + 1 == a.n_vertices()
                                      ? 0
                                      : current_contact_edge + 1;
 
@@ -545,14 +557,14 @@ Contacts<2> collides(const Polygon& a, const Polygon& b) {
         std::size_t opposite_edge_index  = most_opposite_face(b, normal);
         Vec2        opposite_vertex      = b.vertex(opposite_edge_index);
         Vec2        next_opposite_vertex = b.vertex(
-            opposite_edge_index == b.n_vertices() ? 0 : opposite_edge_index + 1
+            opposite_edge_index + 1 == b.n_vertices() ? 0 : opposite_edge_index + 1
         );
 
         return create_contacts(
-            a.vertex(current_contact_edge), a.vertex(next_index), opposite_vertex, next_opposite_vertex, normal
+            a.vertex(current_contact_edge), a.vertex(next_index), opposite_vertex, next_opposite_vertex, normal, epsilon
         );
     } else {
-        std::size_t next_index = current_contact_edge == b.n_vertices()
+        std::size_t next_index = current_contact_edge + 1 == b.n_vertices()
                                      ? 0
                                      : current_contact_edge + 1;
         Vec2 edge   = b.vertex(next_index) - b.vertex(current_contact_edge);
@@ -561,11 +573,11 @@ Contacts<2> collides(const Polygon& a, const Polygon& b) {
         std::size_t opposite_edge_index  = most_opposite_face(a, normal);
         Vec2        opposite_vertex      = a.vertex(opposite_edge_index);
         Vec2        next_opposite_vertex = a.vertex(
-            opposite_edge_index == a.n_vertices() ? 0 : opposite_edge_index + 1
+            opposite_edge_index + 1 == a.n_vertices() ? 0 : opposite_edge_index + 1
         );
 
         Contacts<2> contacts = create_contacts(
-            b.vertex(current_contact_edge), b.vertex(next_index), opposite_vertex, next_opposite_vertex, normal
+            b.vertex(current_contact_edge), b.vertex(next_index), opposite_vertex, next_opposite_vertex, normal, epsilon
         );
         contacts.normal = -contacts.normal;
         std::swap(contacts.contacts_a, contacts.contacts_b);
