@@ -105,8 +105,8 @@ inline Contacts<2> create_contacts(
     Vec2 next_ref_contact
         = LineBarycentric(ref_edge_start, ref_edge_end, opposite_contact).closestPoint;
 
-    bool first_has_contact = dot(normal, next_opposite_contact - ref_contact) < 0.f;
-    bool second_has_contact = dot(normal, opposite_contact - next_ref_contact) < 0.f;
+    bool first_has_contact = dot(normal, next_opposite_contact - ref_contact) <= 0.f;
+    bool second_has_contact = dot(normal, opposite_contact - next_ref_contact) <= 0.f;
 
     Contacts<2> contacts;
     contacts.normal     = normal;

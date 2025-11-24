@@ -1086,8 +1086,49 @@ ComparisonMatrix<m, n> operator!(const ComparisonMatrix<m, n>& unary) {
 }
 
 
-} // namespace simu
+////////////////////////////////////////////////////////////
+// printing
+////////////////////////////////////////////////////////////
 
+template <class T, std::size_t m, std::size_t n>
+inline std::ostream&
+operator<<(std::ostream& os, const Matrix<T, m, n>& matrix) {
+    if constexpr (n == 1) {
+        os << "[";
+        for (Uint32 i = 0; i < m; ++i) {
+            os << matrix(i, 0);
+            if (i != m - 1)
+                os << ", ";
+        }
+        os << "]";
+    } else {
+        os << "[ ";
+        for (Uint32 i = 0; i < m; ++i) {
+            if (i != 0) {
+                os << "  ";
+            }
+            for (Uint32 j = 0; j < n - 1; ++j) {
+                os << matrix(i, j);
+                if (j != n - 1)
+                    os << ", ";
+            }
+            if (i != m - 1){
+                os << "\n";
+            }
+        }
+        os << "]";
+    }
+    return os;
+}
+
+template <class T, std::size_t m, std::size_t n>
+inline std::string to_string(const Matrix<T, m, n>& x) {
+    std::ostringstream ss;
+    ss << x;
+    return ss.str();
+}
+
+} // namespace simu
 
 ////////////////////////////////////////////////////////////
 // std overloads
