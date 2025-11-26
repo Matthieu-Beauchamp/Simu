@@ -23,7 +23,7 @@
 ////////////////////////////////////////////////////////////
 
 
-#include "Simu/physics-2.0/collision/collisions.hpp"
+#include "Simu/physics-2.0/collision/colliders/collisions.hpp"
 
 
 namespace

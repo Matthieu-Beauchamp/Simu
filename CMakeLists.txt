@@ -41,7 +41,7 @@ simu_define_option(SIMU_BUILD_DOCS    OFF BOOL "Build documentation")
 # Build our components
 ############################################################
 
-simu_add_library(simu
+add_library(simu
         src/Simu/math/BarycentricCoordinates.cpp
         src/Simu/math/Geometry.cpp
         src/Simu/math/Random.cpp
@@ -52,22 +52,34 @@ simu_add_library(simu
 
         src/Simu/physics-2.0/collisions.cpp
         src/Simu/physics-2.0/Simulation.cpp
+        src/Simu/physics-2.0/DynamicBvh.cpp
+        src/Simu/physics-2.0/BottomUpBvh.cpp
 )
+
+simu_set_compile_options(simu)
+simu_set_compile_definitions(simu)
+target_compile_definitions(simu PRIVATE SIMU_EXPORT)
 
 target_include_directories(simu PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>
     $<INSTALL_INTERFACE:include>  # <prefix>/include
 )
+target_include_directories(simu PRIVATE
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/src>
+        $<INSTALL_INTERFACE:src>
+)
 
 include(FetchContent)
 if (SIMU_BUILD_DEMOS)
-    simu_add_library(simu-app
+    add_library(simu-app
         src/Simu/app/Application.cpp
         src/Simu/app/Camera.cpp
         src/Simu/app/Renderer.cpp
         src/Simu/app/Scene.cpp
         src/Simu/app/Tool.cpp
     )
+    simu_set_compile_options(simu)
+    simu_set_compile_definitions(simu)
 
     target_link_libraries(simu-app     simu)
 

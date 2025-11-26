@@ -24,10 +24,10 @@
 
 #pragma once
 #include "Simu/math/Matrix.hpp"
-#include "colliders/BoundingBox.hpp"
-#include "colliders/Polygon.hpp"
-#include "colliders/Circle.hpp"
-#include "colliders/Capsule.hpp"
+#include "BoundingBox.hpp"
+#include "Polygon.hpp"
+#include "Circle.hpp"
+#include "Capsule.hpp"
 
 namespace simu
 {
