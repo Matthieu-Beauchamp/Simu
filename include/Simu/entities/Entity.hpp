@@ -35,22 +35,27 @@ namespace internal
 {
 
 class EntityGenerator;
+class BvhNodeData;
 
 }
 
 class Entity
 {
+    // Reserved for tagging in BVH nodes
+    static constexpr std::uint64_t reserved_bit = 1 << 63;
+    static constexpr std::uint64_t id_mask      = ~reserved_bit;
 
-    std::size_t _id;
+    std::uint64_t _id;
 
-    explicit Entity(std::size_t id) : _id(id) {}
+    explicit Entity(std::size_t id) : _id(id & id_mask) {}
     friend internal::EntityGenerator;
+    friend internal::BvhNodeData;
 
 public:
 
     [[nodiscard]] std::size_t id() const { return _id; }
 
-    bool operator==(const Entity&) const = default;
+    bool operator==(const Entity& other) const = default;
 };
 
 
@@ -59,7 +64,6 @@ namespace internal
 
 class EntityGenerator
 {
-
     std::size_t next_id = 1;
 
 public:

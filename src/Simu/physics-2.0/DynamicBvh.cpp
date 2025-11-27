@@ -26,19 +26,56 @@
 
 #include "Simu/config.hpp"
 #include "Simu/entities/Entity.hpp"
+#include "Simu/physics-2.0/collision/colliders/BoundingBox.hpp"
 
 namespace simu
 {
 
+namespace internal
+{
+
+class BvhNodeData
+{
+    static constexpr std::uint64_t left_mask  = 0xFFFFFFFFu;
+    static constexpr std::uint64_t right_mask = left_mask << 32;
+    std::uint64_t                  bits;
+
+    explicit BvhNodeData(std::uint64_t bits) : bits{bits} {}
+
+public:
+
+    static BvhNodeData makeLeaf(uint64_t id) {
+        return BvhNodeData(Entity::reserved_bit | id);
+    }
+
+    static BvhNodeData makeInternal(uint32_t L, uint32_t R) {
+        return BvhNodeData(
+            static_cast<std::uint64_t>(L) | (static_cast<std::uint64_t>(R) << 32)
+        );
+    }
+
+    [[nodiscard]] bool isLeaf() const { return bits >> 63; }
+
+    [[nodiscard]] Entity leaf() const { return Entity(bits); }
+    void setLeaf(Entity e) { bits = e.id() | Entity::reserved_bit; }
+
+    [[nodiscard]] std::uint32_t left() const { return bits & left_mask; }
+    void setLeft(std::uint32_t L) { bits = (bits & ~left_mask) | L; }
+
+    [[nodiscard]] std::uint32_t right() const { return bits >> 32; }
+    void                        setRight(std::uint32_t R) {
+        bits = (bits & ~right_mask) | (static_cast<std::uint64_t>(R) << 32);
+    }
+};
+
+} // namespace internal
+
 class DynamicBvh
 {
-    using index_t = Uint16;
-    using value_t = Entity;
-
-    struct Node {
-        Entity value;
-        index_t left = 0;
-        index_t right = 0;
+    struct Node
+    {
+        BoundingBox bounds;
+        internal::BvhNodeData data;
     };
 
 public:
