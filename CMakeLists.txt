@@ -52,8 +52,7 @@ add_library(simu
 
         src/Simu/physics-2.0/collisions.cpp
         src/Simu/physics-2.0/Simulation.cpp
-        src/Simu/physics-2.0/DynamicBvh.cpp
-        src/Simu/physics-2.0/BottomUpBvh.cpp
+        src/Simu/physics-2.0/BoundingVolumeHierarchy.cpp
 )
 
 simu_set_compile_options(simu)

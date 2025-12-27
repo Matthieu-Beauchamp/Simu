@@ -27,10 +27,9 @@
 namespace simu
 {
 
-// TODO: Real-Time collision detection 6.2.2.1 Improved Bottom-up Construction
-//          (requires a dynamic BVH first)
-// This tree can be used for static objects tree which will not require
-// frequent reconstruction. The cost of making a more optimal tree will
-// most likely be paid back in saved intersection tests.
+class WideBoundingVolumeHierarchy
+{
+    // TODO: Simd-enabled 4-ary volume hierarchy
+};
 
 } // namespace simu

@@ -74,6 +74,8 @@
         throw simu::Exception(msg)
 #endif
 
+#define NOT_IMPLEMENTED throw simu::Exception("Not implemented")
+
 namespace simu
 {
 
@@ -105,6 +107,7 @@ private:
     std::string msg_;
 };
 
+// TODO: Use epsilon specific to each use case
 constexpr float EPSILON = 1e-6f;
 
 typedef std::int8_t  Int8;

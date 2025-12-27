@@ -38,7 +38,8 @@ class BvhNodeData
 {
     static constexpr std::uint64_t left_mask  = 0xFFFFFFFFu;
     static constexpr std::uint64_t right_mask = left_mask << 32;
-    std::uint64_t                  bits;
+
+    std::uint64_t bits;
 
     explicit BvhNodeData(std::uint64_t bits) : bits{bits} {}
 
@@ -70,17 +71,64 @@ public:
 
 } // namespace internal
 
-class DynamicBvh
+class BoundingVolumeHierarchy
 {
+    // TODO: consider bigger bucket size, storing index to external buckets of arbitrary size
+
     struct Node
     {
-        BoundingBox bounds;
+        BoundingBox           bounds;
         internal::BvhNodeData data;
     };
 
+    explicit BoundingVolumeHierarchy(std::vector<Node>&& nodes)
+        : nodes{std::move(nodes)} {}
+
 public:
 
+    // TODO: Pass entities and bound by move or by const ref.
+
+    // Top-down split at the average of the centroids
+    static BoundingVolumeHierarchy
+    mean_centroid_split(std::vector<Entity> entities, std::vector<BoundingBox> bounds) noexcept;
+
+    // Insertion based on minimizing the total area of the tree
+    static BoundingVolumeHierarchy
+    minimal_area_insertion(std::vector<Entity> entities, std::vector<BoundingBox> bounds);
+
+    // Sort along the morton values followed by top-down split from the most significant bits
+    static BoundingVolumeHierarchy
+    morton_sort(std::vector<Entity> entities, std::vector<BoundingBox> bounds);
+
+    // See 'Real time collision detection', also see if morton code be used for clustering
+    static BoundingVolumeHierarchy
+    bottom_up_clustering(std::vector<Entity> entities, std::vector<BoundingBox> bounds);
+
+    // Prefer the static building methods above
+    BoundingVolumeHierarchy() = default;
+
+    BoundingVolumeHierarchy(const BoundingVolumeHierarchy&) = delete;
+    BoundingVolumeHierarchy(BoundingVolumeHierarchy&&)      = default;
+    BoundingVolumeHierarchy& operator=(const BoundingVolumeHierarchy&) = delete;
+    BoundingVolumeHierarchy& operator=(BoundingVolumeHierarchy&&) = default;
+
+    // Prefer batching by creating a new tree when possible
+    void insert(Entity e, BoundingBox bounds) noexcept;
+
+    // Instead of removing entities explicitly, don't include them when rebuilding the new tree.
+    void remove(Entity e) noexcept;
+
+    void collide(BoundingBox bounds, std::function<void(Entity)> callback) const noexcept;
+    [[nodiscard]] std::vector<Entity> collide(BoundingBox bounds) const noexcept;
+
+    // May be called with self as argument
+    void
+    collide(const BoundingVolumeHierarchy& other, std::function<void(Entity, Entity)> callback) const noexcept;
+
 private:
+
+    std::vector<Node> nodes;
 };
+
 
 } // namespace simu
