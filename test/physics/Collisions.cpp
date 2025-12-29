@@ -337,7 +337,6 @@ TEST_CASE("Capsule-Polygon collision detection", "[collision][!mayfail]") {
         REQUIRE((contacts.n_contacts == 1));
         REQUIRE_THAT(contacts.normal, isUnitVector());
         REQUIRE_THAT(contacts.normal, isApprox(Vec2(1.f, 0.f)));
-        ;
         REQUIRE_THAT(contacts.contacts_a[0], isApprox(Vec2(-.5f, 0.f)));
         REQUIRE_THAT(contacts.contacts_b[0], isApprox(Vec2(0.f, 0.f)));
     }

@@ -149,6 +149,7 @@ if (SIMU_BUILD_TESTS)
             test/entities/Entities.cpp
 
             test/physics/Collisions.cpp
+            test/physics/BoundingVolumeHierarchy.cpp
 
             test/Interval.cpp
             test/Matrix.cpp

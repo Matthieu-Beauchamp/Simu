@@ -65,16 +65,19 @@
 
 
 #if defined(NDEBUG) && defined(SIMU_NO_ASSERT)
+#    define SIMU_NO_EXCEPT noexcept
 #    define SIMU_ASSERT(c, m)                                                  \
         (void)(c);                                                             \
         (void)(m)
 #else
+#    define SIMU_NO_EXCEPT
 #    define SIMU_ASSERT(cond, msg)                                             \
         if (!(cond))                                                           \
         throw simu::Exception(msg)
 #endif
 
-#define NOT_IMPLEMENTED throw simu::Exception("Not implemented")
+#define NOT_IMPLEMENTED SIMU_ASSERT(false, "Not implemented")
+
 
 namespace simu
 {
@@ -84,12 +87,8 @@ class Exception : public std::exception
 public:
 
 #ifdef SIMU_HAS_SOURCE_LOCATION
-    Exception(
-        const std::string&   msg,
-        std::source_location loc = std::source_location::current()
-    )
-        : std::exception{}
-    {
+    Exception(const std::string& msg, std::source_location loc = std::source_location::current())
+        : std::exception{} {
         std::stringstream ss{};
         ss << "From " << loc.function_name() << " in " << loc.file_name() << ":"
            << loc.line() << '\n'

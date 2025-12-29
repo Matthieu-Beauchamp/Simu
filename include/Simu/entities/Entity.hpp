@@ -37,13 +37,13 @@ namespace internal
 class EntityGenerator;
 class BvhNodeData;
 
-}
+} // namespace internal
 
 class Entity
 {
     // Reserved for tagging in BVH nodes
-    static constexpr std::uint64_t reserved_bit = 1 << 63;
-    static constexpr std::uint64_t id_mask      = ~reserved_bit;
+    static constexpr std::uint64_t reserved_bit = static_cast<std::uint64_t>(1) << 63;
+    static constexpr std::uint64_t id_mask = ~reserved_bit;
 
     std::uint64_t _id;
 

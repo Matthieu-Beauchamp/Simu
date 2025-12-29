@@ -86,11 +86,9 @@ class BoundingVolumeHierarchy
 
 public:
 
-    // TODO: Pass entities and bound by move or by const ref.
-
     // Top-down split at the average of the centroids
     static BoundingVolumeHierarchy
-    mean_centroid_split(std::vector<Entity> entities, std::vector<BoundingBox> bounds) noexcept;
+    mean_centroid_split(std::vector<Entity> entities, std::vector<BoundingBox> bounds) SIMU_NO_EXCEPT;
 
     // Insertion based on minimizing the total area of the tree
     static BoundingVolumeHierarchy
@@ -105,7 +103,7 @@ public:
     bottom_up_clustering(std::vector<Entity> entities, std::vector<BoundingBox> bounds);
 
     // Prefer the static building methods above
-    BoundingVolumeHierarchy() = default;
+    BoundingVolumeHierarchy();
 
     BoundingVolumeHierarchy(const BoundingVolumeHierarchy&) = delete;
     BoundingVolumeHierarchy(BoundingVolumeHierarchy&&)      = default;
@@ -113,17 +111,23 @@ public:
     BoundingVolumeHierarchy& operator=(BoundingVolumeHierarchy&&) = default;
 
     // Prefer batching by creating a new tree when possible
-    void insert(Entity e, BoundingBox bounds) noexcept;
+    void insert(Entity e, BoundingBox bounds) SIMU_NO_EXCEPT;
 
     // Instead of removing entities explicitly, don't include them when rebuilding the new tree.
-    void remove(Entity e) noexcept;
+    void remove(Entity e) SIMU_NO_EXCEPT;
 
     void collide(BoundingBox bounds, std::function<void(Entity)> callback) const noexcept;
-    [[nodiscard]] std::vector<Entity> collide(BoundingBox bounds) const noexcept;
+    [[nodiscard]] std::vector<Entity> collide(BoundingBox bounds) const noexcept {
+        std::vector<Entity> result;
+        collide(bounds, [&result](Entity e) { result.push_back(e); });
+        return result;
+    }
 
     // May be called with self as argument
-    void
-    collide(const BoundingVolumeHierarchy& other, std::function<void(Entity, Entity)> callback) const noexcept;
+    void collide(
+        const BoundingVolumeHierarchy&      other,
+        std::function<void(Entity, Entity)> callback
+    ) const noexcept;
 
 private:
 
