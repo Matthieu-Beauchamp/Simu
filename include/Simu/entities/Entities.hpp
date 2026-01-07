@@ -26,7 +26,7 @@
 
 
 #include "Simu/entities/ComponentQuery.hpp"
-#include "Simu/entities/Entity.hpp"
+#include "Simu/entities/ObjectId.hpp"
 #include "Simu/entities/JoinQuery.hpp"
 #include "Simu/entities/SparseSet.hpp"
 #include <memory>
@@ -52,19 +52,19 @@ class Entities
 
 public:
 
-    Entity create() { return generator.create(); };
+    ObjectId create() { return generator.create(); };
 
     template <element_of<Components...> T>
-    bool add(const Entity& entity, const T& value) {
+    bool add(const ObjectId& entity, const T& value) {
         return get_component<T>().add(entity, value);
     }
 
     template <element_of<Components...> T>
-    bool remove(const Entity& entity) {
+    bool remove(const ObjectId& entity) {
         return get_component<T>().remove(entity);
     }
 
-    void destroy(const Entity& entity) {
+    void destroy(const ObjectId& entity) {
         (get_component<Components>().remove(entity), ...);
     }
 

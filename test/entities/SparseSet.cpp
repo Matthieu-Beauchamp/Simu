@@ -1,4 +1,4 @@
-#include "Simu/entities/Entity.hpp"
+#include "Simu/entities/ObjectId.hpp"
 #include "catch2/catch_test_macros.hpp"
 #include <cstddef>
 
@@ -10,10 +10,10 @@ TEST_CASE("SparseSet") {
     using Set = SparseSet<int>;
     internal::EntityGenerator gen;
 
-    Entity a = gen.create();
-    Entity b = gen.create();
-    Entity c = gen.create();
-    Entity d = gen.create();
+    ObjectId a = gen.create();
+    ObjectId b = gen.create();
+    ObjectId c = gen.create();
+    ObjectId d = gen.create();
 
     SECTION("Single element") {
         Set s;

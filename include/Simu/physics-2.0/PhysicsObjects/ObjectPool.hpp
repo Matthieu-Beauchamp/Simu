@@ -23,15 +23,51 @@
 ////////////////////////////////////////////////////////////
 
 #pragma once
+#include "ObjectId.hpp"
+
+
+#include <vector>
 
 namespace simu
 {
 
-enum class ColliderType : std::uint32_t
+
+template <class T, ObjectId::ObjectType object_type>
+    requires std::is_default_constructible_v<T>
+class ObjectPool
 {
-    Circle,
-    Capsule,
-    Polygon
+    std::vector<T>        objects;
+    std::vector<ObjectId> free_ids;
+
+    std::uint32_t next_id = ObjectId::first_id;
+
+    static constexpr std::size_t initial_size = 64;
+
+public:
+
+    ObjectPool() { objects.reserve(initial_size); }
+
+    ObjectId allocate() {
+        if (free_ids.empty()) {
+            objects.emplace_back();
+            return ObjectId(0, object_type, next_id++);
+        }
+
+        ObjectId id = free_ids.back();
+        free_ids.pop_back();
+        return ObjectId(id.generation() + 1, object_type, id.as_index());
+    }
+
+    void give_back(ObjectId id) {
+        SIMU_ASSERT(id.type() == object_type, "ObjectPool::give_back object type mismatch");
+        free_ids.push_back(id);
+        objects[id.as_index() - 1] = T{};
+    }
+
+    T&       operator[](ObjectId id) { return objects[id.as_index() - 1]; }
+    const T& operator[](ObjectId id) const {
+        return objects[id.as_index() - 1];
+    }
 };
 
 } // namespace simu

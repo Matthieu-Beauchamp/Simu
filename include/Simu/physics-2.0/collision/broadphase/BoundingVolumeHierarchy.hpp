@@ -25,8 +25,9 @@
 #pragma once
 
 #include "Simu/config.hpp"
-#include "Simu/entities/Entity.hpp"
+#include "Simu/entities/ObjectId.hpp"
 #include "Simu/physics-2.0/collision/colliders/BoundingBox.hpp"
+#include "../../PhysicsObjects/ObjectId.hpp"
 
 namespace simu
 {
@@ -46,7 +47,7 @@ class BvhNodeData
 public:
 
     static BvhNodeData makeLeaf(uint32_t id) {
-        return BvhNodeData(Entity::reserved_bit | id);
+        return BvhNodeData(ObjectId::reserved_bit | id);
     }
 
     static BvhNodeData makeInternal(uint32_t L, uint32_t R) {
@@ -57,8 +58,8 @@ public:
 
     [[nodiscard]] bool isLeaf() const { return bits >> 31; }
 
-    [[nodiscard]] Entity leaf() const { return Entity(bits); }
-    void setLeaf(Entity e) { bits = e.id() | Entity::reserved_bit; }
+    [[nodiscard]] ObjectId leaf() const { return ObjectId(bits); }
+    void setLeaf(ObjectId e) { bits = e.id() | ObjectId::reserved_bit; }
 
     [[nodiscard]] std::uint32_t left() const { return bits & left_mask; }
     void setLeft(std::uint32_t L) { bits = (bits & ~left_mask) | L; }
@@ -88,19 +89,19 @@ public:
 
     // Top-down split at the average of the centroids
     static BoundingVolumeHierarchy
-    mean_centroid_split(std::vector<Entity> entities, std::vector<BoundingBox> bounds) SIMU_NO_EXCEPT;
+    mean_centroid_split(std::vector<ObjectId> entities, std::vector<BoundingBox> bounds) SIMU_NO_EXCEPT;
 
     // Insertion based on minimizing the total area of the tree
     static BoundingVolumeHierarchy
-    minimal_area_insertion(std::vector<Entity> entities, std::vector<BoundingBox> bounds);
+    minimal_area_insertion(std::vector<ObjectId> entities, std::vector<BoundingBox> bounds);
 
     // Sort along the morton values followed by top-down split from the most significant bits
     static BoundingVolumeHierarchy
-    morton_sort(std::vector<Entity> entities, std::vector<BoundingBox> bounds);
+    morton_sort(std::vector<ObjectId> entities, std::vector<BoundingBox> bounds);
 
     // See 'Real time collision detection', also see if morton code be used for clustering
     static BoundingVolumeHierarchy
-    bottom_up_clustering(std::vector<Entity> entities, std::vector<BoundingBox> bounds);
+    bottom_up_clustering(std::vector<ObjectId> entities, std::vector<BoundingBox> bounds);
 
     // Prefer the static building methods above
     BoundingVolumeHierarchy();
@@ -111,22 +112,22 @@ public:
     BoundingVolumeHierarchy& operator=(BoundingVolumeHierarchy&&) = default;
 
     // Prefer batching by creating a new tree when possible
-    void insert(Entity e, BoundingBox bounds) SIMU_NO_EXCEPT;
+    void insert(ObjectId e, BoundingBox bounds) SIMU_NO_EXCEPT;
 
     // Instead of removing entities explicitly, don't include them when rebuilding the new tree.
-    void remove(Entity e) SIMU_NO_EXCEPT;
+    void remove(ObjectId e) SIMU_NO_EXCEPT;
 
-    void collide(BoundingBox bounds, std::function<void(Entity)> callback) const noexcept;
-    [[nodiscard]] std::vector<Entity> collide(BoundingBox bounds) const noexcept {
-        std::vector<Entity> result;
-        collide(bounds, [&result](Entity e) { result.push_back(e); });
+    void collide(BoundingBox bounds, std::function<void(ObjectId)> callback) const noexcept;
+    [[nodiscard]] std::vector<ObjectId> collide(BoundingBox bounds) const noexcept {
+        std::vector<ObjectId> result;
+        collide(bounds, [&result](ObjectId e) { result.push_back(e); });
         return result;
     }
 
     // May be called with self as argument
     void collide(
         const BoundingVolumeHierarchy&      other,
-        std::function<void(Entity, Entity)> callback
+        std::function<void(ObjectId, ObjectId)> callback
     ) const noexcept;
 
 private:

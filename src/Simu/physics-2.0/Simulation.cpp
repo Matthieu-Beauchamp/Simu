@@ -25,6 +25,7 @@
 #include "Simu/physics-2.0/Simulation.hpp"
 
 #include "Simu/physics-2.0/components/Velocity.hpp"
+#include "../../../include/Simu/physics-2.0/PhysicsObjects/ColliderOperations.hpp"
 #include "physics-2.0/collision/CollisionData.hpp"
 #include "physics-2.0/collision/CollisionPair.hpp"
 #include "physics-2.0/collision/colliders/collisions.hpp"
@@ -54,84 +55,77 @@ namespace
 }
 
 /**
- * @param a The first entity
- * @param b The second entity
- * @param entities The components for all entities
+ * @param a The first collider id
+ * @param b The second collider id
+ * @param colliders the collider pool to use
  * @param epsilon tolerance to determine if two points are different contacts
  * @return The resulting contacts
  */
 [[nodiscard]] Contacts<2>
-collide(Entity a, Entity b, const EntitiesType& entities, float epsilon) noexcept {
-    SIMU_ASSERT(
-        entities.get_component<ColliderType>().has_entity(a), "Entity should have a collider"
-    );
-    SIMU_ASSERT(
-        entities.get_component<ColliderType>().has_entity(b), "Entity should have a collider"
-    );
-
-    ColliderType type_a = entities.get_component<ColliderType>().get_data(a);
-    ColliderType type_b = entities.get_component<ColliderType>().get_data(b);
+collide(ObjectId a, ObjectId b, const ColliderPool& colliders, float epsilon = CONTACT_EPSILON) noexcept {
+    ColliderType type_a = colliders.get_type(a);
+    ColliderType type_b = colliders.get_type(b);
 
     switch (type_a) {
         case ColliderType::Circle:
         {
-            const Circle& a_collider = entities.get_component<Circle>().get_data(a);
+            const Circle& a_collider = colliders.circle(a);
             switch (type_b) {
                 case ColliderType::Circle:
                 {
-                    const auto& b_collider = entities.get_component<Circle>().get_data(b);
+                    const auto& b_collider = colliders.circle(b);
                     return map_contacts(collide(a_collider, b_collider));
                 }
                 case ColliderType::Capsule:
                 {
-                    const auto& b_collider = entities.get_component<Capsule>().get_data(b);
+                    const auto& b_collider = colliders.capsule(b);
                     return map_contacts(collide(a_collider, b_collider));
                 }
                 case ColliderType::Polygon:
                 {
-                    const auto& b_collider = entities.get_component<Polygon>().get_data(b);
+                    const auto& b_collider = colliders.polygon(b);
                     return map_contacts(collide(a_collider, b_collider));
                 }
             }
         }
         case ColliderType::Capsule:
         {
-            const Capsule& a_collider = entities.get_component<Capsule>().get_data(a);
+            const Capsule& a_collider = colliders.capsule(a);
             switch (type_b) {
                 case ColliderType::Circle:
                 {
-                    const auto& b_collider = entities.get_component<Circle>().get_data(b);
+                    const auto& b_collider = colliders.circle(b);
                     return inverse_contacts(map_contacts(collide(b_collider, a_collider)));
                 }
                 case ColliderType::Capsule:
                 {
-                    const auto& b_collider = entities.get_component<Capsule>().get_data(b);
+                    const auto& b_collider = colliders.capsule(b);
                     return collide(a_collider, b_collider, epsilon);
                 }
                 case ColliderType::Polygon:
                 {
-                    const auto& b_collider = entities.get_component<Polygon>().get_data(b);
+                    const auto& b_collider = colliders.polygon(b);
                     return collide(a_collider, b_collider, epsilon);
                 }
             }
         }
         case ColliderType::Polygon:
         {
-            const Polygon& a_collider = entities.get_component<Polygon>().get_data(a);
+            const Polygon& a_collider = colliders.polygon(a);
             switch (type_b) {
                 case ColliderType::Circle:
                 {
-                    const auto& b_collider = entities.get_component<Circle>().get_data(b);
+                    const auto& b_collider = colliders.circle(b);
                     return inverse_contacts(map_contacts(collide(b_collider, a_collider)));
                 }
                 case ColliderType::Capsule:
                 {
-                    const auto& b_collider = entities.get_component<Capsule>().get_data(b);
+                    const auto& b_collider = colliders.capsule(b);
                     return inverse_contacts(collide(b_collider, a_collider, epsilon));
                 }
                 case ColliderType::Polygon:
                 {
-                    const auto& b_collider = entities.get_component<Polygon>().get_data(b);
+                    const auto& b_collider = colliders.polygon(b);
                     return collide(a_collider, b_collider, epsilon);
                 }
             }
@@ -143,16 +137,84 @@ collide(Entity a, Entity b, const EntitiesType& entities, float epsilon) noexcep
 
 } // namespace
 
-void Simulation::process_collisions(
-    const EntitiesType& entities,
-    float               epsilon,
-    std::uint_fast8_t   max_steps_since_contacts
-) noexcept {
+void Simulation::step(float dt) {
+    // TODO: In a separate thread, create improved tree to be used in the next timestep
+    //      instead of waiting on it for the current step.
+    //      Use old tree for current step.
+
+    {
+        std::vector<ObjectId>    dynamic_objects_ids;
+        std::vector<BoundingBox> dynamic_objects_boxes;
+        for (DynamicPhysicsObject& object : dynamic_objects) {
+            if (object.collider_id) {
+                dynamic_objects_ids.push_back(object.id);
+                dynamic_objects_boxes.emplace_back(
+                    bounding_box(object.collider_id, colliders)
+                );
+            }
+        }
+
+        dynamic_bvh = BoundingVolumeHierarchy::mean_centroid_split(
+            dynamic_objects_ids, dynamic_objects_boxes
+        );
+    }
+
+    {
+        // TODO: Compute in init and persist unless modified
+
+        std::vector<ObjectId>    static_objects_ids;
+        std::vector<BoundingBox> static_objects_boxes;
+        for (StaticPhysicsObject& object : static_objects) {
+            if (object.collider_id) {
+                static_objects_ids.push_back(object.id);
+                static_objects_boxes.emplace_back(bounding_box(object.collider_id, colliders));
+            }
+        }
+
+        static_bvh = BoundingVolumeHierarchy::mean_centroid_split(
+            static_objects_ids, static_objects_boxes
+        );
+    }
+
+    // Step velocity according to gravity
+    Vec2 gravity = _settings.gravity * dt;
+    for (DynamicPhysicsObject& object : dynamic_objects) {
+        object.velocity.linear += gravity;
+    }
+
+    process_collisions();
+
+    // TODO: Apply constraints
+
+    // Step position according to resolved velocities
+    for (DynamicPhysicsObject& object : dynamic_objects) {
+        object.position.advance(object.velocity.linear * dt, object.velocity.angular * dt);
+        if (object.collider_id) {}
+    }
+
+    // TODO: In bounding volume hierarchy, update and mark as dirty
+    //      Can iterate over tree nodes and map to the object quickly with its
+    //      id, but can't walk back up the tree.
+    //      => Can do a postorder traversal update
+}
+
+ObjectId Simulation::get_collider_id(ObjectId object_id) const noexcept {
+    switch (object_id.type()) {
+        case ObjectId::DynamicPhysicsObject:
+            return dynamic_objects[object_id].collider_id;
+        case ObjectId::StaticPhysicsObject:
+            return static_objects[object_id].collider_id;
+    }
+
+    SIMU_ASSERT(false, "Unexpected object type");
+}
+
+void Simulation::process_collisions() noexcept {
     {
         // TODO: Keep for polygons where the normal gives the separating axis.
         std::vector<CollisionPair> outdated;
         for (auto it = collision_pairs.begin(); it != collision_pairs.end(); it++) {
-            if (it->second.steps_since_contact++ > max_steps_since_contacts) {
+            if (it->second.steps_since_contact++ > _settings.n_steps_without_contacts) {
                 outdated.push_back(it->first);
             }
         }
@@ -162,28 +224,25 @@ void Simulation::process_collisions(
         }
     }
 
-    dynamic_objects.collide(dynamic_objects, [&entities, this, epsilon](Entity a, Entity b) noexcept {
+    dynamic_bvh.collide(dynamic_bvh, [this](ObjectId a, ObjectId b) noexcept {
         // When colliding with the same tree, collisions are detected twice.
         // Also ignore collision with self
-        if (a.id() >= b.id()) {
+        if (a.as_index() >= b.as_index()) {
             return;
         }
 
-        process_collision(entities, CollisionPair(a, b), epsilon);
+        process_collision(CollisionPair(a, b));
     });
 
-    dynamic_objects.collide(static_objects, [&entities, this, epsilon](Entity a, Entity b) noexcept {
-        process_collision(entities, CollisionPair(a, b), epsilon);
+    dynamic_bvh.collide(static_bvh, [this](ObjectId a, ObjectId b) noexcept {
+        process_collision(CollisionPair(a, b));
     });
 }
 
-void Simulation::process_collision(
-    const EntitiesType& entities,
-    CollisionPair       pair,
-    float               epsilon
-) noexcept {
-    // TODO: Transform?
-    Contacts<2> contacts = collide(pair.a, pair.b, entities, epsilon);
+void Simulation::process_collision(CollisionPair pair) noexcept {
+    Contacts<2> contacts = collide(
+        get_collider_id(pair.a), get_collider_id(pair.b), colliders
+    );
 
     if (contacts.n_contacts == 0) {
         return;
@@ -203,31 +262,5 @@ void Simulation::process_collision(
     // Update disjoint set for islands
 }
 
-void Simulation::step(float dt) {
-    // TODO: In a separate thread, create improved tree to be used in the next timestep
-    //      instead of waiting on it for the current step.
-    //      Use old tree for current step.
-
-    std::vector<Entity> dynamic_entities;
-    _entities.query<Position, Circle>().each([](Entity entity, const Position&, const Circle& circle) {});
-
-
-    // Step velocity according to gravity
-    Vec2 gravity = _settings.gravity * dt;
-    _entities.query<Velocity>().each([gravity](Velocity& vel) {
-        vel.linear += gravity;
-    });
-
-    // TODO: Apply constraints
-
-    // Step position according to resolved velocities
-    _entities.query<Position, Velocity>().each(
-        [dt](Position& pos, const Velocity& vel) {
-            pos.advance(vel.linear * dt, vel.angular * dt);
-        }
-    );
-
-    // TODO: In bounding volume hierarchy, update and mark as dirty
-}
 
 } // namespace simu

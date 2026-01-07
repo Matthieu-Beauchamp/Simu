@@ -1,5 +1,5 @@
 #include "Simu/entities/Entities.hpp"
-#include "Simu/entities/Entity.hpp"
+#include "Simu/entities/ObjectId.hpp"
 #include "catch2/catch_test_macros.hpp"
 
 using namespace simu;
@@ -9,9 +9,9 @@ TEST_CASE("Entities") {
     SECTION("Single component") {
         Entities<int> entities;
 
-        Entity a = entities.create();
-        Entity b = entities.create();
-        Entity c = entities.create();
+        ObjectId a = entities.create();
+        ObjectId b = entities.create();
+        ObjectId c = entities.create();
 
         entities.add(a, 1);
         entities.add(b, 2);
@@ -47,7 +47,7 @@ TEST_CASE("Entities") {
 
         SECTION("callback zipped iteration") {
             int current = 1;
-            entities.query<int>().each([&](Entity e, int& x) {
+            entities.query<int>().each([&](ObjectId e, int& x) {
                 switch (current++) {
                     case 1:
                         REQUIRE(x == 1);
@@ -79,9 +79,9 @@ TEST_CASE("Entities") {
 
         Entities<X, Y> entities;
 
-        Entity a = entities.create();
-        Entity b = entities.create();
-        Entity c = entities.create();
+        ObjectId a = entities.create();
+        ObjectId b = entities.create();
+        ObjectId c = entities.create();
 
         entities.add(a, X{1});
 
@@ -118,7 +118,7 @@ TEST_CASE("Entities") {
             entities.add<Y>(c, Y{3});
 
             int current = 1;
-            entities.query<X, Y>().each([&](Entity e, X& x, Y& y) {
+            entities.query<X, Y>().each([&](ObjectId e, X& x, Y& y) {
                 switch (current++) {
                     case 1:
                         REQUIRE(y.y == 1);

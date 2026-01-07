@@ -23,19 +23,22 @@
 ////////////////////////////////////////////////////////////
 
 #pragma once
-
-#include "Simu/entities/Entities.hpp"
-#include "Simu/physics-2.0/components/Mass.hpp"
-#include "collision/colliders/Capsule.hpp"
-#include "collision/colliders/Circle.hpp"
-#include "collision/colliders/Polygon.hpp"
-#include "collision/colliders/ColliderType.hpp"
-#include "components/Position.hpp"
-#include "components/Velocity.hpp"
+#include "ObjectId.hpp"
+#include "../collision/colliders/ColliderType.hpp"
+#include "../components/Mass.hpp"
+#include "../components/Position.hpp"
+#include "../components/Velocity.hpp"
 
 namespace simu
 {
 
-using EntitiesType = Entities<Position, Velocity, Mass, ColliderType, Circle, Capsule, Polygon>;
+struct DynamicPhysicsObject
+{
+    ObjectId     id = ObjectId::unset;
+    Position     position;
+    Velocity     velocity;
+    Mass         mass          = Mass(0, 0);
+    ObjectId     collider_id   = ObjectId::unset;
+};
 
 } // namespace simu

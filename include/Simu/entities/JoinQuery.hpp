@@ -25,7 +25,7 @@
 #pragma once
 
 #include "Simu/entities/utils.hpp"
-#include "Simu/entities/Entity.hpp"
+#include "Simu/entities/ObjectId.hpp"
 #include "Simu/entities/SparseSet.hpp"
 #include <cstddef>
 #include <functional>
@@ -76,7 +76,7 @@ public:
     JoinIterator& operator=(const JoinIterator&) = default;
 
     reference_type operator*() const {
-        Entity entity = get_entity();
+        ObjectId entity = get_entity();
         return std::tuple(
             std::ref(
                 static_cast<SparseSetType<Components>*>(_sets[index<Components>()])
@@ -85,7 +85,7 @@ public:
         );
     }
 
-    [[nodiscard]] const Entity& get_entity() const {
+    [[nodiscard]] const ObjectId& get_entity() const {
         return _sets[_ref_set]->get_entity(_index);
     }
 
@@ -108,7 +108,7 @@ public:
 private:
 
     [[nodiscard]] bool has_all_components() const {
-        Entity entity = _sets[_ref_set]->get_entity(_index);
+        ObjectId entity = _sets[_ref_set]->get_entity(_index);
 
         // TODO: Skip ref set if faster
         for (std::size_t i = 0; i < N; i++) {
@@ -172,7 +172,7 @@ public:
         }
     }
 
-    template <std::invocable<Entity, DataType<Components>&...> F>
+    template <std::invocable<ObjectId, DataType<Components>&...> F>
     void each(F&& f) const {
         for (auto it = begin(); it != end(); it++) {
             auto tuple = *it;

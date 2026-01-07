@@ -109,6 +109,9 @@ private:
 // TODO: Use epsilon specific to each use case
 constexpr float EPSILON = 1e-6f;
 
+/// The maximum distance between contact points to consider them equal
+constexpr float CONTACT_EPSILON = 1e-3f;
+
 typedef std::int8_t  Int8;
 typedef std::uint8_t Uint8;
 

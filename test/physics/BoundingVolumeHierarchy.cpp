@@ -14,9 +14,9 @@ using Catch::Approx;
 
 struct TestCase
 {
-    std::vector<Entity>                    entities;
+    std::vector<ObjectId>                    entities;
     std::vector<BoundingBox>               bounds;
-    std::vector<std::pair<Entity, Entity>> expected_collisions;
+    std::vector<std::pair<ObjectId, ObjectId>> expected_collisions;
 };
 
 constexpr TestCase simple_case() {
@@ -71,7 +71,7 @@ TEST_CASE("Bounding Volume Hierarchy") {
     BoundingVolumeHierarchy bvh;
     REQUIRE_NOTHROW(bvh = partition_method(test_case.entities, test_case.bounds));
 
-    bvh.collide(bvh, [&test_case](Entity a, Entity b) {
+    bvh.collide(bvh, [&test_case](ObjectId a, ObjectId b) {
         // collisions to self are always reported when testing a tree against itself
         // collisions between pairs are reported twice, order them to keep only one.
         if (a == b || a.id() > b.id()) {

@@ -23,14 +23,19 @@
 ////////////////////////////////////////////////////////////
 
 #pragma once
+#include "PhysicsObjects/ColliderPool.hpp"
 #include "Settings.hpp"
-#include "EntitiesType.hpp"
+#include "PhysicsObjects/ObjectPool.hpp"
+#include "PhysicsObjects/DynamicPhysicsObject.hpp"
+#include "PhysicsObjects/StaticPhysicsObject.hpp"
+#include "collision/CollisionData.hpp"
+#include "collision/CollisionPair.hpp"
 #include "collision/broadphase/BoundingVolumeHierarchy.hpp"
+
+#include <variant>
 
 namespace simu
 {
-struct CollisionData;
-class CollisionPair;
 
 class Simulation
 {
@@ -41,9 +46,6 @@ public:
 
     Simulation(const Simulation& other) = delete;
     Simulation(Simulation&& other)      = delete;
-
-    [[nodiscard]] const EntitiesType& entities() const { return _entities; }
-    EntitiesType&                     entities() { return _entities; }
 
     /// Makes the simulation progress in time.
     /// \param dt How much to advance the simulation (seconds)
@@ -57,22 +59,23 @@ public:
 
 private:
 
-    void process_collisions(
-        const EntitiesType& entities,
-        float               epsilon,
-        std::uint_fast8_t   max_steps_since_contacts
-    ) noexcept;
+    ObjectId get_collider_id(ObjectId object_id) const noexcept;
+
+    void process_collisions() noexcept;
 
     void
-    process_collision(const EntitiesType& entities, CollisionPair pair, float epsilon) noexcept;
+    process_collision(CollisionPair pair) noexcept;
 
-    Settings         _settings;
-    EntitiesType     _entities; // TODO: Huge object
+    Settings _settings;
+    ObjectPool<DynamicPhysicsObject, ObjectId::DynamicPhysicsObject> dynamic_objects;
+    ObjectPool<StaticPhysicsObject, ObjectId::StaticPhysicsObject> static_objects;
+
+    ColliderPool colliders;
 
     std::unordered_map<CollisionPair, CollisionData> collision_pairs;
 
-    BoundingVolumeHierarchy static_objects;
-    BoundingVolumeHierarchy dynamic_objects;
+    BoundingVolumeHierarchy static_bvh;
+    BoundingVolumeHierarchy dynamic_bvh;
 };
 
 } // namespace simu

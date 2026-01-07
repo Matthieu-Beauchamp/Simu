@@ -53,18 +53,19 @@ add_library(simu
         src/Simu/physics-2.0/collisions.cpp
         src/Simu/physics-2.0/Simulation.cpp
         src/Simu/physics-2.0/BoundingVolumeHierarchy.cpp
-        include/Simu/physics-2.0/collision/CollisionPair.hpp
-        src/Simu/physics-2.0/CollisionManager.cpp
-        include/Simu/physics-2.0/EntitiesType.hpp
-        include/Simu/physics-2.0/collision/CollisionData.hpp
 )
 
 target_sources(simu
         PRIVATE FILE_SET HEADERS
         BASE_DIRS include/Simu/
         FILES
-        include/Simu/physics-2.0/collision/CollisionManager.hpp
         include/Simu/physics-2.0/collision/colliders/ColliderType.hpp
+        include/Simu/physics-2.0/collision/CollisionPair.hpp
+        include/Simu/physics-2.0/collision/CollisionData.hpp
+        include/Simu/physics-2.0/PhysicsObjects/ObjectId.hpp
+        include/Simu/physics-2.0/PhysicsObjects/ObjectPool.hpp
+        include/Simu/physics-2.0/PhysicsObjects/DynamicPhysicsObject.hpp
+        include/Simu/physics-2.0/PhysicsObjects/ColliderOperations.hpp
 )
 
 simu_set_compile_options(simu)

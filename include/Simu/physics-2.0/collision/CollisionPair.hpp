@@ -35,10 +35,10 @@ class CollisionPair
 {
 public:
 
-    Entity a;
-    Entity b;
+    ObjectId a;
+    ObjectId b;
 
-    CollisionPair(Entity a, Entity b) : a{a}, b{b} {
+    CollisionPair(ObjectId a, ObjectId b) : a{a}, b{b} {
         if (a.id() > b.id()) {
             std::swap(this->a, this->b);
         }

@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "Simu/entities/Entity.hpp"
+#include "Simu/entities/ObjectId.hpp"
 #include <cstddef>
 #include <functional>
 #include <optional>
@@ -41,23 +41,23 @@ class BasicSparseSet
 {
 protected:
 
-    using Ids = std::vector<Entity>;
+    using Ids = std::vector<ObjectId>;
 
     // FIXME: use vector / custom hashmap to avoid allocations?
-    using Sparse = std::unordered_map<Entity, std::size_t>;
+    using Sparse = std::unordered_map<ObjectId, std::size_t>;
 
     Ids    ids{};
     Sparse sparse{};
 
 public:
 
-    const Entity& get_entity(std::size_t index) const { return ids[index]; }
+    const ObjectId& get_entity(std::size_t index) const { return ids[index]; }
 
-    bool has_entity(const Entity& entity) const {
+    bool has_entity(const ObjectId& entity) const {
         return sparse.contains(entity);
     }
 
-    std::optional<std::size_t> index_of(const Entity& entity) const {
+    std::optional<std::size_t> index_of(const ObjectId& entity) const {
         auto iter = sparse.find(entity);
         return iter == sparse.end() ? std::nullopt : std::optional(iter->second);
     }
@@ -82,22 +82,22 @@ public:
     T&       get_data(std::size_t index) { return data[index]; }
     const T& get_data(std::size_t index) const { return data[index]; }
 
-    T& get_data(const Entity& entity) {
+    T& get_data(const ObjectId& entity) {
         return data[sparse.find(entity)->second];
     }
-    const T& get_data(const Entity& entity) const {
+    const T& get_data(const ObjectId& entity) const {
         return data[sparse.find(entity)->second];
     }
 
-    std::pair<Entity, std::reference_wrapper<T>> get_pair(std::size_t index) {
+    std::pair<ObjectId, std::reference_wrapper<T>> get_pair(std::size_t index) {
         return std::make_pair(ids[index], std::ref(data[index]));
     }
-    std::pair<Entity, std::reference_wrapper<const T>>
+    std::pair<ObjectId, std::reference_wrapper<const T>>
     get_pair(std::size_t index) const {
         return std::make_pair(ids[index], std::cref(data[index]));
     }
 
-    bool add(const Entity& entity, const T& value) {
+    bool add(const ObjectId& entity, const T& value) {
         auto result = sparse.emplace(entity, data.size());
 
         if (result.second) {
@@ -108,7 +108,7 @@ public:
         return result.second;
     }
 
-    bool remove(const Entity& entity) {
+    bool remove(const ObjectId& entity) {
         const auto iter = sparse.find(entity);
         if (iter == sparse.end()) {
             return false;
@@ -166,7 +166,7 @@ public:
         return _set->get_data(_index);
     }
 
-    [[nodiscard]] const Entity& get_entity() const {
+    [[nodiscard]] const ObjectId& get_entity() const {
         return _set->get_entity(_index);
     }
 
