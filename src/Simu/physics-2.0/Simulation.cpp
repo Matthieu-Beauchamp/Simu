@@ -26,6 +26,7 @@
 
 #include "Simu/physics-2.0/components/Velocity.hpp"
 #include "../../../include/Simu/physics-2.0/PhysicsObjects/ColliderOperations.hpp"
+#include "physics/Collider.hpp"
 #include "physics-2.0/collision/CollisionData.hpp"
 #include "physics-2.0/collision/CollisionPair.hpp"
 #include "physics-2.0/collision/colliders/collisions.hpp"
@@ -148,12 +149,8 @@ void Simulation::step() {
         std::vector<ObjectId>    dynamic_objects_ids;
         std::vector<BoundingBox> dynamic_objects_boxes;
         for (DynamicPhysicsObject& object : dynamic_objects.objects()) {
-            if (object.collider_id) {
-                dynamic_objects_ids.push_back(object.id);
-                dynamic_objects_boxes.emplace_back(
-                    bounding_box(object.collider_id, colliders)
-                );
-            }
+            dynamic_objects_ids.push_back(object.id);
+            dynamic_objects_boxes.emplace_back(bounding_box(object.collider_id, colliders));
         }
 
         dynamic_bvh = BoundingVolumeHierarchy::mean_centroid_split(
@@ -167,10 +164,8 @@ void Simulation::step() {
         std::vector<ObjectId>    static_objects_ids;
         std::vector<BoundingBox> static_objects_boxes;
         for (StaticPhysicsObject& object : static_objects.objects()) {
-            if (object.collider_id) {
-                static_objects_ids.push_back(object.id);
-                static_objects_boxes.emplace_back(bounding_box(object.collider_id, colliders));
-            }
+            static_objects_ids.push_back(object.id);
+            static_objects_boxes.emplace_back(bounding_box(object.collider_id, colliders));
         }
 
         static_bvh = BoundingVolumeHierarchy::mean_centroid_split(
@@ -264,5 +259,73 @@ void Simulation::process_collision(CollisionPair pair) noexcept {
     // Update disjoint set for islands
 }
 
+ObjectId Simulation::create_object(ObjectBuilder builder) {
+    SIMU_ASSERT(builder.has_collider_, "Object has no collider");
+
+    Mass mass = builder.mass_;
+    if (builder.compute_mass_from_geometry) {
+        float density = builder.density;
+        switch (builder.collider_type_) {
+            case ColliderType::Circle:
+                float r_squared = builder.circle_.radius() * builder.circle_.radius();
+                float m       = std::numbers::pi_v<float> * r_squared * density;
+                float inertia = 0.5f * m * r_squared;
+                mass          = Mass{m, inertia};
+                break;
+            case ColliderType::Capsule:
+                float radius = builder.capsule_.radius();
+                float length = norm(builder.capsule_.top() - builder.capsule_.bottom());
+                float pi = std::numbers::pi_v<float>;
+
+                float m_r = density * 2.f * length * radius;
+                float m_c = density * pi * radius * radius;
+
+                float rect_inertia = m_r * (4 * radius * radius + length * length) / 12;
+                float circ_inertia = m_c * 0.5f * radius * radius
+                                     + m_c * (length * 0.5f) * (length * 0.5f);
+                mass = Mass{m_r + m_c, rect_inertia + circ_inertia};
+                break;
+            case ColliderType::Polygon:
+                auto properties = GeometricProperties(builder.polygon_);
+                mass = Mass{properties.area * density, properties.momentOfArea * density};
+                break;
+        }
+    }
+
+    ObjectId collider_id = colliders.allocate(builder.collider_type_);
+    switch (builder.collider_type_) {
+        case ColliderType::Circle:
+            colliders.circle(collider_id) = builder.circle_;
+            break;
+        case ColliderType::Capsule:
+            colliders.capsule(collider_id) = builder.capsule_;
+            break;
+        case ColliderType::Polygon:
+            colliders.polygon(collider_id) = builder.polygon_;
+            break;
+    }
+
+    if (builder.is_static) {
+        ObjectId id        = static_objects.allocate();
+        static_objects[id] = StaticPhysicsObject{
+            .id          = id,
+            .position    = builder.position_,
+            .collider_id = collider_id,
+        };
+
+        return id;
+    } else {
+        ObjectId id         = dynamic_objects.allocate();
+        dynamic_objects[id] = DynamicPhysicsObject{
+            .id          = id,
+            .position    = builder.position_,
+            .velocity    = builder.velocity_,
+            .mass        = mass,
+            .collider_id = collider_id,
+        };
+
+        return id;
+    }
+}
 
 } // namespace simu

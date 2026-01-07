@@ -23,6 +23,7 @@
 ////////////////////////////////////////////////////////////
 
 #pragma once
+#include "ObjectBuilder.hpp"
 #include "PhysicsObjects/ColliderPool.hpp"
 #include "Settings.hpp"
 #include "PhysicsObjects/ObjectPool.hpp"
@@ -53,6 +54,9 @@ public:
 
     /// Read the world's settings
     [[nodiscard]] const Settings& settings() const { return _settings; }
+
+    /// Create a new object
+    ObjectId create_object(ObjectBuilder builder);
 
 private:
 

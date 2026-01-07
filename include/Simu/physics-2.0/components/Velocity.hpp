@@ -38,8 +38,8 @@ public:
     /// @param angular The angular velocity of the object (radians / s)
     Velocity(Vec2 linear, float angular) : linear{linear}, angular{angular} {}
 
-    Vec2  linear;
-    float angular;
+    Vec2  linear{};
+    float angular{};
 };
 
 } // namespace simu
