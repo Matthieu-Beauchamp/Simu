@@ -62,7 +62,7 @@ namespace
  * @return The resulting contacts
  */
 [[nodiscard]] Contacts<2>
-collide(ObjectId a, ObjectId b, const ColliderPool& colliders, float epsilon = CONTACT_EPSILON) noexcept {
+collide(ObjectId a, ObjectId b, const ColliderPool& colliders, float epsilon = CONTACT_EPSILON) SIMU_NO_EXCEPT {
     ColliderType type_a = colliders.get_type(a);
     ColliderType type_b = colliders.get_type(b);
 
@@ -137,15 +137,17 @@ collide(ObjectId a, ObjectId b, const ColliderPool& colliders, float epsilon = C
 
 } // namespace
 
-void Simulation::step(float dt) {
+void Simulation::step() {
     // TODO: In a separate thread, create improved tree to be used in the next timestep
     //      instead of waiting on it for the current step.
     //      Use old tree for current step.
 
+    float dt = _settings.dt;
+
     {
         std::vector<ObjectId>    dynamic_objects_ids;
         std::vector<BoundingBox> dynamic_objects_boxes;
-        for (DynamicPhysicsObject& object : dynamic_objects) {
+        for (DynamicPhysicsObject& object : dynamic_objects.objects()) {
             if (object.collider_id) {
                 dynamic_objects_ids.push_back(object.id);
                 dynamic_objects_boxes.emplace_back(
@@ -164,7 +166,7 @@ void Simulation::step(float dt) {
 
         std::vector<ObjectId>    static_objects_ids;
         std::vector<BoundingBox> static_objects_boxes;
-        for (StaticPhysicsObject& object : static_objects) {
+        for (StaticPhysicsObject& object : static_objects.objects()) {
             if (object.collider_id) {
                 static_objects_ids.push_back(object.id);
                 static_objects_boxes.emplace_back(bounding_box(object.collider_id, colliders));
@@ -178,7 +180,7 @@ void Simulation::step(float dt) {
 
     // Step velocity according to gravity
     Vec2 gravity = _settings.gravity * dt;
-    for (DynamicPhysicsObject& object : dynamic_objects) {
+    for (DynamicPhysicsObject& object : dynamic_objects.objects()) {
         object.velocity.linear += gravity;
     }
 
@@ -187,7 +189,7 @@ void Simulation::step(float dt) {
     // TODO: Apply constraints
 
     // Step position according to resolved velocities
-    for (DynamicPhysicsObject& object : dynamic_objects) {
+    for (DynamicPhysicsObject& object : dynamic_objects.objects()) {
         object.position.advance(object.velocity.linear * dt, object.velocity.angular * dt);
         if (object.collider_id) {}
     }
@@ -198,7 +200,7 @@ void Simulation::step(float dt) {
     //      => Can do a postorder traversal update
 }
 
-ObjectId Simulation::get_collider_id(ObjectId object_id) const noexcept {
+ObjectId Simulation::get_collider_id(ObjectId object_id) const SIMU_NO_EXCEPT {
     switch (object_id.type()) {
         case ObjectId::DynamicPhysicsObject:
             return dynamic_objects[object_id].collider_id;

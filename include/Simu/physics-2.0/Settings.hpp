@@ -30,6 +30,9 @@ namespace simu
 {
 struct Settings
 {
+    /// Time step of the simulation
+    float dt = 1.f / 60.f;
+
     /// Gravity to apply to the simulation
     Vec2 gravity = Vec2{0.f, -10.f};
 

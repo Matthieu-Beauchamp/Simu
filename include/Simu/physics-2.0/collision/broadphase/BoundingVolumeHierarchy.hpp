@@ -25,9 +25,8 @@
 #pragma once
 
 #include "Simu/config.hpp"
-#include "Simu/entities/ObjectId.hpp"
+#include "Simu/physics-2.0/PhysicsObjects/ObjectId.hpp"
 #include "Simu/physics-2.0/collision/colliders/BoundingBox.hpp"
-#include "../../PhysicsObjects/ObjectId.hpp"
 
 namespace simu
 {
@@ -58,7 +57,9 @@ public:
 
     [[nodiscard]] bool isLeaf() const { return bits >> 31; }
 
-    [[nodiscard]] ObjectId leaf() const { return ObjectId(bits); }
+    [[nodiscard]] ObjectId leaf() const {
+        return ObjectId(static_cast<std::uint32_t>(bits));
+    }
     void setLeaf(ObjectId e) { bits = e.id() | ObjectId::reserved_bit; }
 
     [[nodiscard]] std::uint32_t left() const { return bits & left_mask; }
@@ -126,7 +127,7 @@ public:
 
     // May be called with self as argument
     void collide(
-        const BoundingVolumeHierarchy&      other,
+        const BoundingVolumeHierarchy&          other,
         std::function<void(ObjectId, ObjectId)> callback
     ) const noexcept;
 

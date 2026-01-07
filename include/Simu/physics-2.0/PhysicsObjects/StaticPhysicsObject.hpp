@@ -24,7 +24,6 @@
 
 #pragma once
 #include "ObjectId.hpp"
-#include "../collision/colliders/ColliderType.hpp"
 #include "../components/Position.hpp"
 
 namespace simu
@@ -32,9 +31,9 @@ namespace simu
 
 struct StaticPhysicsObject
 {
-    ObjectId id = ObjectId::unset;
+    ObjectId id = ObjectId::unset();
     Position position;
-    ObjectId collider_id = ObjectId::unset;
+    ObjectId collider_id = ObjectId::unset();
 };
 
 } // namespace simu

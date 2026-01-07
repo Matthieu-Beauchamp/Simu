@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////
 //
 // Simu
-// Copyright (C) 2025 Matthieu Beauchamp-Boulay
+// Copyright (C) 2026 Matthieu Beauchamp-Boulay
 //
 // This software is provided 'as-is', without any express or implied warranty.
 // In no event will the authors be held liable for any damages arising from the use of this software.
@@ -22,46 +22,10 @@
 //
 ////////////////////////////////////////////////////////////
 
-#pragma once
+#include "Simu/physics-2.0/Simulation.hpp"
 
+int main() {
+    simu::Simulation simu;
 
-#include "Simu/entities/SparseSet.hpp"
-#include <concepts>
-#include <memory>
-
-namespace simu
-{
-
-template <class T, bool is_const>
-class ComponentQuery
-{
-    using SetType = std::conditional_t<is_const, const SparseSet<T>, SparseSet<T>>;
-    using DataType = std::conditional_t<is_const, const T, T>;
-
-public:
-
-    explicit ComponentQuery(SetType& set) : _set(std::addressof(set)) {}
-
-    template<std::invocable<DataType&> F>
-    void each(F&& f) {
-        for (auto it = begin(); it != end(); it++) {
-            f(*it);
-        }
-    }
-
-    template<std::invocable<ObjectId, DataType&> F>
-    void each(F&& f) {
-        for (auto it = begin(); it != end(); it++) {
-            f(it.get_entity(), *it);
-        }
-    }
-
-    auto begin() { return _set->begin(); }
-    auto end() { return _set->end(); }
-
-private:
-
-    SetType* _set;
-};
-
-} // namespace simu
+    simu.step();
+}

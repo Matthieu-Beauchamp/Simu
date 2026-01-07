@@ -25,7 +25,7 @@
 #pragma once
 
 #include "Simu/config.hpp"
-#include "Simu/physics/BoundingBox.hpp"
+#include "Simu/physics-2.0/collision/colliders/BoundingBox.hpp"
 #include "Simu/physics/Body.hpp"
 
 namespace simu

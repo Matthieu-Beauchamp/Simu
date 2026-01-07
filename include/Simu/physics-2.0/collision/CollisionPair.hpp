@@ -24,8 +24,7 @@
 
 #pragma once
 
-#include "Simu/entities/Entities.hpp"
-#include "colliders/collisions.hpp"
+#include "PhysicsObjects/ObjectId.hpp"
 
 namespace simu
 {
@@ -44,7 +43,9 @@ public:
         }
     }
 
-    [[nodiscard]] std::uint64_t id() const { return a.id() | (b.id() << 32); }
+    [[nodiscard]] std::uint64_t id() const {
+        return a.id() | (static_cast<std::uint64_t>(b.id()) << 32);
+    }
 
     bool operator==(const CollisionPair& other) const {
         return id() == other.id();

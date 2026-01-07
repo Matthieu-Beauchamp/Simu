@@ -12,16 +12,22 @@
 using namespace simu;
 using Catch::Approx;
 
+struct Generator
+{
+    std::uint32_t next_index = ObjectId::first_id;
+    ObjectId      create() { return ObjectId{next_index++}; }
+};
+
 struct TestCase
 {
-    std::vector<ObjectId>                    entities;
-    std::vector<BoundingBox>               bounds;
+    std::vector<ObjectId>                      entities;
+    std::vector<BoundingBox>                   bounds;
     std::vector<std::pair<ObjectId, ObjectId>> expected_collisions;
 };
 
 constexpr TestCase simple_case() {
-    TestCase                  test_case{};
-    internal::EntityGenerator generator;
+    TestCase  test_case{};
+    Generator generator;
 
     test_case.entities.push_back(generator.create());
     test_case.bounds.emplace_back(Vec2(0, 0), Vec2(1, 1));
@@ -40,8 +46,8 @@ constexpr TestCase simple_case() {
 }
 
 constexpr TestCase repeated_object() {
-    TestCase                  test_case{};
-    internal::EntityGenerator generator;
+    TestCase  test_case{};
+    Generator generator;
 
     for (int i = 0; i < 5; ++i) {
         test_case.entities.push_back(generator.create());

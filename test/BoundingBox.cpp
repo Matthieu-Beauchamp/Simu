@@ -1,6 +1,6 @@
 #include "catch2/catch_test_macros.hpp"
 
-#include "Simu/physics/BoundingBox.hpp"
+#include "Simu/physics-2.0/collision/colliders/BoundingBox.hpp"
 
 using namespace simu;
 

@@ -87,7 +87,7 @@ public:
 
         std::uint32_t collider_index = object_map[id.as_index() - 1];
         ColliderType type = static_cast<ColliderType>((collider_index & type_mask) >> 30);
-        object_map[id.as_index() - 1] = -1;
+        object_map[id.as_index() - 1] = static_cast<std::uint32_t>(-1);
 
         switch (type) {
             case ColliderType::Circle:
@@ -152,7 +152,7 @@ private:
             {
                 if (free_circles.empty()) {
                     circles.emplace_back(Circle(Vec2(0, 0), 0));
-                    return circles.size() - 1;
+                    return static_cast<std::uint32_t>(circles.size() - 1);
                 }
 
                 std::uint32_t index = free_circles.back();
@@ -163,7 +163,7 @@ private:
             {
                 if (free_capsules.empty()) {
                     capsules.emplace_back(Capsule(Vec2(0, 0), Vec2(0, 0), 0));
-                    return capsules.size() - 1;
+                    return static_cast<std::uint32_t>(capsules.size() - 1);
                 }
 
                 std::uint32_t index = free_capsules.back();
@@ -174,7 +174,7 @@ private:
             {
                 if (free_polygons.empty()) {
                     polygons.emplace_back(Polygon({}));
-                    return polygons.size() - 1;
+                    return static_cast<std::uint32_t>(polygons.size() - 1);
                 }
 
                 std::uint32_t index = free_polygons.back();
@@ -186,7 +186,7 @@ private:
         SIMU_ASSERT(false, "Invalid collider type");
     }
 
-    std::uint32_t collider_index(std::size_t index, ColliderType type) const {
+    std::uint32_t collider_index(std::uint32_t index, ColliderType type) const {
         return index | static_cast<std::uint32_t>(type) << 30;
     }
 

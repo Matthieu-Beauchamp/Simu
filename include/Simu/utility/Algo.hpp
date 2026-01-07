@@ -30,23 +30,22 @@ namespace simu
 {
 
 template <class T>
-inline T clamp(T val, T min, T max)
-{
-    return std::min(std::max(val, min), max);
+inline T clamp(T val, T mini, T maxi) {
+    using std::max;
+    using std::min;
+
+    return min(max(val, mini), maxi);
 }
 
 
 template <class T>
-inline T squared(const T& x)
-{
+inline T squared(const T& x) {
     return x * x;
 }
 
 template <std::bidirectional_iterator Iter, Callable<bool(Iter)> GoesLeft>
-Iter booleanSort(Iter begin, Iter end, GoesLeft goesLeft)
-{
-    while (begin != end)
-    {
+Iter booleanSort(Iter begin, Iter end, GoesLeft goesLeft) {
+    while (begin != end) {
         if (goesLeft(begin))
             ++begin;
         else

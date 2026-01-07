@@ -24,9 +24,7 @@
 
 #pragma once
 
-#include "config.hpp"
-
-
+#include "Simu/config.hpp"
 #include <functional>
 
 namespace simu
@@ -61,11 +59,11 @@ public:
     static constexpr std::uint32_t id_mask = ~reserved_bit;
     static constexpr std::uint32_t index_mask = ~(reserved_bit | generation_mask | type_mask);
 
-    static constexpr ObjectId      unset    = 0;
+    static constexpr ObjectId      unset() { return ObjectId(0); }
     static constexpr std::uint32_t first_id = 1;
 
-    explicit ObjectId(std::uint32_t id) : _id(id & id_mask) {}
-    explicit ObjectId(std::uint32_t generation, std::uint32_t type, std::uint32_t id)
+    explicit constexpr ObjectId(std::uint32_t id) : _id(id & id_mask) {}
+    explicit constexpr ObjectId(std::uint32_t generation, std::uint32_t type, std::uint32_t id)
         : _id((generation << 28) | (type << 26) | (id & id_mask)) {
         SIMU_ASSERT(generation <= last_generation, "Invalid generation");
         SIMU_ASSERT(type > 0, "Missing type");
@@ -89,9 +87,9 @@ public:
         return (_id & generation_mask) >> 28;
     }
 
-    // Do not compare directly with ObjectId::unset
+    // Do not compare directly with ObjectId::unset()
     [[nodiscard]] bool is_valid() const { return static_cast<bool>(*this); }
-    explicit operator bool() const { return as_index() != unset.as_index(); }
+    explicit operator bool() const { return as_index() != unset().as_index(); }
 
     bool operator==(const ObjectId& other) const = default;
 };
@@ -101,7 +99,7 @@ public:
 template <>
 struct std::hash<simu::ObjectId>
 {
-    std::uint32_t operator()(const simu::ObjectId& s) const noexcept {
+    std::size_t operator()(const simu::ObjectId& s) const noexcept {
         return std::hash<std::uint32_t>{}(s.id());
     }
 };

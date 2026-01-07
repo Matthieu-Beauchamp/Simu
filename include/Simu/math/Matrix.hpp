@@ -427,20 +427,16 @@ inline ComparisonMatrix<m, n> operator!(const ComparisonMatrix<m, n>& unary);
 
 /// \}
 
-} // namespace simu
-
-
-////////////////////////////////////////////////////////////
-// std overloads
-////////////////////////////////////////////////////////////
-
-namespace std
-{
 
 ////////////////////////////////////////////////////////////
 /// \ingroup operations
 /// \{
 ////////////////////////////////////////////////////////////
+
+template <class T, class U>
+struct common_type : std::common_type<T, U>
+{
+};
 
 template <class T, class U, simu::Uint32 m, simu::Uint32 n>
 struct common_type<simu::Matrix<T, m, n>, simu::Matrix<U, m, n>>
@@ -464,11 +460,6 @@ max(const simu::Matrix<T, m, n>& lhs, const simu::Matrix<T, m, n>& rhs);
 
 /// \}
 
-} // namespace std
-
-
-namespace simu
-{
 
 ////////////////////////////////////////////////////////////
 // Matrix
@@ -1091,8 +1082,7 @@ ComparisonMatrix<m, n> operator!(const ComparisonMatrix<m, n>& unary) {
 ////////////////////////////////////////////////////////////
 
 template <class T, std::size_t m, std::size_t n>
-inline std::ostream&
-operator<<(std::ostream& os, const Matrix<T, m, n>& matrix) {
+inline std::ostream& operator<<(std::ostream& os, const Matrix<T, m, n>& matrix) {
     if constexpr (n == 1) {
         os << "[";
         for (Uint32 i = 0; i < m; ++i) {
@@ -1112,7 +1102,7 @@ operator<<(std::ostream& os, const Matrix<T, m, n>& matrix) {
                 if (j != n - 1)
                     os << ", ";
             }
-            if (i != m - 1){
+            if (i != m - 1) {
                 os << "\n";
             }
         }
@@ -1127,15 +1117,6 @@ inline std::string to_string(const Matrix<T, m, n>& x) {
     ss << x;
     return ss.str();
 }
-
-} // namespace simu
-
-////////////////////////////////////////////////////////////
-// std overloads
-////////////////////////////////////////////////////////////
-
-namespace std
-{
 
 template <class T, simu::Uint32 m, simu::Uint32 n>
 simu::Matrix<T, m, n> abs(const simu::Matrix<T, m, n>& mat) {
@@ -1179,4 +1160,4 @@ max(const simu::Matrix<T, m, n>& lhs, const simu::Matrix<T, m, n>& rhs) {
     return res;
 }
 
-} // namespace std
+} // namespace simu

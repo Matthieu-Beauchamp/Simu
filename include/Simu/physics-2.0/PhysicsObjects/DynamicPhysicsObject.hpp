@@ -24,7 +24,6 @@
 
 #pragma once
 #include "ObjectId.hpp"
-#include "../collision/colliders/ColliderType.hpp"
 #include "../components/Mass.hpp"
 #include "../components/Position.hpp"
 #include "../components/Velocity.hpp"
@@ -34,11 +33,11 @@ namespace simu
 
 struct DynamicPhysicsObject
 {
-    ObjectId     id = ObjectId::unset;
+    ObjectId     id = ObjectId::unset();
     Position     position;
     Velocity     velocity;
     Mass         mass          = Mass(0, 0);
-    ObjectId     collider_id   = ObjectId::unset;
+    ObjectId     collider_id   = ObjectId::unset();
 };
 
 } // namespace simu

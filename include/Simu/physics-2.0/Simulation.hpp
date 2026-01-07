@@ -32,8 +32,6 @@
 #include "collision/CollisionPair.hpp"
 #include "collision/broadphase/BoundingVolumeHierarchy.hpp"
 
-#include <variant>
-
 namespace simu
 {
 
@@ -48,18 +46,17 @@ public:
     Simulation(Simulation&& other)      = delete;
 
     /// Makes the simulation progress in time.
-    /// \param dt How much to advance the simulation (seconds)
-    void step(float dt);
+    void step();
 
     /// Updates the world's settings
-    void updateSettings(const Settings& settings) { _settings = settings; }
+    void update_settings(const Settings& settings) { _settings = settings; }
 
     /// Read the world's settings
     [[nodiscard]] const Settings& settings() const { return _settings; }
 
 private:
 
-    ObjectId get_collider_id(ObjectId object_id) const noexcept;
+    [[nodiscard]] ObjectId get_collider_id(ObjectId object_id) const SIMU_NO_EXCEPT;
 
     void process_collisions() noexcept;
 
@@ -67,8 +64,8 @@ private:
     process_collision(CollisionPair pair) noexcept;
 
     Settings _settings;
-    ObjectPool<DynamicPhysicsObject, ObjectId::DynamicPhysicsObject> dynamic_objects;
-    ObjectPool<StaticPhysicsObject, ObjectId::StaticPhysicsObject> static_objects;
+    ObjectPool<DynamicPhysicsObject, ObjectId::DynamicPhysicsObject> dynamic_objects{};
+    ObjectPool<StaticPhysicsObject, ObjectId::StaticPhysicsObject> static_objects{};
 
     ColliderPool colliders;
 

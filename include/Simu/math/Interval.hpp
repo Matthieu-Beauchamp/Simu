@@ -53,8 +53,9 @@ public:
     ////////////////////////////////////////////////////////////
     auto contains(T value) const { return min_ <= value && value <= max_; }
 
-    auto overlaps(const Interval& other) const
-    {
+    auto overlaps(const Interval& other) const {
+        using std::abs;
+
         // divisions by 2 can be factorised out and removed from both sides.
         // Geometrical interpretation is easier with:
         //
@@ -68,7 +69,7 @@ public:
         // dist <= span, or equivalently if 2*dist <= 2*span to remove divisions
 
         T span = (max_ - min_) + (other.max_ - other.min_);
-        T dist = std::abs((max_ + min_) - (other.max_ + other.min_));
+        T dist = abs((max_ + min_) - (other.max_ + other.min_));
 
         return dist <= span;
     }
@@ -85,9 +86,10 @@ private:
 ///
 ////////////////////////////////////////////////////////////
 template <class T>
-Interval<T> approx(T value, T epsilon)
-{
-    epsilon = std::abs(epsilon);
+Interval<T> approx(T value, T epsilon) {
+    using std::abs;
+
+    epsilon = abs(epsilon);
     return Interval<T>{value - epsilon, value + epsilon};
 }
 

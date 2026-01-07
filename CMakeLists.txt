@@ -47,7 +47,6 @@ add_library(simu
         src/Simu/math/Random.cpp
 
         src/Simu/physics/Body.cpp
-        src/Simu/physics/BoundingBox.cpp
         src/Simu/physics/World.cpp
 
         src/Simu/physics-2.0/collisions.cpp
@@ -131,6 +130,7 @@ if (SIMU_BUILD_DEMOS)
     target_link_libraries(simu-app glbinding::glbinding imgui)
 
     add_subdirectory(demos)
+    add_subdirectory(demos-2)
 endif ()
 
 
@@ -158,9 +158,6 @@ if (SIMU_BUILD_TESTS)
     enable_testing()
 
     add_executable(simu-test
-            test/entities/SparseSet.cpp
-            test/entities/Entities.cpp
-
             test/physics/Collisions.cpp
             test/physics/BoundingVolumeHierarchy.cpp
 

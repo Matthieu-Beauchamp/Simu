@@ -46,18 +46,22 @@ public:
     BoundingBox() : BoundingBox(Vec2{1, 0}, Vec2{0, 0}) {}
 
     /// Creates a bounding box from the specified min and max points.
-    BoundingBox(Vec2 min, Vec2 max);
+    BoundingBox(Vec2 min, Vec2 max): min_{min}, max_{max} {}
 
     /// Creates a bounding box that contains all the vertices
     template <VertexIterator2D It>
-    BoundingBox(It begin, It end);
+    BoundingBox(It begin, It end) {
+        min_ = max_ = *begin;
+        for (auto it = begin + 1; it != end; ++it) {
+            min_ = simu::min(min_, *it);
+            max_ = simu::max(max_, *it);
+        }
+    }
 
     /// Creates a bounding box that contains all the vertices of the geometry
     template <Geometry T>
-    BoundingBox(const T& geometry);
-
-    /// Scales the bounding box by ratio, conserving its center
-    static BoundingBox scaled(BoundingBox original, float ratio);
+    BoundingBox(const T& geometry)
+        : BoundingBox(geometry.begin(), geometry.end()) {}
 
     /// true if the bounding box covers a valid area,
     /// \see BoundingBox
@@ -74,13 +78,30 @@ public:
 
     /// true if this overlaps other, if the borders touch, the boxes overlap.
     /// If this or other is invalid, they never overlap.
-    bool overlaps(const BoundingBox& other) const;
+    bool overlaps(const BoundingBox& other) const {
+        if (!isValid() || !other.isValid())
+            return false;
+        return all(Interval{min_, max_}.overlaps(Interval{other.min_, other.max_}));
+    }
 
     /// True if this bounding box fully contains other
-    bool contains(const BoundingBox& other) const;
+    bool contains(const BoundingBox& other) const {
+        if (!isValid() || !other.isValid())
+            return false;
+
+        return this->combined(other) == *this;
+    }
 
     /// Returns a bounding box that covers this and other.
-    BoundingBox combined(const BoundingBox& other) const;
+    BoundingBox combined(const BoundingBox& other) const {
+        if (!isValid())
+            return other;
+
+        if (!other.isValid())
+            return *this;
+
+        return BoundingBox(simu::min(min_, other.min()), simu::max(max_, other.max()));
+    }
 
     /// true if both boxes are invalid or they have the same min and max coordinates.
     bool operator==(const BoundingBox& other) const {

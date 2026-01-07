@@ -31,12 +31,19 @@
 namespace simu
 {
 
+namespace detail
+{
+template <class T>
+concept PoolableObject = requires(T& obj) {
+    { obj.id } -> std::same_as<ObjectId&>;
+} && std::is_default_constructible_v<T>;
 
-template <class T, ObjectId::ObjectType object_type>
-    requires std::is_default_constructible_v<T>
+} // namespace detail
+
+template <detail::PoolableObject T, ObjectId::ObjectType object_type>
 class ObjectPool
 {
-    std::vector<T>        objects;
+    std::vector<T>        _objects;
     std::vector<ObjectId> free_ids;
 
     std::uint32_t next_id = ObjectId::first_id;
@@ -45,11 +52,11 @@ class ObjectPool
 
 public:
 
-    ObjectPool() { objects.reserve(initial_size); }
+    ObjectPool() { _objects.reserve(initial_size); }
 
     ObjectId allocate() {
         if (free_ids.empty()) {
-            objects.emplace_back();
+            _objects.emplace_back();
             return ObjectId(0, object_type, next_id++);
         }
 
@@ -61,12 +68,24 @@ public:
     void give_back(ObjectId id) {
         SIMU_ASSERT(id.type() == object_type, "ObjectPool::give_back object type mismatch");
         free_ids.push_back(id);
-        objects[id.as_index() - 1] = T{};
+        _objects[id.as_index() - 1] = T{};
     }
 
-    T&       operator[](ObjectId id) { return objects[id.as_index() - 1]; }
+    T&       operator[](ObjectId id) { return _objects[id.as_index() - 1]; }
     const T& operator[](ObjectId id) const {
-        return objects[id.as_index() - 1];
+        return _objects[id.as_index() - 1];
+    }
+
+    auto objects() {
+        return std::ranges::views::filter(_objects, [](const T& obj) {
+            return obj.id.is_valid();
+        });
+    }
+
+    auto objects() const {
+        return std::ranges::views::filter(_objects, [](const T& obj) {
+            return obj.id.is_valid();
+        });
     }
 };
 
