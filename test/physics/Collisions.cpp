@@ -19,49 +19,49 @@ TEST_CASE("BoundingBox collision detection", "[collision]") {
         BoundingBox box1(Vec2(0, 0), Vec2(1, 1));
         BoundingBox box2(Vec2(2, 0), Vec2(3, 1));
 
-        REQUIRE_FALSE(collides(box1, box2));
-        REQUIRE_FALSE(collides(box2, box1));
+        REQUIRE_FALSE(collide(box1, box2));
+        REQUIRE_FALSE(collide(box2, box1));
     }
 
     SECTION("Valid overlapping boxes") {
         BoundingBox box1(Vec2(0.f, 0.f), Vec2(2, 2));
         BoundingBox box2(Vec2(1, 1), Vec2(3, 3));
 
-        REQUIRE(collides(box1, box2));
-        REQUIRE(collides(box2, box1));
+        REQUIRE(collide(box1, box2));
+        REQUIRE(collide(box2, box1));
     }
 
     SECTION("Valid touching boxes - edge contact") {
         BoundingBox box1(Vec2(0.f, 0.f), Vec2(1, 1));
         BoundingBox box2(Vec2(1, 0.f), Vec2(2, 1));
 
-        REQUIRE(collides(box1, box2));
-        REQUIRE(collides(box2, box1));
+        REQUIRE(collide(box1, box2));
+        REQUIRE(collide(box2, box1));
     }
 
     SECTION("Valid touching boxes - corner contact") {
         BoundingBox box1(Vec2(0.f, 0.f), Vec2(1, 1));
         BoundingBox box2(Vec2(1, 1), Vec2(2, 2));
 
-        REQUIRE(collides(box1, box2));
-        REQUIRE(collides(box2, box1));
+        REQUIRE(collide(box1, box2));
+        REQUIRE(collide(box2, box1));
     }
 
     SECTION("One box fully contained within another") {
         BoundingBox outer(Vec2(-2, -2), Vec2(2, 2));
         BoundingBox inner(Vec2(-1, -1), Vec2(1, 1));
 
-        REQUIRE(collides(outer, inner));
-        REQUIRE(collides(inner, outer));
+        REQUIRE(collide(outer, inner));
+        REQUIRE(collide(inner, outer));
     }
 
     SECTION("Invalid boxes") {
         BoundingBox valid(Vec2(0.f, 0.f), Vec2(1, 1));
         BoundingBox invalid(Vec2(1, 1), Vec2(0.f, 0.f)); // min > max
 
-        REQUIRE_FALSE(collides(valid, invalid));
-        REQUIRE_FALSE(collides(invalid, valid));
-        REQUIRE_FALSE(collides(invalid, invalid));
+        REQUIRE_FALSE(collide(valid, invalid));
+        REQUIRE_FALSE(collide(invalid, valid));
+        REQUIRE_FALSE(collide(invalid, invalid));
     }
 }
 
@@ -70,7 +70,7 @@ TEST_CASE("Circle-Circle collision detection", "[collision][!mayfail]") {
         Circle circle1(Vec2(0.f, 0.f), 1.0f);
         Circle circle2(Vec2(3, 0.f), 1.0f);
 
-        auto contacts = collides(circle1, circle2);
+        auto contacts = collide(circle1, circle2);
         REQUIRE(contacts.n_contacts == 0);
     }
 
@@ -78,7 +78,7 @@ TEST_CASE("Circle-Circle collision detection", "[collision][!mayfail]") {
         Circle circle1(Vec2(0.f, 0.f), 1.0f);
         Circle circle2(Vec2(2, 0.f), 1.0f);
 
-        auto contacts = collides(circle1, circle2);
+        auto contacts = collide(circle1, circle2);
         REQUIRE(contacts.n_contacts == 1);
 
         REQUIRE_THAT(contacts.normal, isUnitVector());
@@ -92,7 +92,7 @@ TEST_CASE("Circle-Circle collision detection", "[collision][!mayfail]") {
         Circle circle1(Vec2(0.f, 0.f), 1.0f);
         Circle circle2(Vec2(1, 0.f), 1.0f);
 
-        auto contacts = collides(circle1, circle2);
+        auto contacts = collide(circle1, circle2);
         REQUIRE(contacts.n_contacts == 1);
 
         REQUIRE_THAT(contacts.normal, isUnitVector());
@@ -105,7 +105,7 @@ TEST_CASE("Circle-Circle collision detection", "[collision][!mayfail]") {
         Circle outer(Vec2(0.f, 0.f), 2.0f);
         Circle inner(Vec2(0.5f, 0.f), 0.5f);
 
-        auto contacts = collides(outer, inner);
+        auto contacts = collide(outer, inner);
         REQUIRE(contacts.n_contacts == 1);
         REQUIRE_THAT(contacts.normal, isUnitVector());
     }
@@ -114,7 +114,7 @@ TEST_CASE("Circle-Circle collision detection", "[collision][!mayfail]") {
         Circle circle1(Vec2(0.f, 0.f), 2.0f);
         Circle circle2(Vec2(0.f, 0.f), 1.0f);
 
-        auto contacts = collides(circle1, circle2);
+        auto contacts = collide(circle1, circle2);
         REQUIRE(contacts.n_contacts == 1);
 
         REQUIRE_FALSE(std::isnan(contacts.normal[0]));
@@ -126,7 +126,7 @@ TEST_CASE("Circle-Circle collision detection", "[collision][!mayfail]") {
         Circle circle1(Vec2(0.f, 0.f), 0.0f);
         Circle circle2(Vec2(0.f, 0.f), 1.0f);
 
-        auto contacts = collides(circle1, circle2);
+        auto contacts = collide(circle1, circle2);
         REQUIRE(contacts.n_contacts == 1);
 
         REQUIRE_FALSE(std::isnan(contacts.normal[0]));
@@ -139,7 +139,7 @@ TEST_CASE("Circle-Capsule collision detection", "[collision]") {
         Circle  circle(Vec2(5, 0.f), 1.0f);
         Capsule capsule(Vec2(0.f, -1), Vec2(0.f, 1), 0.5f);
 
-        auto contacts = collides(circle, capsule);
+        auto contacts = collide(circle, capsule);
         REQUIRE(contacts.n_contacts == 0);
     }
 
@@ -148,7 +148,7 @@ TEST_CASE("Circle-Capsule collision detection", "[collision]") {
         Circle  circle(Vec2(1, 0.f), 0.8f);
         Capsule capsule(Vec2(0.f, -1), Vec2(0.f, 1), 0.5f);
 
-        auto contacts = collides(circle, capsule);
+        auto contacts = collide(circle, capsule);
         REQUIRE(contacts.n_contacts == 1);
         REQUIRE_THAT(contacts.normal, isUnitVector());
         REQUIRE_THAT(contacts.normal, isApprox(Vec2(-1.f, 0.f)));
@@ -158,7 +158,7 @@ TEST_CASE("Circle-Capsule collision detection", "[collision]") {
         Circle  circle(Vec2(0.f, -2), 1.f);
         Capsule capsule(Vec2(0.f, -1), Vec2(0.f, 1), 0.5f);
 
-        auto contacts = collides(circle, capsule);
+        auto contacts = collide(circle, capsule);
         REQUIRE(contacts.n_contacts == 1);
         REQUIRE_THAT(contacts.normal, isUnitVector());
         REQUIRE_THAT(contacts.normal, isApprox(Vec2(0.f, 1.f)));
@@ -168,7 +168,7 @@ TEST_CASE("Circle-Capsule collision detection", "[collision]") {
         Circle  circle(Vec2(0.f, 2), 1.f);
         Capsule capsule(Vec2(0.f, -1), Vec2(0.f, 1), 0.5f);
 
-        auto contacts = collides(circle, capsule);
+        auto contacts = collide(circle, capsule);
         REQUIRE(contacts.n_contacts == 1);
         REQUIRE_THAT(contacts.normal, isUnitVector());
         REQUIRE_THAT(contacts.normal, isApprox(Vec2(0.f, -1.f)));
@@ -178,7 +178,7 @@ TEST_CASE("Circle-Capsule collision detection", "[collision]") {
         Circle  circle(Vec2(0.f, 0.f), 5.f);
         Capsule capsule(Vec2(0.f, -1), Vec2(0.f, 1), .5f);
 
-        auto contacts = collides(circle, capsule);
+        auto contacts = collide(circle, capsule);
         REQUIRE(contacts.n_contacts == 1);
         REQUIRE_THAT(contacts.normal, isUnitVector());
     }
@@ -187,7 +187,7 @@ TEST_CASE("Circle-Capsule collision detection", "[collision]") {
         Circle  circle(Vec2(1, 0.f), 1.f);
         Capsule capsule(Vec2(0.f, -0.5f), Vec2(0.f, 0.5f), 1.f);
 
-        auto contacts = collides(circle, capsule);
+        auto contacts = collide(circle, capsule);
         REQUIRE(contacts.n_contacts == 1);
         REQUIRE_THAT(contacts.normal, isUnitVector());
         REQUIRE_THAT(contacts.normal, isApprox(Vec2(-1.f, 0.f)));
@@ -202,7 +202,7 @@ TEST_CASE("Circle-Polygon collision detection", "[collision]") {
         };
         Polygon polygon(vertices);
 
-        auto contacts = collides(circle, polygon);
+        auto contacts = collide(circle, polygon);
         REQUIRE(contacts.n_contacts == 0);
     }
 
@@ -213,7 +213,7 @@ TEST_CASE("Circle-Polygon collision detection", "[collision]") {
         };
         Polygon polygon(vertices);
 
-        auto contacts = collides(circle, polygon);
+        auto contacts = collide(circle, polygon);
         REQUIRE(contacts.n_contacts == 1);
         REQUIRE_THAT(contacts.normal, isUnitVector());
         REQUIRE_THAT(contacts.normal, isApprox(normalized(Vec2(-0.5f, -0.5f))));
@@ -226,7 +226,7 @@ TEST_CASE("Circle-Polygon collision detection", "[collision]") {
         };
         Polygon polygon(vertices);
 
-        auto contacts = collides(circle, polygon);
+        auto contacts = collide(circle, polygon);
         REQUIRE(contacts.n_contacts == 1);
         REQUIRE_THAT(contacts.normal, isUnitVector());
         REQUIRE_THAT(contacts.normal, isApprox(Vec2(1.f, 0.f)));
@@ -239,7 +239,7 @@ TEST_CASE("Circle-Polygon collision detection", "[collision]") {
         };
         Polygon polygon(vertices);
 
-        auto contacts = collides(circle, polygon);
+        auto contacts = collide(circle, polygon);
         REQUIRE(contacts.n_contacts == 1);
         REQUIRE_THAT(contacts.normal, isUnitVector());
     }
@@ -249,7 +249,7 @@ TEST_CASE("Circle-Polygon collision detection", "[collision]") {
         std::vector<Vec2> vertices = {Vec2(0.f, 0.f), Vec2(1, 0.f), Vec2(.5f, 1)};
         Polygon polygon(vertices);
 
-        auto contacts = collides(circle, polygon);
+        auto contacts = collide(circle, polygon);
         REQUIRE(contacts.n_contacts == 1);
         REQUIRE_THAT(contacts.normal, isUnitVector());
         REQUIRE_THAT(contacts.normal, isApprox(Vec2(0, 1)));
@@ -265,7 +265,7 @@ TEST_CASE("Capsule-Capsule collision detection", "[collision]") {
         Capsule capsule1(Vec2(-2, -1), Vec2(-2, 1), .5f);
         Capsule capsule2(Vec2(2, -1), Vec2(2, 1), .5f);
 
-        auto contacts = collides(capsule1, capsule2, epsilon);
+        auto contacts = collide(capsule1, capsule2, epsilon);
         REQUIRE(contacts.n_contacts == 0);
     }
 
@@ -273,7 +273,7 @@ TEST_CASE("Capsule-Capsule collision detection", "[collision]") {
         Capsule capsule1(Vec2(0.f, -1), Vec2(0.f, 1), .5f);
         Capsule capsule2(Vec2(0.f, 1.f), Vec2(0.f, 3.f), .5f);
 
-        auto contacts = collides(capsule1, capsule2, epsilon);
+        auto contacts = collide(capsule1, capsule2, epsilon);
         REQUIRE(contacts.n_contacts == 1);
         REQUIRE_THAT(contacts.normal, isUnitVector());
         REQUIRE_THAT(contacts.normal, isApprox(Vec2(0.f, 1.f)));
@@ -283,7 +283,7 @@ TEST_CASE("Capsule-Capsule collision detection", "[collision]") {
         Capsule capsule1(Vec2(-1, 0.f), Vec2(1, 0.f), .6f);
         Capsule capsule2(Vec2(0.f, -1), Vec2(0.f, 1), .6f);
 
-        auto contacts = collides(capsule1, capsule2, epsilon);
+        auto contacts = collide(capsule1, capsule2, epsilon);
         REQUIRE(contacts.n_contacts == 1);
         REQUIRE_THAT(contacts.normal, isUnitVector());
     }
@@ -292,7 +292,7 @@ TEST_CASE("Capsule-Capsule collision detection", "[collision]") {
         Capsule capsule1(Vec2(0.f, -1), Vec2(0.f, 1), .8f);
         Capsule capsule2(Vec2(1, -.5f), Vec2(1, .5f), .8f);
 
-        auto contacts = collides(capsule1, capsule2, epsilon);
+        auto contacts = collide(capsule1, capsule2, epsilon);
         REQUIRE(contacts.n_contacts == 2);
         REQUIRE_THAT(contacts.normal, isUnitVector());
         REQUIRE_THAT(contacts.normal, isApprox(Vec2(1.f, 0.f)));
@@ -306,7 +306,7 @@ TEST_CASE("Capsule-Capsule collision detection", "[collision]") {
         Capsule capsule1(Vec2(0.f, 0.f), Vec2(0.f, 3.f), 1.f);
         Capsule capsule2(Vec2(2, 0.f), Vec2(2, 3.f), 1.f);
 
-        auto contacts = collides(capsule1, capsule2, epsilon);
+        auto contacts = collide(capsule1, capsule2, epsilon);
         REQUIRE(contacts.n_contacts == 2);
         REQUIRE_THAT(contacts.normal, isUnitVector());
     }
@@ -322,7 +322,7 @@ TEST_CASE("Capsule-Polygon collision detection", "[collision][!mayfail]") {
         };
         Polygon polygon(vertices);
 
-        auto contacts = collides(capsule, polygon, epsilon);
+        auto contacts = collide(capsule, polygon, epsilon);
         REQUIRE(contacts.n_contacts == 0);
     }
 
@@ -333,7 +333,7 @@ TEST_CASE("Capsule-Polygon collision detection", "[collision][!mayfail]") {
         };
         Polygon polygon(vertices);
 
-        auto contacts = collides(capsule, polygon, epsilon);
+        auto contacts = collide(capsule, polygon, epsilon);
         REQUIRE((contacts.n_contacts == 1));
         REQUIRE_THAT(contacts.normal, isUnitVector());
         REQUIRE_THAT(contacts.normal, isApprox(Vec2(1.f, 0.f)));
@@ -348,7 +348,7 @@ TEST_CASE("Capsule-Polygon collision detection", "[collision][!mayfail]") {
         };
         Polygon polygon(vertices);
 
-        auto contacts = collides(capsule, polygon, epsilon);
+        auto contacts = collide(capsule, polygon, epsilon);
         REQUIRE(contacts.n_contacts == 1);
         REQUIRE_THAT(contacts.normal, isUnitVector());
         REQUIRE_THAT(contacts.normal, isApprox(Vec2(1.f, 0.f)));
@@ -361,7 +361,7 @@ TEST_CASE("Capsule-Polygon collision detection", "[collision][!mayfail]") {
         };
         Polygon polygon(vertices);
 
-        auto contacts = collides(capsule, polygon, epsilon);
+        auto contacts = collide(capsule, polygon, epsilon);
         REQUIRE(contacts.n_contacts == 1);
         REQUIRE_THAT(contacts.normal, isUnitVector());
     }
@@ -373,7 +373,7 @@ TEST_CASE("Capsule-Polygon collision detection", "[collision][!mayfail]") {
         };
         Polygon polygon(vertices);
 
-        auto contacts = collides(capsule, polygon, epsilon);
+        auto contacts = collide(capsule, polygon, epsilon);
         REQUIRE((contacts.n_contacts == 1));
         REQUIRE_THAT(contacts.normal, isUnitVector());
     }
@@ -390,7 +390,7 @@ TEST_CASE("Polygon-Polygon collision detection", "[collision]") {
         Polygon polygon1(vertices1);
         Polygon polygon2(vertices2);
 
-        auto contacts = collides(polygon1, polygon2, epsilon);
+        auto contacts = collide(polygon1, polygon2, epsilon);
         REQUIRE(contacts.n_contacts == 0);
     }
 
@@ -402,7 +402,7 @@ TEST_CASE("Polygon-Polygon collision detection", "[collision]") {
         Polygon polygon1(vertices1);
         Polygon polygon2(vertices2);
 
-        auto contacts = collides(polygon1, polygon2, epsilon);
+        auto contacts = collide(polygon1, polygon2, epsilon);
         REQUIRE(contacts.n_contacts == 1);
         REQUIRE_THAT(contacts.normal, isUnitVector());
         REQUIRE_THAT(contacts.normal, isApprox(normalized(Vec2(1.f, 0.f))));
@@ -418,7 +418,7 @@ TEST_CASE("Polygon-Polygon collision detection", "[collision]") {
         Polygon polygon1(vertices1);
         Polygon polygon2(vertices2);
 
-        auto contacts = collides(polygon1, polygon2, epsilon);
+        auto contacts = collide(polygon1, polygon2, epsilon);
         REQUIRE(contacts.n_contacts == 2);
         REQUIRE_THAT(contacts.normal, isUnitVector());
         REQUIRE_THAT(contacts.normal, isApprox(Vec2(0.f, 1.f)));
@@ -432,7 +432,7 @@ TEST_CASE("Polygon-Polygon collision detection", "[collision]") {
         Polygon polygon1(vertices1);
         Polygon polygon2(vertices2);
 
-        auto contacts = collides(polygon1, polygon2, epsilon);
+        auto contacts = collide(polygon1, polygon2, epsilon);
         REQUIRE(contacts.n_contacts == 2);
         REQUIRE_THAT(contacts.normal, isUnitVector());
     }
@@ -447,7 +447,7 @@ TEST_CASE("Polygon-Polygon collision detection", "[collision]") {
         Polygon polygon1(vertices1);
         Polygon polygon2(vertices2);
 
-        auto contacts = collides(polygon1, polygon2, epsilon);
+        auto contacts = collide(polygon1, polygon2, epsilon);
         REQUIRE(contacts.n_contacts >= 1);
         REQUIRE_THAT(contacts.normal, isUnitVector());
     }
@@ -458,7 +458,7 @@ TEST_CASE("Polygon-Polygon collision detection", "[collision]") {
         Polygon polygon1(vertices1);
         Polygon polygon2(vertices2);
 
-        auto contacts = collides(polygon1, polygon2, epsilon);
+        auto contacts = collide(polygon1, polygon2, epsilon);
         REQUIRE(contacts.n_contacts == 1);
         REQUIRE_THAT(contacts.normal, isUnitVector());
         REQUIRE_THAT(contacts.normal, isApprox(normalized(Vec2(2.f, 1.f))));

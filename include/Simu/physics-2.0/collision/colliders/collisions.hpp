@@ -32,7 +32,7 @@
 namespace simu
 {
 
-inline bool collides(const BoundingBox& a, const BoundingBox& b) {
+inline bool collide(const BoundingBox& a, const BoundingBox& b) {
     if (!a.isValid() || !b.isValid())
         return false;
 
@@ -61,16 +61,16 @@ struct Contacts
     Uint32 n_contacts = 0;
 };
 
-Contacts<1> collides(const Circle& a, const Circle& b);
+Contacts<1> collide(const Circle& a, const Circle& b);
 
-Contacts<1> collides(const Circle& a, const Capsule& b);
+Contacts<1> collide(const Circle& a, const Capsule& b);
 
-Contacts<1> collides(const Circle& a, const Polygon& b);
+Contacts<1> collide(const Circle& a, const Polygon& b);
 
-Contacts<2> collides(const Capsule& a, const Capsule& b, float epsilon);
+Contacts<2> collide(const Capsule& a, const Capsule& b, float epsilon);
 
-Contacts<2> collides(const Capsule& a, const Polygon& b, float epsilon);
+Contacts<2> collide(const Capsule& a, const Polygon& b, float epsilon);
 
-Contacts<2> collides(const Polygon& a, const Polygon& b, float epsilon);
+Contacts<2> collide(const Polygon& a, const Polygon& b, float epsilon);
 
 } // namespace simu

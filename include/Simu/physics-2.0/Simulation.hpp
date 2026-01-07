@@ -24,19 +24,17 @@
 
 #pragma once
 #include "Settings.hpp"
-#include "Simu/entities/Entities.hpp"
-#include "components/Mass.hpp"
-#include "components/Position.hpp"
-#include "components/Velocity.hpp"
+#include "EntitiesType.hpp"
+#include "collision/broadphase/BoundingVolumeHierarchy.hpp"
 
 namespace simu
 {
+struct CollisionData;
+class CollisionPair;
 
 class Simulation
 {
 public:
-
-    using EntitiesType = Entities<Position, Velocity, Mass>;
 
     /// Construct an empty world
     Simulation() = default;
@@ -44,8 +42,8 @@ public:
     Simulation(const Simulation& other) = delete;
     Simulation(Simulation&& other)      = delete;
 
-    const EntitiesType& entities() const { return _entities; }
-    EntitiesType&       entities() { return _entities; }
+    [[nodiscard]] const EntitiesType& entities() const { return _entities; }
+    EntitiesType&                     entities() { return _entities; }
 
     /// Makes the simulation progress in time.
     /// \param dt How much to advance the simulation (seconds)
@@ -55,13 +53,26 @@ public:
     void updateSettings(const Settings& settings) { _settings = settings; }
 
     /// Read the world's settings
-    const Settings& settings() const { return _settings; }
+    [[nodiscard]] const Settings& settings() const { return _settings; }
 
 private:
 
-    Settings     _settings;
-    EntitiesType _entities;
-};
+    void process_collisions(
+        const EntitiesType& entities,
+        float               epsilon,
+        std::uint_fast8_t   max_steps_since_contacts
+    ) noexcept;
 
+    void
+    process_collision(const EntitiesType& entities, CollisionPair pair, float epsilon) noexcept;
+
+    Settings         _settings;
+    EntitiesType     _entities; // TODO: Huge object
+
+    std::unordered_map<CollisionPair, CollisionData> collision_pairs;
+
+    BoundingVolumeHierarchy static_objects;
+    BoundingVolumeHierarchy dynamic_objects;
+};
 
 } // namespace simu

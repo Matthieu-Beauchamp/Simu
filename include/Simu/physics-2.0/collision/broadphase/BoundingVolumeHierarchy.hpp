@@ -36,8 +36,8 @@ namespace internal
 
 class BvhNodeData
 {
-    static constexpr std::uint64_t left_mask  = 0xFFFFFFFFu;
-    static constexpr std::uint64_t right_mask = left_mask << 32;
+    static constexpr std::uint64_t left_mask  = 0x00000000FFFFFFFFull;
+    static constexpr std::uint64_t right_mask = 0xFFFFFFFF00000000ull;
 
     std::uint64_t bits;
 
@@ -45,7 +45,7 @@ class BvhNodeData
 
 public:
 
-    static BvhNodeData makeLeaf(uint64_t id) {
+    static BvhNodeData makeLeaf(uint32_t id) {
         return BvhNodeData(Entity::reserved_bit | id);
     }
 
@@ -55,7 +55,7 @@ public:
         );
     }
 
-    [[nodiscard]] bool isLeaf() const { return bits >> 63; }
+    [[nodiscard]] bool isLeaf() const { return bits >> 31; }
 
     [[nodiscard]] Entity leaf() const { return Entity(bits); }
     void setLeaf(Entity e) { bits = e.id() | Entity::reserved_bit; }

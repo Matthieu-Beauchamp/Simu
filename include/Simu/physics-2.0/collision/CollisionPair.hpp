@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////
 //
 // Simu
-// Copyright (C) 2025 Matthieu Beauchamp-Boulay
+// Copyright (C) 2026 Matthieu Beauchamp-Boulay
 //
 // This software is provided 'as-is', without any express or implied warranty.
 // In no event will the authors be held liable for any damages arising from the use of this software.
@@ -23,28 +23,41 @@
 ////////////////////////////////////////////////////////////
 
 #pragma once
-#include "Simu/config.hpp"
-#include "Simu/math/Matrix.hpp"
+
+#include "Simu/entities/Entities.hpp"
+#include "colliders/collisions.hpp"
 
 namespace simu
 {
-struct Settings
+
+
+class CollisionPair
 {
-    /// Gravity to apply to the simulation
-    Vec2 gravity = Vec2{0.f, -10.f};
+public:
 
-    /// Number of velocity solver iterations
-    Uint32 n_velocity_iterations = 8;
+    Entity a;
+    Entity b;
 
-    /// Number of position solver iterations
-    Uint32 n_position_iterations = 2;
+    CollisionPair(Entity a, Entity b) : a{a}, b{b} {
+        if (a.id() > b.id()) {
+            std::swap(this->a, this->b);
+        }
+    }
 
-    /// Number of physics steps until non-touching collisions are removed from the cache
-    Uint8 n_steps_without_contacts = 1;
+    [[nodiscard]] std::uint64_t id() const { return a.id() | (b.id() << 32); }
 
-    /// Enable constraints to guess impulse based on the previous step.
-    bool enable_warm_starting = true;
-
+    bool operator==(const CollisionPair& other) const {
+        return id() == other.id();
+    }
 };
 
+
 } // namespace simu
+
+template <>
+struct std::hash<simu::CollisionPair>
+{
+    size_t operator()(const simu::CollisionPair& pair) const noexcept {
+        return std::hash<std::uint64_t>{}(pair.id());
+    }
+};

@@ -42,18 +42,24 @@ class BvhNodeData;
 class Entity
 {
     // Reserved for tagging in BVH nodes
-    static constexpr std::uint64_t reserved_bit = static_cast<std::uint64_t>(1) << 63;
-    static constexpr std::uint64_t id_mask = ~reserved_bit;
+    static constexpr std::uint32_t reserved_bit    = 0x80000000;
+
+    // TODO: Add id recycling
+    static constexpr std::uint32_t generation_mask = 0x7F000000;
+
+    // Allows a maximum of ~16 million objects
+    static constexpr std::uint32_t id_mask = ~(reserved_bit | generation_mask);
+
 
     std::uint64_t _id;
 
-    explicit Entity(std::size_t id) : _id(id & id_mask) {}
+    explicit Entity(std::uint32_t id) : _id(id & id_mask) {}
     friend internal::EntityGenerator;
     friend internal::BvhNodeData;
 
 public:
 
-    [[nodiscard]] std::size_t id() const { return _id; }
+    [[nodiscard]] std::uint32_t id() const { return _id; }
 
     bool operator==(const Entity& other) const = default;
 };
@@ -64,7 +70,7 @@ namespace internal
 
 class EntityGenerator
 {
-    std::size_t next_id = 1;
+    std::uint32_t next_id = 1;
 
 public:
 
@@ -78,7 +84,7 @@ public:
 template <>
 struct std::hash<simu::Entity>
 {
-    std::size_t operator()(const simu::Entity& s) const noexcept {
-        return std::hash<std::size_t>{}(s.id());
+    std::uint32_t operator()(const simu::Entity& s) const noexcept {
+        return std::hash<std::uint32_t>{}(s.id());
     }
 };

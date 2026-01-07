@@ -134,7 +134,7 @@ inline Contacts<2> create_contacts(
 namespace simu
 {
 
-Contacts<1> collides(const Circle& a, const Circle& b) {
+Contacts<1> collide(const Circle& a, const Circle& b) {
     float min_dist = a.radius() + b.radius();
     Vec2  dir      = b.center() - a.center();
     bool  collides = normSquared(dir) <= min_dist * min_dist;
@@ -152,7 +152,7 @@ Contacts<1> collides(const Circle& a, const Circle& b) {
     }
 }
 
-Contacts<1> collides(const Circle& a, const Capsule& b) {
+Contacts<1> collide(const Circle& a, const Capsule& b) {
     Vec2  axis     = normalized(b.top() - b.bottom());
     float axis_len = norm(b.top() - b.bottom());
 
@@ -181,12 +181,12 @@ Contacts<1> collides(const Circle& a, const Capsule& b) {
 
     if (squared_dist_to_top <= squared_dist_to_bottom && squared_dist_to_top <= squared_dist_to_axis) {
         // Collision with top circle
-        return collides(a, Circle(top_center, b.radius()));
+        return collide(a, Circle(top_center, b.radius()));
     }
 
     if (squared_dist_to_bottom <= squared_dist_to_top && squared_dist_to_bottom <= squared_dist_to_axis) {
         // Collision with bottom circle
-        return collides(a, Circle(bottom_center, b.radius()));
+        return collide(a, Circle(bottom_center, b.radius()));
     }
 
     // Collision with axis
@@ -207,7 +207,7 @@ Contacts<1> collides(const Circle& a, const Capsule& b) {
     }
 }
 
-Contacts<1> collides(const Circle& a, const Polygon& b) {
+Contacts<1> collide(const Circle& a, const Polygon& b) {
     Contacts<1> contact;
     float       min_pen = std::numeric_limits<float>::max();
 
@@ -272,7 +272,7 @@ Contacts<1> collides(const Circle& a, const Polygon& b) {
     return contact;
 }
 
-Contacts<2> collides(const Capsule& a, const Capsule& b, float epsilon) {
+Contacts<2> collide(const Capsule& a, const Capsule& b, float epsilon) {
     Vec2 a_top_center    = a.top_center();
     Vec2 a_bottom_center = a.bottom_center();
     Vec2 b_top_center    = b.top_center();
@@ -381,7 +381,7 @@ Contacts<2> collides(const Capsule& a, const Capsule& b, float epsilon) {
     return result;
 }
 
-Contacts<2> collides(const Capsule& a, const Polygon& b, float epsilon) {
+Contacts<2> collide(const Capsule& a, const Polygon& b, float epsilon) {
     Contacts<2> contact       = Contacts<2>::none();
     float       min_pen       = std::numeric_limits<float>::max();
     Vec2        top_center    = a.top_center();
@@ -512,7 +512,7 @@ Contacts<2> collides(const Capsule& a, const Polygon& b, float epsilon) {
     return contact;
 }
 
-Contacts<2> collides(const Polygon& a, const Polygon& b, float epsilon) {
+Contacts<2> collide(const Polygon& a, const Polygon& b, float epsilon) {
     std::size_t current_contact_edge = std::numeric_limits<std::size_t>::max();
     float       min_pen              = std::numeric_limits<float>::max();
     bool        contact_edge_is_on_a = true;

@@ -23,7 +23,6 @@
 ////////////////////////////////////////////////////////////
 
 #pragma once
-#include "Simu/math/Geometry.hpp"
 
 namespace simu
 {

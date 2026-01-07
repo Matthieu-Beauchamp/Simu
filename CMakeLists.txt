@@ -22,12 +22,12 @@ simu_update_submodules(${CMAKE_CURRENT_LIST_DIR})
 # Options
 ############################################################
 
-simu_define_option(SIMU_BUILD_DEMOS   ON BOOL  "Build demos")
+simu_define_option(SIMU_BUILD_DEMOS ON BOOL "Build demos")
 
-simu_define_option(SIMU_BUILD_TESTS   ON BOOL  "Build tests")
+simu_define_option(SIMU_BUILD_TESTS ON BOOL "Build tests")
 simu_define_option(SIMU_TEST_COVERAGE OFF BOOL "Produce coverage report for tests")
 
-simu_define_option(SIMU_BUILD_DOCS    OFF BOOL "Build documentation")
+simu_define_option(SIMU_BUILD_DOCS OFF BOOL "Build documentation")
 
 
 ############################################################
@@ -53,6 +53,18 @@ add_library(simu
         src/Simu/physics-2.0/collisions.cpp
         src/Simu/physics-2.0/Simulation.cpp
         src/Simu/physics-2.0/BoundingVolumeHierarchy.cpp
+        include/Simu/physics-2.0/collision/CollisionPair.hpp
+        src/Simu/physics-2.0/CollisionManager.cpp
+        include/Simu/physics-2.0/EntitiesType.hpp
+        include/Simu/physics-2.0/collision/CollisionData.hpp
+)
+
+target_sources(simu
+        PRIVATE FILE_SET HEADERS
+        BASE_DIRS include/Simu/
+        FILES
+        include/Simu/physics-2.0/collision/CollisionManager.hpp
+        include/Simu/physics-2.0/collision/colliders/ColliderType.hpp
 )
 
 simu_set_compile_options(simu)
@@ -60,8 +72,8 @@ simu_set_compile_definitions(simu)
 target_compile_definitions(simu PRIVATE SIMU_EXPORT)
 
 target_include_directories(simu PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>
-    $<INSTALL_INTERFACE:include>  # <prefix>/include
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>
+        $<INSTALL_INTERFACE:include>  # <prefix>/include
 )
 target_include_directories(simu PRIVATE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/src>
@@ -71,45 +83,45 @@ target_include_directories(simu PRIVATE
 include(FetchContent)
 if (SIMU_BUILD_DEMOS)
     add_library(simu-app
-        src/Simu/app/Application.cpp
-        src/Simu/app/Camera.cpp
-        src/Simu/app/Renderer.cpp
-        src/Simu/app/Scene.cpp
-        src/Simu/app/Tool.cpp
+            src/Simu/app/Application.cpp
+            src/Simu/app/Camera.cpp
+            src/Simu/app/Renderer.cpp
+            src/Simu/app/Scene.cpp
+            src/Simu/app/Tool.cpp
     )
     simu_set_compile_options(simu)
     simu_set_compile_definitions(simu)
 
-    target_link_libraries(simu-app     simu)
+    target_link_libraries(simu-app simu)
 
     target_include_directories(simu-app PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>
-        $<INSTALL_INTERFACE:include>  # <prefix>/include
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>
+            $<INSTALL_INTERFACE:include>  # <prefix>/include
     )
 
     set(GLFW_BUILD_DOCS OFF CACHE INTERNAL "" FORCE)
     set(GLFW_BUILD_TESTS OFF CACHE INTERNAL "" FORCE)
     set(GLFW_BUILD_EXAMPLES OFF CACHE INTERNAL "" FORCE)
     FetchContent_Declare(
-        GLFW
-        GIT_REPOSITORY https://github.com/glfw/glfw.git
-        GIT_TAG        7482de6 # v3.3.8
+            GLFW
+            GIT_REPOSITORY https://github.com/glfw/glfw.git
+            GIT_TAG 7482de6 # v3.3.8
     )
 
-    set(OPTION_SELF_CONTAINED          OFF CACHE INTERNAL "" FORCE)
-    set(OPTION_BUILD_TESTS             OFF CACHE INTERNAL "" FORCE)
-    set(OPTION_BUILD_DOCS              OFF CACHE INTERNAL "" FORCE)
-    set(OPTION_BUILD_TOOLS             OFF CACHE INTERNAL "" FORCE)
-    set(OPTION_BUILD_EXAMPLES          OFF CACHE INTERNAL "" FORCE)
+    set(OPTION_SELF_CONTAINED OFF CACHE INTERNAL "" FORCE)
+    set(OPTION_BUILD_TESTS OFF CACHE INTERNAL "" FORCE)
+    set(OPTION_BUILD_DOCS OFF CACHE INTERNAL "" FORCE)
+    set(OPTION_BUILD_TOOLS OFF CACHE INTERNAL "" FORCE)
+    set(OPTION_BUILD_EXAMPLES OFF CACHE INTERNAL "" FORCE)
     set(OPTION_BUILD_WITH_BOOST_THREAD OFF CACHE INTERNAL "" FORCE)
-    set(OPTION_BUILD_CHECK             OFF CACHE INTERNAL "" FORCE)
-    set(OPTION_BUILD_OWN_KHR_HEADERS   OFF CACHE INTERNAL "" FORCE)
-    set(OPTION_BUILD_WITH_LTO          OFF CACHE INTERNAL "" FORCE)
-    set(OPTION_USE_GIT_INFORMATION     ON  CACHE INTERNAL "" FORCE)
+    set(OPTION_BUILD_CHECK OFF CACHE INTERNAL "" FORCE)
+    set(OPTION_BUILD_OWN_KHR_HEADERS OFF CACHE INTERNAL "" FORCE)
+    set(OPTION_BUILD_WITH_LTO OFF CACHE INTERNAL "" FORCE)
+    set(OPTION_USE_GIT_INFORMATION ON CACHE INTERNAL "" FORCE)
     FetchContent_Declare(
-        glbinding
-        GIT_REPOSITORY https://github.com/cginternals/glbinding.git
-        GIT_TAG        c8a66c92e8a81d82e384a4c80207913519c1f17e # v3.5.0
+            glbinding
+            GIT_REPOSITORY https://github.com/cginternals/glbinding.git
+            GIT_TAG c8a66c92e8a81d82e384a4c80207913519c1f17e # v3.5.0
     )
 
     FetchContent_MakeAvailable(GLFW glBinding)
@@ -118,7 +130,7 @@ if (SIMU_BUILD_DEMOS)
     target_link_libraries(simu-app glbinding::glbinding imgui)
 
     add_subdirectory(demos)
-endif()
+endif ()
 
 
 ############################################################
@@ -128,9 +140,9 @@ endif()
 if (SIMU_BUILD_TESTS)
 
     FetchContent_Declare(
-      Catch2
-      GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-      GIT_TAG        3f0283d # v3.3.2
+            Catch2
+            GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+            GIT_TAG 3f0283d # v3.3.2
     )
     FetchContent_MakeAvailable(Catch2)
     list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
@@ -166,16 +178,16 @@ if (SIMU_BUILD_TESTS)
     )
 
     target_link_libraries(simu-test PRIVATE
-        Catch2::Catch2WithMain
-        simu
+            Catch2::Catch2WithMain
+            simu
     )
 
     catch_discover_tests(simu-test)
 
     if (SIMU_TEST_COVERAGE)
         simu_coverage(simu-test)
-    endif()
-endif()
+    endif ()
+endif ()
 
 
 ############################################################
@@ -209,7 +221,7 @@ if (SIMU_BUILD_DOCS)
     set(DOCS_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
     add_subdirectory(docs)
-endif()
+endif ()
 
 ############################################################
 # TODO: Installation 
