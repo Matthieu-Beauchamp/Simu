@@ -26,14 +26,10 @@
 
 #include "Simu/config.hpp"
 
-#include "Simu/physics.hpp"
-
-#include "Simu/utility/View.hpp"
-
 #include "Simu/app/Renderer.hpp"
 #include "Simu/app/Camera.hpp"
 #include "Simu/app/Event.hpp"
-#include "Simu/app/VisiblePhysics.hpp"
+#include "Simu/app/SimulationRenderer.hpp"
 #include "Simu/app/Tool.hpp"
 
 namespace simu
@@ -45,34 +41,18 @@ class Scene
 {
 public:
 
-    Scene() : world_{}
-    {
-        auto contactFactory = [this](
-                                  Collider&                           first,
-                                  Collider&                           second,
-                                  const typename World::ContactAlloc& alloc
-                              ) {
-            return makeUnique<VisibleContactConstraint>(
-                alloc, first, second, this->renderer_
-            );
-        };
-
-        world_.setContactFactory(contactFactory);
-        tool_ = tools_.emplace_back(std::make_unique<NoTool>()).get();
-    }
+    Scene() { tool_ = tools_.emplace_back(std::make_unique<NoTool>()).get(); }
 
     virtual ~Scene() = default;
 
     bool isInit() const { return isInit_; }
-    void reset()
-    {
-        world_.clear();
+    void reset() {
+        simu_.clear();
         this->init(*renderer_);
     }
 
     // play speeds above 1 may hinder the physics accuracy
-    void setPlaySpeed(float speed)
-    {
+    void setPlaySpeed(float speed) {
         if (speed > 0.f)
             playSpeed_ = speed;
     }
@@ -82,20 +62,22 @@ public:
     void pause() { isPaused_ = true; }
     bool isPaused() const { return isPaused_; }
 
-    void step(float dt)
-    {
-        dt = std::min(dt, 1.f / 60.f);
+    void step(Settings settings) {
+        settings.dt      = std::min(settings.dt, 1.f / 60.f);
+        simu_.settings() = settings;
+        float dt         = settings.dt;
 
         this->moveCamera(dt);
         renderer_->setCameraTransform(camera_.transform());
 
-        renderer_->fillScreen(Rgba{50, 10, 50, 255});
+        if (!isPaused()) {
+            dt *= playSpeed();
+            this->preStep(dt);
+            simu_.step();
+            this->postStep(dt);
+        }
 
-        dt *= playSpeed() * static_cast<float>(!isPaused());
-        this->preStep(dt);
-        world_.step(dt);
-        this->postStep(dt);
-
+        simu_renderer.draw(simu_, *renderer_);
         renderer_->flush();
     }
 
@@ -105,8 +87,8 @@ public:
     Application*       app() { return app_; }
     const Application* app() const { return app_; }
 
-    World&       world() { return world_; }
-    const World& world() const { return world_; }
+    Simulation&       simu() { return simu_; }
+    const Simulation& simu() const { return simu_; }
 
 protected:
 
@@ -117,9 +99,9 @@ protected:
     // called inside an ImGui window Begin/End block
     virtual void doGui() {}
 
-    virtual void onClear(){};
-    virtual void preStep(float /* dt */){};
-    virtual void postStep(float /* dt */){};
+    virtual void onClear() {};
+    virtual void preStep(float /* dt */) {};
+    virtual void postStep(float /* dt */) {};
 
     virtual void moveCamera(float dt);
 
@@ -141,30 +123,24 @@ protected:
 
     // Tools should be registered in the constructor, only once per tool.
     template <std::derived_from<Tool> T, class... Args>
-    T* registerTool(Args&&... args)
-    {
+    T* registerTool(Args&&... args) {
         tools_.emplace_back(std::make_unique<T>(std::forward<Args>(args)...));
         return static_cast<T*>(tools_.back().get());
     }
 
-    void registerAllTools()
-    {
+    void registerAllTools() {
         registerTool<Grabber>(*this);
         registerTool<BoxSpawner>(*this);
     }
 
     template <std::derived_from<Tool> T>
-    T* useTool()
-    {
+    T* useTool() {
         return static_cast<T*>(useTool(T::name));
     }
 
-    Tool* useTool(const std::string& name)
-    {
-        for (const auto& t : tools_)
-        {
-            if (t->getName() == name)
-            {
+    Tool* useTool(const std::string& name) {
+        for (const auto& t : tools_) {
+            if (t->getName() == name) {
                 tool_ = t.get();
                 return currentTool();
             }
@@ -186,14 +162,16 @@ private:
     void mouseMove(Vec2 newPos);
     void mouseScroll(Vec2 scroll);
 
-    World  world_{};
-    Camera camera_{};
+    Simulation simu_{};
+    Camera     camera_{};
 
     Tool*                            tool_ = nullptr;
     std::list<std::unique_ptr<Tool>> tools_{};
 
     Renderer*    renderer_ = nullptr;
     Application* app_      = nullptr;
+
+    SimulationRenderer simu_renderer{};
 
     float playSpeed_ = 1.f;
     bool  isPaused_  = false;

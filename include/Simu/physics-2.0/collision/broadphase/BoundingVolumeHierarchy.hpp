@@ -50,12 +50,14 @@ public:
     }
 
     static BvhNodeData makeInternal(uint32_t L, uint32_t R) {
+        SIMU_ASSERT(L <= ObjectId::reserved_bit - 1, "Left child index out of bounds");
+        SIMU_ASSERT(R <= ObjectId::reserved_bit - 1, "Right child index out of bounds");
         return BvhNodeData(
             static_cast<std::uint64_t>(L) | (static_cast<std::uint64_t>(R) << 32)
         );
     }
 
-    [[nodiscard]] bool isLeaf() const { return bits >> 31; }
+    [[nodiscard]] bool isLeaf() const { return bits & ObjectId::reserved_bit; }
 
     [[nodiscard]] ObjectId leaf() const {
         return ObjectId(static_cast<std::uint32_t>(bits));
@@ -63,10 +65,14 @@ public:
     void setLeaf(ObjectId e) { bits = e.id() | ObjectId::reserved_bit; }
 
     [[nodiscard]] std::uint32_t left() const { return bits & left_mask; }
-    void setLeft(std::uint32_t L) { bits = (bits & ~left_mask) | L; }
+    void                        setLeft(std::uint32_t L) {
+        SIMU_ASSERT(L <= ObjectId::reserved_bit - 1, "Left child index out of bounds");
+        bits = (bits & ~left_mask) | L;
+    }
 
     [[nodiscard]] std::uint32_t right() const { return bits >> 32; }
     void                        setRight(std::uint32_t R) {
+        SIMU_ASSERT(R <= ObjectId::reserved_bit - 1, "Right child index out of bounds");
         bits = (bits & ~right_mask) | (static_cast<std::uint64_t>(R) << 32);
     }
 };

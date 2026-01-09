@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////
 //
 // Simu
-// Copyright (C) 2026 Matthieu Beauchamp-Boulay
+// Copyright (C) 2023 Matthieu Beauchamp-Boulay
 //
 // This software is provided 'as-is', without any express or implied warranty.
 // In no event will the authors be held liable for any damages arising from the use of this software.
@@ -22,33 +22,20 @@
 //
 ////////////////////////////////////////////////////////////
 
-#pragma once
-#include "ObjectId.hpp"
-#include "../components/Mass.hpp"
-#include "../components/Position.hpp"
-#include "../components/Velocity.hpp"
+#include "Demos.hpp"
 
-namespace simu
+
+int main()
 {
+    simu::Application app{};
+    app.setName("Simu");
 
-struct DynamicPhysicsObject
-{
-    /// The id of this object.
-    /// Modifying this value is undefined
-    ObjectId id = ObjectId::unset();
+    app.registerScene<BoxStacks>("Box stacks");
+    // app.registerScene<NewtonPendulum>("Newton's Pendulum");
+    // app.registerScene<Pyramid>("Pyramid");
+    // app.registerScene<Tower>("Tower");
+    // app.registerScene<Tumbler>("Tumbler");
 
-    /// The position of the object's centroid
-    Position position;
-
-    /// The velocity of the object
-    Velocity velocity;
-
-    /// The mass of the object
-    Mass mass = Mass(0, 0);
-
-    /// The id of the object's collider.
-    /// Modifying is undefined
-    ObjectId collider_id = ObjectId::unset();
-};
-
-} // namespace simu
+    app.run();
+    return 0;
+}

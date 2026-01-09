@@ -18,7 +18,7 @@ Body* makeBox(World& w, Vec2 pos = Vec2{0, 0}, float theta = 0.f, Vec2 dim = Vec
     descr.orientation = theta;
     auto b            = w.makeBody(descr);
 
-    b->addCollider(ColliderDescriptor{Polygon::box(dim)});
+    b->addCollider(ColliderDescriptor{PolygonOld::box(dim)});
     return b;
 }
 
@@ -435,7 +435,7 @@ TEST_CASE("Physics")
             World world{};
 
             BodyDescriptor     descr{};
-            ColliderDescriptor cDescr{Polygon::box(Vec2::filled(1.f))};
+            ColliderDescriptor cDescr{PolygonOld::box(Vec2::filled(1.f))};
             cDescr.material.bounciness.value = 1.f;
 
             descr.position = Vec2{-2, 0};
@@ -467,7 +467,7 @@ TEST_CASE("Physics")
             World world{};
 
             BodyDescriptor     descr{};
-            ColliderDescriptor cDescr{Polygon::box(Vec2::filled(1.f))};
+            ColliderDescriptor cDescr{PolygonOld::box(Vec2::filled(1.f))};
             cDescr.material.bounciness.value = 1.f;
 
             descr.position  = Vec2{-2, 0};
@@ -535,7 +535,7 @@ TEST_CASE("Physics")
 
             void onConstruction(World& world) override
             {
-                ColliderDescriptor cDescr{Polygon::box(Vec2{2.f, 1.f})};
+                ColliderDescriptor cDescr{PolygonOld::box(Vec2{2.f, 1.f})};
                 addCollider(cDescr);
 
                 BodyDescriptor     wheelDescr{};
@@ -594,7 +594,7 @@ TEST_CASE("Physics")
                 material.friction.value = 1.f;
 
                 return ColliderDescriptor{
-                    Polygon{points.begin(), points.end()},
+                    PolygonOld{points.begin(), points.end()},
                     material
                 };
             }
@@ -621,7 +621,7 @@ TEST_CASE("Physics")
         groundDescr.dominance = 0.f;
 
         ColliderDescriptor groundColliderDescr{
-            Polygon::box(Vec2{10.f, 1.f}, Vec2{0.f, -0.5f})};
+            PolygonOld::box(Vec2{10.f, 1.f}, Vec2{0.f, -0.5f})};
 
         auto ground = world.makeBody(groundDescr);
         ground->addCollider(groundColliderDescr);
@@ -669,7 +669,7 @@ TEST_CASE("Physics")
         groundDescr.dominance = 0.f;
 
         ColliderDescriptor groundColliderDescr{
-            Polygon::box(Vec2{10.f, 1.f}, Vec2{0.f, -0.5f})};
+            PolygonOld::box(Vec2{10.f, 1.f}, Vec2{0.f, -0.5f})};
 
         auto ground = world.makeBody(groundDescr);
         ground->addCollider(groundColliderDescr);
@@ -694,7 +694,7 @@ TEST_CASE("Physics")
         material.friction.value = 1.f;
 
         ColliderDescriptor wheelColliderDescr{
-            Polygon{points.begin(), points.end()},
+            PolygonOld{points.begin(), points.end()},
             material
         };
 
@@ -731,7 +731,7 @@ TEST_CASE("Physics")
             descr.position[1] = 2.f * index;
 
             ColliderDescriptor cDescr{
-                Polygon::box(Vec2{1.f, 1.f}, Vec2{0.5f, 0.5f})};
+                PolygonOld::box(Vec2{1.f, 1.f}, Vec2{0.5f, 0.5f})};
             cDescr.material.friction.value = 0.5f;
 
             auto b = world.makeBody(descr);
@@ -743,7 +743,7 @@ TEST_CASE("Physics")
         floorDescr.dominance = 0.f;
 
         ColliderDescriptor floorColliderDescr{
-            Polygon::box(Vec2{4.f, 1.f}, Vec2{0.f, -0.5f})};
+            PolygonOld::box(Vec2{4.f, 1.f}, Vec2{0.f, -0.5f})};
         floorColliderDescr.material.friction.value = 0.5f;
 
         Body* floor = world.makeBody(floorDescr);

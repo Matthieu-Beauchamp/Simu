@@ -31,8 +31,15 @@ namespace simu
 
 struct StaticPhysicsObject
 {
+    /// The id of the object.
+    /// Modifying is undefined
     ObjectId id = ObjectId::unset();
+
+    /// The position of the object's centroid
     Position position;
+
+    /// The id of the object's collider.
+    /// Modifying is undefined
     ObjectId collider_id = ObjectId::unset();
 };
 

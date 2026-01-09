@@ -63,7 +63,6 @@ target_sources(simu
         FILES
         include/Simu/physics-2.0/collision/colliders/ColliderType.hpp
         include/Simu/physics-2.0/collision/CollisionPair.hpp
-        include/Simu/physics-2.0/collision/CollisionData.hpp
         include/Simu/physics-2.0/PhysicsObjects/ObjectId.hpp
         include/Simu/physics-2.0/PhysicsObjects/ObjectPool.hpp
         include/Simu/physics-2.0/PhysicsObjects/DynamicPhysicsObject.hpp
@@ -91,6 +90,7 @@ if (SIMU_BUILD_DEMOS)
             src/Simu/app/Renderer.cpp
             src/Simu/app/Scene.cpp
             src/Simu/app/Tool.cpp
+            include/Simu/app/SimulationRenderer.cpp
     )
     simu_set_compile_options(simu)
     simu_set_compile_definitions(simu)

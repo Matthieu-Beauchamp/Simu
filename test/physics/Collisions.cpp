@@ -430,6 +430,10 @@ TEST_CASE("Polygon-Polygon collision detection", "[collision]") {
 
         auto contacts = collide(polygon1, polygon2, epsilon);
         REQUIRE(contacts.n_contacts == 2);
+        REQUIRE_THAT(contacts.contacts_a[0], isApprox(Vec2(2.f, 1.f)));
+        REQUIRE_THAT(contacts.contacts_a[1], isApprox(Vec2(1.f, 1.f)));
+        REQUIRE_THAT(contacts.contacts_b[0], isApprox(Vec2(2.f, 1.f)));
+        REQUIRE_THAT(contacts.contacts_b[1], isApprox(Vec2(1.f, 1.f)));
         REQUIRE_THAT(contacts.normal, isUnitVector());
     }
 

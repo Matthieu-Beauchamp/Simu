@@ -47,22 +47,8 @@ inline BoundingBox bounding_box(const Polygon& polygon) {
     return BoundingBox(polygon);
 }
 
-inline BoundingBox bounding_box(ObjectId collider_id, const ColliderPool& colliders) {
-    ColliderType type = colliders.get_type(collider_id);
-    switch (type) {
-        case ColliderType::Circle:
-            return bounding_box(colliders.circle(collider_id));
-        case ColliderType::Capsule:
-            return bounding_box(colliders.capsule(collider_id));
-        case ColliderType::Polygon:
-            return bounding_box(colliders.polygon(collider_id));
-    }
-
-    SIMU_ASSERT(false, "Unknown collider type");
-}
-
-inline BoundingBox
-bounding_box(ObjectId collider_id, const ColliderPool& colliders, Position position) {
+inline [[nodiscard]] BoundingBox
+bounding_box(const ObjectId& collider_id, const ColliderPool& colliders, const Position& position) {
     ColliderType type = colliders.get_type(collider_id);
     switch (type) {
         case ColliderType::Circle:

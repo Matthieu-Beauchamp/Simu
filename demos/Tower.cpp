@@ -43,7 +43,7 @@ void Tower::init(simu::Renderer& renderer)
     renderer.setPointRadius(0.1f);
     renderer.setLineWidth(0.1f);
 
-    world().makeForceField<simu::Gravity>(simu::Vec2{0.f, -10.f});
+    simu().makeForceField<simu::Gravity>(simu::Vec2{0.f, -10.f});
 
     simu::BodyDescriptor     descr{};
     simu::ColliderDescriptor cDescr{
@@ -51,7 +51,7 @@ void Tower::init(simu::Renderer& renderer)
 
     descr.dominance                = 0.f;
     cDescr.material.friction.value = 0.8f;
-    world()
+    simu()
         .makeBody<simu::VisibleBody>(descr, simu::Rgba{0, 0, 0, 255}, &renderer)
         ->addCollider(cDescr);
 
@@ -86,7 +86,7 @@ void Tower::makeSlab(simu::Vec2 pos, bool vertical)
     d.orientation = vertical ? std::numbers::pi_v<float> / 2 : 0.f;
     cDescr.material.friction.value = 0.5f;
 
-    world()
+    simu()
         .makeBody<simu::VisibleBody>(d, simu::Rgba::filled(200), app()->renderer())
         ->addCollider(cDescr);
 }

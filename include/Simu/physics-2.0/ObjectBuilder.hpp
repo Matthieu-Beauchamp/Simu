@@ -35,8 +35,8 @@ class ObjectBuilder
 {
     friend class Simulation;
 
-    Position position_;
-    Velocity velocity_;
+    Position position_{};
+    Velocity velocity_{};
     Mass     mass_{};
 
     ColliderType collider_type_ = ColliderType::Circle;
@@ -54,14 +54,21 @@ class ObjectBuilder
     bool is_static_ = false;
 
 public:
+    ObjectBuilder() = default;
 
     ObjectBuilder& set_position(const Position& position) {
         position_ = position;
         return *this;
     }
+    ObjectBuilder& set_position(Vec2 pos, float angle = 0.f) {
+        return set_position(Position(pos, angle));
+    }
     ObjectBuilder& set_velocity(const Velocity& velocity) {
         velocity_ = velocity;
         return *this;
+    }
+    ObjectBuilder& set_velocity(Vec2 linear, float angular = 0.f) {
+        return set_velocity(Velocity(linear, angular));
     }
     ObjectBuilder& set_mass(const Mass& mass) {
         mass_ = mass;

@@ -62,71 +62,86 @@ namespace
  * @param epsilon tolerance to determine if two points are different contacts
  * @return The resulting contacts
  */
-[[nodiscard]] Contacts<2>
-collide(ObjectId a, ObjectId b, const ColliderPool& colliders, float epsilon = CONTACT_EPSILON) SIMU_NO_EXCEPT {
+[[nodiscard]] Contacts<2> collide(
+    ObjectId            a,
+    ObjectId            b,
+    Position            pos_a,
+    Position            pos_b,
+    const ColliderPool& colliders,
+    float               epsilon = CONTACT_EPSILON
+) SIMU_NO_EXCEPT {
     ColliderType type_a = colliders.get_type(a);
     ColliderType type_b = colliders.get_type(b);
 
     switch (type_a) {
         case ColliderType::Circle:
         {
-            const Circle& a_collider = colliders.circle(a);
+            const Circle& a_collider = pos_a.toWorldSpace() * colliders.circle(a);
             switch (type_b) {
                 case ColliderType::Circle:
                 {
-                    const auto& b_collider = colliders.circle(b);
+                    const auto& b_collider = pos_b.toWorldSpace()
+                                             * colliders.circle(b);
                     return map_contacts(collide(a_collider, b_collider));
                 }
                 case ColliderType::Capsule:
                 {
-                    const auto& b_collider = colliders.capsule(b);
+                    const auto& b_collider = pos_b.toWorldSpace()
+                                             * colliders.capsule(b);
                     return map_contacts(collide(a_collider, b_collider));
                 }
                 case ColliderType::Polygon:
                 {
-                    const auto& b_collider = colliders.polygon(b);
+                    const auto& b_collider = pos_b.toWorldSpace()
+                                             * colliders.polygon(b);
                     return map_contacts(collide(a_collider, b_collider));
                 }
             }
         }
         case ColliderType::Capsule:
         {
-            const Capsule& a_collider = colliders.capsule(a);
+            const Capsule& a_collider = pos_a.toWorldSpace() * colliders.capsule(a);
             switch (type_b) {
                 case ColliderType::Circle:
                 {
-                    const auto& b_collider = colliders.circle(b);
+                    const auto& b_collider = pos_b.toWorldSpace()
+                                             * colliders.circle(b);
                     return inverse_contacts(map_contacts(collide(b_collider, a_collider)));
                 }
                 case ColliderType::Capsule:
                 {
-                    const auto& b_collider = colliders.capsule(b);
+                    const auto& b_collider = pos_b.toWorldSpace()
+                                             * colliders.capsule(b);
                     return collide(a_collider, b_collider, epsilon);
                 }
                 case ColliderType::Polygon:
                 {
-                    const auto& b_collider = colliders.polygon(b);
+                    const auto& b_collider = pos_b.toWorldSpace()
+                                             * colliders.polygon(b);
                     return collide(a_collider, b_collider, epsilon);
                 }
             }
         }
         case ColliderType::Polygon:
         {
-            const Polygon& a_collider = colliders.polygon(a);
+            const Polygon& a_collider = pos_a.toWorldSpace() * colliders.polygon(a);
             switch (type_b) {
                 case ColliderType::Circle:
                 {
-                    const auto& b_collider = colliders.circle(b);
+                    const auto& b_collider = pos_b.toWorldSpace()
+                                             * colliders.circle(b);
                     return inverse_contacts(map_contacts(collide(b_collider, a_collider)));
                 }
                 case ColliderType::Capsule:
                 {
-                    const auto& b_collider = colliders.capsule(b);
+                    const auto& b_collider = pos_b.toWorldSpace()
+                                             * colliders.capsule(b);
                     return inverse_contacts(collide(b_collider, a_collider, epsilon));
                 }
                 case ColliderType::Polygon:
                 {
-                    const auto& b_collider = colliders.polygon(b);
+                    const auto& b_collider = pos_b.toWorldSpace()
+                                             * colliders.polygon(b);
                     return collide(a_collider, b_collider, epsilon);
                 }
             }
@@ -148,10 +163,10 @@ void Simulation::step() {
     {
         std::vector<ObjectId>    dynamic_objects_ids;
         std::vector<BoundingBox> dynamic_objects_boxes;
-        for (DynamicPhysicsObject& object : dynamic_objects.objects()) {
+        for (DynamicPhysicsObject& object : _dynamic_objects.objects()) {
             dynamic_objects_ids.push_back(object.id);
             dynamic_objects_boxes.emplace_back(
-                bounding_box(object.collider_id, colliders, object.position)
+                bounding_box(object.collider_id, _colliders, object.position)
             );
         }
 
@@ -165,9 +180,9 @@ void Simulation::step() {
 
         std::vector<ObjectId>    static_objects_ids;
         std::vector<BoundingBox> static_objects_boxes;
-        for (StaticPhysicsObject& object : static_objects.objects()) {
+        for (StaticPhysicsObject& object : _static_objects.objects()) {
             static_objects_ids.push_back(object.id);
-            static_objects_boxes.emplace_back(bounding_box(object.collider_id, colliders));
+            static_objects_boxes.emplace_back(bounding_box(object.collider_id, _colliders, object.position));
         }
 
         static_bvh = BoundingVolumeHierarchy::mean_centroid_split(
@@ -177,7 +192,7 @@ void Simulation::step() {
 
     // Step velocity according to gravity
     Vec2 gravity = _settings.gravity * dt;
-    for (DynamicPhysicsObject& object : dynamic_objects.objects()) {
+    for (DynamicPhysicsObject& object : _dynamic_objects.objects()) {
         object.velocity.linear += gravity;
     }
 
@@ -188,7 +203,7 @@ void Simulation::step() {
     // TODO: Solve other constraints
 
     // Step position according to resolved velocities
-    for (DynamicPhysicsObject& object : dynamic_objects.objects()) {
+    for (DynamicPhysicsObject& object : _dynamic_objects.objects()) {
         object.position.advance(object.velocity.linear * dt, object.velocity.angular * dt);
         if (object.collider_id) {}
     }
@@ -199,12 +214,23 @@ void Simulation::step() {
     //      => Can do a postorder traversal update
 }
 
+Position Simulation::get_position(ObjectId object_id) const SIMU_NO_EXCEPT {
+    switch (object_id.type()) {
+        case ObjectId::DynamicPhysicsObject:
+            return _dynamic_objects[object_id].position;
+        case ObjectId::StaticPhysicsObject:
+            return _static_objects[object_id].position;
+    }
+
+    SIMU_ASSERT(false, "Unexpected object type");
+}
+
 ObjectId Simulation::get_collider_id(ObjectId object_id) const SIMU_NO_EXCEPT {
     switch (object_id.type()) {
         case ObjectId::DynamicPhysicsObject:
-            return dynamic_objects[object_id].collider_id;
+            return _dynamic_objects[object_id].collider_id;
         case ObjectId::StaticPhysicsObject:
-            return static_objects[object_id].collider_id;
+            return _static_objects[object_id].collider_id;
     }
 
     SIMU_ASSERT(false, "Unexpected object type");
@@ -242,7 +268,11 @@ void Simulation::process_collisions() noexcept {
 
 void Simulation::process_collision(CollisionPair pair) noexcept {
     Contacts<2> contacts = collide(
-        get_collider_id(pair.a), get_collider_id(pair.b), colliders
+        get_collider_id(pair.a),
+        get_collider_id(pair.b),
+        get_position(pair.a),
+        get_position(pair.b),
+        _colliders
     );
 
     if (contacts.n_contacts == 0) {
@@ -252,6 +282,7 @@ void Simulation::process_collision(CollisionPair pair) noexcept {
     auto collision = collision_pairs.find(pair);
 
     if (collision != collision_pairs.end()) {
+        collision->second.contacts = contacts;
         collision->second.steps_since_contact = 0;
     } else {
         collision_pairs.emplace(pair, ContactConstraint2{.contacts = contacts});
@@ -297,21 +328,21 @@ void Simulation::solve_contacts() noexcept {
 ObjectData Simulation::get_object_data(CollisionPair pair) const noexcept {
     ObjectData data;
     if (pair.a.type() == ObjectId::DynamicPhysicsObject) {
-        data.position_a = dynamic_objects[pair.a].position;
-        data.velocity_a = dynamic_objects[pair.a].velocity;
-        data.mass_a     = dynamic_objects[pair.a].mass;
+        data.position_a = _dynamic_objects[pair.a].position;
+        data.velocity_a = _dynamic_objects[pair.a].velocity;
+        data.mass_a     = _dynamic_objects[pair.a].mass;
     } else {
-        data.position_a = static_objects[pair.a].position;
+        data.position_a = _static_objects[pair.a].position;
         data.velocity_a = Velocity{};
         data.mass_a     = Mass::structural();
     }
 
     if (pair.b.type() == ObjectId::DynamicPhysicsObject) {
-        data.position_b = dynamic_objects[pair.b].position;
-        data.velocity_b = dynamic_objects[pair.b].velocity;
-        data.mass_b     = dynamic_objects[pair.b].mass;
+        data.position_b = _dynamic_objects[pair.b].position;
+        data.velocity_b = _dynamic_objects[pair.b].velocity;
+        data.mass_b     = _dynamic_objects[pair.b].mass;
     } else {
-        data.position_b = static_objects[pair.b].position;
+        data.position_b = _static_objects[pair.b].position;
         data.velocity_b = Velocity{};
         data.mass_b     = Mass::structural();
     }
@@ -321,11 +352,11 @@ ObjectData Simulation::get_object_data(CollisionPair pair) const noexcept {
 
 void Simulation::write_back(CollisionPair pair, const ObjectData& data) noexcept {
     if (pair.a.type() == ObjectId::DynamicPhysicsObject) {
-        dynamic_objects[pair.a].velocity = data.velocity_a;
+        _dynamic_objects[pair.a].velocity = data.velocity_a;
     }
 
     if (pair.b.type() == ObjectId::DynamicPhysicsObject) {
-        dynamic_objects[pair.b].velocity = data.velocity_b;
+        _dynamic_objects[pair.b].velocity = data.velocity_b;
     }
 }
 
@@ -368,26 +399,23 @@ ObjectId Simulation::create_object(ObjectBuilder builder) {
         }
     }
 
-    ObjectId collider_id = colliders.allocate(builder.collider_type_);
+    ObjectId collider_id = _colliders.allocate(builder.collider_type_);
     if (builder.is_static_) {
-        // Store colliders in world space for static objects
+        // TODO: Store colliders in world space for static objects
         switch (builder.collider_type_) {
             case ColliderType::Circle:
-                colliders.circle(collider_id) = builder.position_.toWorldSpace()
-                                                * builder.circle_;
+                _colliders.circle(collider_id) = builder.circle_;
                 break;
             case ColliderType::Capsule:
-                colliders.capsule(collider_id) = builder.position_.toWorldSpace()
-                                                 * builder.capsule_;
+                _colliders.capsule(collider_id) = builder.capsule_;
                 break;
             case ColliderType::Polygon:
-                colliders.polygon(collider_id) = builder.position_.toWorldSpace()
-                                                 * builder.polygon_;
+                _colliders.polygon(collider_id) = builder.polygon_;
                 break;
         }
 
-        ObjectId id        = static_objects.allocate();
-        static_objects[id] = StaticPhysicsObject{
+        ObjectId id         = _static_objects.allocate();
+        _static_objects[id] = StaticPhysicsObject{
             .id          = id,
             .position    = builder.position_,
             .collider_id = collider_id,
@@ -397,18 +425,18 @@ ObjectId Simulation::create_object(ObjectBuilder builder) {
     } else {
         switch (builder.collider_type_) {
             case ColliderType::Circle:
-                colliders.circle(collider_id) = builder.circle_;
+                _colliders.circle(collider_id) = builder.circle_;
                 break;
             case ColliderType::Capsule:
-                colliders.capsule(collider_id) = builder.capsule_;
+                _colliders.capsule(collider_id) = builder.capsule_;
                 break;
             case ColliderType::Polygon:
-                colliders.polygon(collider_id) = builder.polygon_;
+                _colliders.polygon(collider_id) = builder.polygon_;
                 break;
         }
 
-        ObjectId id         = dynamic_objects.allocate();
-        dynamic_objects[id] = DynamicPhysicsObject{
+        ObjectId id          = _dynamic_objects.allocate();
+        _dynamic_objects[id] = DynamicPhysicsObject{
             .id          = id,
             .position    = builder.position_,
             .velocity    = builder.velocity_,

@@ -80,7 +80,7 @@ Body* makeBox(World& w, Vec2 pos = Vec2{0, 0}, Vec2 dim = Vec2{2, 2})
     descr.position = pos;
     auto b         = w.makeBody(descr);
 
-    b->addCollider(ColliderDescriptor{Polygon::box(dim)});
+    b->addCollider(ColliderDescriptor{PolygonOld::box(dim)});
     return b;
 }
 
@@ -158,7 +158,7 @@ TEST_CASE("Island")
                 float h = 1.f;
                 world.makeBody(floorDescr)
                     ->addCollider(ColliderDescriptor{
-                        Polygon::box(Vec2{w, h}, Vec2{w / 2, -h / 2})});
+                        PolygonOld::box(Vec2{w, h}, Vec2{w / 2, -h / 2})});
 
                 for (Uint32 i = 0; i < nStacks; ++i)
                     makeStack(i, stackHeight);

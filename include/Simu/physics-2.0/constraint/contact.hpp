@@ -47,7 +47,7 @@ struct ContactConstraint2
 {
     Contacts<2> contacts;
     Vec2        normal_impulses{};
-    Vec2        tangent_impulses{};
+    float       tangent_impulse{};
     Vec2        bias_velocities{};
 
     std::uint_fast8_t steps_since_contact = 0;
@@ -146,6 +146,7 @@ inline void init_contact_constraint(
     }
 
     if (warmstart) {
+        // TODO: Don't apply friction on warmstart, can't pull back on friction?
         auto n_contacts = contact_constraint.contacts.n_contacts;
 
         Vec6 J0 = n_contacts > 0
@@ -158,28 +159,23 @@ inline void init_contact_constraint(
 
         Vec6 inv_mass = inverse_mass(object_data);
 
-        Vec6 friction_j0 = n_contacts > 0 ? friction_constraint_jacobian(
-                                                contact_constraint, object_data, 0
-                                            )
-                                          : Vec6::filled(0.f);
-        Vec6 friction_j1 = n_contacts > 1 ? friction_constraint_jacobian(
-                                                contact_constraint, object_data, 1
-                                            )
-                                          : Vec6::filled(0.f);
-
-        auto friction_jacobian = Matrix<float, 2, 6>::fromRows({friction_j0, friction_j1});
+        Vec6 friction_jacobian = n_contacts > 0
+                                     ? friction_constraint_jacobian(
+                                           contact_constraint, object_data, 0
+                                       )
+                                     : Vec6::filled(0.f);
 
         // Apply diff_impulses to objects
         Vec6 impulse = transpose(J) * contact_constraint.normal_impulses
-                       + transpose(friction_jacobian) * contact_constraint.tangent_impulses;
+                       + friction_jacobian * contact_constraint.tangent_impulse;
         Vec6 velocity_change = elementWiseMul(inv_mass, impulse);
         object_data.velocity_a.linear += Vec2(velocity_change[0], velocity_change[1]);
         object_data.velocity_a.angular += velocity_change[2];
         object_data.velocity_b.linear += Vec2(velocity_change[3], velocity_change[4]);
         object_data.velocity_b.angular += velocity_change[5];
     } else {
-        contact_constraint.normal_impulses  = Vec2(0, 0);
-        contact_constraint.tangent_impulses = Vec2(0, 0);
+        contact_constraint.normal_impulses = Vec2(0, 0);
+        contact_constraint.tangent_impulse = 0;
     }
 }
 
@@ -222,7 +218,7 @@ solve_contact_constraint(ContactConstraint2& contact_constraint, ObjectData& obj
         float diff_impulse = contact_constraint.normal_impulses[0] - old_impulse;
 
         // Compute friction constraint
-        float relative_tangent_velocity = relative_normal_velocity_at_contact(
+        float relative_tangent_velocity = relative_tangent_velocity_at_contact(
             contact_constraint, object_data, 0
         );
         Vec6 friction_jacobian = friction_constraint_jacobian(
@@ -233,21 +229,20 @@ solve_contact_constraint(ContactConstraint2& contact_constraint, ObjectData& obj
         float friction_effective_mass = dot(friction_jacobian, friction_impulse_direction);
         float friction_lambda = -relative_tangent_velocity / friction_effective_mass;
 
-        float old_friction_impulse = contact_constraint.tangent_impulses[0];
-        contact_constraint.tangent_impulses[0] += friction_lambda;
-        contact_constraint.tangent_impulses[0] = clamp(
-            contact_constraint.tangent_impulses[0],
+        float old_friction_impulse = contact_constraint.tangent_impulse;
+        contact_constraint.tangent_impulse += friction_lambda;
+        contact_constraint.tangent_impulse = clamp(
+            contact_constraint.tangent_impulse,
             -contact_constraint.normal_impulses[0],
             contact_constraint.normal_impulses[0]
         );
 
-        float diff_friction_impulse = contact_constraint.tangent_impulses[0]
+        float diff_friction_impulse = contact_constraint.tangent_impulse
                                       - old_friction_impulse;
 
         // Apply diff_impulses to objects
-        Vec6 impulse = impulse_direction * diff_impulse
-                       + friction_impulse_direction * diff_friction_impulse;
-        Vec6 velocity_change = elementWiseMul(inv_mass, impulse);
+        Vec6 velocity_change = impulse_direction * diff_impulse
+                               + friction_impulse_direction * diff_friction_impulse;
         object_data.velocity_a.linear += Vec2(velocity_change[0], velocity_change[1]);
         object_data.velocity_a.angular += velocity_change[2];
         object_data.velocity_b.linear += Vec2(velocity_change[3], velocity_change[4]);
@@ -270,48 +265,51 @@ solve_contact_constraint(ContactConstraint2& contact_constraint, ObjectData& obj
                               * transpose(J);
 
         // J M^-1 J^T lambda >= -(Jv + b), where Jv is the relative velocity
+        // TODO: Handle degeneracies better
+
+        Vec2 applied_rel_velocity = effective_mass * contact_constraint.normal_impulses;
         Vec2 lambda = solveLcp(
-            effective_mass, -(rel_velocities + contact_constraint.bias_velocities)
+            effective_mass,
+            -(rel_velocities - applied_rel_velocity + contact_constraint.bias_velocities)
         );
 
-        Vec2 old_impulses = contact_constraint.normal_impulses;
-        contact_constraint.normal_impulses += lambda;
-        contact_constraint.normal_impulses = simu::max(
-            contact_constraint.normal_impulses, Vec2::filled(0.f)
-        );
+        Vec2 old_impulses                  = contact_constraint.normal_impulses;
+        contact_constraint.normal_impulses = max(lambda, Vec2::filled(0.f));
         Vec2 diff_impulse = contact_constraint.normal_impulses - old_impulses;
 
         // Compute friction constraint
-        Vec2 relative_tangent_velocity = Vec2(
-            relative_normal_velocity_at_contact(contact_constraint, object_data, 0),
-            relative_normal_velocity_at_contact(contact_constraint, object_data, 1)
+        // Friction can be applied anywhere along the contact surface
+        //      without affecting the result
+        float relative_tangent_velocity = relative_tangent_velocity_at_contact(
+            contact_constraint, object_data, 0
         );
 
-        Matrix<float, 2, 6> friction_jacobian = Matrix<float, 2, 6>::fromRows(
-            {friction_constraint_jacobian(contact_constraint, object_data, 0),
-             friction_constraint_jacobian(contact_constraint, object_data, 1)}
+
+        Vec6 friction_jacobian = friction_constraint_jacobian(
+            contact_constraint, object_data, 0
         );
 
-        Mat2 friction_effective_mass = friction_jacobian
-                                       * Matrix<float, 6, 6>::diagonal(inv_mass)
-                                       * transpose(friction_jacobian);
-
-        Vec2 friction_lambda = solve(friction_effective_mass, -relative_tangent_velocity);
-
-        Vec2 old_friction_impulse = contact_constraint.tangent_impulses;
-        contact_constraint.tangent_impulses += friction_lambda;
-        contact_constraint.tangent_impulses = clamp(
-            contact_constraint.tangent_impulses,
-            -contact_constraint.normal_impulses,
-            contact_constraint.normal_impulses
+        float friction_effective_mass = dot(
+            friction_jacobian, elementWiseMul(inv_mass, friction_jacobian)
         );
 
-        Vec2 diff_friction_impulse = contact_constraint.tangent_impulses
-                                     - old_friction_impulse;
+        float friction_lambda = -relative_tangent_velocity / friction_effective_mass;
+
+        float old_friction_impulse = contact_constraint.tangent_impulse;
+        contact_constraint.tangent_impulse += friction_lambda;
+        contact_constraint.tangent_impulse = clamp(
+            contact_constraint.tangent_impulse,
+            -norm(contact_constraint.normal_impulses),
+            norm(contact_constraint.normal_impulses)
+        );
+
+        float diff_friction_impulse = contact_constraint.tangent_impulse
+                                      - old_friction_impulse;
 
         // Apply diff_impulses to objects
         Vec6 impulse = transpose(J) * diff_impulse
-                       + transpose(friction_jacobian) * diff_friction_impulse;
+                       + friction_jacobian * diff_friction_impulse;
+
         Vec6 velocity_change = elementWiseMul(inv_mass, impulse);
         object_data.velocity_a.linear += Vec2(velocity_change[0], velocity_change[1]);
         object_data.velocity_a.angular += velocity_change[2];

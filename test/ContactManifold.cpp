@@ -17,7 +17,7 @@ struct Manifold : public ContactManifold
     typename ContactManifold::FrameManifold frame;
 };
 
-Manifold makeManifold(const Polygon& first, const Polygon& second)
+Manifold makeManifold(const PolygonOld& first, const PolygonOld& second)
 {
     static World   w{};
     BodyDescriptor descr{};
@@ -53,14 +53,14 @@ TEST_CASE("Contact manifolds")
 
     SECTION("Vertex to Edge")
     {
-        Polygon bottom{
+        PolygonOld bottom{
             Vertex{0, 0},
             Vertex{2, 0},
             Vertex{2, 2},
             Vertex{0, 2}
         };
 
-        Polygon top{
+        PolygonOld top{
             Vertex{1, 1.5f},
             Vertex{2, 3   },
             Vertex{0, 3   }
@@ -100,14 +100,14 @@ TEST_CASE("Contact manifolds")
     {
         SECTION("Flush sides")
         {
-            Polygon bottom{
+            PolygonOld bottom{
                 Vertex{0, 0},
                 Vertex{2, 0},
                 Vertex{2, 2},
                 Vertex{0, 2}
             };
 
-            Polygon top{
+            PolygonOld top{
                 Vertex{0, 1},
                 Vertex{2, 1},
                 Vertex{2, 3},
@@ -147,14 +147,14 @@ TEST_CASE("Contact manifolds")
 
         SECTION("Uneven sides")
         {
-            Polygon bottom{
+            PolygonOld bottom{
                 Vertex{0, 0},
                 Vertex{2, 0},
                 Vertex{2, 2},
                 Vertex{0, 2}
             };
 
-            Polygon top{
+            PolygonOld top{
                 Vertex{0.5f, 1.5f},
                 Vertex{2.5f, 1.5f},
                 Vertex{2.5f, 3.5f},
@@ -194,14 +194,14 @@ TEST_CASE("Contact manifolds")
 
     SECTION("Leaning inside")
     {
-        Polygon bottom{
+        PolygonOld bottom{
             Vertex{0, 0},
             Vertex{2, 0},
             Vertex{2, 2},
             Vertex{0, 2}
         };
 
-        Polygon top{
+        PolygonOld top{
             Vertex{0.25f, 1.75f},
             Vertex{2.f,   2.f  },
             Vertex{1.75f, 3.f  },

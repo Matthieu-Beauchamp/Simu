@@ -57,7 +57,7 @@ void BoxStacks::init(simu::Renderer& renderer)
         }
     }
 
-    world().makeForceField<simu::Gravity>(simu::Vec2{0.f, -10.f});
+    simu().makeForceField<simu::Gravity>(simu::Vec2{0.f, -10.f});
 
     simu::BodyDescriptor     descr{};
     simu::ColliderDescriptor cDescr{
@@ -65,7 +65,7 @@ void BoxStacks::init(simu::Renderer& renderer)
 
     descr.dominance                = 0.f;
     cDescr.material.friction.value = 0.8f;
-    world()
+    simu()
         .makeBody<simu::VisibleBody>(descr, simu::Rgba{0, 0, 0, 255}, &renderer)
         ->addCollider(cDescr);
 }

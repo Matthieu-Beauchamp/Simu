@@ -32,6 +32,7 @@
 
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "Simu/physics/Profiler.hpp"
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
 
@@ -41,8 +42,7 @@ class DockSpaces
 {
 public:
 
-    DockSpaces()
-    {
+    DockSpaces() {
         // https://github.com/ocornut/imgui/issues/2109#issuecomment-426204357
         viewPortDock_ = ImGui::DockSpaceOverViewport(
             0, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode
@@ -65,8 +65,7 @@ public:
         // );
     }
 
-    ~DockSpaces()
-    {
+    ~DockSpaces() {
         if (!isFirstFrame)
             return;
 
@@ -80,8 +79,7 @@ public:
         };
 
         simu::Vec2 dim{};
-        for (auto w : windows_)
-        {
+        for (auto w : windows_) {
             ImVec2 s = getSize(w);
             dim[0]   = std::max(dim[0], s.x);
             dim[1] += s.y;
@@ -91,21 +89,18 @@ public:
         ImVec2 maxSize    = ImGui::GetMainViewport()->WorkSize;
         float  totalRatio = dim[1] / maxSize[1];
         // maxSize.x *= 0.4f;
-        dim = std::min(dim, simu::Vec2{maxSize.x, maxSize.y});
+        dim = simu::min(dim, simu::Vec2{maxSize.x, maxSize.y});
 
         ImGui::DockBuilderSetNodeSize(leftDock_, ImVec2{dim[0], dim[1]});
 
-        for (auto it = windows_.begin(); it != windows_.end(); ++it)
-        {
+        for (auto it = windows_.begin(); it != windows_.end(); ++it) {
             auto w = ImGui::FindWindowByName(*it);
 
             float ratio = getSize(*it).y * totalRatio / dim[1];
             dim[1] -= dim[1] * ratio;
 
             ImGuiID dock;
-            ImGui::DockBuilderSplitNode(
-                leftDock_, ImGuiDir_Up, ratio, &dock, &leftDock_
-            );
+            ImGui::DockBuilderSplitNode(leftDock_, ImGuiDir_Up, ratio, &dock, &leftDock_);
 
             ImGui::DockBuilderDockWindow(w->Name, dock);
         }
@@ -115,8 +110,7 @@ public:
         isFirstFrame = false;
     }
 
-    void dockCurrentWindowLeft()
-    {
+    void dockCurrentWindowLeft() {
         if (!isFirstFrame)
             return;
 
@@ -136,8 +130,7 @@ bool DockSpaces::isFirstFrame = true;
 namespace simu
 {
 
-void styleGui()
-{
+void styleGui() {
     ImGui::StyleColorsDark();
 
     ImGuiStyle& s                 = ImGui::GetStyle();
@@ -146,8 +139,7 @@ void styleGui()
 
 void glfwErrorCallback(int error, const char* description);
 
-Application::Application()
-{
+Application::Application() {
     bool glfwIsInit = glfwInit();
     SIMU_ASSERT(glfwIsInit, "glfw could not be initialised properly");
     glfwSetErrorCallback(glfwErrorCallback);
@@ -198,8 +190,7 @@ Application::Application()
     ImGui_ImplOpenGL3_Init(glslVersion);
 }
 
-Application::~Application()
-{
+Application::~Application() {
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
@@ -209,16 +200,13 @@ Application::~Application()
     glfwTerminate();
 }
 
-void Application::setName(const char* name)
-{
+void Application::setName(const char* name) {
     glfwSetWindowTitle(window_, name);
 }
 
-void Application::run()
-{
+void Application::run() {
     glfwSetTime(0.0);
-    while (!glfwWindowShouldClose(window_))
-    {
+    while (!glfwWindowShouldClose(window_)) {
         glfwPollEvents();
 
         ImGui_ImplOpenGL3_NewFrame();
@@ -231,13 +219,12 @@ void Application::run()
         doGui(dt);
 
         if (scene_ != nullptr)
-            scene_->step(dt); // draws
+            scene_->step(s); // draws
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-        if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-        {
+        if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
             ImGui::UpdatePlatformWindows(); // may change context
             ImGui::RenderPlatformWindowsDefault();
             glfwMakeContextCurrent(window_);
@@ -249,26 +236,21 @@ void Application::run()
 
 void Application::close() { glfwSetWindowShouldClose(window_, true); }
 
-bool Application::isKeyPressed(Keyboard::Key key) const
-{
+bool Application::isKeyPressed(Keyboard::Key key) const {
     return glfwGetKey(window_, static_cast<int>(key)) == GLFW_PRESS;
 }
 
-void Application::changeScene(std::shared_ptr<Scene> next)
-{
+void Application::changeScene(std::shared_ptr<Scene> next) {
     auto current = scene_;
-    if (next != current)
-    {
+    if (next != current) {
         scene_ = next;
 
-        if (current != nullptr)
-        {
+        if (current != nullptr) {
             current->app_      = nullptr;
             current->renderer_ = nullptr;
         }
 
-        if (next != nullptr)
-        {
+        if (next != nullptr) {
             if (!next->isInit() || next->app_ != this)
                 next->init(this);
 
@@ -279,8 +261,7 @@ void Application::changeScene(std::shared_ptr<Scene> next)
     };
 }
 
-void Application::doGui(float dt)
-{
+void Application::doGui(float dt) {
     struct MenuData
     {
         bool exit        = false;
@@ -301,17 +282,14 @@ void Application::doGui(float dt)
         bool showToolOptions = false;
     };
 
-    static World::Settings s{};
-    static MenuData        menu;
+    static MenuData menu;
 
     DockSpaces docks{};
     bool       hasScene = scene_ != nullptr;
 
 
-    if (ImGui::BeginMainMenuBar())
-    {
-        if (ImGui::BeginMenu("Application"))
-        {
+    if (ImGui::BeginMainMenuBar()) {
+        if (ImGui::BeginMenu("Application")) {
             ImGui::MenuItem("Exit", "Esc", &menu.exit);
             if (menu.exit)
                 close();
@@ -320,22 +298,19 @@ void Application::doGui(float dt)
 
             ImGui::EndMenu();
         }
-        if (ImGui::BeginMenu("Engine"))
-        {
+        if (ImGui::BeginMenu("Engine")) {
             ImGui::MenuItem("Settings", nullptr, &menu.showEngineSettings);
             ImGui::MenuItem("Profiler", nullptr, &menu.showProfiler);
             ImGui::EndMenu();
         }
 
-        if (hasScene && ImGui::BeginMenu("Tools"))
-        {
+        if (hasScene && ImGui::BeginMenu("Tools")) {
             ImGui::MenuItem("Select", nullptr, &menu.selectTool);
             ImGui::MenuItem("Options", nullptr, &menu.showToolOptions);
             ImGui::EndMenu();
         }
 
-        if (hasScene && ImGui::BeginMenu("Scene"))
-        {
+        if (hasScene && ImGui::BeginMenu("Scene")) {
             ImGui::MenuItem("Controls", nullptr, &menu.showSceneControls);
             ImGui::MenuItem("Options", nullptr, &menu.showSceneOptions);
             ImGui::EndMenu();
@@ -344,20 +319,15 @@ void Application::doGui(float dt)
         ImGui::EndMainMenuBar();
     }
 
-    if (menu.selectScene)
-    {
-        ImGui::Begin(
-            "Scene selection", &menu.selectScene, ImGuiWindowFlags_AlwaysAutoResize
-        );
+    if (menu.selectScene) {
+        ImGui::Begin("Scene selection", &menu.selectScene, ImGuiWindowFlags_AlwaysAutoResize);
 
         docks.dockCurrentWindowLeft();
 
-        for (const auto& scene : scenes_)
-        {
+        for (const auto& scene : scenes_) {
             bool selected = scene.second == scene_;
             ImGui::Selectable(scene.first, &selected);
-            if (selected && scene.second != scene_)
-            {
+            if (selected && scene.second != scene_) {
                 changeScene(scene.second);
                 break;
             }
@@ -366,18 +336,14 @@ void Application::doGui(float dt)
         ImGui::End();
     }
 
-    if (menu.showProfiler)
-    {
-        ImGui::Begin(
-            "Engine Profiler", &menu.showProfiler, ImGuiWindowFlags_AlwaysAutoResize
-        );
+    if (menu.showProfiler) {
+        ImGui::Begin("Engine Profiler", &menu.showProfiler, ImGuiWindowFlags_AlwaysAutoResize);
 
         docks.dockCurrentWindowLeft();
 
         ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f * dt, 1.f / dt);
 
-        if (hasScene)
-        {
+        if (hasScene) {
             auto printTimeEntry = [](const TimeEntry& t, const char* name) {
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
@@ -390,10 +356,9 @@ void Application::doGui(float dt)
                 ImGui::Text("%.3f", t.max() * 1000.f);
             };
 
-            Profiler& p          = scene_->world().profiler();
+            // Profiler& p          = scene_->simu().profiler();
             auto      tableFlags = ImGuiTableFlags_Borders;
-            if (ImGui::BeginTable("Timers (ms)", 4, tableFlags))
-            {
+            if (ImGui::BeginTable("Timers (ms)", 4, tableFlags)) {
                 ImGui::TableSetupColumn("Operation");
                 ImGui::TableSetupColumn("last");
                 ImGui::TableSetupColumn("average");
@@ -401,55 +366,48 @@ void Application::doGui(float dt)
 
                 ImGui::TableHeadersRow();
 
-                printTimeEntry(p.islandConstruction, "Island construction");
-                printTimeEntry(p.solveVelocities, "Solve velocities");
-                printTimeEntry(p.solvePositions, "Solve Positions");
-                printTimeEntry(p.treeUpdateAndCollision, "Tree update and collision");
-                printTimeEntry(p.narrowPhaseCollision, "Narrow phase collision");
+                // printTimeEntry(p.islandConstruction, "Island construction");
+                // printTimeEntry(p.solveVelocities, "Solve velocities");
+                // printTimeEntry(p.solvePositions, "Solve Positions");
+                // printTimeEntry(p.treeUpdateAndCollision, "Tree update and collision");
+                // printTimeEntry(p.narrowPhaseCollision, "Narrow phase collision");
 
                 ImGui::EndTable();
             }
-            ImGui::Text("Tree height: %u", p.treeHeight);
+            // ImGui::Text("Tree height: %u", p.treeHeight);
 
 
-            ImGui::Separator();
-            if (ImGui::Button("Reset profiler"))
-                p.reset();
+            // ImGui::Separator();
+            // if (ImGui::Button("Reset profiler"))
+                // p.reset();
         }
 
 
         ImGui::End();
     }
 
-    if (menu.showEngineSettings)
-    {
+    if (menu.showEngineSettings) {
         ImGui::Begin(
             "Engine Settings", &menu.showEngineSettings, ImGuiWindowFlags_AlwaysAutoResize
         );
 
-        int vIter = s.nVelocityIterations;
-        int pIter = s.nPositionIterations;
+        int vIter = s.n_velocity_iterations;
+        int pIter = s.n_position_iterations;
 
         ImGui::PushItemWidth(150);
         ImGui::SliderInt("Velocity iterations", &vIter, 0, 50);
         ImGui::SliderInt("Position iterations", &pIter, 0, 50);
 
-        s.nVelocityIterations = vIter;
-        s.nPositionIterations = pIter;
+        s.n_velocity_iterations = vIter;
+        s.n_position_iterations = pIter;
 
-        ImGui::Checkbox("Warmstarting", &s.enableWarmstarting);
-
-        if (hasScene)
-            scene_->world().updateSettings(s);
+        ImGui::Checkbox("Warmstarting", &s.enable_warm_starting);
 
         ImGui::End();
     }
 
-    if (hasScene && menu.showSceneControls)
-    {
-        ImGui::Begin(
-            "Scene Controls", &menu.showSceneControls, ImGuiWindowFlags_AlwaysAutoResize
-        );
+    if (hasScene && menu.showSceneControls) {
+        ImGui::Begin("Scene Controls", &menu.showSceneControls, ImGuiWindowFlags_AlwaysAutoResize);
 
         ImGui::Text("Play speed %f", scene_->playSpeed());
         ImGui::SameLine();
@@ -459,8 +417,7 @@ void Application::doGui(float dt)
         if (ImGui::Button("+"))
             scene_->setPlaySpeed(scene_->playSpeed() * 2.f);
 
-        if (ImGui::Button(menu.pauseToggle ? "Play (P)" : "Pause (P)"))
-        {
+        if (ImGui::Button(menu.pauseToggle ? "Play (P)" : "Pause (P)")) {
             menu.pauseToggle = !menu.pauseToggle;
             if (menu.pauseToggle)
                 scene_->pause();
@@ -479,31 +436,23 @@ void Application::doGui(float dt)
         ImGui::End();
     }
 
-    if (hasScene && menu.showSceneOptions)
-    {
-        ImGui::Begin(
-            "Scene options", &menu.showSceneOptions, ImGuiWindowFlags_AlwaysAutoResize
-        );
+    if (hasScene && menu.showSceneOptions) {
+        ImGui::Begin("Scene options", &menu.showSceneOptions, ImGuiWindowFlags_AlwaysAutoResize);
 
         scene_->doGui();
 
         ImGui::End();
     }
 
-    if (hasScene && menu.selectTool)
-    {
-        ImGui::Begin(
-            "Tool selection", &menu.selectTool, ImGuiWindowFlags_AlwaysAutoResize
-        );
+    if (hasScene && menu.selectTool) {
+        ImGui::Begin("Tool selection", &menu.selectTool, ImGuiWindowFlags_AlwaysAutoResize);
 
         docks.dockCurrentWindowLeft();
 
-        for (const auto& t : scene_->tools_)
-        {
+        for (const auto& t : scene_->tools_) {
             bool selected = t.get() == scene_->currentTool();
             ImGui::Selectable(t->getName(), &selected);
-            if (selected && t.get() != scene_->currentTool())
-            {
+            if (selected && t.get() != scene_->currentTool()) {
                 scene_->useTool(t->getName());
                 break;
             }
@@ -512,14 +461,11 @@ void Application::doGui(float dt)
         ImGui::End();
     }
 
-    if (hasScene && menu.showToolOptions)
-    {
+    if (hasScene && menu.showToolOptions) {
         std::string name = scene_->currentTool()->getName();
         name += " options";
 
-        ImGui::Begin(
-            name.c_str(), &menu.showToolOptions, ImGuiWindowFlags_AlwaysAutoResize
-        );
+        ImGui::Begin(name.c_str(), &menu.showToolOptions, ImGuiWindowFlags_AlwaysAutoResize);
 
         scene_->currentTool()->doGui();
 
@@ -531,15 +477,13 @@ void Application::doGui(float dt)
 void Application::show() const { glfwSwapBuffers(window_); }
 
 
-void glfwErrorCallback(int error, const char* description)
-{
+void glfwErrorCallback(int error, const char* description) {
     std::stringstream err;
     err << "GLFW error code " << error << ":\n" << description;
     throw simu::Exception{err.str()};
 }
 
-void Application::frameBufferResizeCallback(GLFWwindow* window, int w, int h)
-{
+void Application::frameBufferResizeCallback(GLFWwindow* window, int w, int h) {
     Application* app = static_cast<Application*>(glfwGetWindowUserPointer(window));
 
     Vec2i dim{w, h};
@@ -548,37 +492,25 @@ void Application::frameBufferResizeCallback(GLFWwindow* window, int w, int h)
         app->renderer_->setViewport(Vec2i{0, 0}, dim);
 }
 
-void Application::windowResizeCallback(GLFWwindow* window, int w, int h)
-{
+void Application::windowResizeCallback(GLFWwindow* window, int w, int h) {
     Application* app = static_cast<Application*>(glfwGetWindowUserPointer(window));
 
     Vec2i dim{w, h};
     // TODO: Window content scale..?
 
-    if (app->scene() != nullptr)
-    {
-        app->scene()->camera().setDimensionsFromScreenCoordinates(
-            static_cast<Vec2>(dim)
-        );
+    if (app->scene() != nullptr) {
+        app->scene()->camera().setDimensionsFromScreenCoordinates(static_cast<Vec2>(dim));
     }
 }
 
-void Application::keypressCallback(
-    GLFWwindow* window,
-    int         key,
-    int /* scancode */,
-    int action,
-    int modifiers
-)
-{
+void Application::keypressCallback(GLFWwindow* window, int key, int /* scancode */, int action, int modifiers) {
     Application* app = static_cast<Application*>(glfwGetWindowUserPointer(window));
 
     if (app->scene() != nullptr && !ImGui::GetIO().WantCaptureKeyboard)
         app->scene()->keypress(Keyboard::Input::fromGlfw(key, action, modifiers));
 }
 
-Mat3 windowToScene(GLFWwindow* window, const Camera& camera)
-{
+Mat3 windowToScene(GLFWwindow* window, const Camera& camera) {
     Vec2i windowSize;
     glfwGetWindowSize(window, &windowSize[0], &windowSize[1]);
     Vec2 wz{windowSize};
@@ -603,20 +535,16 @@ Mat3 windowToScene(GLFWwindow* window, const Camera& camera)
     return camera.invTransform() * screenToNdc * flipY;
 }
 
-void Application::mouseMoveCallback(GLFWwindow* window, double x, double y)
-{
+void Application::mouseMoveCallback(GLFWwindow* window, double x, double y) {
     Application* app = static_cast<Application*>(glfwGetWindowUserPointer(window));
 
     Vec2 windowPos{(float)x, (float)y};
 
     if (app->scene() != nullptr)
-        app->scene()->mouseMove(
-            windowToScene(window, app->scene()->camera()) * windowPos
-        );
+        app->scene()->mouseMove(windowToScene(window, app->scene()->camera()) * windowPos);
 }
 
-void Application::mousePressCallback(GLFWwindow* window, int button, int action, int mods)
-{
+void Application::mousePressCallback(GLFWwindow* window, int button, int action, int mods) {
     Application* app = static_cast<Application*>(glfwGetWindowUserPointer(window));
 
     double x, y;
@@ -624,13 +552,14 @@ void Application::mousePressCallback(GLFWwindow* window, int button, int action,
     Vec2 windowPos{(float)x, (float)y};
 
     if (app->scene() != nullptr && !ImGui::GetIO().WantCaptureMouse)
-        app->scene()->mousePress(Mouse::Input::fromGlfw(
-            windowToScene(window, app->scene()->camera()) * windowPos, button, action, mods
-        ));
+        app->scene()->mousePress(
+            Mouse::Input::fromGlfw(
+                windowToScene(window, app->scene()->camera()) * windowPos, button, action, mods
+            )
+        );
 }
 
-void Application::mouseScrollCallback(GLFWwindow* window, double x, double y)
-{
+void Application::mouseScrollCallback(GLFWwindow* window, double x, double y) {
     Application* app = static_cast<Application*>(glfwGetWindowUserPointer(window));
 
     if (app->scene() != nullptr && !ImGui::GetIO().WantCaptureMouse)

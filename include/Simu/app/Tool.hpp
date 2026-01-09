@@ -25,7 +25,7 @@
 #pragma once
 
 #include "Simu/app/Event.hpp"
-#include "Simu/app/VisiblePhysics.hpp"
+#include "Simu/app/SimulationRenderer.hpp"
 
 namespace simu
 {
@@ -89,9 +89,9 @@ public:
 
 private:
 
-    VisibleMouseConstraint* makeMouseConstraint(Body* b, Vec2 pos);
+    // VisibleMouseConstraint* makeMouseConstraint(Body* b, Vec2 pos);
 
-    VisibleMouseConstraint* mc_ = nullptr;
+    // VisibleMouseConstraint* mc_ = nullptr;
     Scene&                  scene_;
 };
 
@@ -113,7 +113,7 @@ public:
     bool onKeypress(Keyboard::Input /* input */) override { return false; }
     bool onMouseScroll(Vec2 /* scroll */) override { return false; }
 
-    Body* makeBox(Vec2 pos, std::optional<Vec2> dims = std::nullopt);
+    ObjectId makeBox(Vec2 pos, std::optional<Vec2> dims = std::nullopt);
 
 
     float orientation = 0.f;

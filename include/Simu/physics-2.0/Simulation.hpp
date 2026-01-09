@@ -32,8 +32,6 @@
 #include "Simu/physics-2.0/collision.hpp"
 #include "constraint/contact.hpp"
 
-#include <complex.h>
-
 namespace simu
 {
 
@@ -44,38 +42,110 @@ public:
     /// Construct an empty world
     Simulation() = default;
 
+    // TODO: no reason to not be at least movable
     Simulation(const Simulation& other) = delete;
     Simulation(Simulation&& other)      = delete;
 
     /// Makes the simulation progress in time.
-    void step();
+    void     step();
 
-    /// Updates the world's settings
-    void update_settings(const Settings& settings) { _settings = settings; }
-
-    /// Read the world's settings
+    /// The simulation's settings
+    [[nodiscard]] Settings&       settings() { return _settings; }
     [[nodiscard]] const Settings& settings() const { return _settings; }
+
+    /// Reset the simulation
+    void clear() { NOT_IMPLEMENTED; }
+
+    //////////////////////////////////////////////////
+    // Objects
 
     /// Create a new object
     ObjectId create_object(ObjectBuilder builder);
 
+    /// Destroy an object
+    void destroy_object(ObjectId) { NOT_IMPLEMENTED; }
+
+    auto dynamic_objects() SIMU_NO_EXCEPT { return _dynamic_objects.objects(); }
+    auto dynamic_objects() const SIMU_NO_EXCEPT {
+        return _dynamic_objects.objects();
+    }
+
+    auto static_objects() SIMU_NO_EXCEPT { return _static_objects.objects(); }
+    auto static_objects() const SIMU_NO_EXCEPT {
+        return _static_objects.objects();
+    }
+
+    DynamicPhysicsObject& get_dynamic_object(ObjectId id) SIMU_NO_EXCEPT {
+        return _dynamic_objects[id];
+    }
+    const DynamicPhysicsObject& get_dynamic_object(ObjectId id) const SIMU_NO_EXCEPT {
+        return _dynamic_objects[id];
+    }
+
+    StaticPhysicsObject& get_static_object(ObjectId id) SIMU_NO_EXCEPT {
+        return _static_objects[id];
+    }
+    const StaticPhysicsObject& get_static_object(ObjectId id) const SIMU_NO_EXCEPT {
+        return _static_objects[id];
+    }
+
+    //////////////////////////////////////////////////
+    // Colliders
+
+    [[nodiscard]] ColliderType collider_type(ObjectId id) const SIMU_NO_EXCEPT {
+        SIMU_ASSERT(id.type() == ObjectId::Collider, "Invalid collider id");
+        return _colliders.get_type(id);
+    }
+
+    Circle& get_circle(ObjectId id) SIMU_NO_EXCEPT {
+        return _colliders.circle(id);
+    }
+    const Circle& get_circle(ObjectId id) const SIMU_NO_EXCEPT {
+        return _colliders.circle(id);
+    }
+
+    Capsule& get_capsule(ObjectId id) SIMU_NO_EXCEPT {
+        return _colliders.capsule(id);
+    }
+    const Capsule& get_capsule(ObjectId id) const SIMU_NO_EXCEPT {
+        return _colliders.capsule(id);
+    }
+
+    Polygon& get_polygon(ObjectId id) SIMU_NO_EXCEPT {
+        return _colliders.polygon(id);
+    }
+    const Polygon& get_polygon(ObjectId id) const SIMU_NO_EXCEPT {
+        return _colliders.polygon(id);
+    }
+
+    //////////////////////////////////////////////////
+    // Constraints
+
+    auto contact_constraints() SIMU_NO_EXCEPT {
+        return std::ranges::subrange{collision_pairs.begin(), collision_pairs.end()};
+    }
+    auto contact_constraints() const SIMU_NO_EXCEPT {
+        return std::ranges::subrange{collision_pairs.begin(), collision_pairs.end()};
+    }
+
 private:
 
+    [[nodiscard]] Position get_position(ObjectId object_id) const;
     [[nodiscard]] ObjectId get_collider_id(ObjectId object_id) const SIMU_NO_EXCEPT;
 
     void process_collisions() noexcept;
 
     void process_collision(CollisionPair pair) noexcept;
 
-    void       solve_contacts() noexcept;
+    void                     solve_contacts() noexcept;
     [[nodiscard]] ObjectData get_object_data(CollisionPair pair) const noexcept;
-    void       write_back(CollisionPair pair, const ObjectData&) noexcept;
+    void write_back(CollisionPair pair, const ObjectData&) noexcept;
 
     Settings _settings;
-    ObjectPool<DynamicPhysicsObject, ObjectId::DynamicPhysicsObject> dynamic_objects{};
-    ObjectPool<StaticPhysicsObject, ObjectId::StaticPhysicsObject> static_objects{};
+    ObjectPool<DynamicPhysicsObject, ObjectId::DynamicPhysicsObject> _dynamic_objects{};
+    ObjectPool<StaticPhysicsObject, ObjectId::StaticPhysicsObject> _static_objects{};
 
-    ColliderPool colliders;
+    ColliderPool _colliders;
 
     // TODO: Could store in sorted array using id = a * 2^32 + b
     // This could provide a better performance even if lookup is log(n)

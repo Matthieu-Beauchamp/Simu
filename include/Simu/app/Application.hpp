@@ -24,9 +24,6 @@
 
 #pragma once
 
-
-#include "Simu/physics.hpp"
-
 #include "Simu/app/Scene.hpp"
 #include "Simu/app/Event.hpp"
 
@@ -45,8 +42,7 @@ public:
     void setName(const char* name);
 
     template <std::derived_from<Scene> S, class... Args>
-    void registerScene(const char* name, Args&&... args)
-    {
+    void registerScene(const char* name, Args&&... args) {
         scenes_[name] = std::make_shared<S>(std::forward<Args>(args)...);
 
         if (scene_ == nullptr)
@@ -64,6 +60,9 @@ public:
     bool isKeyPressed(Keyboard::Key key) const;
 
     Renderer* renderer() { return renderer_.get(); }
+
+    Settings&       settings() { return s; }
+    const Settings& settings() const { return s; }
 
 private:
 
@@ -90,6 +89,7 @@ private:
     std::shared_ptr<Scene>    scene_    = nullptr;
     std::unique_ptr<Renderer> renderer_ = nullptr;
     GLFWwindow*               window_   = nullptr;
+    Settings                  s{};
 
     std::unordered_map<const char*, std::shared_ptr<Scene>> scenes_{};
 };

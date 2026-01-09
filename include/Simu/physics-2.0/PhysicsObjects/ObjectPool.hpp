@@ -71,8 +71,17 @@ public:
         _objects[id.as_index() - 1] = T{};
     }
 
-    T&       operator[](ObjectId id) { return _objects[id.as_index() - 1]; }
+    T& operator[](ObjectId id) {
+        SIMU_ASSERT(id.type() == object_type, "Object type mismatch");
+        // TODO: Can't valide on write access since it could be initializing the object
+        // SIMU_ASSERT(_objects[id.as_index() - 1].id.is_valid(), "No such object");
+        // SIMU_ASSERT(_objects[id.as_index() - 1].id == id, "Object changed generation");
+        return _objects[id.as_index() - 1];
+    }
     const T& operator[](ObjectId id) const {
+        SIMU_ASSERT(id.type() == object_type, "Object type mismatch");
+        SIMU_ASSERT(_objects[id.as_index() - 1].id.is_valid(), "No such object");
+        SIMU_ASSERT(_objects[id.as_index() - 1].id == id, "Object changed generation");
         return _objects[id.as_index() - 1];
     }
 

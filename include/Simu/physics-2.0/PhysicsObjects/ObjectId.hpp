@@ -64,7 +64,7 @@ public:
 
     explicit constexpr ObjectId(std::uint32_t id) : _id(id & id_mask) {}
     explicit constexpr ObjectId(std::uint32_t generation, std::uint32_t type, std::uint32_t id)
-        : _id((generation << 28) | (type << 26) | (id & id_mask)) {
+        : _id((generation << 28) | (type << 26) | (id & index_mask)) {
         SIMU_ASSERT(generation <= last_generation, "Invalid generation");
         SIMU_ASSERT(type > 0, "Missing type");
         SIMU_ASSERT(type <= last_type, "Invalid type");

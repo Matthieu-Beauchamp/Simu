@@ -81,7 +81,7 @@ void Renderer::drawContouredPolygon(
 
 void Renderer::drawTriangle(Vec2 A, Vec2 B, Vec2 C, Rgba color)
 {
-    Polygon triangle{A, B, C};
+    PolygonOld triangle{A, B, C};
     drawPolygon(triangle.properties().centroid, triangle.vertexView(), color);
 }
 

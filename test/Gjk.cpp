@@ -5,16 +5,16 @@
 
 using namespace simu;
 
-Polygon translated(const Polygon& polygon, Vec2 translation)
+PolygonOld translated(const PolygonOld& polygon, Vec2 translation)
 {
     std::vector<Vertex> vertices{polygon.begin(), polygon.end()};
     for (Vertex& v : vertices)
         v += translation;
 
-    return Polygon{vertices.begin(), vertices.end()};
+    return PolygonOld{vertices.begin(), vertices.end()};
 }
 
-void testPenetration(const Polygon& first, const Polygon& second, Vec2 penetration)
+void testPenetration(const PolygonOld& first, const PolygonOld& second, Vec2 penetration)
 {
     Gjk gjk{first, second};
     REQUIRE(gjk.areColliding());
@@ -33,7 +33,7 @@ void testPenetration(const Polygon& first, const Polygon& second, Vec2 penetrati
     }
 }
 
-void testSeparation(const Polygon& first, const Polygon& second, Vec2 separation)
+void testSeparation(const PolygonOld& first, const PolygonOld& second, Vec2 separation)
 {
     Gjk gjk{first, second};
     REQUIRE_FALSE(gjk.areColliding());
@@ -53,7 +53,7 @@ TEST_CASE("Gjk")
 {
     SECTION("Polygon collides with itself")
     {
-        Polygon square{
+        PolygonOld square{
             Vertex{0, 0},
             Vertex{1, 0},
             Vertex{1, 1},
@@ -66,13 +66,13 @@ TEST_CASE("Gjk")
 
     SECTION("Touching is colliding")
     {
-        Polygon lower{
+        PolygonOld lower{
             Vertex{0, 0},
             Vertex{1, 0},
             Vertex{0, 1},
         };
 
-        Polygon upper{
+        PolygonOld upper{
             Vertex{1, 0},
             Vertex{1, 1},
             Vertex{0, 1},
@@ -87,13 +87,13 @@ TEST_CASE("Gjk")
 
     SECTION("No Collision")
     {
-        Polygon lower{
+        PolygonOld lower{
             Vertex{0, 0},
             Vertex{1, 0},
             Vertex{0, 1},
         };
 
-        Polygon upper{
+        PolygonOld upper{
             Vertex{2, 0},
             Vertex{2, 1},
             Vertex{1, 1},
@@ -110,14 +110,14 @@ TEST_CASE("Gjk")
     {
         SECTION("Edge to Edge")
         {
-            Polygon left{
+            PolygonOld left{
                 Vertex{0, 0},
                 Vertex{1, 0},
                 Vertex{1, 1},
                 Vertex{0, 1}
             };
 
-            Polygon right{
+            PolygonOld right{
                 Vertex{2, 0},
                 Vertex{3, 0},
                 Vertex{3, 1},
@@ -129,13 +129,13 @@ TEST_CASE("Gjk")
 
         SECTION("Edge to Edge (diagonals)")
         {
-            Polygon lower{
+            PolygonOld lower{
                 Vertex{0, 0},
                 Vertex{1, 0},
                 Vertex{0, 1},
             };
 
-            Polygon upper{
+            PolygonOld upper{
                 Vertex{2, 0},
                 Vertex{2, 1},
                 Vertex{1, 1},
@@ -146,13 +146,13 @@ TEST_CASE("Gjk")
 
         SECTION("Point to edge")
         {
-            Polygon left{
+            PolygonOld left{
                 Vertex{0, 0},
                 Vertex{1, 1},
                 Vertex{0, 2},
             };
 
-            Polygon right{
+            PolygonOld right{
                 Vertex{2, 0},
                 Vertex{3, 0},
                 Vertex{3, 2},
@@ -164,13 +164,13 @@ TEST_CASE("Gjk")
 
         SECTION("Point to point")
         {
-            Polygon left{
+            PolygonOld left{
                 Vertex{0, 0},
                 Vertex{1, 1},
                 Vertex{0, 2},
             };
 
-            Polygon right{
+            PolygonOld right{
                 Vertex{3, 0},
                 Vertex{3, 2},
                 Vertex{2, 1}
@@ -184,14 +184,14 @@ TEST_CASE("Gjk")
     {
         SECTION("Edge to Edge")
         {
-            Polygon left{
+            PolygonOld left{
                 Vertex{0, 0},
                 Vertex{1, 0},
                 Vertex{1, 1},
                 Vertex{0, 1}
             };
 
-            Polygon right{
+            PolygonOld right{
                 Vertex{0.5, 0},
                 Vertex{1.5, 0},
                 Vertex{1.5, 1},
@@ -203,13 +203,13 @@ TEST_CASE("Gjk")
 
         SECTION("Edge to Edge (diagonals)")
         {
-            Polygon lower{
+            PolygonOld lower{
                 Vertex{0, 0},
                 Vertex{1, 0},
                 Vertex{0, 1},
             };
 
-            Polygon upper{
+            PolygonOld upper{
                 Vertex{0.5,  0},
                 Vertex{0.5,  1},
                 Vertex{-0.5, 1},
@@ -220,13 +220,13 @@ TEST_CASE("Gjk")
 
         SECTION("Point to edge")
         {
-            Polygon left{
+            PolygonOld left{
                 Vertex{0, 0},
                 Vertex{1, 1},
                 Vertex{0, 2},
             };
 
-            Polygon right{
+            PolygonOld right{
                 Vertex{0.5, 0},
                 Vertex{1.5, 0},
                 Vertex{1.5, 2},
@@ -238,14 +238,14 @@ TEST_CASE("Gjk")
 
         SECTION("Point to point")
         {
-            Polygon left{
+            PolygonOld left{
                 Vertex{0, 0},
                 Vertex{2, 0},
                 Vertex{2, 2},
                 Vertex{0, 2},
             };
 
-            Polygon right{
+            PolygonOld right{
                 Vertex{1, 1},
                 Vertex{3, 1},
                 Vertex{3, 3},
@@ -283,7 +283,7 @@ TEST_CASE("Gjk")
         //  allowed. We can remove the handling for these special cases
         //  for better performance.
 
-        // Polygon line{
+        // PolygonOld line{
         //     Vertex{1, 0},
         //     Vertex{1, 1},
         //     Vertex{1, 2},
@@ -291,7 +291,7 @@ TEST_CASE("Gjk")
 
         // testSeparation(line, translated(line, Vec2{1, 0}), Vec2{1, 0});
 
-        // Polygon hline{
+        // PolygonOld hline{
         //     Vertex{0, 0.5},
         //     Vertex{1, 0.5},
         //     Vertex{2, 0.5},
@@ -299,7 +299,7 @@ TEST_CASE("Gjk")
 
         // testPenetration(line, hline, Vec2{0, -0.5});
 
-        // Polygon point{
+        // PolygonOld point{
         //     Vertex{0, 0},
         //     Vertex{0, 0},
         //     Vertex{0, 0}

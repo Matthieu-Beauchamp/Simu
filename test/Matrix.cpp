@@ -7,16 +7,13 @@
 
 using namespace simu;
 
-TEST_CASE("Matrix")
-{
-    SECTION("Matrix Data")
-    {
+TEST_CASE("Matrix") {
+    SECTION("Matrix Data") {
         Mat2 null{};
         REQUIRE(all(null == Mat2{0, 0, 0, 0}));
     }
 
-    SECTION("Construct from vectors")
-    {
+    SECTION("Construct from vectors") {
         Matrix<int, 2, 4> ref{1, 2, 3, 4, 5, 6, 7, 8};
 
         REQUIRE(
@@ -38,14 +35,12 @@ TEST_CASE("Matrix")
         );
     }
 
-    SECTION("Filled")
-    {
+    SECTION("Filled") {
         Mat2i ref{1, 1, 1, 1};
         REQUIRE(all(ref == Mat2i::filled(1)));
     }
 
-    SECTION("Special constructors")
-    {
+    SECTION("Special constructors") {
         REQUIRE(all(
             Mat4::identity()
             == Mat4{
@@ -70,16 +65,14 @@ TEST_CASE("Matrix")
         REQUIRE(all(Vec3i::w() == Vec3i{}));
     }
 
-    SECTION("Unary operators")
-    {
+    SECTION("Unary operators") {
         Mat2i ident = Mat2i::identity();
         REQUIRE(all(+ident == ident));
         REQUIRE(all(-ident + ident == Mat2i{}));
         REQUIRE(all(+-+-ident == ident));
     }
 
-    SECTION("Arithmetic assignement")
-    {
+    SECTION("Arithmetic assignement") {
         Mat2 ones = Mat2::filled(1.f);
 
         ones *= 2;
@@ -95,8 +88,7 @@ TEST_CASE("Matrix")
         REQUIRE(all(ones == Mat2{}));
     }
 
-    SECTION("Linear combination (non-member operators)")
-    {
+    SECTION("Linear combination (non-member operators)") {
         // Binary operators returning by value must promote the return type
         auto combination = Vec3i::i() * 0.5f - Vec3i::i() + 0.5f * Vec3i::j()
                            + Vec3i::k() / 2.f;
@@ -104,8 +96,7 @@ TEST_CASE("Matrix")
         REQUIRE(all(combination == Vec3{-0.5f, 0.5f, 0.5f}));
     }
 
-    SECTION("Matrix multiplication")
-    {
+    SECTION("Matrix multiplication") {
         Mat2 ident = Mat2::identity();
         REQUIRE(all(ident * ident == ident));
 
@@ -114,30 +105,26 @@ TEST_CASE("Matrix")
         REQUIRE(all(Vec2{1, 2} * transpose(Vec2{2, 1}) == Mat2{2, 1, 4, 2}));
 
         float theta = std::numbers::pi_v<float> / 4.f;
-        Mat2  rot{
-            std::cos(theta), -std::sin(theta), std::sin(theta), std::cos(theta)};
+        Mat2 rot{std::cos(theta), -std::sin(theta), std::sin(theta), std::cos(theta)};
 
         REQUIRE(all(approx(normalized(Vec2{1, 1}), Vec2::filled(1e-6f))
                         .contains(rot * Vec2::i())));
     }
 
-    SECTION("Solver")
-    {
+    SECTION("Solver") {
         REQUIRE(all(solve(Mat3::identity(), Vec3::i()) == Vec3::i()));
 
         float theta = std::numbers::pi_v<float> / 4.f;
-        Mat2  rot{
-            std::cos(theta), -std::sin(theta), std::sin(theta), std::cos(theta)};
+        Mat2 rot{std::cos(theta), -std::sin(theta), std::sin(theta), std::cos(theta)};
 
-        REQUIRE(all(approx(invert(rot) * rot, Mat2::filled(EPSILON))
-                        .contains(Mat2::identity())));
+        REQUIRE(all(approx(invert(rot) * rot, Mat2::filled(EPSILON)).contains(Mat2::identity())
+        ));
 
         REQUIRE(all(approx(solve(rot * rot, Vec2::j()), Vec2::filled(EPSILON))
                         .contains(Vec2::i())));
     }
 
-    SECTION("Solver (encountered issues)")
-    {
+    SECTION("Solver (encountered issues)") {
         // clang-format off
         Mat3 A{
             2.5f,  -0.5f,  1.5f,
@@ -154,15 +141,11 @@ TEST_CASE("Matrix")
 
         Vec3 x = solver.solve(b);
 
-        REQUIRE(
-            all(approx(x, Vec3::filled(EPSILON)).contains(Vec3{0.1f, 0.1f, 0.f}))
-        );
+        REQUIRE(all(approx(x, Vec3::filled(EPSILON)).contains(Vec3{0.1f, 0.1f, 0.f})));
     }
 
-    SECTION("Inequality Solver")
-    {
-        SECTION("Can solve equalities")
-        {
+    SECTION("Inequality Solver") {
+        SECTION("Can solve equalities") {
             // clang-format off
             Mat3 A{
                 2.5f,  -0.5f,  1.5f,
@@ -175,12 +158,12 @@ TEST_CASE("Matrix")
 
             Vec3 x = solveInequalities(A, b, [](Vec3 x) { return x; });
 
-            REQUIRE(all(approx(x, Vec3::filled(2 * simu::EPSILON))
-                            .contains(Vec3{0.1f, 0.1f, 0.f})));
+            REQUIRE(all(
+                approx(x, Vec3::filled(2 * simu::EPSILON)).contains(Vec3{0.1f, 0.1f, 0.f})
+            ));
         }
 
-        SECTION("Can solve LCP")
-        {
+        SECTION("Can solve LCP") {
             // clang-format off
             Mat2 A{
                 2, 1, 
@@ -191,7 +174,7 @@ TEST_CASE("Matrix")
             Vec2 b{5, 6};
 
             Vec2 x = solveInequalities(A, b, [](Vec2 x) {
-                return std::max(x, Vec2::filled(0.f));
+                return simu::max(x, Vec2::filled(0.f));
             });
 
             REQUIRE(all(x >= Vec2::filled(0.f)));
@@ -200,8 +183,7 @@ TEST_CASE("Matrix")
             REQUIRE(all(res >= b));
         }
 
-        SECTION("Can solve MLCP")
-        {
+        SECTION("Can solve MLCP") {
             // clang-format off
             Mat2 A{
                 2, 1, 
@@ -223,8 +205,7 @@ TEST_CASE("Matrix")
         }
     }
 
-    SECTION("Vector operations")
-    {
+    SECTION("Vector operations") {
         REQUIRE(all(cross(Vec3::i(), Vec3::j()) == Vec3::k()));
         REQUIRE(all(cross(Vec3::j(), Vec3::i()) == -Vec3::k()));
 
@@ -240,18 +221,17 @@ TEST_CASE("Matrix")
         REQUIRE(all(perp(Vec2::i(), true) == -Vec2::j()));
     }
 
-    SECTION("std and comparison matrices")
-    {
+    SECTION("std and comparison matrices") {
         Vec3 v = Vec3::filled(-1.25f);
 
-        REQUIRE(!any(v == std::abs(v)));
-        REQUIRE(all(v != std::abs(v)));
+        REQUIRE(!any(v == simu::abs(v)));
+        REQUIRE(all(v != simu::abs(v)));
 
-        Vec3 absV = std::abs(v);
+        Vec3 absV = simu::abs(v);
         REQUIRE(all(v < absV));
         REQUIRE(all(v <= absV));
 
-        REQUIRE(all(absV > std::round(absV)));
-        REQUIRE(all(absV >= std::round(absV)));
+        REQUIRE(all(absV > simu::round(absV)));
+        REQUIRE(all(absV >= simu::round(absV)));
     }
 }

@@ -28,8 +28,7 @@
 namespace simu
 {
 
-void Scene::moveCamera(float dt)
-{
+void Scene::moveCamera(float dt) {
     if (app() == nullptr)
         return;
 
@@ -50,30 +49,24 @@ void Scene::moveCamera(float dt)
         camera().pan(normalized(panDir) * panSpeed * dt);
 };
 
-bool Scene::onKeypress(Keyboard::Input input)
-{
+bool Scene::onKeypress(Keyboard::Input input) {
     if (input.action == Keyboard::Action::release)
         return false;
 
 
-    if (input.key == Keyboard::Key::S)
-    {
-        if (isPaused())
-        {
+    if (input.key == Keyboard::Key::S) {
+        if (isPaused()) {
             resume();
-            step(1.f / 60.f);
+            step(app()->settings());
             pause();
-        }
-        else
-            step(1.f / 60.f);
+        } else
+            step(app()->settings());
 
         return true;
     }
 
-    if (input.action == Keyboard::Action::press)
-    {
-        switch (input.key)
-        {
+    if (input.action == Keyboard::Action::press) {
+        switch (input.key) {
             case Keyboard::Key::escape:
             {
                 if (app() != nullptr)
@@ -107,41 +100,35 @@ bool Scene::onKeypress(Keyboard::Input input)
     return true;
 }
 
-bool Scene::onMouseScroll(Vec2 scroll)
-{
+bool Scene::onMouseScroll(Vec2 scroll) {
     float zoomRatio = (scroll[1] < 0.f) ? 4.f / 5.f : 5.f / 4.f;
     camera().setZoom(camera().zoom() * std::abs(scroll[1]) * zoomRatio);
     return true;
 }
 
 
-void Scene::init(Application* app)
-{
+void Scene::init(Application* app) {
     app_      = app;
     renderer_ = app->renderer();
 
-    reset();
+    init(*renderer_);
 
     isInit_ = true;
 }
 
-void Scene::keypress(Keyboard::Input input)
-{
+void Scene::keypress(Keyboard::Input input) {
     tool_->onKeypress(input) || onKeypress(input);
 }
 
-void Scene::mousePress(Mouse::Input input)
-{
+void Scene::mousePress(Mouse::Input input) {
     tool_->onMousePress(input) || onMousePress(input);
 }
 
-void Scene::mouseMove(Vec2 newPos)
-{
+void Scene::mouseMove(Vec2 newPos) {
     tool_->onMouseMove(newPos) || onMouseMove(newPos);
 }
 
-void Scene::mouseScroll(Vec2 scroll)
-{
+void Scene::mouseScroll(Vec2 scroll) {
     tool_->onMouseScroll(scroll) || onMouseScroll(scroll);
 }
 

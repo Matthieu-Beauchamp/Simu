@@ -30,7 +30,6 @@
 #include "Simu/math/Matrix.hpp"
 
 #include "Simu/physics/PhysicsObject.hpp"
-#include "Simu/physics/BodyTree.hpp"
 #include "Simu/physics/Transform.hpp"
 #include "Simu/physics/Collider.hpp"
 

@@ -26,56 +26,53 @@
 
 #include "imgui.h"
 
-Pyramid::Pyramid()
-{
+BoxStacks::BoxStacks() {
     registerAllTools();
     useTool<simu::Grabber>();
 
     camera().setPixelSize(1.f / 10.f);
-    camera().panTo(simu::Vec2{0.f, 0.f});
 }
 
-
-void Pyramid::init(simu::Renderer& renderer)
-{
+void BoxStacks::init(simu::Renderer& renderer) {
     renderer.setPointPrecision(4);
     renderer.setPointRadius(0.1f);
     renderer.setLineWidth(0.1f);
 
-    simu().makeForceField<simu::Gravity>(simu::Vec2{0.f, -10.f});
+    pause();
 
-    simu::BodyDescriptor descr{};
-    descr.dominance = 0.f;
-    auto ground     = simu().makeBody<simu::VisibleBody>(
-        descr, simu::Rgba{0, 0, 0, 255}, &renderer
-    );
+    simu::BoxSpawner spawner{*this};
+    auto             dims = spawner.dims;
 
-    simu::ColliderDescriptor cDescr{
-        simu::Polygon::box(simu::Vec2{400.f, 20.f}, simu::Vec2{0.f, -11.f})};
-    cDescr.material.friction.value = 0.8f;
+    float      spacing     = 0.5f;
+    float      floorWidth  = (nStacks_ * 2 + 4) * dims[0];
+    float      floorHeight = 20.f;
+    simu::Vec2 center{0.f, -floorHeight / 2.f - 1.f};
 
-    ground->addCollider(cDescr);
-
-    simu::BoxSpawner spawn{*this};
-
-    float start = -(w + spacing_) * height_ / 2;
-
-    for (int y = 0; y < height_; ++y)
-    {
-        for (int x = 0; x < height_ - y; ++x)
-        {
-            spawn.makeBox(
-                simu::Vec2{
-                    start + (w + spacing_) * x + y * (1.f + spacing_ / 2.f),
-                    (h + spacing_) * y},
-                simu::Vec2{w, h}
-            );
+    for (int stack = 0; stack < nStacks_; ++stack) {
+        for (int h = 0; h < height_; ++h) {
+            float x = -floorWidth / 2.f + dims[0] * (1 + (stack + 1) * 2);
+            float y = h * (dims[1] + spacing) + spacing;
+            spawner.makeBox(simu::Vec2{x, y});
         }
     }
+
+    simu::ObjectBuilder builder = simu::ObjectBuilder();
+    builder.set_static();
+    builder.set_position(center);
+    builder.set_collider(
+        simu::Polygon::box(simu::Vec2{floorWidth + 2.f * height_ * dims[1], floorHeight})
+    );
+    simu().create_object(builder);
+
+    //     descr.dominance                = 0.f;
+    //     cDescr.material.friction.value = 0.8f;
+    //     simu()
+    //         .makeBody<simu::VisibleBody>(descr, simu::Rgba{0, 0, 0, 255}, &renderer)
+    //         ->addCollider(cDescr);
+    // }
 }
 
-void Pyramid::doGui()
-{
-    ImGui::SliderInt("Height", &height_, 1, 100);
-    ImGui::SliderFloat("Spacing", &spacing_, 0.f, w);
+void BoxStacks::doGui() {
+    ImGui::SliderInt("Number of stacks", &nStacks_, 1, 100);
+    ImGui::SliderInt("Stack height", &height_, 1, 100);
 }

@@ -36,64 +36,55 @@ namespace simu
 // Grabber
 ////////////////////////////////////////////////////////////
 
-bool Grabber::onMousePress(Mouse::Input input)
-{
+bool Grabber::onMousePress(Mouse::Input input) {
     if (input.button != Mouse::Button::left)
         return false;
 
-    if (input.action == Mouse::Action::press)
-    {
-        scene_.world().forEachAt(input.pos, [&, this](Body* b) {
-            if (!b->isStructural())
-            {
-                if (mc_ != nullptr)
-                    mc_->kill();
-
-                mc_ = this->makeMouseConstraint(b, input.pos);
-            }
-        });
-    }
-    else if (input.action == Mouse::Action::release)
-    {
-        if (mc_ != nullptr)
-        {
-            mc_->kill();
-            mc_ = nullptr;
-        }
-    }
-    else
-    {
-        return false;
-    }
+    // TODO:
+    // if (input.action == Mouse::Action::press) {
+    //     scene_.simu().forEachAt(input.pos, [&, this](Body* b) {
+    //         if (!b->isStructural()) {
+    //             if (mc_ != nullptr)
+    //                 mc_->kill();
+    //
+    //             mc_ = this->makeMouseConstraint(b, input.pos);
+    //         }
+    //     });
+    // } else if (input.action == Mouse::Action::release) {
+    //     if (mc_ != nullptr) {
+    //         mc_->kill();
+    //         mc_ = nullptr;
+    //     }
+    // } else {
+        // return false;
+    // }
 
     return true;
 }
 
-bool Grabber::onMouseMove(Vec2 pos)
-{
-    if (mc_ != nullptr)
-    {
-        mc_->updateMousePos(pos);
-        return true;
-    }
+bool Grabber::onMouseMove(Vec2 pos) {
+    // if (mc_ != nullptr)
+    // {
+    //     mc_->updateMousePos(pos);
+    //     return true;
+    // }
 
     return false;
 }
 
-VisibleMouseConstraint* Grabber::makeMouseConstraint(Body* b, Vec2 pos)
-{
-    return scene_.world().makeConstraint<VisibleMouseConstraint>(
-        b, pos, scene_.app()->renderer()
-    );
-}
+// VisibleMouseConstraint* Grabber::makeMouseConstraint(Body* b, Vec2 pos)
+// {
+//     return scene_.world().makeConstraint<VisibleMouseConstraint>(
+//         b, pos, scene_.app()->renderer()
+//     );
+// }
 
 
 ////////////////////////////////////////////////////////////
 // BoxSpawner
 ////////////////////////////////////////////////////////////
 
-void BoxSpawner::doGui()
-{
+void BoxSpawner::doGui() {
     ImGui::SliderFloat2("Dimensions", dims.data, 0.1f, 50.f);
 
     ImGui::SliderFloat("Density", &density, 0.1f, 100.f);
@@ -112,10 +103,8 @@ void BoxSpawner::doGui()
     color = static_cast<Rgba>(rgba * 255.f);
 }
 
-bool BoxSpawner::onMousePress(Mouse::Input input)
-{
-    if (input.action == Mouse::Action::press && input.button == Mouse::Button::left)
-    {
+bool BoxSpawner::onMousePress(Mouse::Input input) {
+    if (input.action == Mouse::Action::press && input.button == Mouse::Button::left) {
         makeBox(input.pos);
         return true;
     }
@@ -124,24 +113,16 @@ bool BoxSpawner::onMousePress(Mouse::Input input)
 }
 
 
-Body* BoxSpawner::makeBox(Vec2 pos, std::optional<Vec2> dimensions)
-{
-    BodyDescriptor descr{pos, orientation, dominance};
+ObjectId BoxSpawner::makeBox(Vec2 pos, std::optional<Vec2> dimensions) {
+    ObjectBuilder descr = ObjectBuilder();
+    descr.set_position(pos);
+    descr.set_collider(Polygon::box(dimensions.value_or(this->dims)));
 
-    auto b = scene_.world().makeBody<VisibleBody>(
-        descr, color, scene_.app()->renderer()
-    );
+    // TODO:
+    // descr.set_material(Material{density, friction, bounciness});
+    descr.set_density(density);
 
-    Material material;
-    material.density          = density;
-    material.friction.value   = friction;
-    material.bounciness.value = bounciness;
-
-    ColliderDescriptor cDescr{
-        Polygon::box(dimensions.value_or(this->dims)), material};
-    b->addCollider(cDescr);
-
-    return b;
+    return this->scene_.simu().create_object(descr);
 }
 
 } // namespace simu

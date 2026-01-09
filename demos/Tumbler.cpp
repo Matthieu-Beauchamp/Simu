@@ -46,7 +46,7 @@ void Tumbler::init(simu::Renderer& renderer)
     renderer.setLineWidth(0.01f);
 
 
-    world().makeForceField<simu::Gravity>(simu::Vec2{0.f, -10.f});
+    simu().makeForceField<simu::Gravity>(simu::Vec2{0.f, -10.f});
 
     constexpr float pi = std::numbers::pi_v<float>;
 
@@ -56,7 +56,7 @@ void Tumbler::init(simu::Renderer& renderer)
     simu::Rgba           black{0, 0, 0, 255};
     simu::BodyDescriptor descr{};
     descr.dominance = 0.f;
-    auto tumbler = world().makeBody<simu::VisibleBody>(descr, black, &renderer);
+    auto tumbler = simu().makeBody<simu::VisibleBody>(descr, black, &renderer);
 
     simu::Vec2 horizontalDim{size, thickness};
     simu::Vec2 verticalDim{thickness, size};
@@ -76,7 +76,7 @@ void Tumbler::init(simu::Renderer& renderer)
     cDescr.polygon = simu::Polygon::box(verticalDim, -xOffset);
     tumbler->addCollider(cDescr);
 
-    auto motor = world().makeConstraint<simu::RotationMotor>(
+    auto motor = simu().makeConstraint<simu::RotationMotor>(
         simu::Bodies::singleBody(tumbler),
         simu::RotationMotor::Specs::fromTorque(0.05f * pi, 1e8f)
     );
@@ -92,7 +92,7 @@ void Tumbler::postStep(float)
     {
         simu::BodyDescriptor descr{};
 
-        auto b = world().makeBody<simu::VisibleBody>(
+        auto b = simu().makeBody<simu::VisibleBody>(
             descr, simu::Rgba{200, 100, 200, 255}, getRenderer()
         );
 

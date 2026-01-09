@@ -77,7 +77,7 @@ void NewtonPendulum::init(simu::Renderer& renderer)
 
     descr.dominance                = 0.f;
     cDescr.material.friction.value = 0.5f;
-    auto bar                       = world().makeBody<simu::VisibleBody>(
+    auto bar                       = simu().makeBody<simu::VisibleBody>(
         descr, simu::Rgba{0, 0, 0, 255}, &renderer
     );
 
@@ -104,12 +104,12 @@ void NewtonPendulum::init(simu::Renderer& renderer)
         float x        = -barWidth / 2.f + offset;
 
         descr.position = simu::Vec2{x, 0.f};
-        auto ball      = world().makeBody<simu::VisibleBody>(
+        auto ball      = simu().makeBody<simu::VisibleBody>(
             descr, simu::Rgba::filled(200), &renderer
         );
         ball->addCollider(cDescr);
 
-        world().makeConstraint<simu::VisibleDistanceConstraint>(
+        simu().makeConstraint<simu::VisibleDistanceConstraint>(
             simu::Bodies{
                 ball, bar
         },
@@ -125,7 +125,7 @@ void NewtonPendulum::init(simu::Renderer& renderer)
             ball->setVelocity(simu::Vec2{10.f, 0.f});
     }
 
-    world().makeForceField<simu::Gravity>(simu::Vec2{0, -10.f});
+    simu().makeForceField<simu::Gravity>(simu::Vec2{0, -10.f});
 }
 
 void NewtonPendulum::doGui()
