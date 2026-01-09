@@ -1,11 +1,7 @@
 #include "catch2/catch_test_macros.hpp"
 #include "catch2/catch_approx.hpp"
 #include "Simu/math/Matrix.hpp"
-#include "Simu/physics-2.0/collision/colliders/collisions.hpp"
-#include "Simu/physics-2.0/collision/colliders/BoundingBox.hpp"
-#include "Simu/physics-2.0/collision/colliders/Circle.hpp"
-#include "Simu/physics-2.0/collision/colliders/Polygon.hpp"
-#include "Simu/physics-2.0/collision/colliders/Capsule.hpp"
+#include "Simu/physics-2.0/collision.hpp"
 #include "../matchers/IsUnitVector.hpp"
 #include "../matchers/IsApprox.h"
 

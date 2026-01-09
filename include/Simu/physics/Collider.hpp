@@ -24,6 +24,9 @@
 
 #pragma once
 
+#include "BodyTree.hpp"
+
+
 #include <list>
 
 #include "Simu/config.hpp"
@@ -41,14 +44,11 @@ struct MassProperties
 
     // Assumes geometry is positively oriented.
     template <Geometry G>
-    MassProperties(const G& geometry, float density)
-    {
+    MassProperties(const G& geometry, float density) {
         SIMU_ASSERT(density > 0.f, "Must have a positive density");
 
         GeometricProperties properties{geometry};
-        SIMU_ASSERT(
-            !properties.isDegenerate, "Must have a surface. (not a point or line)."
-        );
+        SIMU_ASSERT(!properties.isDegenerate, "Must have a surface. (not a point or line).");
 
         m        = properties.area * density;
         I        = properties.momentOfArea * density;
@@ -56,8 +56,7 @@ struct MassProperties
     }
 
     friend MassProperties
-    operator+(const MassProperties& lhs, const MassProperties& rhs)
-    {
+    operator+(const MassProperties& lhs, const MassProperties& rhs) {
         MassProperties combined{};
 
         combined.m = lhs.m + rhs.m;
@@ -89,7 +88,7 @@ struct ColliderDescriptor
     /// Does not need to be centered on origin.
     ///
     ////////////////////////////////////////////////////////////
-    Polygon polygon;
+    PolygonOld polygon;
 
     ////////////////////////////////////////////////////////////
     /// \brief The Material of the Collider. Affects how it interacts with other bodies.
@@ -125,8 +124,7 @@ public:
         : local_{descr.polygon.begin(), descr.polygon.end(), alloc},
           transformed_{alloc},
           material_{descr.material},
-          body_{body}
-    {
+          body_{body} {
         transformed_.resize(local_.size());
     }
 
@@ -135,13 +133,11 @@ public:
 
     const Material& material() const { return material_; }
 
-    MassProperties properties() const
-    {
+    MassProperties properties() const {
         return MassProperties{local_, material_.density};
     }
 
-    void replaceAlloc(const Alloc& alloc)
-    {
+    void replaceAlloc(const Alloc& alloc) {
         replaceAllocator(local_, alloc);
         replaceAllocator(transformed_, alloc);
     }
@@ -160,18 +156,14 @@ public:
     auto end() { return transformed_.end(); }
     auto end() const { return transformed_.end(); }
 
-    auto vertexView() const
-    {
-        return makeView(
-            transformed_.data(), transformed_.data() + transformed_.size()
-        );
+    auto vertexView() const {
+        return makeView(transformed_.data(), transformed_.data() + transformed_.size());
     }
 
     ////////////////////////////////////////////////////////////
     /// Changes the transform of the Collider applied to the local space geometry
     ////////////////////////////////////////////////////////////
-    void update(const Transform& transform)
-    {
+    void update(const Transform& transform) {
         auto it = transformed_.begin();
         for (const Vertex& v : local_)
             *it++ = transform * v;
@@ -205,8 +197,7 @@ public:
 
     bool isEmpty() const { return begin() == end(); }
 
-    void replaceAlloc(const Alloc& alloc)
-    {
+    void replaceAlloc(const Alloc& alloc) {
         replaceAllocator(colliders_, alloc);
         for (Collider& c : colliders_)
             c.replaceAlloc(alloc);
@@ -214,8 +205,7 @@ public:
 
     const MassProperties& properties() const { return properties_; }
 
-    Collider* add(const ColliderDescriptor& descr, Body* owner)
-    {
+    Collider* add(const ColliderDescriptor& descr, Body* owner) {
         colliders_.emplace_back(descr, owner, colliders_.get_allocator());
 
         MassProperties p = colliders_.back().properties();
@@ -224,12 +214,9 @@ public:
         return &colliders_.back();
     }
 
-    void remove(Collider* collider)
-    {
-        for (auto it = colliders_.begin(); it != colliders_.end(); ++it)
-        {
-            if (&(*it) == collider)
-            {
+    void remove(Collider* collider) {
+        for (auto it = colliders_.begin(); it != colliders_.end(); ++it) {
+            if (&(*it) == collider) {
                 colliders_.erase(it);
                 break;
             }
@@ -240,8 +227,7 @@ public:
             properties_ = properties_ + c.properties();
     }
 
-    void update(const Transform& transform)
-    {
+    void update(const Transform& transform) {
         for (Collider& c : colliders_)
             c.update(transform);
     }

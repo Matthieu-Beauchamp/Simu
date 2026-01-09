@@ -25,7 +25,7 @@
 #pragma once
 #include "ColliderPool.hpp"
 #include "ObjectId.hpp"
-#include "../collision/colliders/BoundingBox.hpp"
+#include "Simu/physics-2.0/collision.hpp"
 
 namespace simu
 {
@@ -56,6 +56,21 @@ inline BoundingBox bounding_box(ObjectId collider_id, const ColliderPool& collid
             return bounding_box(colliders.capsule(collider_id));
         case ColliderType::Polygon:
             return bounding_box(colliders.polygon(collider_id));
+    }
+
+    SIMU_ASSERT(false, "Unknown collider type");
+}
+
+inline BoundingBox
+bounding_box(ObjectId collider_id, const ColliderPool& colliders, Position position) {
+    ColliderType type = colliders.get_type(collider_id);
+    switch (type) {
+        case ColliderType::Circle:
+            return bounding_box(position.toWorldSpace() * colliders.circle(collider_id));
+        case ColliderType::Capsule:
+            return bounding_box(position.toWorldSpace() * colliders.capsule(collider_id));
+        case ColliderType::Polygon:
+            return bounding_box(position.toWorldSpace() * colliders.polygon(collider_id));
     }
 
     SIMU_ASSERT(false, "Unknown collider type");

@@ -49,24 +49,24 @@ namespace simu
 ///
 /// \warning no special measures are taken if properties indicate that the geometry isDegenerate.
 ////////////////////////////////////////////////////////////
-class Polygon
+class PolygonOld
 {
 public:
 
-    Polygon(const std::initializer_list<Vertex>& vertices)
-        : Polygon{vertices.begin(), vertices.end()}
+    PolygonOld(const std::initializer_list<Vertex>& vertices)
+        : PolygonOld{vertices.begin(), vertices.end()}
     {
     }
 
     template <VertexIterator2D It>
-    Polygon(It begin, It end);
+    PolygonOld(It begin, It end);
 
-    static Polygon box(Vec2 dim, Vec2 center = Vec2{})
+    static PolygonOld box(Vec2 dim, Vec2 center = Vec2{})
     {
         float w = dim[0] / 2.f;
         float h = dim[1] / 2.f;
 
-        return Polygon{
+        return PolygonOld{
             center + Vertex{-w, -h},
             center + Vertex{w,  -h},
             center + Vertex{w,  h },

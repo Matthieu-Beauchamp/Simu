@@ -29,9 +29,10 @@
 #include "PhysicsObjects/ObjectPool.hpp"
 #include "PhysicsObjects/DynamicPhysicsObject.hpp"
 #include "PhysicsObjects/StaticPhysicsObject.hpp"
-#include "collision/CollisionData.hpp"
-#include "collision/CollisionPair.hpp"
-#include "collision/broadphase/BoundingVolumeHierarchy.hpp"
+#include "Simu/physics-2.0/collision.hpp"
+#include "constraint/contact.hpp"
+
+#include <complex.h>
 
 namespace simu
 {
@@ -64,8 +65,11 @@ private:
 
     void process_collisions() noexcept;
 
-    void
-    process_collision(CollisionPair pair) noexcept;
+    void process_collision(CollisionPair pair) noexcept;
+
+    void       solve_contacts() noexcept;
+    [[nodiscard]] ObjectData get_object_data(CollisionPair pair) const noexcept;
+    void       write_back(CollisionPair pair, const ObjectData&) noexcept;
 
     Settings _settings;
     ObjectPool<DynamicPhysicsObject, ObjectId::DynamicPhysicsObject> dynamic_objects{};
@@ -73,7 +77,10 @@ private:
 
     ColliderPool colliders;
 
-    std::unordered_map<CollisionPair, CollisionData> collision_pairs;
+    // TODO: Could store in sorted array using id = a * 2^32 + b
+    // This could provide a better performance even if lookup is log(n)
+    // Otherwise consider using a probing hashmap instead of std::
+    std::unordered_map<CollisionPair, ContactConstraint2> collision_pairs;
 
     BoundingVolumeHierarchy static_bvh;
     BoundingVolumeHierarchy dynamic_bvh;

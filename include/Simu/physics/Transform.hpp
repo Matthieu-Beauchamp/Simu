@@ -38,8 +38,7 @@ class Rotation
 public:
 
     explicit Rotation(float theta) { set(theta); }
-    explicit operator Mat3() const
-    {
+    explicit operator Mat3() const {
         // clang-format off
         return Mat3{
             cosine, -sine,   0.f, 
@@ -52,9 +51,8 @@ public:
     Rotation inverse() const { return Rotation{-theta(), cosine, -sine}; }
 
     float theta() const { return theta_; }
-    void  set(float theta)
-    {
-        // makes Rotation Constraint bug out 
+    void  set(float theta) {
+        // makes Rotation Constraint bug out
         // constexpr float fullCircle = 2.f * std::numbers::pi_v<float>;
 
         // float nCircles = theta / fullCircle;
@@ -65,13 +63,11 @@ public:
         sine   = std::sin(theta);
     }
 
-    Vec2 operator*(const Vec2& v) const
-    {
+    Vec2 operator*(const Vec2& v) const {
         return Vec2{cosine * v[0] - sine * v[1], sine * v[0] + cosine * v[1]};
     }
 
-    Rotation& operator*=(const Rotation& other)
-    {
+    Rotation& operator*=(const Rotation& other) {
         set(theta() + other.theta());
         return *this;
 
@@ -85,8 +81,7 @@ public:
         // return *this;
     }
 
-    Rotation operator*(const Rotation& other) const
-    {
+    Rotation operator*(const Rotation& other) const {
         Rotation cpy{*this};
         cpy *= other;
         return cpy;
@@ -94,9 +89,8 @@ public:
 
 private:
 
-    Rotation(float theta, float c, float s) : theta_{theta}, cosine{c}, sine{s}
-    {
-    }
+    Rotation(float theta, float c, float s)
+        : theta_{theta}, cosine{c}, sine{s} {}
 
     float theta_;
 
@@ -110,8 +104,7 @@ class Translation
 public:
 
     explicit Translation(Vec2 offset) : offset_{offset} {}
-    explicit operator Mat3() const
-    {
+    explicit operator Mat3() const {
         // clang-format off
         return Mat3{
             1, 0, offset_[0], 
@@ -128,14 +121,12 @@ public:
 
     Vec2 operator*(const Vec2& v) const { return v + offset_; }
 
-    Translation operator*=(const Translation& other)
-    {
+    Translation operator*=(const Translation& other) {
         offset_ += other.offset();
         return *this;
     }
 
-    Translation operator*(const Translation& other) const
-    {
+    Translation operator*(const Translation& other) const {
         return Translation{offset() + other.offset()};
     }
 
@@ -152,8 +143,7 @@ public:
     explicit Transform() : Transform(Rotation{0.f}, Translation{Vec2{}}) {}
 
     Transform(Rotation r, Translation t) : r_{r}, t_{t} {}
-    explicit operator Mat3() const
-    {
+    explicit operator Mat3() const {
         Mat3 T{r_};
         Vec2 trans = t_.offset();
         T(0, 2)    = trans[0];
@@ -161,7 +151,7 @@ public:
         return T;
     }
 
-    inline Transform inverse() const;
+    [[nodiscard]] inline Transform inverse() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief No-op transformation
@@ -194,15 +184,15 @@ public:
     /// \brief The rotation part of this transform
     ///
     ////////////////////////////////////////////////////////////
-    const Rotation& rotation() const { return r_; }
-    Rotation&       rotation() { return r_; }
+    [[nodiscard]] const Rotation& rotation() const { return r_; }
+    Rotation&                     rotation() { return r_; }
 
     ////////////////////////////////////////////////////////////
     /// \brief The translation part of this transform
     ///
     ////////////////////////////////////////////////////////////
-    const Translation& translation() const { return t_; }
-    Translation&       translation() { return t_; }
+    [[nodiscard]] const Translation& translation() const { return t_; }
+    Translation&                     translation() { return t_; }
 
 
     Vec2 operator*(const Vec2& v) const { return r_ * v + t_.offset(); }
@@ -214,42 +204,35 @@ private:
 };
 
 
-inline Transform operator*(const Rotation& r, const Translation& t)
-{
+inline Transform operator*(const Rotation& r, const Translation& t) {
     return Transform(r, Translation(r * t.offset()));
 }
 
-inline Transform operator*(const Translation& t, const Rotation& r)
-{
+inline Transform operator*(const Translation& t, const Rotation& r) {
     return Transform(r, t);
 }
 
 
-inline Transform operator*(const Transform& T, const Translation& t)
-{
+inline Transform operator*(const Transform& T, const Translation& t) {
     Vec2 offset = T.translation().offset() + T.rotation() * t.offset();
     return Transform{T.rotation(), Translation{offset}};
 }
 
-inline Transform operator*(const Transform& T, const Rotation& r)
-{
+inline Transform operator*(const Transform& T, const Rotation& r) {
     return Transform(T.rotation() * r, T.translation());
 }
 
 
-inline Transform operator*(const Translation& t, const Transform& T)
-{
+inline Transform operator*(const Translation& t, const Transform& T) {
     return Transform{T.rotation(), T.translation() * t};
 }
 
-inline Transform operator*(const Rotation& r, const Transform& T)
-{
+inline Transform operator*(const Rotation& r, const Transform& T) {
     return Transform(T.rotation() * r, Translation{r * T.translation().offset()});
 }
 
 
-inline Transform operator*(const Transform& T1, const Transform& T2)
-{
+inline Transform operator*(const Transform& T1, const Transform& T2) {
     Transform T{T1.rotation() * T2};
     T.translation() *= T1.translation();
     return T;
@@ -258,16 +241,13 @@ inline Transform operator*(const Transform& T1, const Transform& T2)
 
 Transform Transform::inverse() const { return r_.inverse() * t_.inverse(); }
 
-Transform
-Transform::transformAround(float theta, Vec2 offset, Vec2 transformOrigin)
-{
+Transform Transform::transformAround(float theta, Vec2 offset, Vec2 transformOrigin) {
     return translation(offset + transformOrigin) * rotation(theta)
            * translation(-transformOrigin);
 }
 
 
-inline Vec2 operator*(const Mat3& T, Vec2 v)
-{
+inline Vec2 operator*(const Mat3& T, Vec2 v) {
     Vec3 vec{v[0], v[1], 1.f};
     vec = T * vec;
     return Vec2{vec[0], vec[1]};

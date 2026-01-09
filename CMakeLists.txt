@@ -53,7 +53,8 @@ add_library(simu
         src/Simu/physics-2.0/Simulation.cpp
         src/Simu/physics-2.0/BoundingVolumeHierarchy.cpp
         include/Simu/physics-2.0/ObjectBuilder.hpp
-        src/Simu/physics-2.0/ObjectBuilder.cpp
+        include/Simu/physics-2.0/collision.hpp
+        include/Simu/physics-2.0/constraint/contact.hpp
 )
 
 target_sources(simu

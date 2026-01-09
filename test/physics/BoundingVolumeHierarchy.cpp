@@ -3,8 +3,7 @@
 
 #include "catch2/catch_test_macros.hpp"
 #include "catch2/catch_approx.hpp"
-#include "Simu/physics-2.0/collision/colliders/BoundingBox.hpp"
-#include "Simu/physics-2.0/collision/colliders/Polygon.hpp"
+#include "Simu/physics-2.0/collision.hpp"
 #include "../matchers/IsApprox.h"
 
 #include <catch2/generators/catch_generators.hpp>

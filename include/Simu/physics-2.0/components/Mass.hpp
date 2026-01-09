@@ -41,6 +41,8 @@ public:
     /// @return a mass object describing an object that cannot be moved
     static Mass structural() { return Mass{inf, inf}; }
 
+    Mass() = default;
+
     /// @param mass the mass of the object (>= 0)
     /// @param inertia the inertia of the object (>= 0)
     Mass(float mass, float inertia)
@@ -63,8 +65,8 @@ public:
 
 private:
 
-    float _invMass;
-    float _invInertia;
+    float _invMass = 0;
+    float _invInertia = 0;
 };
 
 } // namespace simu

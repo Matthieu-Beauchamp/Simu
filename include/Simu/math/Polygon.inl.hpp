@@ -30,7 +30,7 @@ namespace simu
 {
 
 template <VertexIterator2D It>
-Polygon::Polygon(It begin, It end)
+PolygonOld::PolygonOld(It begin, It end)
 {
     SIMU_ASSERT(
         std::distance(begin, end) >= 3,

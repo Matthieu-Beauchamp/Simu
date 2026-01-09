@@ -23,15 +23,16 @@
 ////////////////////////////////////////////////////////////
 
 #pragma once
-#include "colliders/collisions.hpp"
 
-namespace simu
-{
+#include "collision/broadphase/BoundingVolumeHierarchy.hpp"
+#include "collision/broadphase/WideBoundingVolumeHierarchy.hpp"
 
-struct CollisionData
-{
-    Contacts<2>       contacts;
-    std::uint_fast8_t steps_since_contact = 0;
-};
+#include "collision/colliders/BoundingBox.hpp"
+#include "collision/colliders/Capsule.hpp"
+#include "collision/colliders/Circle.hpp"
+#include "collision/colliders/Polygon.hpp"
+#include "collision/colliders/ColliderType.hpp"
+#include "collision/colliders/collisions.hpp"
+#include "collision/colliders/transforms.hpp"
 
-} // namespace simu
+#include "collision/CollisionPair.hpp"

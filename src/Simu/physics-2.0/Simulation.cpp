@@ -27,9 +27,9 @@
 #include "Simu/physics-2.0/components/Velocity.hpp"
 #include "../../../include/Simu/physics-2.0/PhysicsObjects/ColliderOperations.hpp"
 #include "physics/Collider.hpp"
-#include "physics-2.0/collision/CollisionData.hpp"
-#include "physics-2.0/collision/CollisionPair.hpp"
-#include "physics-2.0/collision/colliders/collisions.hpp"
+#include "Simu/physics-2.0/collision.hpp"
+
+#include <utility>
 
 namespace simu
 {
@@ -150,7 +150,9 @@ void Simulation::step() {
         std::vector<BoundingBox> dynamic_objects_boxes;
         for (DynamicPhysicsObject& object : dynamic_objects.objects()) {
             dynamic_objects_ids.push_back(object.id);
-            dynamic_objects_boxes.emplace_back(bounding_box(object.collider_id, colliders));
+            dynamic_objects_boxes.emplace_back(
+                bounding_box(object.collider_id, colliders, object.position)
+            );
         }
 
         dynamic_bvh = BoundingVolumeHierarchy::mean_centroid_split(
@@ -181,7 +183,9 @@ void Simulation::step() {
 
     process_collisions();
 
-    // TODO: Apply constraints
+    solve_contacts();
+
+    // TODO: Solve other constraints
 
     // Step position according to resolved velocities
     for (DynamicPhysicsObject& object : dynamic_objects.objects()) {
@@ -250,13 +254,79 @@ void Simulation::process_collision(CollisionPair pair) noexcept {
     if (collision != collision_pairs.end()) {
         collision->second.steps_since_contact = 0;
     } else {
-        collision_pairs.emplace(
-            pair, CollisionData{.contacts = contacts, .steps_since_contact = 0}
-        );
+        collision_pairs.emplace(pair, ContactConstraint2{.contacts = contacts});
     }
 
-    // TODO: Create constraint
-    // Update disjoint set for islands
+    // TODO: Update disjoint set for islands
+}
+
+void Simulation::solve_contacts() noexcept {
+    using ContactPointer = decltype(collision_pairs.begin());
+    std::vector<ContactPointer> constraints;
+    constraints.reserve(collision_pairs.size());
+
+    // TODO: Process into islands
+
+    for (auto it = collision_pairs.begin(); it != collision_pairs.end(); it++) {
+        if (it->second.contacts.n_contacts > 0) {
+            constraints.push_back(it);
+        }
+    }
+
+    for (const auto& it : constraints) {
+        ContactConstraint2& constraint = it->second;
+        ObjectData          data       = get_object_data(it->first);
+
+        // TODO: add materials to get restitution and friction coeff
+        init_contact_constraint(constraint, data, 0, _settings.enable_warm_starting);
+        write_back(it->first, data);
+    }
+
+    // TODO: Add stop when stable
+    // TODO: Don't apply impulses below some threshold
+    for (std::uint32_t i = 0; i < _settings.n_velocity_iterations; i++) {
+        for (const auto& it : constraints) {
+            ContactConstraint2& constraint = it->second;
+            ObjectData          data       = get_object_data(it->first);
+            solve_contact_constraint(constraint, data);
+            write_back(it->first, data);
+        }
+    }
+}
+
+ObjectData Simulation::get_object_data(CollisionPair pair) const noexcept {
+    ObjectData data;
+    if (pair.a.type() == ObjectId::DynamicPhysicsObject) {
+        data.position_a = dynamic_objects[pair.a].position;
+        data.velocity_a = dynamic_objects[pair.a].velocity;
+        data.mass_a     = dynamic_objects[pair.a].mass;
+    } else {
+        data.position_a = static_objects[pair.a].position;
+        data.velocity_a = Velocity{};
+        data.mass_a     = Mass::structural();
+    }
+
+    if (pair.b.type() == ObjectId::DynamicPhysicsObject) {
+        data.position_b = dynamic_objects[pair.b].position;
+        data.velocity_b = dynamic_objects[pair.b].velocity;
+        data.mass_b     = dynamic_objects[pair.b].mass;
+    } else {
+        data.position_b = static_objects[pair.b].position;
+        data.velocity_b = Velocity{};
+        data.mass_b     = Mass::structural();
+    }
+
+    return data;
+}
+
+void Simulation::write_back(CollisionPair pair, const ObjectData& data) noexcept {
+    if (pair.a.type() == ObjectId::DynamicPhysicsObject) {
+        dynamic_objects[pair.a].velocity = data.velocity_a;
+    }
+
+    if (pair.b.type() == ObjectId::DynamicPhysicsObject) {
+        dynamic_objects[pair.b].velocity = data.velocity_b;
+    }
 }
 
 ObjectId Simulation::create_object(ObjectBuilder builder) {
@@ -264,15 +334,18 @@ ObjectId Simulation::create_object(ObjectBuilder builder) {
 
     Mass mass = builder.mass_;
     if (builder.compute_mass_from_geometry) {
-        float density = builder.density;
+        float density = builder.density_;
         switch (builder.collider_type_) {
             case ColliderType::Circle:
+            {
                 float r_squared = builder.circle_.radius() * builder.circle_.radius();
                 float m       = std::numbers::pi_v<float> * r_squared * density;
                 float inertia = 0.5f * m * r_squared;
                 mass          = Mass{m, inertia};
                 break;
+            }
             case ColliderType::Capsule:
+            {
                 float radius = builder.capsule_.radius();
                 float length = norm(builder.capsule_.top() - builder.capsule_.bottom());
                 float pi = std::numbers::pi_v<float>;
@@ -285,27 +358,34 @@ ObjectId Simulation::create_object(ObjectBuilder builder) {
                                      + m_c * (length * 0.5f) * (length * 0.5f);
                 mass = Mass{m_r + m_c, rect_inertia + circ_inertia};
                 break;
+            }
             case ColliderType::Polygon:
+            {
                 auto properties = GeometricProperties(builder.polygon_);
                 mass = Mass{properties.area * density, properties.momentOfArea * density};
                 break;
+            }
         }
     }
 
     ObjectId collider_id = colliders.allocate(builder.collider_type_);
-    switch (builder.collider_type_) {
-        case ColliderType::Circle:
-            colliders.circle(collider_id) = builder.circle_;
-            break;
-        case ColliderType::Capsule:
-            colliders.capsule(collider_id) = builder.capsule_;
-            break;
-        case ColliderType::Polygon:
-            colliders.polygon(collider_id) = builder.polygon_;
-            break;
-    }
+    if (builder.is_static_) {
+        // Store colliders in world space for static objects
+        switch (builder.collider_type_) {
+            case ColliderType::Circle:
+                colliders.circle(collider_id) = builder.position_.toWorldSpace()
+                                                * builder.circle_;
+                break;
+            case ColliderType::Capsule:
+                colliders.capsule(collider_id) = builder.position_.toWorldSpace()
+                                                 * builder.capsule_;
+                break;
+            case ColliderType::Polygon:
+                colliders.polygon(collider_id) = builder.position_.toWorldSpace()
+                                                 * builder.polygon_;
+                break;
+        }
 
-    if (builder.is_static) {
         ObjectId id        = static_objects.allocate();
         static_objects[id] = StaticPhysicsObject{
             .id          = id,
@@ -315,6 +395,18 @@ ObjectId Simulation::create_object(ObjectBuilder builder) {
 
         return id;
     } else {
+        switch (builder.collider_type_) {
+            case ColliderType::Circle:
+                colliders.circle(collider_id) = builder.circle_;
+                break;
+            case ColliderType::Capsule:
+                colliders.capsule(collider_id) = builder.capsule_;
+                break;
+            case ColliderType::Polygon:
+                colliders.polygon(collider_id) = builder.polygon_;
+                break;
+        }
+
         ObjectId id         = dynamic_objects.allocate();
         dynamic_objects[id] = DynamicPhysicsObject{
             .id          = id,

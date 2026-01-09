@@ -41,10 +41,10 @@ public:
         : pos_{position}, orientation_{orientation} {}
 
     /// @return The world space position
-    Vec2 position() const { return pos_.offset(); }
+    [[nodiscard]] Vec2 position() const { return pos_.offset(); }
 
     /// @return The world space orientation (radians)
-    float orientation() const { return orientation_.theta(); }
+    [[nodiscard]] float orientation() const { return orientation_.theta(); }
 
     /// Update the position
     /// @param dPos position offset
@@ -55,10 +55,10 @@ public:
     }
 
     /// @return The transform from this object's local space to world space
-    Transform toWorldSpace() const { return pos_ * orientation_; }
+    [[nodiscard]] Transform toWorldSpace() const { return pos_ * orientation_; }
 
     /// @return The transform from world space to this object's local space
-    Transform toLocalSpace() const {
+    [[nodiscard]] Transform toLocalSpace() const {
         return orientation_.inverse() * pos_.inverse();
     }
 

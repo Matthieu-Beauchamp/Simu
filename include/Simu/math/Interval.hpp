@@ -93,4 +93,9 @@ Interval<T> approx(T value, T epsilon) {
     return Interval<T>{value - epsilon, value + epsilon};
 }
 
+template<class T>
+[[nodiscard]] bool is_approx(T value, T target, T epsilon) {
+    return approx(value, epsilon).contains(target);
+}
+
 } // namespace simu

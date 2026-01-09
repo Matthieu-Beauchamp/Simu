@@ -24,11 +24,7 @@
 
 #pragma once
 #include "ObjectId.hpp"
-#include "../collision/colliders/Capsule.hpp"
-#include "../collision/colliders/Circle.hpp"
-#include "../collision/colliders/ColliderType.hpp"
-#include "../collision/colliders/Polygon.hpp"
-
+#include "Simu/physics-2.0/collision.hpp"
 
 #include <vector>
 

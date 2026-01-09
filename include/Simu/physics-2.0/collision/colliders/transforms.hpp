@@ -26,19 +26,23 @@
 #include "BoundingBox.hpp"
 #include "Capsule.hpp"
 #include "Circle.hpp"
+#include "Polygon.hpp"
 #include "Simu/math/Matrix.hpp"
 #include "Simu/physics/Transform.hpp"
 
 namespace simu
 {
 
-inline BoundingBox
-operator*(const Translation& translation, const BoundingBox& box) {
+inline BoundingBox operator*(const Translation& translation, const BoundingBox& box) {
     return BoundingBox(translation * box.min(), translation * box.max());
 }
 
 inline Circle operator*(const Translation& translation, const Circle& circle) {
     return Circle(translation * circle.center(), circle.radius());
+}
+
+inline Circle operator*(const Transform& transform, const Circle& circle) {
+    return transform.translation() * circle;
 }
 
 inline Capsule operator*(const Translation& translation, const Capsule& capsule) {
@@ -53,5 +57,10 @@ inline Capsule operator*(const Transform& transform, const Capsule& capsule) {
     );
 }
 
+inline Polygon operator*(const Transform& transform, Polygon polygon) {
+    return Polygon(polygon | std::views::transform([&](auto& vertex) {
+                       return transform * vertex;
+                   }));
+}
 
 } // namespace simu

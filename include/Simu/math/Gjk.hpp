@@ -86,7 +86,7 @@ struct Polytope
 ///
 /// \warning changing first or second between construction and calls to any method is undefined.
 ////////////////////////////////////////////////////////////
-template <Geometry T = simu::Polygon>
+template <Geometry T = simu::PolygonOld>
 class Gjk
 {
 public:

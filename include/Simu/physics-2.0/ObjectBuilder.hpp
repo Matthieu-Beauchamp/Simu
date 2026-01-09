@@ -23,10 +23,7 @@
 ////////////////////////////////////////////////////////////
 
 #pragma once
-#include "collision/colliders/Capsule.hpp"
-#include "collision/colliders/Circle.hpp"
-#include "collision/colliders/ColliderType.hpp"
-#include "collision/colliders/Polygon.hpp"
+#include "collision.hpp"
 #include "components/Mass.hpp"
 #include "components/Position.hpp"
 #include "components/Velocity.hpp"
@@ -40,21 +37,21 @@ class ObjectBuilder
 
     Position position_;
     Velocity velocity_;
-    Mass     mass_;
+    Mass     mass_{};
 
     ColliderType collider_type_ = ColliderType::Circle;
     union
     {
-        Circle  circle_;
+        Circle  circle_ = Circle(Vec2(0, 0), 0);
         Capsule capsule_;
         Polygon polygon_;
     };
     bool has_collider_ = false;
 
-    float density                    = 1;
+    float density_                   = 1;
     bool  compute_mass_from_geometry = true;
 
-    bool is_static = false;
+    bool is_static_ = false;
 
 public:
 
@@ -91,7 +88,7 @@ public:
     }
 
     ObjectBuilder& set_density(float density) {
-        this->density                    = density;
+        this->density_                   = density;
         this->compute_mass_from_geometry = true;
         return *this;
     }
@@ -103,7 +100,7 @@ public:
     }
 
     ObjectBuilder& set_static(bool is_static = true) {
-        this->is_static = is_static;
+        this->is_static_ = is_static;
         return *this;
     }
 };
