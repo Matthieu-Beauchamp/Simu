@@ -55,6 +55,7 @@ add_library(simu
         include/Simu/physics-2.0/ObjectBuilder.hpp
         include/Simu/physics-2.0/collision.hpp
         include/Simu/physics-2.0/constraint/contact.hpp
+        include/Simu/physics-2.0/constraint/ContactSolverStrategy.hpp
 )
 
 target_sources(simu

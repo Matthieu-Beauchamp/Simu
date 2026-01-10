@@ -50,6 +50,8 @@ struct Settings
 
     /// Enable constraints to guess impulse based on the previous step.
     bool enable_warm_starting = true;
+
+    // TODO: support for optional shock algorithm: https://graphics.stanford.edu/papers/rigid_bodies-sig03/rigid_bodies.pdf)
 };
 
 } // namespace simu

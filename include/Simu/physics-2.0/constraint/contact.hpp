@@ -328,8 +328,11 @@ penetration_at_contact(const ContactConstraint2& contact_constraint, std::uint32
     );
 }
 
-inline void
-solve_contact_constraint_positions(const ContactConstraint2& contact_constraint, ObjectData& object_data, float correction_factor) {
+inline void solve_contact_constraint_positions(
+    const ContactConstraint2& contact_constraint,
+    ObjectData&               object_data,
+    float                     correction_factor
+) {
     if (contact_constraint.contacts.n_contacts == 0)
         return;
 
