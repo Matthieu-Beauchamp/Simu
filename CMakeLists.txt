@@ -133,20 +133,22 @@ endif ()
 
 if (SIMU_PROFILE)
     target_compile_definitions(simu PUBLIC TRACY_ENABLE)
-
-    FetchContent_Declare(
-            tracy
-            GIT_REPOSITORY https://github.com/wolfpld/tracy.git
-            GIT_TAG master
-            GIT_SHALLOW TRUE
-            GIT_PROGRESS TRUE
-    )
-
-    FetchContent_MakeAvailable(tracy)
-    target_link_libraries(simu PUBLIC TracyClient)
-
-#    add_subdirectory(${tracy_SOURCE_DIR}/profiler)
 endif ()
+
+set(TRACY_ENABLE ${SIMU_PROFILE})
+
+FetchContent_Declare(
+        tracy
+        GIT_REPOSITORY https://github.com/wolfpld/tracy.git
+        GIT_TAG master
+        GIT_SHALLOW TRUE
+        GIT_PROGRESS TRUE
+)
+
+FetchContent_MakeAvailable(tracy)
+target_link_libraries(simu PUBLIC TracyClient)
+
+# add_subdirectory(${tracy_SOURCE_DIR}/profiler)
 
 ############################################################
 # Tests
