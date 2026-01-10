@@ -95,7 +95,7 @@ void Renderer::drawLine(Vec2 A, Vec2 B, Rgba color, LineTip tip)
     switch (tip)
     {
         case LineTip::rounded:
-        case LineTip::triangle: SIMU_ASSERT(false, "Not implemented"); break;
+        case LineTip::triangle: NOT_IMPLEMENTED;
         default:
             v_.emplace_back(A + n);
             v_.emplace_back(B + n);
@@ -129,7 +129,7 @@ void Renderer::updatePointOffsets(float radius, Uint32 precision)
 {
     pointOffsets_.resize(precision);
     pointRadius_ = radius;
-    
+
     Rotation rot{2.f * std::numbers::pi_v<float> / precision};
     Vec2     offset = radius * Vec2::i();
     for (Vec2& v : pointOffsets_)

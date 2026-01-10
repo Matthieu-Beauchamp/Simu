@@ -146,8 +146,7 @@ protected:
             }
         }
 
-        SIMU_ASSERT(false, "No tool of this class was registered");
-        return tools_.front().get();
+        UNREACHABLE;
     }
 
     Tool* currentTool() const { return tool_; }

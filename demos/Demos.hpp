@@ -38,8 +38,8 @@ public:
 
 private:
 
-    int nStacks_ = 10;
-    int height_  = 10;
+    int nStacks_ = 75;
+    int height_  = 75;
 };
 
 

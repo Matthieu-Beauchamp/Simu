@@ -33,7 +33,7 @@ namespace
 
 template <std::size_t dimension>
 std::size_t partition_along_dimension(
-    std::vector<ObjectId>&      entities,
+    std::vector<ObjectId>&    entities,
     std::vector<BoundingBox>& bounds,
     std::size_t               begin,
     std::size_t               end,
@@ -66,7 +66,7 @@ std::size_t partition_along_dimension(
 
 
 BoundingVolumeHierarchy BoundingVolumeHierarchy::mean_centroid_split(
-    std::vector<ObjectId>      entities,
+    std::vector<ObjectId>    entities,
     std::vector<BoundingBox> bounds
 ) SIMU_NO_EXCEPT {
     struct Partition
@@ -163,24 +163,27 @@ BoundingVolumeHierarchy BoundingVolumeHierarchy::mean_centroid_split(
 }
 
 BoundingVolumeHierarchy BoundingVolumeHierarchy::minimal_area_insertion(
-    [[maybe_unused]] std::vector<ObjectId>      entities,
+    [[maybe_unused]] std::vector<ObjectId>    entities,
     [[maybe_unused]] std::vector<BoundingBox> bounds
 ) {
     NOT_IMPLEMENTED;
+    return {};
 }
 
 BoundingVolumeHierarchy BoundingVolumeHierarchy::morton_sort(
-    [[maybe_unused]] std::vector<ObjectId>      entities,
+    [[maybe_unused]] std::vector<ObjectId>    entities,
     [[maybe_unused]] std::vector<BoundingBox> bounds
 ) {
     NOT_IMPLEMENTED;
+    return {};
 }
 
 BoundingVolumeHierarchy BoundingVolumeHierarchy::bottom_up_clustering(
-    [[maybe_unused]] std::vector<ObjectId>      entities,
+    [[maybe_unused]] std::vector<ObjectId>    entities,
     [[maybe_unused]] std::vector<BoundingBox> bounds
 ) {
     NOT_IMPLEMENTED;
+    return {};
 }
 
 BoundingVolumeHierarchy::BoundingVolumeHierarchy()
@@ -188,14 +191,21 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy()
           {BoundingBox(), internal::BvhNodeData::makeInternal(0, 0)}
 } {}
 
-void BoundingVolumeHierarchy::insert([[maybe_unused]] ObjectId e, [[maybe_unused]] BoundingBox bounds) SIMU_NO_EXCEPT { NOT_IMPLEMENTED;
+void BoundingVolumeHierarchy::insert(
+    [[maybe_unused]] ObjectId    e,
+    [[maybe_unused]] BoundingBox bounds
+) SIMU_NO_EXCEPT {
+    NOT_IMPLEMENTED;
 }
 
 void BoundingVolumeHierarchy::remove([[maybe_unused]] ObjectId e) SIMU_NO_EXCEPT {
     NOT_IMPLEMENTED;
 }
 
-void BoundingVolumeHierarchy::collide(BoundingBox bounds, std::function<void(ObjectId)> callback) const noexcept {
+void BoundingVolumeHierarchy::collide(
+    BoundingBox                   bounds,
+    std::function<void(ObjectId)> callback
+) const noexcept {
     std::vector<std::size_t> stack{0};
     while (!stack.empty()) {
         auto node_index = stack.back();
@@ -218,7 +228,7 @@ void BoundingVolumeHierarchy::collide(BoundingBox bounds, std::function<void(Obj
 }
 
 void BoundingVolumeHierarchy::collide(
-    const BoundingVolumeHierarchy&      other,
+    const BoundingVolumeHierarchy&          other,
     std::function<void(ObjectId, ObjectId)> callback
 ) const noexcept {
     struct TreeComparison

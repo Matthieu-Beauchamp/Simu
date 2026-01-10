@@ -141,7 +141,7 @@ void SimulationRenderer::draw_collider(
         }
     }
 
-    SIMU_ASSERT(false, "Unknown collider type");
+    UNREACHABLE;
 }
 
 } // namespace simu

@@ -10,7 +10,7 @@ include(macros)
 
 cmake_policy(SET CMP0076 NEW) # target_sources converted to absolute path
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -131,6 +131,7 @@ if (SIMU_BUILD_DEMOS)
     add_subdirectory(demos-2)
 endif ()
 
+option(SIMU_PROFILE "Enable tracy profiler")
 if (SIMU_PROFILE)
     target_compile_definitions(simu PUBLIC TRACY_ENABLE)
 endif ()

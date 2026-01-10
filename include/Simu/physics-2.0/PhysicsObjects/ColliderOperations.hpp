@@ -59,7 +59,7 @@ bounding_box(const ObjectId& collider_id, const ColliderPool& colliders, const P
             return bounding_box(position.toWorldSpace() * colliders.polygon(collider_id));
     }
 
-    SIMU_ASSERT(false, "Unknown collider type");
+    UNREACHABLE;
 }
 
 } // namespace simu

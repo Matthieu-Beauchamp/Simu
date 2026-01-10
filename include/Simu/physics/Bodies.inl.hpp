@@ -103,8 +103,7 @@ bool Bodies::isBodyStructural(const Body* body) const
     if (body == bodies_[1])
         return invMasses_.m1 == 0.f;
 
-    SIMU_ASSERT(false, "Body is not part of these bodies.");
-    return true;
+    UNREACHABLE;
 }
 
 } // namespace simu

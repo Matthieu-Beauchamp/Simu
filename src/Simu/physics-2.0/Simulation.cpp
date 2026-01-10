@@ -149,7 +149,7 @@ namespace
         }
     }
 
-    SIMU_ASSERT(false, "Missing collision combination");
+    UNREACHABLE;
 }
 
 } // namespace
@@ -268,7 +268,7 @@ Position Simulation::get_position(ObjectId object_id) const SIMU_NO_EXCEPT {
             return _static_objects[object_id].position;
     }
 
-    SIMU_ASSERT(false, "Unexpected object type");
+    UNREACHABLE;
 }
 
 ObjectId Simulation::get_collider_id(ObjectId object_id) const SIMU_NO_EXCEPT {
@@ -279,7 +279,7 @@ ObjectId Simulation::get_collider_id(ObjectId object_id) const SIMU_NO_EXCEPT {
             return _static_objects[object_id].collider_id;
     }
 
-    SIMU_ASSERT(false, "Unexpected object type");
+    UNREACHABLE;
 }
 
 void Simulation::process_collisions() SIMU_NO_EXCEPT {
@@ -478,11 +478,11 @@ void Simulation::write_back_positions(CollisionPair pair, const ObjectData& data
     }
 }
 
-bool Simulation::has_deleted_object(const CollisionPair& objs) const {
+bool Simulation::has_deleted_object(const CollisionPair& objs) const SIMU_NO_EXCEPT {
     return !has_object(objs.a) || !has_object(objs.b);
 }
 
-bool Simulation::has_object(ObjectId object_id) const {
+bool Simulation::has_object(ObjectId object_id) const SIMU_NO_EXCEPT {
     if (object_id.type() == ObjectId::DynamicPhysicsObject) {
         return _dynamic_objects.contains(object_id);
     }
@@ -581,7 +581,7 @@ ObjectId Simulation::create_object(ObjectBuilder builder) {
     }
 }
 
-void Simulation::destroy_object(ObjectId id) {
+void Simulation::destroy_object(ObjectId id) SIMU_NO_EXCEPT {
     SIMU_ASSERT(
         id.type() != ObjectId::Collider, "Deleting collider from existing object is forbidden"
     );

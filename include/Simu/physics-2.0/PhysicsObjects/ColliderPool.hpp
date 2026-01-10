@@ -180,7 +180,7 @@ private:
             }
         }
 
-        SIMU_ASSERT(false, "Invalid collider type");
+        UNREACHABLE;
     }
 
     std::uint32_t collider_index(std::uint32_t index, ColliderType type) const {

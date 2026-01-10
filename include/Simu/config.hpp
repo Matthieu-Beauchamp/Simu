@@ -63,20 +63,27 @@
 #    undef SIMU_PROFILE
 #endif
 
+#ifdef _MSC_VER
+#    define SIMU_ASSUME(c) __assume(c)
+#else
+#    define SIMU_ASSUME(c) [[assume(c)]]
+#endif
 
-#if defined(NDEBUG) && defined(SIMU_NO_ASSERT)
-#    define SIMU_NO_EXCEPT noexcept
-#    define SIMU_ASSERT(c, m)                                                  \
-        (void)(c);                                                             \
-        (void)(m)
+#if defined(NDEBUG)
+#    include <utility>
+
+#    define SIMU_NO_EXCEPT    noexcept
+#    define SIMU_ASSERT(c, m) SIMU_ASSUME(c)
+#    define NOT_IMPLEMENTED   UNREACHABLE
+#    define UNREACHABLE       std::unreachable()
 #else
 #    define SIMU_NO_EXCEPT
 #    define SIMU_ASSERT(cond, msg)                                             \
         if (!(cond))                                                           \
         throw simu::Exception(msg)
+#    define NOT_IMPLEMENTED SIMU_ASSERT(false, "Not implemented")
+#    define UNREACHABLE     SIMU_ASSERT(false, "Unreachable code reached")
 #endif
-
-#define NOT_IMPLEMENTED SIMU_ASSERT(false, "Not implemented")
 
 
 namespace simu
