@@ -738,7 +738,7 @@ public:
 
     Solver(const Matrix<T, 2, 2>& A) : A_{A} {
         invDet_  = A(0, 0) * A(1, 1) - A(0, 1) * A(1, 0);
-        isValid_ = !is_approx(invDet_, 0.f, EPSILON);
+        isValid_ = !is_approx(invDet_, 0.f, SINGULAR_MATRIX_EPSILON);
         if (isValid_)
             invDet_ = 1.f / invDet_;
     }

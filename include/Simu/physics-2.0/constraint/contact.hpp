@@ -266,6 +266,7 @@ solve_contact_constraint(ContactConstraint2& contact_constraint, ObjectData& obj
 
         // J M^-1 J^T lambda >= -(Jv + b), where Jv is the relative velocity
         // TODO: Handle degeneracies better
+        // Usually happens when contacts are very close, collision detection should be preventing this...
 
         Vec2 applied_rel_velocity = effective_mass * contact_constraint.normal_impulses;
         Vec2 lambda = solveLcp(
@@ -315,6 +316,85 @@ solve_contact_constraint(ContactConstraint2& contact_constraint, ObjectData& obj
         object_data.velocity_a.angular += velocity_change[2];
         object_data.velocity_b.linear += Vec2(velocity_change[3], velocity_change[4]);
         object_data.velocity_b.angular += velocity_change[5];
+    }
+}
+
+inline float
+penetration_at_contact(const ContactConstraint2& contact_constraint, std::uint32_t contact_index) {
+    return dot(
+        contact_constraint.contacts.contacts_b[contact_index]
+            - contact_constraint.contacts.contacts_a[contact_index],
+        contact_constraint.contacts.normal
+    );
+}
+
+inline void
+solve_contact_constraint_positions(const ContactConstraint2& contact_constraint, ObjectData& object_data, float correction_factor) {
+    if (contact_constraint.contacts.n_contacts == 0)
+        return;
+
+    // TODO: Should store contact position relative to object?
+    //      Having contact point in world space may cause problems for position correction
+    // => yes, updates are not seen through the contact point values
+
+
+    if (contact_constraint.contacts.n_contacts == 1) {
+        float penetration = penetration_at_contact(contact_constraint, 0);
+
+        // J M^-1 J^T
+        Vec6 J = contact_constraint_jacobian(contact_constraint, object_data, 0);
+
+        Vec6 inv_mass = inverse_mass(object_data);
+
+        Vec6  correction_direction = elementWiseMul(inv_mass, J);
+        float effective_mass       = dot(J, correction_direction);
+
+        // J M^-1 J^T lambda = -BC where C is the penetration
+        float lambda = -(penetration * correction_factor) / effective_mass;
+        if (lambda < EPSILON) {
+            return;
+        }
+
+        // Apply diff_impulses to objects
+        Vec6 position_change = correction_direction * lambda;
+        object_data.position_a.advance(
+            Vec2(position_change[0], position_change[1]), position_change[2]
+        );
+        object_data.position_b.advance(
+            Vec2(position_change[3], position_change[4]), position_change[5]
+        );
+    } else if (contact_constraint.contacts.n_contacts == 2) {
+        Vec2 penetration = Vec2(
+            penetration_at_contact(contact_constraint, 0),
+            penetration_at_contact(contact_constraint, 1)
+        );
+
+        // J M^-1 J^T
+        Vec6 J0 = contact_constraint_jacobian(contact_constraint, object_data, 0);
+        Vec6 J1 = contact_constraint_jacobian(contact_constraint, object_data, 1);
+        auto J = Matrix<float, 2, 6>::fromRows({J0, J1});
+
+        Vec6 inv_mass = inverse_mass(object_data);
+
+        Mat2 effective_mass = J * Matrix<float, 6, 6>::diagonal(inv_mass)
+                              * transpose(J);
+
+        // J M^-1 J^T lambda >= -C, where C is the penetration
+
+        // Since contacts are not
+        LcpSolver<float> solver{effective_mass};
+        Vec2 lambda = solveLcp(effective_mass, -(penetration * correction_factor));
+
+        // Apply correction to objects
+        Vec6 correction = transpose(J) * lambda;
+
+        Vec6 position_change = elementWiseMul(inv_mass, correction);
+        object_data.position_a.advance(
+            Vec2(position_change[0], position_change[1]), position_change[2]
+        );
+        object_data.position_b.advance(
+            Vec2(position_change[3], position_change[4]), position_change[5]
+        );
     }
 }
 

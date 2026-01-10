@@ -153,7 +153,7 @@ namespace
 
 } // namespace
 
-void Simulation::step() {
+void Simulation::step() SIMU_NO_EXCEPT {
     // TODO: In a separate thread, create improved tree to be used in the next timestep
     //      instead of waiting on it for the current step.
     //      Use old tree for current step.
@@ -170,7 +170,7 @@ void Simulation::step() {
             );
         }
 
-        dynamic_bvh = BoundingVolumeHierarchy::mean_centroid_split(
+        _dynamic_bvh = BoundingVolumeHierarchy::mean_centroid_split(
             dynamic_objects_ids, dynamic_objects_boxes
         );
     }
@@ -182,10 +182,12 @@ void Simulation::step() {
         std::vector<BoundingBox> static_objects_boxes;
         for (StaticPhysicsObject& object : _static_objects.objects()) {
             static_objects_ids.push_back(object.id);
-            static_objects_boxes.emplace_back(bounding_box(object.collider_id, _colliders, object.position));
+            static_objects_boxes.emplace_back(
+                bounding_box(object.collider_id, _colliders, object.position)
+            );
         }
 
-        static_bvh = BoundingVolumeHierarchy::mean_centroid_split(
+        _static_bvh = BoundingVolumeHierarchy::mean_centroid_split(
             static_objects_ids, static_objects_boxes
         );
     }
@@ -198,9 +200,22 @@ void Simulation::step() {
 
     process_collisions();
 
-    solve_contacts();
+    std::vector<ContactPointer> constraints;
+    constraints.reserve(_collision_pairs.size());
+
+    // TODO: Process into islands
+
+    for (auto it = _collision_pairs.begin(); it != _collision_pairs.end(); it++) {
+        if (it->second.contacts.n_contacts > 0) {
+            constraints.push_back(it);
+        }
+    }
+
+    solve_contacts(constraints);
 
     // TODO: Solve other constraints
+
+    solve_contact_positions(constraints);
 
     // Step position according to resolved velocities
     for (DynamicPhysicsObject& object : _dynamic_objects.objects()) {
@@ -236,22 +251,22 @@ ObjectId Simulation::get_collider_id(ObjectId object_id) const SIMU_NO_EXCEPT {
     SIMU_ASSERT(false, "Unexpected object type");
 }
 
-void Simulation::process_collisions() noexcept {
+void Simulation::process_collisions() SIMU_NO_EXCEPT {
     {
         // TODO: Keep for polygons where the normal gives the separating axis.
         std::vector<CollisionPair> outdated;
-        for (auto it = collision_pairs.begin(); it != collision_pairs.end(); it++) {
+        for (auto it = _collision_pairs.begin(); it != _collision_pairs.end(); it++) {
             if (it->second.steps_since_contact++ > _settings.n_steps_without_contacts) {
                 outdated.push_back(it->first);
             }
         }
 
         for (CollisionPair& pair : outdated) {
-            collision_pairs.erase(pair);
+            _collision_pairs.erase(pair);
         }
     }
 
-    dynamic_bvh.collide(dynamic_bvh, [this](ObjectId a, ObjectId b) noexcept {
+    _dynamic_bvh.collide(_dynamic_bvh, [this](ObjectId a, ObjectId b) noexcept {
         // When colliding with the same tree, collisions are detected twice.
         // Also ignore collision with self
         if (a.as_index() >= b.as_index()) {
@@ -261,12 +276,12 @@ void Simulation::process_collisions() noexcept {
         process_collision(CollisionPair(a, b));
     });
 
-    dynamic_bvh.collide(static_bvh, [this](ObjectId a, ObjectId b) noexcept {
+    _dynamic_bvh.collide(_static_bvh, [this](ObjectId a, ObjectId b) noexcept {
         process_collision(CollisionPair(a, b));
     });
 }
 
-void Simulation::process_collision(CollisionPair pair) noexcept {
+void Simulation::process_collision(CollisionPair pair) SIMU_NO_EXCEPT {
     Contacts<2> contacts = collide(
         get_collider_id(pair.a),
         get_collider_id(pair.b),
@@ -279,48 +294,99 @@ void Simulation::process_collision(CollisionPair pair) noexcept {
         return;
     }
 
-    auto collision = collision_pairs.find(pair);
+    if (contacts.n_contacts == 2) {
+        // Validate collision
+        SIMU_ASSERT(
+            norm(contacts.contacts_a[0] - contacts.contacts_a[1]) > CONTACT_EPSILON, "Degenerate contacts"
+        );
+        SIMU_ASSERT(
+            norm(contacts.contacts_b[0] - contacts.contacts_b[1]) > CONTACT_EPSILON, "Degenerate contacts"
+        );
+    }
 
-    if (collision != collision_pairs.end()) {
-        collision->second.contacts = contacts;
+    auto collision = _collision_pairs.find(pair);
+
+    if (collision != _collision_pairs.end()) {
+        collision->second.contacts            = contacts;
         collision->second.steps_since_contact = 0;
     } else {
-        collision_pairs.emplace(pair, ContactConstraint2{.contacts = contacts});
+        _collision_pairs.emplace(pair, ContactConstraint2{.contacts = contacts});
     }
 
     // TODO: Update disjoint set for islands
 }
 
-void Simulation::solve_contacts() noexcept {
-    using ContactPointer = decltype(collision_pairs.begin());
-    std::vector<ContactPointer> constraints;
-    constraints.reserve(collision_pairs.size());
-
-    // TODO: Process into islands
-
-    for (auto it = collision_pairs.begin(); it != collision_pairs.end(); it++) {
-        if (it->second.contacts.n_contacts > 0) {
-            constraints.push_back(it);
-        }
-    }
-
-    for (const auto& it : constraints) {
+void Simulation::solve_contacts(const std::vector<ContactPointer>& contacts) noexcept {
+    for (const auto& it : contacts) {
         ContactConstraint2& constraint = it->second;
         ObjectData          data       = get_object_data(it->first);
 
         // TODO: add materials to get restitution and friction coeff
         init_contact_constraint(constraint, data, 0, _settings.enable_warm_starting);
-        write_back(it->first, data);
+        write_back_velocities(it->first, data);
     }
 
     // TODO: Add stop when stable
     // TODO: Don't apply impulses below some threshold
     for (std::uint32_t i = 0; i < _settings.n_velocity_iterations; i++) {
-        for (const auto& it : constraints) {
+        for (const auto& it : contacts) {
             ContactConstraint2& constraint = it->second;
             ObjectData          data       = get_object_data(it->first);
             solve_contact_constraint(constraint, data);
-            write_back(it->first, data);
+            write_back_velocities(it->first, data);
+        }
+    }
+}
+void Simulation::solve_contact_positions(std::vector<ContactPointer>& contacts) noexcept {
+    if (_settings.n_position_iterations == 0) {
+        return;
+    }
+
+    // Convert all contact points to local space
+    for (auto& it : contacts) {
+        ContactConstraint2& constraint = it->second;
+        ObjectData          data       = get_object_data(it->first);
+        for (std::uint32_t i = 0; i < constraint.contacts.n_contacts; i++) {
+            constraint.contacts.contacts_a[i] = data.position_a.toLocalSpace()
+                                                * constraint.contacts.contacts_a[i];
+            constraint.contacts.contacts_b[i] = data.position_b.toLocalSpace()
+                                                * constraint.contacts.contacts_b[i];
+        }
+    }
+
+    // TODO: Add stop when stable
+    // TODO: Don't apply corrections below some threshold
+    for (std::uint32_t i = 0; i < _settings.n_position_iterations; i++) {
+        for (const auto& it : contacts) {
+            // TODO: Could omit some info from ObjectData
+            ContactConstraint2 tmp_constraint = it->second;
+            ObjectData         data           = get_object_data(it->first);
+
+            for (std::uint32_t j = 0; j < tmp_constraint.contacts.n_contacts; j++) {
+                tmp_constraint.contacts.contacts_a[j]
+                    = data.position_a.toWorldSpace()
+                      * tmp_constraint.contacts.contacts_a[j];
+                tmp_constraint.contacts.contacts_b[j]
+                    = data.position_b.toWorldSpace()
+                      * tmp_constraint.contacts.contacts_b[j];
+            }
+
+            solve_contact_constraint_positions(
+                tmp_constraint, data, _settings.position_correction_factor
+            );
+            write_back_positions(it->first, data);
+        }
+    }
+
+    // Convert back to world space
+    for (auto& it : contacts) {
+        ContactConstraint2& constraint = it->second;
+        ObjectData          data       = get_object_data(it->first);
+        for (std::uint32_t i = 0; i < constraint.contacts.n_contacts; i++) {
+            constraint.contacts.contacts_a[i] = data.position_a.toWorldSpace()
+                                                * constraint.contacts.contacts_a[i];
+            constraint.contacts.contacts_b[i] = data.position_b.toWorldSpace()
+                                                * constraint.contacts.contacts_b[i];
         }
     }
 }
@@ -350,13 +416,23 @@ ObjectData Simulation::get_object_data(CollisionPair pair) const noexcept {
     return data;
 }
 
-void Simulation::write_back(CollisionPair pair, const ObjectData& data) noexcept {
+void Simulation::write_back_velocities(CollisionPair pair, const ObjectData& data) noexcept {
     if (pair.a.type() == ObjectId::DynamicPhysicsObject) {
         _dynamic_objects[pair.a].velocity = data.velocity_a;
     }
 
     if (pair.b.type() == ObjectId::DynamicPhysicsObject) {
         _dynamic_objects[pair.b].velocity = data.velocity_b;
+    }
+}
+
+void Simulation::write_back_positions(CollisionPair pair, const ObjectData& data) noexcept {
+    if (pair.a.type() == ObjectId::DynamicPhysicsObject) {
+        _dynamic_objects[pair.a].position = data.position_a;
+    }
+
+    if (pair.b.type() == ObjectId::DynamicPhysicsObject) {
+        _dynamic_objects[pair.b].position = data.position_b;
     }
 }
 

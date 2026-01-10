@@ -109,7 +109,13 @@ private:
 // TODO: Use epsilon specific to each use case
 constexpr float EPSILON = 1e-6f;
 
+/// Minimum abs determinant value to consider a matrix non singular
+constexpr float SINGULAR_MATRIX_EPSILON = 1e-7f;
+
+// TODO: When this happens, constraint code should switch to single contact on its own
+//
 /// The maximum distance between contact points to consider them equal
+/// If this value is too small, some contacts may produce a degenerate LCP problem
 constexpr float CONTACT_EPSILON = 1e-3f;
 
 typedef std::int8_t  Int8;

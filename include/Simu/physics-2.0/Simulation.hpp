@@ -37,6 +37,11 @@ namespace simu
 
 class Simulation
 {
+    using DynamicObjects = ObjectPool<DynamicPhysicsObject, ObjectId::DynamicPhysicsObject>;
+    using StaticObjects = ObjectPool<StaticPhysicsObject, ObjectId::StaticPhysicsObject>;
+    using Collisions = std::unordered_map<CollisionPair, ContactConstraint2>;
+    using ContactPointer = decltype(std::declval<Collisions>().begin());
+
 public:
 
     /// Construct an empty world
@@ -47,14 +52,21 @@ public:
     Simulation(Simulation&& other)      = delete;
 
     /// Makes the simulation progress in time.
-    void     step();
+    void step() SIMU_NO_EXCEPT;
 
     /// The simulation's settings
     [[nodiscard]] Settings&       settings() { return _settings; }
     [[nodiscard]] const Settings& settings() const { return _settings; }
 
     /// Reset the simulation
-    void clear() { NOT_IMPLEMENTED; }
+    void clear() {
+        _dynamic_objects = DynamicObjects{};
+        _static_objects  = StaticObjects{};
+        _colliders       = ColliderPool{};
+        _collision_pairs.clear();
+        _dynamic_bvh = BoundingVolumeHierarchy{};
+        _static_bvh  = BoundingVolumeHierarchy{};
+    }
 
     //////////////////////////////////////////////////
     // Objects
@@ -122,10 +134,10 @@ public:
     // Constraints
 
     auto contact_constraints() SIMU_NO_EXCEPT {
-        return std::ranges::subrange{collision_pairs.begin(), collision_pairs.end()};
+        return std::ranges::subrange{_collision_pairs.begin(), _collision_pairs.end()};
     }
     auto contact_constraints() const SIMU_NO_EXCEPT {
-        return std::ranges::subrange{collision_pairs.begin(), collision_pairs.end()};
+        return std::ranges::subrange{_collision_pairs.begin(), _collision_pairs.end()};
     }
 
 private:
@@ -133,27 +145,30 @@ private:
     [[nodiscard]] Position get_position(ObjectId object_id) const;
     [[nodiscard]] ObjectId get_collider_id(ObjectId object_id) const SIMU_NO_EXCEPT;
 
-    void process_collisions() noexcept;
+    void process_collisions() SIMU_NO_EXCEPT;
 
-    void process_collision(CollisionPair pair) noexcept;
+    void process_collision(CollisionPair pair) SIMU_NO_EXCEPT;
 
-    void                     solve_contacts() noexcept;
+    void solve_contacts(const std::vector<ContactPointer>& contacts) noexcept;
+    void solve_contact_positions(std::vector<ContactPointer>& contacts) noexcept;
+
     [[nodiscard]] ObjectData get_object_data(CollisionPair pair) const noexcept;
-    void write_back(CollisionPair pair, const ObjectData&) noexcept;
+    void write_back_velocities(CollisionPair pair, const ObjectData&) noexcept;
+    void write_back_positions(CollisionPair pair, const ObjectData&) noexcept;
 
-    Settings _settings;
-    ObjectPool<DynamicPhysicsObject, ObjectId::DynamicPhysicsObject> _dynamic_objects{};
-    ObjectPool<StaticPhysicsObject, ObjectId::StaticPhysicsObject> _static_objects{};
+    Settings       _settings;
+    DynamicObjects _dynamic_objects{};
+    StaticObjects  _static_objects{};
 
     ColliderPool _colliders;
 
     // TODO: Could store in sorted array using id = a * 2^32 + b
     // This could provide a better performance even if lookup is log(n)
     // Otherwise consider using a probing hashmap instead of std::
-    std::unordered_map<CollisionPair, ContactConstraint2> collision_pairs;
+    Collisions _collision_pairs;
 
-    BoundingVolumeHierarchy static_bvh;
-    BoundingVolumeHierarchy dynamic_bvh;
+    BoundingVolumeHierarchy _static_bvh;
+    BoundingVolumeHierarchy _dynamic_bvh;
 };
 
 } // namespace simu

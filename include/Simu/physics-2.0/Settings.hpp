@@ -42,12 +42,14 @@ struct Settings
     /// Number of position solver iterations
     Uint32 n_position_iterations = 2;
 
+    /// How much of the position error is corrected at each iteration
+    float position_correction_factor = 0.2f;
+
     /// Number of physics steps until non-touching collisions are removed from the cache
     Uint8 n_steps_without_contacts = 1;
 
     /// Enable constraints to guess impulse based on the previous step.
     bool enable_warm_starting = true;
-
 };
 
 } // namespace simu
