@@ -65,15 +65,23 @@ public:
         return ObjectId(id.generation() + 1, object_type, id.as_index());
     }
 
-    void give_back(ObjectId id) {
-        SIMU_ASSERT(id.type() == object_type, "ObjectPool::give_back object type mismatch");
+    [[nodiscard]] bool contains(ObjectId id) const {
+        SIMU_ASSERT(id.type() == object_type, "Object type mismatch");
+        return id.as_index() <= _objects.size()
+               && _objects[id.as_index() - 1].id.is_valid()
+               && _objects[id.as_index() - 1].id == id;
+    }
+
+    /// Delete the object and free the index for use
+    void erase(ObjectId id) {
+        SIMU_ASSERT(id.type() == object_type, "Object type mismatch");
         free_ids.push_back(id);
-        _objects[id.as_index() - 1] = T{};
+        _objects[id.as_index() - 1] = T();
     }
 
     T& operator[](ObjectId id) {
         SIMU_ASSERT(id.type() == object_type, "Object type mismatch");
-        // TODO: Can't valide on write access since it could be initializing the object
+        // TODO: Can't validate on write access since it could be initializing the object
         // SIMU_ASSERT(_objects[id.as_index() - 1].id.is_valid(), "No such object");
         // SIMU_ASSERT(_objects[id.as_index() - 1].id == id, "Object changed generation");
         return _objects[id.as_index() - 1];

@@ -253,10 +253,12 @@ ObjectId Simulation::get_collider_id(ObjectId object_id) const SIMU_NO_EXCEPT {
 
 void Simulation::process_collisions() SIMU_NO_EXCEPT {
     {
-        // TODO: Keep for polygons where the normal gives the separating axis.
+        // TODO: Keep for polygons where the normal gives the separating axis
+        //      until they stop being reported in bvh trees.
         std::vector<CollisionPair> outdated;
         for (auto it = _collision_pairs.begin(); it != _collision_pairs.end(); it++) {
-            if (it->second.steps_since_contact++ > _settings.n_steps_without_contacts) {
+            if (has_deleted_object(it->first)
+                || it->second.steps_since_contact++ > _settings.n_steps_without_contacts) {
                 outdated.push_back(it->first);
             }
         }
@@ -430,10 +432,24 @@ void Simulation::write_back_positions(CollisionPair pair, const ObjectData& data
     if (pair.a.type() == ObjectId::DynamicPhysicsObject) {
         _dynamic_objects[pair.a].position = data.position_a;
     }
-
     if (pair.b.type() == ObjectId::DynamicPhysicsObject) {
         _dynamic_objects[pair.b].position = data.position_b;
     }
+}
+
+bool Simulation::has_deleted_object(const CollisionPair& objs) const {
+    return !has_object(objs.a) || !has_object(objs.b);
+}
+
+bool Simulation::has_object(ObjectId object_id) const {
+    if (object_id.type() == ObjectId::DynamicPhysicsObject) {
+        return _dynamic_objects.contains(object_id);
+    }
+    if (object_id.type() == ObjectId::StaticPhysicsObject) {
+        return _static_objects.contains(object_id);
+    }
+
+    return false;
 }
 
 ObjectId Simulation::create_object(ObjectBuilder builder) {
@@ -521,6 +537,24 @@ ObjectId Simulation::create_object(ObjectBuilder builder) {
         };
 
         return id;
+    }
+}
+
+void Simulation::destroy_object(ObjectId id) {
+    SIMU_ASSERT(
+        id.type() != ObjectId::Collider, "Deleting collider from existing object is forbidden"
+    );
+    SIMU_ASSERT(has_object(id), "Object does not exist");
+
+    if (id.type() == ObjectId::DynamicPhysicsObject) {
+        ObjectId collider_id = _dynamic_objects[id].collider_id;
+        _dynamic_objects.erase(id);
+        _colliders.erase(collider_id);
+    }
+    if (id.type() == ObjectId::StaticPhysicsObject) {
+        ObjectId collider_id = _static_objects[id].collider_id;
+        _static_objects.erase(id);
+        _colliders.erase(collider_id);
     }
 }
 

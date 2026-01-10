@@ -75,7 +75,7 @@ public:
     ObjectId create_object(ObjectBuilder builder);
 
     /// Destroy an object
-    void destroy_object(ObjectId) { NOT_IMPLEMENTED; }
+    void destroy_object(ObjectId) SIMU_NO_EXCEPT;
 
     auto dynamic_objects() SIMU_NO_EXCEPT { return _dynamic_objects.objects(); }
     auto dynamic_objects() const SIMU_NO_EXCEPT {
@@ -134,10 +134,16 @@ public:
     // Constraints
 
     auto contact_constraints() SIMU_NO_EXCEPT {
-        return std::ranges::subrange{_collision_pairs.begin(), _collision_pairs.end()};
+        return std::ranges::subrange{_collision_pairs.begin(), _collision_pairs.end()}
+               | std::views::filter([this](const auto& pair) {
+                     return !has_deleted_object(pair.first);
+                 });
     }
     auto contact_constraints() const SIMU_NO_EXCEPT {
-        return std::ranges::subrange{_collision_pairs.begin(), _collision_pairs.end()};
+        return std::ranges::subrange{_collision_pairs.begin(), _collision_pairs.end()}
+               | std::views::filter([this](const auto& pair) {
+                     return !has_deleted_object(pair.first);
+                 });
     }
 
 private:
@@ -155,6 +161,10 @@ private:
     [[nodiscard]] ObjectData get_object_data(CollisionPair pair) const noexcept;
     void write_back_velocities(CollisionPair pair, const ObjectData&) noexcept;
     void write_back_positions(CollisionPair pair, const ObjectData&) noexcept;
+
+    [[nodiscard]] bool
+    has_deleted_object(const CollisionPair& objs) const SIMU_NO_EXCEPT;
+    [[nodiscard]] bool has_object(ObjectId object_id) const SIMU_NO_EXCEPT;
 
     Settings       _settings;
     DynamicObjects _dynamic_objects{};

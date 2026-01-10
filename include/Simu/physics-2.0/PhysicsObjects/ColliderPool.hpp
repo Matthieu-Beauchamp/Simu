@@ -77,7 +77,8 @@ public:
         return get_next_object_id(collider_index(allocate_collider_slot(type), type));
     }
 
-    void give_back(ObjectId id) {
+    /// Delete collider and free id for use
+    void erase(ObjectId id) {
         SIMU_ASSERT(id.type() == object_type, "ObjectPool::give_back object type mismatch");
         free_ids.push_back(id);
 
