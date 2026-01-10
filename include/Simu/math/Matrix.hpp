@@ -98,10 +98,10 @@ struct Matrix : public SpecialConstructors<T, m, n>
     template <class U>
     explicit inline Matrix(const Matrix<U, m, n>& other);
 
-    explicit inline Matrix(const std::initializer_list<T>& init);
+    constexpr inline Matrix(const std::initializer_list<T>& init);
 
     template <std::convertible_to<T>... Args, std::enable_if_t<(sizeof...(Args) == n * m), int> = 0>
-    explicit inline Matrix(Args... values)
+    constexpr explicit inline Matrix(Args... values)
         : Matrix<T, m, n>{static_cast<T>(values)...} {}
 
     static inline Matrix filled(T val);
@@ -532,7 +532,7 @@ Matrix<T, m, n>::Matrix(const Matrix<U, m, n>& other) {
 }
 
 template <class T, Uint32 m, Uint32 n>
-Matrix<T, m, n>::Matrix(const std::initializer_list<T>& init) {
+constexpr Matrix<T, m, n>::Matrix(const std::initializer_list<T>& init) {
     SIMU_ASSERT(init.size() == this->size(), "Incorrect number of arguments in initializer list");
 
     for (Uint32 i = 0; i < this->size(); ++i) {

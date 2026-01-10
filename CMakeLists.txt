@@ -50,6 +50,7 @@ add_library(simu
         include/Simu/physics-2.0/constraint/contact.hpp
         include/Simu/physics-2.0/constraint/ContactSolverStrategy.hpp
         include/Simu/profiler.hpp
+        src/Simu/profiler.cpp
 )
 
 target_sources(simu
