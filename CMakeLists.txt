@@ -31,14 +31,7 @@ simu_define_option(SIMU_BUILD_DOCS OFF BOOL "Build documentation")
 
 
 ############################################################
-# Build external libs
-############################################################
-
-# add_subdirectory(libs)
-
-
-############################################################
-# Build our components
+# Build
 ############################################################
 
 add_library(simu
@@ -56,6 +49,7 @@ add_library(simu
         include/Simu/physics-2.0/collision.hpp
         include/Simu/physics-2.0/constraint/contact.hpp
         include/Simu/physics-2.0/constraint/ContactSolverStrategy.hpp
+        include/Simu/profiler.hpp
 )
 
 target_sources(simu
@@ -137,6 +131,22 @@ if (SIMU_BUILD_DEMOS)
     add_subdirectory(demos-2)
 endif ()
 
+if (SIMU_PROFILE)
+    target_compile_definitions(simu PUBLIC TRACY_ENABLE)
+
+    FetchContent_Declare(
+            tracy
+            GIT_REPOSITORY https://github.com/wolfpld/tracy.git
+            GIT_TAG master
+            GIT_SHALLOW TRUE
+            GIT_PROGRESS TRUE
+    )
+
+    FetchContent_MakeAvailable(tracy)
+    target_link_libraries(simu PUBLIC TracyClient)
+
+#    add_subdirectory(${tracy_SOURCE_DIR}/profiler)
+endif ()
 
 ############################################################
 # Tests

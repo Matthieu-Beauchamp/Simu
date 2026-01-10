@@ -38,8 +38,6 @@ void BoxStacks::init(simu::Renderer& renderer) {
     renderer.setPointRadius(0.1f);
     renderer.setLineWidth(0.1f);
 
-    pause();
-
     simu::BoxSpawner spawner{*this};
     auto             dims = spawner.dims;
 

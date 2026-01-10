@@ -28,6 +28,7 @@
 #include "../../../include/Simu/physics-2.0/PhysicsObjects/ColliderOperations.hpp"
 #include "physics/Collider.hpp"
 #include "Simu/physics-2.0/collision.hpp"
+#include "tracy/Tracy.hpp"
 
 #include <utility>
 
@@ -154,6 +155,9 @@ namespace
 } // namespace
 
 void Simulation::step() SIMU_NO_EXCEPT {
+    FrameMark;
+    ZoneScoped;
+
     // TODO: In a separate thread, create improved tree to be used in the next timestep
     //      instead of waiting on it for the current step.
     //      Use old tree for current step.
@@ -161,6 +165,8 @@ void Simulation::step() SIMU_NO_EXCEPT {
     float dt = _settings.dt;
 
     {
+        ZoneScopedN("Dynamic bvh");
+
         std::vector<ObjectId>    dynamic_objects_ids;
         std::vector<BoundingBox> dynamic_objects_boxes;
         for (DynamicPhysicsObject& object : _dynamic_objects.objects()) {
@@ -176,6 +182,7 @@ void Simulation::step() SIMU_NO_EXCEPT {
     }
 
     {
+        ZoneScopedN("Static bvh");
         // TODO: Compute in init and persist unless modified
 
         std::vector<ObjectId>    static_objects_ids;
@@ -192,40 +199,64 @@ void Simulation::step() SIMU_NO_EXCEPT {
         );
     }
 
-    // Step velocity according to gravity
-    Vec2 gravity = _settings.gravity * dt;
-    for (DynamicPhysicsObject& object : _dynamic_objects.objects()) {
-        object.velocity.linear += gravity;
-    }
+    {
+        ZoneScopedN("Gravity");
 
-    process_collisions();
-
-    std::vector<ContactPointer> constraints;
-    constraints.reserve(_collision_pairs.size());
-
-    // TODO: Process into islands
-
-    for (auto it = _collision_pairs.begin(); it != _collision_pairs.end(); it++) {
-        if (it->second.contacts.n_contacts > 0) {
-            constraints.push_back(it);
+        // Step velocity according to gravity
+        Vec2 gravity = _settings.gravity * dt;
+        for (DynamicPhysicsObject& object : _dynamic_objects.objects()) {
+            object.velocity.linear += gravity;
         }
     }
 
-    solve_contacts(constraints);
+    {
+        ZoneScopedN("Collisions");
+        process_collisions();
+    }
 
-    // TODO: Solve other constraints
+    {
+        ZoneScopedN("Solve contacts");
 
-    solve_contact_positions(constraints);
+        std::vector<ContactPointer> constraints;
+        constraints.reserve(_collision_pairs.size());
 
-    // Step position according to resolved velocities
-    for (DynamicPhysicsObject& object : _dynamic_objects.objects()) {
-        object.position.advance(object.velocity.linear * dt, object.velocity.angular * dt);
-        if (object.collider_id) {}
+        // TODO: Process into islands
+
+        for (auto it = _collision_pairs.begin(); it != _collision_pairs.end(); it++) {
+            if (it->second.contacts.n_contacts > 0) {
+                constraints.push_back(it);
+            }
+        }
+
+        {
+            ZoneScopedN("Solve velocities");
+
+            solve_contacts(constraints);
+        }
+
+        // TODO: Solve other constraints
+
+        {
+            ZoneScopedN("Solve positions");
+
+            solve_contact_positions(constraints);
+        }
+    }
+
+    {
+        ZoneScopedN("integrate velocities");
+
+        // Step position according to resolved velocities
+        for (DynamicPhysicsObject& object : _dynamic_objects.objects()) {
+            object.position.advance(
+                object.velocity.linear * dt, object.velocity.angular * dt
+            );
+        }
     }
 
     // TODO: In bounding volume hierarchy, update and mark as dirty
-    //      Can iterate over tree nodes and map to the object quickly with its
-    //      id, but can't walk back up the tree.
+    //      Can iterate over tree nodes and map to the object quickly
+    //      with its id, but can't walk back up the tree.
     //      => Can do a postorder traversal update
 }
 
@@ -253,6 +284,8 @@ ObjectId Simulation::get_collider_id(ObjectId object_id) const SIMU_NO_EXCEPT {
 
 void Simulation::process_collisions() SIMU_NO_EXCEPT {
     {
+        ZoneScopedN("Cleanup contacts");
+
         // TODO: Keep for polygons where the normal gives the separating axis
         //      until they stop being reported in bvh trees.
         std::vector<CollisionPair> outdated;
@@ -268,19 +301,27 @@ void Simulation::process_collisions() SIMU_NO_EXCEPT {
         }
     }
 
-    _dynamic_bvh.collide(_dynamic_bvh, [this](ObjectId a, ObjectId b) noexcept {
-        // When colliding with the same tree, collisions are detected twice.
-        // Also ignore collision with self
-        if (a.as_index() >= b.as_index()) {
-            return;
-        }
+    {
+        ZoneScopedN("dynamic collisions");
 
-        process_collision(CollisionPair(a, b));
-    });
+        _dynamic_bvh.collide(_dynamic_bvh, [this](ObjectId a, ObjectId b) noexcept {
+            // When colliding with the same tree, collisions are detected twice.
+            // Also ignore collision with self
+            if (a.as_index() >= b.as_index()) {
+                return;
+            }
 
-    _dynamic_bvh.collide(_static_bvh, [this](ObjectId a, ObjectId b) noexcept {
-        process_collision(CollisionPair(a, b));
-    });
+            process_collision(CollisionPair(a, b));
+        });
+    }
+
+    {
+        ZoneScopedN("static collisions");
+
+        _dynamic_bvh.collide(_static_bvh, [this](ObjectId a, ObjectId b) noexcept {
+            process_collision(CollisionPair(a, b));
+        });
+    }
 }
 
 void Simulation::process_collision(CollisionPair pair) SIMU_NO_EXCEPT {

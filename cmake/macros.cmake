@@ -94,19 +94,13 @@ macro(simu_set_compile_definitions targetName)
 endmacro()
 
 function(buildImgui)
-    # https://stackoverflow.com/a/65620000
     FetchContent_Declare(
         imgui
         GIT_REPOSITORY https://github.com/ocornut/imgui
         GIT_TAG        docking
-        CONFIGURE_COMMAND ""
-        BUILD_COMMAND ""
     )
 
-    FetchContent_GetProperties(imgui)
-    if(NOT imgui_POPULATED)
-        FetchContent_Populate(imgui)
-    endif()
+    FetchContent_MakeAvailable(imgui)
 
     add_library(imgui "")
     target_link_libraries(imgui glfw)
