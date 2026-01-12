@@ -132,12 +132,23 @@ if (SIMU_BUILD_DEMOS)
     add_subdirectory(demos-2)
 endif ()
 
-option(SIMU_PROFILE "Enable tracy profiler")
-if (SIMU_PROFILE)
-    target_compile_definitions(simu PUBLIC TRACY_ENABLE)
+option(SIMU_ENABLE_TRACY "Enable tracy profiler")
+option(SIMU_CUSTOM_PROFILER "Enable custom profiler")
+
+if (SIMU_ENABLE_TRACY AND SIMU_CUSTOM_PROFILER)
+    message(FATAL_ERROR "Cannot enable tracy and custom profiler together")
 endif ()
 
-set(TRACY_ENABLE ${SIMU_PROFILE})
+if (SIMU_ENABLE_TRACY)
+    target_compile_definitions(simu PUBLIC TRACY_ENABLE)
+    target_compile_definitions(simu PUBLIC SIMU_ENABLE_TRACY)
+endif ()
+
+if (SIMU_CUSTOM_PROFILER)
+    target_compile_definitions(simu PUBLIC SIMU_CUSTOM_PROFILER)
+endif ()
+
+set(TRACY_ENABLE ${SIMU_ENABLE_TRACY})
 
 FetchContent_Declare(
         tracy
@@ -211,7 +222,7 @@ endif ()
 ############################################################
 
 if (SIMU_BUILD_DOCS)
-    set(DOCS_TARGET_NAME "Simu") # Must not have spaces
+    set(DOCS_TARGET_NAME " Simu") # Must not have spaces
     set(DOCS_PROJECT_NAME "Simu") # A pretty name to show in documentation
 
     set(DOCS_AUTHOR "Matthieu Beauchamp") # Your name

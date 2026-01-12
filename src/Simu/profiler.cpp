@@ -22,13 +22,13 @@
 //
 ////////////////////////////////////////////////////////////
 
+#include "profiler.hpp"
 
-#if defined(TRACY_ENABLE)
+#if defined(SIMU_ENABLE_TRACY) || defined(SIMU_CUSTOM_PROFILER) || true
 
 #    include <cstdlib>
 #    include <new>
 
-#    include "profiler.hpp"
 
 // See https://en.cppreference.com/w/cpp/memory/new/operator_new.html
 
@@ -38,7 +38,7 @@ void* operator new(std::size_t sz) {
         ++sz; // avoid std::malloc(0) which may return nullptr on success
 
     if (void* ptr = std::malloc(sz)) {
-        TracyAllocS(ptr, sz, 10);
+        SIMU_PROFILE_ALLOC(ptr, sz);
         return ptr;
     }
 
@@ -51,7 +51,7 @@ void* operator new[](std::size_t sz) {
         ++sz; // avoid std::malloc(0) which may return nullptr on success
 
     if (void* ptr = std::malloc(sz)) {
-        TracyAllocS(ptr, sz, 10);
+        SIMU_PROFILE_ALLOC(ptr, sz);
         return ptr;
     }
 
@@ -59,12 +59,12 @@ void* operator new[](std::size_t sz) {
 }
 
 void operator delete(void* ptr) noexcept {
-    TracyFree(ptr);
+    SIMU_PROFILE_FREE(ptr, size);
     std::free(ptr);
 }
 
 void operator delete(void* ptr, [[maybe_unused]] std::size_t size) noexcept {
-    TracyFree(ptr);
+    SIMU_PROFILE_FREE(ptr, size);
     std::free(ptr);
 }
 

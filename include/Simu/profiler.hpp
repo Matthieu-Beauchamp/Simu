@@ -24,16 +24,42 @@
 
 #pragma once
 
-#include "tracy/Tracy.hpp"
 
-#include <cmath>
-#include <cstdint>
-#include <limits>
-#include <array>
-#include <chrono>
-#include <ostream>
-#include <ranges>
-#include <unordered_map>
+#if defined(SIMU_ENABLE_TRACY)
+
+#    define TRACY_ENABLE
+
+#    include "tracy/Tracy.hpp"
+
+#    define SIMU_PROFILE_FRAME            MARK_FRAME
+#    define SIMU_PROFILE_SCOPE(name)      ZoneScopedN(name)
+
+#    define SIMU_PROFILE_ALLOC(ptr, size) TracyAlloc(ptr, size)
+#    define SIMU_PROFILE_FREE(ptr)        TracyFree(ptr)
+
+
+#elif defined(SIMU_CUSTOM_PROFILER) || true
+
+#    include <cmath>
+#    include <limits>
+#    include <array>
+#    include <chrono>
+#    include <ostream>
+#    include <ranges>
+#    include <unordered_map>
+
+#    define SIMU_PROFILER_VAR(x) x##__LINE__
+
+#    define SIMU_PROFILE_FRAME                                                 \
+        SIMU_PROFILER_VAR(__simu_profiler_frame) = simu::profiler::FrameScope {}
+#    define SIMU_PROFILE_SCOPE(name)                                           \
+        SIMU_PROFILER_VAR(__simu_profiler_scope) = simu::profiler::ProfileScope(name)
+
+#    define SIMU_PROFILE_ALLOC(ptr, size) simu::profiler::record_alloc(size)
+#    define SIMU_PROFILE_FREE(ptr, size)  simu::profiler::record_free(size)
+
+namespace simu::profiler
+{
 
 /////////////////////////////////////////////////
 // Time tracking
@@ -247,3 +273,12 @@ inline void write_profiled_data(std::ostream& os) {
         write_csv_row(os, std::string(name) + " num calls", stats.num_calls);
     }
 }
+
+} // namespace simu::profiler
+
+#else
+
+#    define SIMU_PROFILE_FRAME
+#    define SIMU_PROFILE_SCOPE(name)
+
+#endif

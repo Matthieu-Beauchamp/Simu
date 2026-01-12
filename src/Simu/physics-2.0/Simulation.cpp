@@ -156,7 +156,7 @@ namespace
 
 void Simulation::step() SIMU_NO_EXCEPT {
     FrameMark;
-    ZoneScoped;
+    ZoneScopedN("step");
 
     // TODO: In a separate thread, create improved tree to be used in the next timestep
     //      instead of waiting on it for the current step.
