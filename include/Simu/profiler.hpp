@@ -75,7 +75,6 @@ struct Stats
     double        sumSq = 0.0;
     double        min   = std::numeric_limits<double>::infinity();
     double        max   = 0.0;
-    std::array<std::uint32_t, HIST_BINS> hist = {};
 
     void record(double value);
 };
@@ -85,9 +84,6 @@ struct DerivedStats
     double mean;
     double stddev;
     double cv;
-    double p50;
-    double p95;
-    double p99;
 };
 
 DerivedStats compute_derived(const Stats& s);

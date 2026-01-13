@@ -89,24 +89,16 @@ void operator delete[](void* ptr, [[maybe_unused]] std::size_t size) noexcept {
 namespace
 {
 
-double percentile_from_hist(const simu::profiler::Stats& s, double percentile) {
-    if (s.count == 0)
-        return 0.0;
-
-    uint64_t target = static_cast<uint64_t>(std::ceil(percentile * s.count));
-
-    uint64_t cumulative = 0;
-    for (int i = 0; i < simu::profiler::Stats::HIST_BINS; ++i) {
-        cumulative += s.hist[i];
-        if (cumulative >= target) {
-            return std::pow(2.0, i);
-        }
-    }
-    return s.max;
-}
-
-void write_csv_header(std::ostream& os) {
-    os << "name,count,mean,stddev,cv,min,p50,p95,p99,max\n";
+void write_csv_header(std::ostream& os, std::int64_t frames) {
+    os << "name,count,mean,stddev,cv,min,max\n";
+    // clang-format off
+    os << "frames" << ','
+       << frames << ','
+       << 0 << ','
+       << 0 << ','
+       << 0 << ','
+       << 0 << ',';
+    // clang-format on
 }
 
 void write_csv_row(std::ostream& os, const std::string& name, const simu::profiler::Stats& s) {
@@ -119,9 +111,6 @@ void write_csv_row(std::ostream& os, const std::string& name, const simu::profil
        << d.stddev << ","
        << d.cv << ","
        << s.min << ","
-       << d.p50 << ","
-       << d.p95 << ","
-       << d.p99 << ","
        << s.max << "\n";
     // clang-format on
 }
@@ -167,11 +156,14 @@ static MemoryCounters                   mem_counters;
 static profiler_map<const char*, CumulativeStats> stats_accumulator;
 static profiler_map<const char*, ProfilerStats>   profiler_stats;
 
+static std::int64_t frame_count = 0;
+
 void reset() {
     allocations.clear();
     mem_counters = MemoryCounters{};
     stats_accumulator.clear();
     profiler_stats.clear();
+    frame_count = 0;
 }
 
 void Stats::record(double value) {
@@ -180,17 +172,6 @@ void Stats::record(double value) {
     sumSq += value * value;
     min = std::min(min, value);
     max = std::max(max, value);
-
-    // Log2 histogram (assumes value > 0)
-    int bin = 0;
-    if (value > 0.0) {
-        bin = static_cast<int>(std::log2(value));
-        if (bin < 0)
-            bin = 0;
-        if (bin >= HIST_BINS)
-            bin = HIST_BINS - 1;
-    }
-    hist[bin]++;
 }
 
 DerivedStats compute_derived(const Stats& s) {
@@ -204,10 +185,6 @@ DerivedStats compute_derived(const Stats& s) {
 
     d.stddev = variance > 0.0 ? std::sqrt(variance) : 0.0;
     d.cv     = (d.mean > 0.0) ? d.stddev / d.mean : 0.0;
-
-    d.p50 = percentile_from_hist(s, 0.50);
-    d.p95 = percentile_from_hist(s, 0.95);
-    d.p99 = percentile_from_hist(s, 0.99);
 
     return d;
 }
@@ -256,10 +233,12 @@ FrameScope::FrameScope() {
     for (auto& stats : stats_accumulator | std::ranges::views::values) {
         stats = CumulativeStats{};
     }
+
+    frame_count++;
 }
 
 void write_profiled_data(std::ostream& os) {
-    write_csv_header(os);
+    write_csv_header(os, frame_count);
     for (const auto& [name, stats] : profiler_stats) {
         write_csv_row(os, std::string(name) + " time (ns)", stats.time);
         write_csv_row(os, std::string(name) + " mem usage (B)", stats.mem_usage);
