@@ -16,19 +16,29 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-simu_update_submodules(${CMAKE_CURRENT_LIST_DIR})
+#simu_update_submodules(${CMAKE_CURRENT_LIST_DIR})
+
+include(FetchContent)
+
 
 ############################################################
 # Options
 ############################################################
 
-simu_define_option(SIMU_BUILD_DEMOS ON BOOL "Build demos")
+option(SIMU_BUILD_DEMOS "Build demos" OFF)
+option(SIMU_BUILD_BENCHMARKS "Build benchmarks" OFF)
 
-simu_define_option(SIMU_BUILD_TESTS ON BOOL "Build tests")
-simu_define_option(SIMU_TEST_COVERAGE OFF BOOL "Produce coverage report for tests")
+option(SIMU_BUILD_TESTS "Build tests" ON)
+option(SIMU_TEST_COVERAGE "Produce coverage report for tests" OFF)
 
-simu_define_option(SIMU_BUILD_DOCS OFF BOOL "Build documentation")
+option(SIMU_BUILD_DOCS "Build documentation" OFF)
 
+option(SIMU_ENABLE_TRACY "Enable tracy profiler" OFF)
+
+
+if (SIMU_ENABLE_TRACY AND SIMU_BUILD_BENCHMARKS)
+    message(FATAL_ERROR "Cannot enable tracy and custom profiler together")
+endif ()
 
 ############################################################
 # Build
@@ -78,7 +88,6 @@ target_include_directories(simu PRIVATE
         $<INSTALL_INTERFACE:src>
 )
 
-include(FetchContent)
 if (SIMU_BUILD_DEMOS)
     add_library(simu-app
             src/Simu/app/Application.cpp
@@ -88,9 +97,6 @@ if (SIMU_BUILD_DEMOS)
             src/Simu/app/Tool.cpp
             include/Simu/app/SimulationRenderer.cpp
     )
-    simu_set_compile_options(simu)
-    simu_set_compile_definitions(simu)
-
     target_link_libraries(simu-app simu)
 
     target_include_directories(simu-app PUBLIC
@@ -98,25 +104,12 @@ if (SIMU_BUILD_DEMOS)
             $<INSTALL_INTERFACE:include>  # <prefix>/include
     )
 
-    set(GLFW_BUILD_DOCS OFF CACHE INTERNAL "" FORCE)
-    set(GLFW_BUILD_TESTS OFF CACHE INTERNAL "" FORCE)
-    set(GLFW_BUILD_EXAMPLES OFF CACHE INTERNAL "" FORCE)
     FetchContent_Declare(
             GLFW
             GIT_REPOSITORY https://github.com/glfw/glfw.git
             GIT_TAG 7482de6 # v3.3.8
     )
 
-    set(OPTION_SELF_CONTAINED OFF CACHE INTERNAL "" FORCE)
-    set(OPTION_BUILD_TESTS OFF CACHE INTERNAL "" FORCE)
-    set(OPTION_BUILD_DOCS OFF CACHE INTERNAL "" FORCE)
-    set(OPTION_BUILD_TOOLS OFF CACHE INTERNAL "" FORCE)
-    set(OPTION_BUILD_EXAMPLES OFF CACHE INTERNAL "" FORCE)
-    set(OPTION_BUILD_WITH_BOOST_THREAD OFF CACHE INTERNAL "" FORCE)
-    set(OPTION_BUILD_CHECK OFF CACHE INTERNAL "" FORCE)
-    set(OPTION_BUILD_OWN_KHR_HEADERS OFF CACHE INTERNAL "" FORCE)
-    set(OPTION_BUILD_WITH_LTO OFF CACHE INTERNAL "" FORCE)
-    set(OPTION_USE_GIT_INFORMATION ON CACHE INTERNAL "" FORCE)
     FetchContent_Declare(
             glbinding
             GIT_REPOSITORY https://github.com/cginternals/glbinding.git
@@ -132,20 +125,9 @@ if (SIMU_BUILD_DEMOS)
     add_subdirectory(demos-2)
 endif ()
 
-option(SIMU_ENABLE_TRACY "Enable tracy profiler")
-option(SIMU_CUSTOM_PROFILER "Enable custom profiler")
-
-if (SIMU_ENABLE_TRACY AND SIMU_CUSTOM_PROFILER)
-    message(FATAL_ERROR "Cannot enable tracy and custom profiler together")
-endif ()
-
 if (SIMU_ENABLE_TRACY)
     target_compile_definitions(simu PUBLIC TRACY_ENABLE)
     target_compile_definitions(simu PUBLIC SIMU_ENABLE_TRACY)
-endif ()
-
-if (SIMU_CUSTOM_PROFILER)
-    target_compile_definitions(simu PUBLIC SIMU_CUSTOM_PROFILER)
 endif ()
 
 set(TRACY_ENABLE ${SIMU_ENABLE_TRACY})
@@ -216,6 +198,23 @@ if (SIMU_BUILD_TESTS)
     endif ()
 endif ()
 
+############################################################
+# Benchmarks
+############################################################
+
+if (SIMU_BUILD_BENCHMARKS)
+    target_compile_definitions(simu PUBLIC SIMU_CUSTOM_PROFILER)
+
+    add_executable(simu-benchmarks
+            benchmarks/BoxStacks.cpp
+            benchmarks/Benchmark.hpp
+            benchmarks/main.cpp
+            benchmarks/utils.hpp
+    )
+
+    target_link_libraries(simu-benchmarks PRIVATE simu)
+endif ()
+
 
 ############################################################
 # Docs
@@ -243,7 +242,7 @@ if (SIMU_BUILD_DOCS)
     # in the documentation
     set(DOCS_STRIP_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}")
 
-    # A comma separated list of include directories (absolute) for the proper #include 
+    # A comma separated list of include directories (absolute) for the proper #include
     # directives to appear in the documentation
     set(DOCS_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
