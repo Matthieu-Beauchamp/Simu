@@ -155,6 +155,10 @@ def main(old_path, new_path):
 
     print("# Performance Comparison Report\n")
 
+    print(f"Baseline: {old_path}\n")
+    print()
+    print(f"New: {new_path}\n")
+
     print("## Summary\n")
 
     print("| Metric | Baseline | New | Change | Z-score | Cohen's d |")

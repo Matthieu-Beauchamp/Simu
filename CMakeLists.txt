@@ -213,6 +213,16 @@ if (SIMU_BUILD_BENCHMARKS)
     )
 
     target_link_libraries(simu-benchmarks PRIVATE simu)
+
+    add_custom_target(run-benchmarks
+            COMMAND ${CMAKE_COMMAND}
+            -DRESULTS_DIR=${CMAKE_SOURCE_DIR}/benchmarks/results
+            -DEXE=$<TARGET_FILE:simu-benchmarks>
+            -P ${CMAKE_SOURCE_DIR}/cmake/run_benchmarks.cmake
+
+            DEPENDS simu-benchmarks
+            USES_TERMINAL
+    )
 endif ()
 
 
