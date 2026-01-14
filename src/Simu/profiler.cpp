@@ -24,6 +24,10 @@
 
 #include "profiler.hpp"
 
+#include "config.hpp"
+
+#include <algorithm>
+
 #if defined(SIMU_ENABLE_TRACY) || defined(SIMU_CUSTOM_PROFILER)
 
 #    include <cstdlib>
@@ -97,7 +101,8 @@ void write_csv_header(std::ostream& os, std::int64_t frames) {
        << 0 << ','
        << 0 << ','
        << 0 << ','
-       << 0 << ',';
+       << 0 << ','
+       << 0 << std::endl;
     // clang-format on
 }
 
@@ -166,25 +171,30 @@ void reset() {
     frame_count = 0;
 }
 
-void Stats::record(double value) {
-    count++;
-    sum += value;
-    sumSq += value * value;
-    min = std::min(min, value);
-    max = std::max(max, value);
+// https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Welford's_online_algorithm
+// For a new value new_value, compute the new count, new mean, the new M2.
+// mean accumulates the mean of the entire dataset
+// M2 aggregates the squared distance from the mean
+// count aggregates the number of samples seen so far
+void Stats::record(double new_value) {
+    count += 1;
+    double delta = new_value - mean;
+    mean += delta / count;
+    double delta2 = new_value - mean;
+    M2 += delta * delta2;
+    min = std::min(min, new_value);
+    max = std::max(max, new_value);
 }
 
 DerivedStats compute_derived(const Stats& s) {
+    SIMU_ASSERT(s.count >= 2, "Cannot compute stats on an empty aggregate");
     DerivedStats d{};
 
-    if (s.count == 0)
-        return d;
+    d.mean                 = s.mean;
+    double sample_variance = s.M2 / (s.count - 1);
 
-    d.mean          = s.sum / s.count;
-    double variance = (s.sumSq / s.count) - (d.mean * d.mean);
-
-    d.stddev = variance > 0.0 ? std::sqrt(variance) : 0.0;
-    d.cv     = (d.mean > 0.0) ? d.stddev / d.mean : 0.0;
+    d.stddev = sample_variance > 0.0 ? std::sqrt(sample_variance) : 0.0;
+    d.cv     = (d.mean != 0.0) ? d.stddev / d.mean : 0.0;
 
     return d;
 }

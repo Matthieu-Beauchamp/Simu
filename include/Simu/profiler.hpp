@@ -71,8 +71,8 @@ struct Stats
     static constexpr int HIST_BINS = 64;
 
     std::uint64_t count = 0;
-    double        sum   = 0.0;
-    double        sumSq = 0.0;
+    double        mean   = 0.0;
+    double        M2    = 0.0;
     double        min   = std::numeric_limits<double>::infinity();
     double        max   = 0.0;
 
