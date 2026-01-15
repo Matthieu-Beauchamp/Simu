@@ -43,15 +43,28 @@ struct Settings
     Uint32 n_position_iterations = 2;
 
     /// How much of the position error is corrected at each iteration
-    float position_correction_factor = 0.2f;
+    /// using position projection
+    float position_correction_factor = 0.1f;
+
+    /// The allowed penetration for a contact point.
+    float penetration_slop = 1e-4f;
+
+    /// The constraint force mixing (CFM) parameter.
+    /// A value of 0 is a hard constraint, increase it to soften contacts
+    float contact_softness = 1e-5f;
+
+    /// The error reduction parameter (ERP).
+    /// This converts a part of the penetration to corrective velocity.
+    /// This is disabled by default, and the position projection is used instead.
+    ///
+    /// Set this to a value > 0 and set position iterations to 0 to use Baumgarte stabilization
+    float contact_error_reduction = 0.f;
 
     /// Number of physics steps until non-touching collisions are removed from the cache
-    Uint8 n_steps_without_contacts = 1;
+    Uint8 n_steps_without_contacts = 10;
 
     /// Enable constraints to guess impulse based on the previous step.
     bool enable_warm_starting = true;
-
-    // TODO: support for optional shock algorithm: https://graphics.stanford.edu/papers/rigid_bodies-sig03/rigid_bodies.pdf)
 };
 
 } // namespace simu

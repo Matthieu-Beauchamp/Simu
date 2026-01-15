@@ -25,7 +25,7 @@ include(FetchContent)
 # Options
 ############################################################
 
-option(SIMU_BUILD_DEMOS "Build demos" OFF)
+option(SIMU_BUILD_DEMOS "Build demos" ON)
 option(SIMU_BUILD_BENCHMARKS "Build benchmarks" OFF)
 
 option(SIMU_BUILD_TESTS "Build tests" ON)

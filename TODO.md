@@ -1,0 +1,10 @@
+- Contact Islands
+- Show all engine settings in demo UI
+- Additional constraint types
+- Look into improving bvh
+- Replace unordered maps with robinhood hashing
+- Instead of computing object data every time, create an object data vector for solving
+- Add missing demos
+- Add object materials (use a flywheel pattern to avoid duplication)
+- Add reserve calls where many allocations occur, or allocate once and reuse when possible
+    - Consider using a stack allocator like box2d

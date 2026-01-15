@@ -53,6 +53,17 @@ struct ContactConstraint2
     std::uint_fast8_t steps_since_contact = 0;
 };
 
+inline float penetration_at_contact(
+    const ContactConstraint2& contact_constraint,
+    std::uint32_t             contact_index,
+    float                     penetration_slop
+) {
+    return dot(contact_constraint.contacts.contacts_b[contact_index]
+                   - contact_constraint.contacts.contacts_a[contact_index],
+               contact_constraint.contacts.normal)
+           + penetration_slop;
+}
+
 inline float relative_normal_velocity_at_contact(
     const ContactConstraint2& contact_constraint,
     const ObjectData&         object_data,
@@ -134,7 +145,9 @@ inline Vec6 inverse_mass(const ObjectData& object_data) {
 inline void init_contact_constraint(
     ContactConstraint2& contact_constraint,
     ObjectData&         object_data,
-    float               collision_restitution,
+    float               collision_restitution, // material restitution
+    float               error_reduction,       // baumgarte stabilisation
+    float               penetration_slop,
     bool                warmstart
 ) {
     for (std::uint32_t i = 0; i < contact_constraint.contacts.n_contacts; ++i) {
@@ -142,7 +155,10 @@ inline void init_contact_constraint(
             contact_constraint, object_data, i
         );
 
-        contact_constraint.bias_velocities[i] = collision_restitution * relative_velocity;
+        float penetration = penetration_at_contact(contact_constraint, i, penetration_slop);
+
+        contact_constraint.bias_velocities[i] = collision_restitution * relative_velocity
+                                                + error_reduction * penetration;
     }
 
     if (warmstart) {
@@ -179,8 +195,11 @@ inline void init_contact_constraint(
     }
 }
 
-inline void
-solve_contact_constraint(ContactConstraint2& contact_constraint, ObjectData& object_data) {
+inline void solve_contact_constraint(
+    ContactConstraint2& contact_constraint,
+    ObjectData&         object_data,
+    float               contact_softness
+) {
     if (contact_constraint.contacts.n_contacts == 0)
         return;
 
@@ -204,6 +223,7 @@ solve_contact_constraint(ContactConstraint2& contact_constraint, ObjectData& obj
 
         Vec6  impulse_direction = elementWiseMul(inv_mass, J);
         float effective_mass    = dot(J, impulse_direction);
+        effective_mass += contact_softness;
 
         // J M^-1 J^T lambda = -(Jv + b), where Jv is the relative velocity
         float lambda = -(rel_velocity + contact_constraint.bias_velocities[0])
@@ -264,6 +284,8 @@ solve_contact_constraint(ContactConstraint2& contact_constraint, ObjectData& obj
         Mat2 effective_mass = J * Matrix<float, 6, 6>::diagonal(inv_mass)
                               * transpose(J);
 
+        effective_mass += Mat2::diagonal(Vec2::filled(contact_softness));
+
         // J M^-1 J^T lambda >= -(Jv + b), where Jv is the relative velocity
         // TODO: Handle degeneracies better
         // Usually happens when contacts are very close, collision detection should be preventing this...
@@ -319,19 +341,11 @@ solve_contact_constraint(ContactConstraint2& contact_constraint, ObjectData& obj
     }
 }
 
-inline float
-penetration_at_contact(const ContactConstraint2& contact_constraint, std::uint32_t contact_index) {
-    return dot(
-        contact_constraint.contacts.contacts_b[contact_index]
-            - contact_constraint.contacts.contacts_a[contact_index],
-        contact_constraint.contacts.normal
-    );
-}
-
 inline void solve_contact_constraint_positions(
     const ContactConstraint2& contact_constraint,
     ObjectData&               object_data,
-    float                     correction_factor
+    float                     correction_factor,
+    float                     penetration_slop
 ) {
     if (contact_constraint.contacts.n_contacts == 0)
         return;
@@ -342,7 +356,8 @@ inline void solve_contact_constraint_positions(
 
 
     if (contact_constraint.contacts.n_contacts == 1) {
-        float penetration = penetration_at_contact(contact_constraint, 0);
+        float penetration = penetration_at_contact(contact_constraint, 0, penetration_slop);
+
 
         // J M^-1 J^T
         Vec6 J = contact_constraint_jacobian(contact_constraint, object_data, 0);
@@ -354,7 +369,7 @@ inline void solve_contact_constraint_positions(
 
         // J M^-1 J^T lambda = -BC where C is the penetration
         float lambda = -(penetration * correction_factor) / effective_mass;
-        if (lambda < EPSILON) {
+        if (lambda < 0.f) {
             return;
         }
 
@@ -368,8 +383,8 @@ inline void solve_contact_constraint_positions(
         );
     } else if (contact_constraint.contacts.n_contacts == 2) {
         Vec2 penetration = Vec2(
-            penetration_at_contact(contact_constraint, 0),
-            penetration_at_contact(contact_constraint, 1)
+            penetration_at_contact(contact_constraint, 0, penetration_slop),
+            penetration_at_contact(contact_constraint, 1, penetration_slop)
         );
 
         // J M^-1 J^T

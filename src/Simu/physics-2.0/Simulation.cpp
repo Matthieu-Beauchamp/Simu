@@ -365,17 +365,24 @@ void Simulation::solve_contacts(const std::vector<ContactPointer>& contacts) noe
         ObjectData          data       = get_object_data(it->first);
 
         // TODO: add materials to get restitution and friction coeff
-        init_contact_constraint(constraint, data, 0, _settings.enable_warm_starting);
+        init_contact_constraint(
+            constraint,
+            data,
+            0,
+            _settings.contact_error_reduction,
+            _settings.penetration_slop,
+            _settings.enable_warm_starting
+        );
+
         write_back_velocities(it->first, data);
     }
 
     // TODO: Add stop when stable
-    // TODO: Don't apply impulses below some threshold
     for (std::uint32_t i = 0; i < _settings.n_velocity_iterations; i++) {
         for (const auto& it : contacts) {
             ContactConstraint2& constraint = it->second;
             ObjectData          data       = get_object_data(it->first);
-            solve_contact_constraint(constraint, data);
+            solve_contact_constraint(constraint, data, _settings.contact_softness);
             write_back_velocities(it->first, data);
         }
     }
@@ -398,7 +405,6 @@ void Simulation::solve_contact_positions(std::vector<ContactPointer>& contacts) 
     }
 
     // TODO: Add stop when stable
-    // TODO: Don't apply corrections below some threshold
     for (std::uint32_t i = 0; i < _settings.n_position_iterations; i++) {
         for (const auto& it : contacts) {
             // TODO: Could omit some info from ObjectData
@@ -415,7 +421,10 @@ void Simulation::solve_contact_positions(std::vector<ContactPointer>& contacts) 
             }
 
             solve_contact_constraint_positions(
-                tmp_constraint, data, _settings.position_correction_factor
+                tmp_constraint,
+                data,
+                _settings.position_correction_factor,
+                _settings.penetration_slop
             );
             write_back_positions(it->first, data);
         }

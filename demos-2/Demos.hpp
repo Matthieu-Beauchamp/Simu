@@ -37,8 +37,8 @@ public:
 
 private:
 
-    int nStacks_ = 1;
-    int height_  = 1;
+    int nStacks_ = 10;
+    int height_  = 100;
 };
 
 
