@@ -73,6 +73,8 @@ void SimulationRenderer::draw_contact_constraint(
 ) const {
     float normalLength = renderer.getLineWidth() * 10.f;
 
+    renderer.setPointRadius(0.1f);
+    renderer.setPointPrecision(4);
     for (std::uint32_t i = 0; i < constraint.contacts.n_contacts; ++i) {
         renderer.drawPoint(constraint.contacts.contacts_a[i], settings.contact_points);
 
@@ -108,8 +110,8 @@ void SimulationRenderer::draw_collider(
             renderer.setPointRadius(capsule.radius());
             renderer.setPointPrecision(settings.circle_segments);
 
-            renderer.drawPoint(capsule.bottom(), color);
-            renderer.drawPoint(capsule.top(), color);
+            renderer.drawPoint(capsule.bottom_center(), color);
+            renderer.drawPoint(capsule.top_center(), color);
 
             Vec2 axis      = normalized(capsule.top() - capsule.bottom());
             Vec2 perp_axis = perp(axis);
@@ -117,10 +119,10 @@ void SimulationRenderer::draw_collider(
             Vec2 center = (capsule.bottom() + capsule.top()) / 2;
 
             std::array<Vec2, 4> box = {
-                capsule.bottom() + perp_axis * capsule.radius() / 2,
-                capsule.top() + perp_axis * capsule.radius() / 2,
-                capsule.top() - perp_axis * capsule.radius() / 2,
-                capsule.bottom() - perp_axis * capsule.radius() / 2,
+                capsule.bottom_center() + perp_axis * capsule.radius(),
+                capsule.top_center() + perp_axis * capsule.radius(),
+                capsule.top_center() - perp_axis * capsule.radius(),
+                capsule.bottom_center() - perp_axis * capsule.radius(),
             };
 
             renderer.drawPolygon(

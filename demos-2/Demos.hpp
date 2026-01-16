@@ -41,6 +41,32 @@ private:
     int height_  = 100;
 };
 
+class Tumbler : public simu::Scene
+{
+public:
+
+    Tumbler();
+
+    void preStep(float dt) override;
+    void init(simu::Renderer& renderer) override;
+    void doGui() override;
+
+private:
+
+    int count_ = 0;
+    int maxCount_ = 5;
+};
+
+class Collisions : public simu::Scene
+{
+public:
+
+    Collisions();
+
+    void init(simu::Renderer& renderer) override;
+    void doGui() override;
+
+};
 
 // class NewtonPendulum : public simu::Scene
 // {

@@ -47,6 +47,7 @@ class ObjectPool
     std::vector<ObjectId> free_ids;
 
     std::uint32_t next_id = ObjectId::first_id;
+    std::uint32_t _count   = 0;
 
     static constexpr std::size_t initial_size = 64;
 
@@ -55,6 +56,7 @@ public:
     ObjectPool() { _objects.reserve(initial_size); }
 
     ObjectId allocate() {
+        _count++;
         if (free_ids.empty()) {
             _objects.emplace_back();
             return ObjectId(0, object_type, next_id++);
@@ -77,6 +79,7 @@ public:
         SIMU_ASSERT(id.type() == object_type, "Object type mismatch");
         free_ids.push_back(id);
         _objects[id.as_index() - 1] = T();
+        _count--;
     }
 
     T& operator[](ObjectId id) {
@@ -104,6 +107,8 @@ public:
             return obj.id.is_valid();
         });
     }
+
+    [[nodiscard]] std::uint32_t size() const { return _count; }
 };
 
 } // namespace simu

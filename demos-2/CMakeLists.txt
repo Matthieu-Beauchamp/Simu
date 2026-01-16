@@ -1,11 +1,8 @@
 add_executable(Demos2
-        Demos.cpp
+        main.cpp
         BoxStacks.cpp
+        Tumbler.cpp
+        Collisions.cpp
 )
 target_link_libraries(Demos2 simu-app)
-
-add_executable(Benchmark
-        BenchmarkBoxStacks.cpp
-)
-target_link_libraries(Benchmark simu-app)
 

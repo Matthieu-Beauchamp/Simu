@@ -32,29 +32,28 @@ class Capsule
 {
 public:
 
-    /// The top and bottom points are not inside the capsule but are the very edges of it
-    /// @param bottom The bottom point of the capsule (ground)
-    /// @param top The top point of the capsule
+    /// @param bottom_center The bottom center of the capsule (ground)
+    /// @param top_center The top center of the capsule
     /// @param radius The radius of the capsule
-    Capsule(Vec2 bottom, Vec2 top, float radius)
-        : _bottom{bottom}, _top{top}, _radius{radius} {}
+    Capsule(Vec2 bottom_center, Vec2 top_center, float radius)
+        : _bottom_center{bottom_center}, _top_center{top_center}, _radius{radius} {}
 
-    Vec2 top_center() const {
-        return _top - radius() * normalized(_top - _bottom);
+    [[nodiscard]] Vec2 top_center() const { return _top_center; }
+    [[nodiscard]] Vec2 bottom_center() const { return _bottom_center; }
+
+    [[nodiscard]] Vec2 bottom() const {
+        return _bottom_center + radius() * normalized(_bottom_center - _top_center);
+    }
+    [[nodiscard]] Vec2 top() const {
+        return _top_center + radius() * normalized(_top_center - _bottom_center);
     }
 
-    Vec2 bottom_center() const {
-        return _bottom + radius() * normalized(_top - _bottom);
-    }
-
-    Vec2  bottom() const { return _bottom; }
-    Vec2  top() const { return _top; }
-    float radius() const { return _radius; }
+    [[nodiscard]] float radius() const { return _radius; }
 
 private:
 
-    Vec2  _bottom;
-    Vec2  _top;
+    Vec2  _bottom_center;
+    Vec2  _top_center;
     float _radius;
 };
 

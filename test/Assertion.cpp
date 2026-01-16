@@ -2,8 +2,8 @@
 
 #include "Simu/config.hpp"
 
-TEST_CASE("Assertion")
-{
+
+TEST_CASE("Assertion") {
     struct OkAssert
     {
         OkAssert() { SIMU_ASSERT(true, "Not a error"); }

@@ -70,10 +70,6 @@ public:
     ObjectBuilder& set_velocity(Vec2 linear, float angular = 0.f) {
         return set_velocity(Velocity(linear, angular));
     }
-    ObjectBuilder& set_mass(const Mass& mass) {
-        mass_ = mass;
-        return *this;
-    }
 
     ObjectBuilder& set_collider(Circle circle) {
         collider_type_ = ColliderType::Circle;

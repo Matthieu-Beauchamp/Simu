@@ -150,6 +150,7 @@ private:
 
     [[nodiscard]] Position get_position(ObjectId object_id) const SIMU_NO_EXCEPT;
     [[nodiscard]] ObjectId get_collider_id(ObjectId object_id) const SIMU_NO_EXCEPT;
+    [[nodiscard]] bool is_mass_structural(ObjectId object_id) const SIMU_NO_EXCEPT;
 
     void process_collisions() SIMU_NO_EXCEPT;
 

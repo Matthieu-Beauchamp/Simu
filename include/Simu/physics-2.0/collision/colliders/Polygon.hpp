@@ -71,11 +71,11 @@ public:
         };
     }
 
-    auto begin() const { return _vertices.begin(); }
-    auto end() const { return _vertices.begin() + size(); }
+    [[nodiscard]] auto begin() const { return _vertices.begin(); }
+    [[nodiscard]] auto end() const { return _vertices.begin() + size(); }
 
-    std::size_t size() const { return _n_vertices; }
-    const Vec2& vertex(std::size_t i) const { return _vertices[i]; }
+    [[nodiscard]] std::size_t size() const { return _n_vertices; }
+    [[nodiscard]] const Vec2& vertex(std::size_t i) const { return _vertices[i]; }
 
 private:
 

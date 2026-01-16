@@ -39,33 +39,39 @@ class Mass
 public:
 
     /// @return a mass object describing an object that cannot be moved
-    static Mass structural() { return Mass{inf, inf}; }
+    constexpr static Mass structural() { return Mass{inf, inf}; }
 
-    Mass() = default;
+    constexpr Mass() = default;
 
     /// @param mass the mass of the object (>= 0)
     /// @param inertia the inertia of the object (>= 0)
-    Mass(float mass, float inertia)
+    constexpr Mass(float mass, float inertia)
         : _invMass{safe_inv(mass)}, _invInertia{safe_inv(inertia)} {
         SIMU_ASSERT(mass >= 0, "Invalid mass");
         SIMU_ASSERT(inertia >= 0, "Invalid inertia");
     }
 
     /// @return The inverse mass of the object
-    float invMass() const { return _invMass; }
+    [[nodiscard]] constexpr float invMass() const { return _invMass; }
 
     /// @return The inverse inertia of the object
-    float invInertia() const { return _invInertia; }
+    [[nodiscard]] constexpr float invInertia() const { return _invInertia; }
 
     /// @return The mass of the object
-    float mass() const { return safe_inv(invMass()); }
+    [[nodiscard]] constexpr float mass() const { return safe_inv(invMass()); }
 
     /// @return The inertia of the object
-    float inertia() const { return safe_inv(invInertia()); }
+    [[nodiscard]] constexpr float inertia() const {
+        return safe_inv(invInertia());
+    }
+
+    [[nodiscard]] constexpr bool is_structural() const {
+        return invMass() == 0.f && invInertia() == 0.f;
+    }
 
 private:
 
-    float _invMass = 0;
+    float _invMass    = 0;
     float _invInertia = 0;
 };
 

@@ -24,18 +24,42 @@
 
 #include "Demos.hpp"
 
+using namespace simu;
 
-int main()
-{
-    simu::Application app{};
-    app.setName("Simu");
+Collisions::Collisions() {
+    registerAllTools();
+    useTool<simu::Grabber>();
 
-    app.registerScene<BoxStacks>("Box stacks");
-    // app.registerScene<NewtonPendulum>("Newton's Pendulum");
-    // app.registerScene<Pyramid>("Pyramid");
-    // app.registerScene<Tower>("Tower");
-    // app.registerScene<Tumbler>("Tumbler");
+    camera().setPixelSize(1.f / 10.f);
+}
 
-    app.run();
-    return 0;
+void Collisions::init(simu::Renderer& renderer) {
+    simu::ObjectBuilder builder = simu::ObjectBuilder();
+
+    builder.set_position(Vec2(-10.f, 2.f));
+    builder.set_collider(Circle(Vec2(), 2.f));
+    simu().create_object(builder);
+
+    builder.set_position(Vec2(0.f, 2.f));
+    builder.set_collider(Polygon::box(Vec2(2.f, 2.f)));
+    simu().create_object(builder);
+
+    builder.set_position(Vec2(10.f, 2.f));
+    builder.set_collider(Capsule(Vec2(-1.f, 0.f), Vec2(1.f, 0.f), 1.f));
+    simu().create_object(builder);
+
+    builder.set_position(Vec2(10.f, 8.f), 0.f);
+    builder.set_collider(Polygon::box(Vec2(2.f, 2.f)));
+    simu().create_object(builder);
+
+    builder.set_static();
+    builder.set_position(simu::Vec2(0.f, -1.f));
+    builder.set_collider(
+        simu::Polygon::box(simu::Vec2{100.f, 2.f})
+    );
+
+    simu().create_object(builder);
+}
+
+void Collisions::doGui() {
 }

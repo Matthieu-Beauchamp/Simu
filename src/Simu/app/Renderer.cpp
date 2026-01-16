@@ -125,6 +125,7 @@ void Renderer::drawPoint(Vec2 P, Rgba color)
     drawPolygon(P, makeView(cv.data(), cv.data() + cv.size()), color);
 }
 
+// TODO: Breaks normals rendering when also drawing circles
 void Renderer::updatePointOffsets(float radius, Uint32 precision)
 {
     pointOffsets_.resize(precision);

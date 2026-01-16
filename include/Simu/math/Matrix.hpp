@@ -916,7 +916,11 @@ private:
 
 template <class T>
 Vector<T, 2> solveLcp(const Matrix<T, 2, 2>& A, const Vector<T, 2>& b) {
-    return LcpSolver{A}.solve(b);
+    LcpSolver<T> solver{A};
+    if (!solver.isValid())
+        return Vec2();
+
+    return solver.solve(b);
 }
 
 

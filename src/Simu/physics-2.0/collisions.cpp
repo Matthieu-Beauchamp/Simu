@@ -82,11 +82,11 @@ clip_edge(Vec2 reference_point, Vec2 normal, Vec2 edge_start, Vec2 edge_end) {
 }
 
 inline Contacts<2> create_contacts(
-    Vec2 ref_edge_start,
-    Vec2 ref_edge_end,
-    Vec2 opposite_edge_start,
-    Vec2 opposite_edge_end,
-    Vec2 normal,
+    Vec2  ref_edge_start,
+    Vec2  ref_edge_end,
+    Vec2  opposite_edge_start,
+    Vec2  opposite_edge_end,
+    Vec2  normal,
     float epsilon
 ) {
     // Due to positive vertex ordering, the start of the ref edge is matched to
@@ -108,8 +108,10 @@ inline Contacts<2> create_contacts(
 
     bool first_has_contact = dot(normal, next_opposite_contact - ref_contact) <= 0.f;
     bool second_has_contact = dot(normal, opposite_contact - next_ref_contact) <= 0.f;
-    bool duplicated_contact = all(approx(ref_contact, Vec2::filled(epsilon)).contains(next_ref_contact))
-        || all(approx(opposite_contact, Vec2::filled(epsilon)).contains(next_opposite_contact));
+    bool duplicated_contact
+        = all(approx(ref_contact, Vec2::filled(epsilon)).contains(next_ref_contact))
+          || all(approx(opposite_contact, Vec2::filled(epsilon)).contains(next_opposite_contact)
+          );
 
     Contacts<2> contacts;
     contacts.normal     = normal;
@@ -153,58 +155,22 @@ Contacts<1> collide(const Circle& a, const Circle& b) {
 }
 
 Contacts<1> collide(const Circle& a, const Capsule& b) {
-    Vec2  axis     = normalized(b.top() - b.bottom());
-    float axis_len = norm(b.top() - b.bottom());
+    Vec2 closest_point_on_axis
+        = LineBarycentric{b.bottom_center(), b.top_center(), a.center()}.closestPoint;
 
-    float circle_pos_along_axis = dot(a.center() - b.bottom(), axis);
-
-    bool is_under = circle_pos_along_axis + a.radius() < 0.f;
-    bool is_over  = circle_pos_along_axis - a.radius() > axis_len;
-    if (is_under || is_over) {
+    Vec2  dir      = closest_point_on_axis - a.center();
+    float min_dist = a.radius() + b.radius();
+    if (normSquared(dir) > min_dist * min_dist) {
         return Contacts<1>::none();
     }
 
-    Vec2  perp         = simu::perp(axis, true);
-    float perp_dist    = dot(a.center() - b.bottom(), perp);
-    bool  is_near_axis = std::abs(perp_dist) <= a.radius() + b.radius();
-    if (!is_near_axis) {
-        return Contacts<1>::none();
-    }
-
-    Vec2 top_center = b.top_center();
-    Vec2 bottom_center = b.bottom_center();
-    float squared_dist_to_top = normSquared(a.center() - top_center);
-    float squared_dist_to_bottom = normSquared(a.center() - bottom_center);
-
-    Vec2 closest_point_on_axis = LineBarycentric{bottom_center, top_center, a.center()}.closestPoint;
-    float squared_dist_to_axis = normSquared(closest_point_on_axis - a.center());
-
-    if (squared_dist_to_top <= squared_dist_to_bottom && squared_dist_to_top <= squared_dist_to_axis) {
-        // Collision with top circle
-        return collide(a, Circle(top_center, b.radius()));
-    }
-
-    if (squared_dist_to_bottom <= squared_dist_to_top && squared_dist_to_bottom <= squared_dist_to_axis) {
-        // Collision with bottom circle
-        return collide(a, Circle(bottom_center, b.radius()));
-    }
-
-    // Collision with axis
-    if (perp_dist > 0.f) {
-        return {
-            .normal     = -perp,
-            .contacts_a = {a.center() - perp * a.radius()},
-            .contacts_b = {b.bottom() + axis * circle_pos_along_axis + perp * b.radius()},
-            .n_contacts = 1
-        };
-    } else {
-        return {
-            .normal     = perp,
-            .contacts_a = {a.center() + perp * a.radius()},
-            .contacts_b = {b.bottom() + axis * circle_pos_along_axis - perp * b.radius()},
-            .n_contacts = 1
-        };
-    }
+    Vec2 normal = normalized(dir);
+    return {
+        .normal     = normal,
+        .contacts_a = {a.center() + a.radius() * normal},
+        .contacts_b = {closest_point_on_axis + normal * b.radius()},
+        .n_contacts = 1
+    };
 }
 
 Contacts<1> collide(const Circle& a, const Polygon& b) {
@@ -258,7 +224,7 @@ Contacts<1> collide(const Circle& a, const Polygon& b) {
         }
 
         if (-dist < min_pen) {
-            normal = -normal;
+            normal  = -normal;
             min_pen = -dist;
             contact = {
                 .normal     = normal,
@@ -381,6 +347,9 @@ Contacts<2> collide(const Capsule& a, const Capsule& b, float epsilon) {
     return result;
 }
 
+// TODO: Don't do explicit SAT, keep best two contacts during projection.
+//  If two contacts, use normal from edge connecting them
+// TODO: Algo is just generally incorrect...
 Contacts<2> collide(const Capsule& a, const Polygon& b, float epsilon) {
     Contacts<2> contact       = Contacts<2>::none();
     float       min_pen       = std::numeric_limits<float>::max();
@@ -454,32 +423,36 @@ Contacts<2> collide(const Capsule& a, const Polygon& b, float epsilon) {
                         .closestPoint;
 
 
-        float dist_proj_top_center = norm(reverse_proj_top_center - top_center);
-        float dist_proj_bottom_center = norm(reverse_proj_bottom_center - bottom_center);
+        float dist_proj_top_center = norm(
+            reverse_proj_top_center - proj_top_center_along_edge.closestPoint
+        );
+        float dist_proj_bottom_center = norm(
+            reverse_proj_bottom_center - proj_bottom_center_along_edge.closestPoint
+        );
 
-        bool has_contact_top_center    = dist_proj_top_center < a.radius();
-        bool has_contact_bottom_center = dist_proj_bottom_center < a.radius();
+        bool has_contact_top_center    = dist_proj_top_center <= a.radius();
+        bool has_contact_bottom_center = dist_proj_bottom_center <= a.radius();
 
         float current_min_pen = std::min(
             dist_proj_top_center - a.radius(), dist_proj_bottom_center - a.radius()
         );
-        bool has_better_min_pen_vector = -current_min_pen < min_pen;
+        bool has_better_min_pen_vector = -current_min_pen <= min_pen;
 
         if ((!has_contact_top_center && !has_contact_bottom_center)
             || !has_better_min_pen_vector) {
             continue;
         }
 
-        bool produces_same_contacts
-            = all(approx(reverse_proj_top_center, Vec2::filled(epsilon)).contains(reverse_proj_bottom_center)
-              )
-              || all(approx(proj_top_center_along_edge.closestPoint, Vec2::filled(epsilon))
-                         .contains(proj_bottom_center_along_edge.closestPoint));
+        bool produces_same_contacts = normSquared(reverse_proj_top_center - reverse_proj_bottom_center)
+                                          <= epsilon * epsilon
+                                      || normSquared(
+                                             proj_top_center_along_edge.closestPoint
+                                             - proj_bottom_center_along_edge.closestPoint
+                                         ) <= epsilon * epsilon;
 
-        normal = normalized(normal);
+        normal = -normalized(normal);
         if (has_contact_top_center && has_contact_bottom_center
             && !produces_same_contacts) {
-            normal             = -normal;
             contact.normal     = normal;
             contact.contacts_a = {
                 reverse_proj_bottom_center + normal * a.radius(),
@@ -491,7 +464,6 @@ Contacts<2> collide(const Capsule& a, const Polygon& b, float epsilon) {
             };
             contact.n_contacts = 2;
         } else if (has_contact_top_center) {
-            normal             = -normal;
             contact.normal     = normal;
             contact.contacts_a = {
                 reverse_proj_top_center + normal * a.radius(),
@@ -499,7 +471,6 @@ Contacts<2> collide(const Capsule& a, const Polygon& b, float epsilon) {
             contact.contacts_b = {proj_top_center_along_edge.closestPoint};
             contact.n_contacts = 1;
         } else if (has_contact_bottom_center) {
-            normal             = -normal;
             contact.normal     = normal;
             contact.contacts_a = {
                 reverse_proj_bottom_center + normal * a.radius(),
@@ -520,7 +491,7 @@ Contacts<2> collide(const Polygon& a, const Polygon& b, float epsilon) {
     for (std::size_t i = 0; i < a.size(); ++i) {
         Vec2 current_vertex = a.vertex(i);
         Vec2 next_vertex    = a.vertex((i + 1) == a.size() ? 0 : i + 1);
-        Vec2 normal         = normalized(perp(next_vertex - current_vertex, true));
+        Vec2 normal = normalized(perp(next_vertex - current_vertex, true));
 
         float dist = closest_point(b, current_vertex, normal);
         if (dist > 0.f) {
@@ -534,7 +505,7 @@ Contacts<2> collide(const Polygon& a, const Polygon& b, float epsilon) {
     for (std::size_t i = 0; i < b.size(); ++i) {
         Vec2 current_vertex = b.vertex(i);
         Vec2 next_vertex    = b.vertex((i + 1) == b.size() ? 0 : i + 1);
-        Vec2 normal         = normalized(perp(next_vertex - current_vertex, true));
+        Vec2 normal = normalized(perp(next_vertex - current_vertex, true));
 
         float dist = closest_point(a, current_vertex, normal);
         if (dist > 0.f) {
@@ -561,7 +532,12 @@ Contacts<2> collide(const Polygon& a, const Polygon& b, float epsilon) {
         );
 
         return create_contacts(
-            a.vertex(current_contact_edge), a.vertex(next_index), opposite_vertex, next_opposite_vertex, normal, epsilon
+            a.vertex(current_contact_edge),
+            a.vertex(next_index),
+            opposite_vertex,
+            next_opposite_vertex,
+            normal,
+            epsilon
         );
     } else {
         std::size_t next_index = current_contact_edge + 1 == b.size()
@@ -577,7 +553,12 @@ Contacts<2> collide(const Polygon& a, const Polygon& b, float epsilon) {
         );
 
         Contacts<2> contacts = create_contacts(
-            b.vertex(current_contact_edge), b.vertex(next_index), opposite_vertex, next_opposite_vertex, normal, epsilon
+            b.vertex(current_contact_edge),
+            b.vertex(next_index),
+            opposite_vertex,
+            next_opposite_vertex,
+            normal,
+            epsilon
         );
         contacts.normal = -contacts.normal;
         std::swap(contacts.contacts_a, contacts.contacts_b);

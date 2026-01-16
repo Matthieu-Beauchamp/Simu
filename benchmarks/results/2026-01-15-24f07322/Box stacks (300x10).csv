@@ -1,0 +1,50 @@
+name,count,mean,stddev,cv,min,max
+frames,1200,0,0,0,0,0
+solve-contacts time (ns),1199,7.95459e+06,1.39335e+06,0.175163,200,9.1476e+06
+solve-contacts mem usage (B),1199,23169.4,4059.26,0.175199,0,24039
+solve-contacts mem allocations,1199,0.984153,0.124934,0.126945,0,1
+solve-contacts num calls,1199,1,0,0,1,1
+dynamic-bvh time (ns),1199,1.04638e+06,44248.2,0.042287,1.0083e+06,1.2881e+06
+dynamic-bvh mem usage (B),1199,421422,0,0,421422,421422
+dynamic-bvh mem allocations,1199,52,0,0,52,52
+dynamic-bvh num calls,1199,1,0,0,1,1
+static-bvh time (ns),1199,4062.22,708.215,0.174342,3200,20400
+static-bvh mem usage (B),1199,88,0,0,88,88
+static-bvh mem allocations,1199,5,0,0,5,5
+static-bvh num calls,1199,1,0,0,1,1
+gravity time (ns),1199,3437.86,484.846,0.141031,3100,9200
+gravity mem usage (B),1199,0,0,0,0,0
+gravity mem allocations,1199,0,0,0,0,0
+gravity num calls,1199,1,0,0,1,1
+collisions time (ns),1199,3.87794e+06,613262,0.158141,365900,4.6669e+06
+collisions mem usage (B),1199,2974.29,4191.24,1.40916,2048,97015
+collisions mem allocations,1199,19.4112,27.359,1.40945,11,319
+collisions num calls,1199,1,0,0,1,1
+dynamic-collisions time (ns),1199,3.47744e+06,574163,0.165111,364100,4.2603e+06
+dynamic-collisions mem usage (B),1199,2343.93,4045.56,1.72597,2032,96407
+dynamic-collisions mem allocations,1199,12.2544,25.9335,2.11626,10,311
+dynamic-collisions num calls,1199,1,0,0,1,1
+static-collisions time (ns),1199,367846,47683.3,0.129628,700,546000
+static-collisions mem usage (B),1199,630.358,1101.77,1.74784,16,38663
+static-collisions mem allocations,1199,7.1568,8.75652,1.22352,1,309
+static-collisions num calls,1199,1,0,0,1,1
+solve-velocities time (ns),1199,6.40273e+06,1.12159e+06,0.175174,0,7.0246e+06
+solve-velocities mem usage (B),1199,0,0,0,0,0
+solve-velocities mem allocations,1199,0,0,0,0,0
+solve-velocities num calls,1199,1,0,0,1,1
+cleanup-contacts time (ns),1199,32354.5,6096.79,0.188437,0,58500
+cleanup-contacts mem usage (B),1199,0,0,0,0,0
+cleanup-contacts mem allocations,1199,0,0,0,0,0
+cleanup-contacts num calls,1199,1,0,0,1,1
+solve-positions time (ns),1199,1.52639e+06,268521,0.175919,0,2.1638e+06
+solve-positions mem usage (B),1199,0,0,0,0,0
+solve-positions mem allocations,1199,0,0,0,0,0
+solve-positions num calls,1199,1,0,0,1,1
+integrate-velocities time (ns),1199,28357.2,1184.15,0.0417582,28100,53000
+integrate-velocities mem usage (B),1199,0,0,0,0,0
+integrate-velocities mem allocations,1199,0,0,0,0,0
+integrate-velocities num calls,1199,1,0,0,1,1
+step time (ns),1199,1.29153e+07,1.98772e+06,0.153904,1.5114e+06,1.44487e+07
+step mem usage (B),1199,447654,5238.82,0.0117028,423558,535364
+step mem allocations,1199,77.3953,27.3642,0.353563,68,377
+step num calls,1199,1,0,0,1,1

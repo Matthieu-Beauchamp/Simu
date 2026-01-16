@@ -55,8 +55,7 @@ int main(int argc, char** argv) {
     fs::create_directory(output_dir);
 
     const BenchmarkSettings benchmarks[] = {
-        {"Box stacks (100x10)",   20s, std::make_unique<simu::BoxStacks>(100,  10) },
-        {"Box stacks (10x100)",   20s, std::make_unique<simu::BoxStacks>(10,  100) },
+        {"Box stacks (300x10)",   20s, std::make_unique<simu::BoxStacks>(300,  10) },
     };
 
     for (const auto& benchmark : benchmarks) {

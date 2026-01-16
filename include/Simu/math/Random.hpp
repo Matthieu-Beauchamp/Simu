@@ -68,4 +68,14 @@ private:
 };
 
 
+template<std::integral T, class R>
+T rand_int(T a, T b, R& engine) {
+    return std::uniform_int_distribution<T>(a, b)(engine);
+}
+
+template<std::floating_point T, class R>
+T rand_float(T a, T b, R& engine) {
+    return std::uniform_real_distribution<T>(a, b)(engine);
+}
+
 } // namespace simu

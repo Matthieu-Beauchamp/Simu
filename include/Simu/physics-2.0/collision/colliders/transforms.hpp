@@ -47,13 +47,13 @@ inline Circle operator*(const Transform& transform, const Circle& circle) {
 
 inline Capsule operator*(const Translation& translation, const Capsule& capsule) {
     return Capsule(
-        translation * capsule.bottom(), translation * capsule.top(), capsule.radius()
+        translation * capsule.bottom_center(), translation * capsule.top_center(), capsule.radius()
     );
 }
 
 inline Capsule operator*(const Transform& transform, const Capsule& capsule) {
     return Capsule(
-        transform * capsule.bottom(), transform * capsule.top(), capsule.radius()
+        transform * capsule.bottom_center(), transform * capsule.top_center(), capsule.radius()
     );
 }
 

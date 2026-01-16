@@ -117,7 +117,7 @@ private:
 constexpr float EPSILON = 1e-6f;
 
 /// Minimum abs determinant value to consider a matrix non singular
-constexpr float SINGULAR_MATRIX_EPSILON = 1e-7f;
+constexpr float SINGULAR_MATRIX_EPSILON = 1e-9f;
 
 // TODO: When this happens, constraint code should switch to single contact on its own
 //

@@ -124,8 +124,8 @@ private:
 
     Mat3 cameraTransform_;
 
-    float lineWidth_   = 1.f;
-    float pointRadius_ = 1.f;
+    float lineWidth_   = 0.05f;
+    float pointRadius_ = 0.1f;
 };
 
 

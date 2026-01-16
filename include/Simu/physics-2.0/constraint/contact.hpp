@@ -33,6 +33,7 @@ namespace simu
 
 using Vec6 = Vector<float, 6>;
 
+// TODO: Remove this object, pass parameters as references
 struct ObjectData
 {
     Position position_a;

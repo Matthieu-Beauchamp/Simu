@@ -71,6 +71,6 @@ void BoxStacks::init(simu::Renderer& renderer) {
 }
 
 void BoxStacks::doGui() {
-    ImGui::SliderInt("Number of stacks", &nStacks_, 1, 100);
+    ImGui::SliderInt("Number of stacks", &nStacks_, 1, 500);
     ImGui::SliderInt("Stack height", &height_, 1, 100);
 }

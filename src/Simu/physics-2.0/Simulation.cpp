@@ -223,7 +223,11 @@ void Simulation::step() SIMU_NO_EXCEPT {
         // TODO: Process into islands
 
         for (auto it = _collision_pairs.begin(); it != _collision_pairs.end(); it++) {
-            if (it->second.contacts.n_contacts > 0) {
+            if (it->second.contacts.n_contacts > 0
+                && !(
+                    is_mass_structural(it->first.a)
+                    && is_mass_structural(it->first.b)
+                )) {
                 constraints.push_back(it);
             }
         }
@@ -280,6 +284,11 @@ ObjectId Simulation::get_collider_id(ObjectId object_id) const SIMU_NO_EXCEPT {
     }
 
     UNREACHABLE;
+}
+
+bool Simulation::is_mass_structural(ObjectId object_id) const SIMU_NO_EXCEPT {
+    return object_id.type() == ObjectId::StaticPhysicsObject
+           || _dynamic_objects[object_id].mass.is_structural();
 }
 
 void Simulation::process_collisions() SIMU_NO_EXCEPT {
@@ -520,7 +529,9 @@ ObjectId Simulation::create_object(ObjectBuilder builder) {
             case ColliderType::Capsule:
             {
                 float radius = builder.capsule_.radius();
-                float length = norm(builder.capsule_.top() - builder.capsule_.bottom());
+                float length = norm(
+                    builder.capsule_.top_center() - builder.capsule_.bottom_center()
+                );
                 float pi = std::numbers::pi_v<float>;
 
                 float m_r = density * 2.f * length * radius;
