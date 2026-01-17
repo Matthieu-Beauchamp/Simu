@@ -31,6 +31,7 @@
 #    include <source_location>
 #    define SIMU_HAS_SOURCE_LOCATION
 #endif
+#include <numbers>
 #include <sstream>
 
 ////////////////////////////////////////////////////////////
@@ -124,6 +125,10 @@ constexpr float SINGULAR_MATRIX_EPSILON = 1e-9f;
 /// The maximum distance between contact points to consider them equal
 /// If this value is too small, some contacts may produce a degenerate LCP problem
 constexpr float CONTACT_EPSILON = 1e-3f;
+
+/// The maximum value of the result of abs(cross(n, u)) for n, u to be considered perpendicular
+// std::sin(5.f * std::numbers::pi_v<float> / 180.f); // allow 5 degrees difference
+constexpr float PERPENDICULAR_EPSILON = 0.08715574274765817f;
 
 typedef std::int8_t  Int8;
 typedef std::uint8_t Uint8;

@@ -38,6 +38,8 @@ public:
     Capsule(Vec2 bottom_center, Vec2 top_center, float radius)
         : _bottom_center{bottom_center}, _top_center{top_center}, _radius{radius} {}
 
+    [[nodiscard]] Vec2 up_axis() const { return _top_center - _bottom_center; }
+
     [[nodiscard]] Vec2 top_center() const { return _top_center; }
     [[nodiscard]] Vec2 bottom_center() const { return _bottom_center; }
 

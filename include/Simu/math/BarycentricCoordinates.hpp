@@ -61,9 +61,9 @@ struct LineBarycentric
         Vec2  AB     = B - A;
         float norm   = normSquared(AB);
         t            = (norm == 0.f) ? 0.f : dot(Q - A, AB) / norm;
-        closestPoint = A + clamp(t, 0.f, 1.f) * AB;
+        v            = clamp(t, 0.f, 1.f);
+        closestPoint = A + v * AB;
 
-        v = t;
         u = 1.f - t;
     }
 
