@@ -34,6 +34,7 @@ Collisions::Collisions() {
 }
 
 void Collisions::init(simu::Renderer& renderer) {
+    pause();
     simu::ObjectBuilder builder = simu::ObjectBuilder();
 
     builder.set_position(Vec2(-10.f, 2.f));
@@ -48,7 +49,7 @@ void Collisions::init(simu::Renderer& renderer) {
     builder.set_collider(Capsule(Vec2(-1.f, 0.f), Vec2(1.f, 0.f), 1.f));
     simu().create_object(builder);
 
-    builder.set_position(Vec2(10.f, 8.f), 0.f);
+    builder.set_position(Vec2(10.f, 8.f), 0.75f);
     builder.set_collider(Polygon::box(Vec2(2.f, 2.f)));
     simu().create_object(builder);
 

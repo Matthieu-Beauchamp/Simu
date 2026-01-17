@@ -39,7 +39,9 @@ void SimulationRenderer::draw(const Simulation& simulation, Renderer& renderer) 
     }
 
     for (const auto& constraint : simulation.contact_constraints()) {
-        draw_contact_constraint(constraint.second, renderer);
+        if (constraint.second.steps_since_contact == 0) {
+            draw_contact_constraint(constraint.second, renderer);
+        }
     }
 }
 

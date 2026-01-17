@@ -137,11 +137,16 @@ namespace simu
 {
 
 Contacts<1> collide(const Circle& a, const Circle& b) {
-    float min_dist = a.radius() + b.radius();
-    Vec2  dir      = b.center() - a.center();
-    bool  collides = normSquared(dir) <= min_dist * min_dist;
+    float min_dist     = a.radius() + b.radius();
+    Vec2  dir          = b.center() - a.center();
+    float dist_squared = normSquared(dir);
 
-    if (collides) {
+    // degenerate case, take no action
+    if (dist_squared == 0.f) {
+        return Contacts<1>::none();
+    }
+
+    if (dist_squared <= min_dist * min_dist) {
         dir = normalized(dir);
         return {
             .normal     = dir,
@@ -158,9 +163,15 @@ Contacts<1> collide(const Circle& a, const Capsule& b) {
     Vec2 closest_point_on_axis
         = LineBarycentric{b.bottom_center(), b.top_center(), a.center()}.closestPoint;
 
-    Vec2  dir      = closest_point_on_axis - a.center();
-    float min_dist = a.radius() + b.radius();
-    if (normSquared(dir) > min_dist * min_dist) {
+    Vec2  dir          = closest_point_on_axis - a.center();
+    float min_dist     = a.radius() + b.radius();
+    float dist_squared = normSquared(dir);
+    if (dist_squared > min_dist * min_dist) {
+        return Contacts<1>::none();
+    }
+
+    // Degenerate case, circle along the segment. Take no action
+    if (dist_squared == 0.f) {
         return Contacts<1>::none();
     }
 
@@ -168,7 +179,7 @@ Contacts<1> collide(const Circle& a, const Capsule& b) {
     return {
         .normal     = normal,
         .contacts_a = {a.center() + a.radius() * normal},
-        .contacts_b = {closest_point_on_axis + normal * b.radius()},
+        .contacts_b = {closest_point_on_axis - normal * b.radius()},
         .n_contacts = 1
     };
 }
@@ -347,101 +358,97 @@ Contacts<2> collide(const Capsule& a, const Capsule& b, float epsilon) {
     return result;
 }
 
-// TODO: Don't do explicit SAT, keep best two contacts during projection.
-//  If two contacts, use normal from edge connecting them
-// TODO: Algo is just generally incorrect...
-Contacts<2> collide(const Capsule& a, const Polygon& b, float epsilon) {
-    Contacts<2> contact       = Contacts<2>::none();
-    float       min_pen       = std::numeric_limits<float>::max();
-    Vec2        top_center    = a.top_center();
-    Vec2        bottom_center = a.bottom_center();
+// Valid only if the segment of the capsule a is completely outside of b
+// Use SAT on every edge of polygon and also the projection of each point on the capsule (n = proj - v)
+Contacts<2> collide_shallow(const Capsule& a, const Polygon& b, float epsilon) {
+    float min_penetration = std::numeric_limits<float>::lowest();
+    bool  is_edge_contact = false;
+    int   edge_index      = -1;
 
-    // Project each vertex onto the capsule
-    for (std::size_t i = 0; i < b.size(); ++i) {
-        Vec2 vertex = b.vertex(i);
-        Vec2 projection = LineBarycentric{bottom_center, top_center, vertex}.closestPoint;
-        Vec2 normal = vertex - projection;
+    for (int i = 0; i < b.size(); ++i) {
+        Vec2  v0               = b.vertex(i);
+        Vec2  v1               = b.vertex((i + 1) % b.size());
+        Vec2  edge             = v1 - v0;
+        Vec2  normal           = normalized(perp(edge, true));
+        float edge_penetration = std::min(
+                                     dot(normal, a.bottom_center() - v0),
+                                     dot(normal, a.top_center() - v0)
+                                 )
+                                 - a.radius();
 
-        float current_dist = norm(normal) - a.radius();
-        if (current_dist <= 0.f && -current_dist < min_pen) {
-            normal  = normalized(normal);
-            min_pen = -current_dist;
-            contact = {
-                .normal     = normal,
-                .contacts_a = {projection + a.radius() * normal},
-                .contacts_b = {vertex},
-                .n_contacts = 1
-            };
-        } else if (min_pen == std::numeric_limits<float>::max()) {
-            // Check if a separating plane exists if penetration is not already found
-            normal         = normalized(normal);
-            float min_dist = current_dist;
-            for (std::size_t j = 0; j < b.size(); ++j) {
-                float dist = dot(normal, b.vertex(j) - projection) - a.radius();
-                if (dist < min_dist) {
-                    min_dist = dist;
-                }
-            }
+        if (edge_penetration >= 0.f) {
+            return Contacts<2>::none();
+        }
 
-            if (min_dist > 0.f) {
-                return Contacts<2>::none();
-            }
+        if (edge_penetration > min_penetration) {
+            min_penetration = edge_penetration;
+            is_edge_contact = true;
+            edge_index      = i;
+        }
+
+        // TODO: Useless?
+        auto projection = LineBarycentric(a.bottom_center(), a.top_center(), v0);
+        Vec2 vertex_normal = normalized(projection.closestPoint - v0);
+        float vertex_penetration = closest_point(b, projection.closestPoint, vertex_normal) - a.radius();
+        if (vertex_penetration < 0.f && vertex_penetration > min_penetration) {
+            min_penetration = vertex_penetration;
+            is_edge_contact = false;
+            edge_index      = i;
         }
     }
 
-    // Regular SAT
-    for (std::size_t i = 0; i < b.size(); i++) {
-        Vec2 current_vertex = b.vertex(i);
-        Vec2 next_vertex    = b.vertex((i + 1) == b.size() ? 0 : i + 1);
+    if (edge_index == -1) {
+        return Contacts<2>::none();
+    }
+
+    if (is_edge_contact) {
+        Vec2 current_vertex = b.vertex(edge_index);
+        Vec2 next_vertex = b.vertex((edge_index + 1) == b.size() ? 0 : edge_index + 1);
 
         Vec2 edge   = next_vertex - current_vertex;
-        Vec2 normal = perp(edge, true);
+        Vec2 normal = -normalized(perp(edge, true));
 
         // Project centers on the edge
         LineBarycentric proj_top_center_along_edge = LineBarycentric{
-            current_vertex, next_vertex, top_center
+            current_vertex, next_vertex, a.top_center()
         };
         LineBarycentric proj_bottom_center_along_edge = LineBarycentric{
-            current_vertex, next_vertex, bottom_center
+            current_vertex, next_vertex, a.bottom_center()
         };
 
-        // Take closest point to projection along axis when edge is short
-        Vec2 reverse_proj_top_center
-            = proj_top_center_along_edge.is_projection_inside_segment()
-                  ? top_center
-                  : LineBarycentric(
-                        bottom_center, top_center, proj_top_center_along_edge.closestPoint
-                    )
-                        .closestPoint;
+        // Take the closest point to projection along axis when edge is short
+        Vec2 reverse_proj_top_center = proj_top_center_along_edge.is_projection_inside_segment()
+                                           ? a.top_center()
+                                           : LineBarycentric(
+                                                 a.bottom_center(),
+                                                 a.top_center(),
+                                                 proj_top_center_along_edge.closestPoint
+                                             )
+                                                 .closestPoint;
 
         Vec2 reverse_proj_bottom_center
             = proj_bottom_center_along_edge.is_projection_inside_segment()
-                  ? bottom_center
+                  ? a.bottom_center()
                   : LineBarycentric(
-                        bottom_center, top_center, proj_bottom_center_along_edge.closestPoint
+                        a.bottom_center(),
+                        a.top_center(),
+                        proj_bottom_center_along_edge.closestPoint
                     )
                         .closestPoint;
 
 
-        float dist_proj_top_center = norm(
-            reverse_proj_top_center - proj_top_center_along_edge.closestPoint
-        );
-        float dist_proj_bottom_center = norm(
-            reverse_proj_bottom_center - proj_bottom_center_along_edge.closestPoint
-        );
+        float dist_proj_top_center = dot(normal,
+                                         proj_top_center_along_edge.closestPoint
+                                             - reverse_proj_top_center)
+                                     - a.radius();
 
-        bool has_contact_top_center    = dist_proj_top_center <= a.radius();
-        bool has_contact_bottom_center = dist_proj_bottom_center <= a.radius();
+        float dist_proj_bottom_center = dot(normal,
+                                            proj_bottom_center_along_edge.closestPoint
+                                                - reverse_proj_bottom_center)
+                                        - a.radius();
 
-        float current_min_pen = std::min(
-            dist_proj_top_center - a.radius(), dist_proj_bottom_center - a.radius()
-        );
-        bool has_better_min_pen_vector = -current_min_pen <= min_pen;
-
-        if ((!has_contact_top_center && !has_contact_bottom_center)
-            || !has_better_min_pen_vector) {
-            continue;
-        }
+        bool has_contact_top_center    = dist_proj_top_center <= 0.f;
+        bool has_contact_bottom_center = dist_proj_bottom_center <= 0.f;
 
         bool produces_same_contacts = normSquared(reverse_proj_top_center - reverse_proj_bottom_center)
                                           <= epsilon * epsilon
@@ -450,37 +457,271 @@ Contacts<2> collide(const Capsule& a, const Polygon& b, float epsilon) {
                                              - proj_bottom_center_along_edge.closestPoint
                                          ) <= epsilon * epsilon;
 
-        normal = -normalized(normal);
+
+        // TODO: If single contact and projection inside segment, adjust normal instead of using edge normal, should be axis normal.
+        Contacts<2> contacts;
         if (has_contact_top_center && has_contact_bottom_center
             && !produces_same_contacts) {
-            contact.normal     = normal;
-            contact.contacts_a = {
+            contacts.normal     = normal;
+            contacts.contacts_a = {
                 reverse_proj_bottom_center + normal * a.radius(),
                 reverse_proj_top_center + normal * a.radius()
             };
-            contact.contacts_b = {
+            contacts.contacts_b = {
                 proj_bottom_center_along_edge.closestPoint,
                 proj_top_center_along_edge.closestPoint
             };
-            contact.n_contacts = 2;
+            contacts.n_contacts = 2;
         } else if (has_contact_top_center) {
-            contact.normal     = normal;
-            contact.contacts_a = {
+            contacts.normal     = normal;
+            contacts.contacts_a = {
                 reverse_proj_top_center + normal * a.radius(),
             };
-            contact.contacts_b = {proj_top_center_along_edge.closestPoint};
-            contact.n_contacts = 1;
+            contacts.contacts_b = {proj_top_center_along_edge.closestPoint};
+            contacts.n_contacts = 1;
         } else if (has_contact_bottom_center) {
-            contact.normal     = normal;
-            contact.contacts_a = {
+            contacts.normal     = normal;
+            contacts.contacts_a = {
                 reverse_proj_bottom_center + normal * a.radius(),
             };
-            contact.contacts_b = {proj_bottom_center_along_edge.closestPoint};
-            contact.n_contacts = 1;
+            contacts.contacts_b = {proj_bottom_center_along_edge.closestPoint};
+            contacts.n_contacts = 1;
+        } else {
+            // TODO: should check along capsule's sides? would prevent this code path
+            return Contacts<2>::none();
         }
-    }
 
-    return contact;
+        return contacts;
+    } else {
+        Vec2 proj = LineBarycentric{a.bottom_center(), a.top_center(), b.vertex(edge_index)}
+                        .closestPoint;
+        Vec2 normal = normalized(b.vertex(edge_index) - proj);
+        return {
+            .normal     = normal,
+            .contacts_a = {proj + normal * a.radius()},
+            .contacts_b = {b.vertex(edge_index)},
+            .n_contacts = 1
+        };
+    }
+}
+
+// TODO: Don't do explicit SAT, keep best two contacts during projection.
+//  If two contacts, use normal from edge connecting them
+// TODO: Algo is just generally incorrect...
+Contacts<2> collide(const Capsule& a, const Polygon& b, float epsilon) {
+    return collide_shallow(a, b, epsilon);
+
+    // float min_pen = std::numeric_limits<float>::max();
+    // Vec2  contact_normal;
+    //
+    // // polygon edge normals
+    // for (std::size_t i = 0; i < b.size(); ++i) {
+    //     Vec2 v0     = b.vertex(i);
+    //     Vec2 v1     = b.vertex((i + 1) % b.size());
+    //     Vec2 normal = normalized(perp(v1 - v0, true));
+    //
+    //     float capsule_dist = std::min(
+    //                              dot(normal, a.bottom_center() - v0),
+    //                              dot(normal, a.top_center() - v1)
+    //                          )
+    //                          - a.radius();
+    //
+    //     if (capsule_dist > 0.f) {
+    //         return Contacts<2>::none();
+    //     }
+    //
+    //     if (-capsule_dist < min_pen) {
+    //         min_pen        = -capsule_dist;
+    //         contact_normal = -normal;
+    //     }
+    // }
+    //
+    // // capsule segment normals
+    // Vec2 axis = a.top_center() - a.bottom_center();
+    // if (normSquared(axis) > EPSILON * EPSILON) {
+    //     axis = normalized(axis);
+    //
+    //     for (Vec2 normal : {perp(axis), -perp(axis)}) {
+    //         float dist = closest_point(b, a.bottom_center(), normal);
+    //         dist -= a.radius();
+    //
+    //         if (dist > 0.f)
+    //             return Contacts<2>::none();
+    //
+    //         if (-dist < min_pen) {
+    //             min_pen        = -dist;
+    //             contact_normal = normal;
+    //         }
+    //     }
+    // }
+    //
+    // std::size_t edge_index = most_opposite_face(b, contact_normal);
+    // std::size_t next_index = (edge_index + 1) % b.size();
+    // Vec2        v0         = b.vertex(edge_index);
+    // Vec2        v1         = b.vertex(next_index);
+    // Vec2        edge       = v1 - v0;
+    //
+    // bool parallel = cross(edge, axis)
+    //
+    //     auto bottom_on_edge
+    //     = LineBarycentric(v0, v1, a.bottom_center());
+    // float bottom_dist = dot(contact_normal, v0 - a.bottom_center()) - a.radius();
+    //
+    // auto  top_on_edge = LineBarycentric(v0, v1, a.top_center());
+    // float top_dist    = dot(contact_normal, v0 - a.top_center()) - a.radius();
+    //
+    // bool top_is_valid = top_on_edge.is_projection_inside_segment() && top_dist < 0.f;
+    // bool bottom_is_valid = bottom_on_edge.is_projection_inside_segment()
+    //                        && bottom_dist < 0.f;
+    //
+    // if (!top_is_valid && !bottom_is_valid) {
+    //     // may need to use end circles for normal to vertex
+    //
+    //     auto v0_on_segment = LineBarycentric(a.bottom_center(), a.top_center(), v0);
+    //     float v0_dist = normSquared(v0_on_segment.closestPoint - v0);
+    //
+    //     auto v1_on_segment = LineBarycentric(a.bottom_center(), a.top_center(), v1);
+    //     float v1_dist = normSquared(v1_on_segment.closestPoint - v1);
+    //
+    //     if (v0_dist < v1_dist) {
+    //         Vec2 normal = v0 - v0_on_segment.closestPoint;
+    //
+    //
+    //         return {}
+    //     }
+    // }
+
+    // Contacts<2> contact;
+    // float       min_pen       = std::numeric_limits<float>::max();
+    // Vec2        top_center    = a.top_center();
+    // Vec2        bottom_center = a.bottom_center();
+
+    // Project each vertex onto the capsule
+    // for (std::size_t i = 0; i < b.size(); ++i) {
+    //     Vec2 vertex = b.vertex(i);
+    //     Vec2 projection = LineBarycentric{bottom_center, top_center,
+    //     vertex}.closestPoint; Vec2 normal = vertex - projection;
+    //
+    //     float current_dist = norm(normal) - a.radius();
+    //     if (current_dist <= 0.f && -current_dist < min_pen) {
+    //         normal  = normalized(normal);
+    //         min_pen = -current_dist;
+    //         contact = {
+    //             .normal     = normal,
+    //             .contacts_a = {projection + a.radius() * normal},
+    //             .contacts_b = {vertex},
+    //             .n_contacts = 1
+    //         };
+    //     } else if (min_pen == std::numeric_limits<float>::max()) {
+    //         // Check if a separating plane exists if penetration is not
+    //         already found normal         = normalized(normal); float min_dist
+    //         = current_dist; for (std::size_t j = 0; j < b.size(); ++j) {
+    //             float dist = dot(normal, b.vertex(j) - projection) -
+    //             a.radius(); if (dist < min_dist) {
+    //                 min_dist = dist;
+    //             }
+    //         }
+    //
+    //         if (min_dist > 0.f) {
+    //             return Contacts<2>::none();
+    //         }
+    //     }
+    // }
+
+    // Regular SAT
+    // for (std::size_t i = 0; i < b.size(); i++) {
+    //     Vec2 current_vertex = b.vertex(i);
+    //     Vec2 next_vertex    = b.vertex((i + 1) == b.size() ? 0 : i + 1);
+    //
+    //     Vec2 edge   = next_vertex - current_vertex;
+    //     Vec2 normal = normalized(perp(edge, true));
+    //
+    //     // Project centers on the edge
+    //     LineBarycentric proj_top_center_along_edge = LineBarycentric{
+    //         current_vertex, next_vertex, top_center
+    //     };
+    //     LineBarycentric proj_bottom_center_along_edge = LineBarycentric{
+    //         current_vertex, next_vertex, bottom_center
+    //     };
+    //
+    //     // Take closest point to projection along axis when edge is short
+    //     Vec2 reverse_proj_top_center
+    //         = proj_top_center_along_edge.is_projection_inside_segment()
+    //               ? top_center
+    //               : LineBarycentric(
+    //                     bottom_center, top_center, proj_top_center_along_edge.closestPoint
+    //                 )
+    //                     .closestPoint;
+    //
+    //     Vec2 reverse_proj_bottom_center
+    //         = proj_bottom_center_along_edge.is_projection_inside_segment()
+    //               ? bottom_center
+    //               : LineBarycentric(
+    //                     bottom_center, top_center, proj_bottom_center_along_edge.closestPoint
+    //                 )
+    //                     .closestPoint;
+    //
+    //
+    //     float dist_proj_top_center = dot(normal,
+    //                                      proj_top_center_along_edge.closestPoint
+    //                                          - reverse_proj_top_center)
+    //                                  - a.radius();
+    //
+    //     float dist_proj_bottom_center = dot(normal,
+    //                                         proj_bottom_center_along_edge.closestPoint
+    //                                             - reverse_proj_bottom_center)
+    //                                     - a.radius();
+    //
+    //     bool has_contact_top_center    = dist_proj_top_center <= 0.f;
+    //     bool has_contact_bottom_center = dist_proj_bottom_center <= 0.f;
+    //
+    //     float current_min_pen = std::min(dist_proj_top_center, dist_proj_bottom_center);
+    //
+    //     bool has_better_min_pen_vector = -current_min_pen < min_pen;
+    //
+    //     if ((!has_contact_top_center && !has_contact_bottom_center)
+    //         || !has_better_min_pen_vector) {
+    //         continue;
+    //     }
+    //
+    //     bool produces_same_contacts = normSquared(reverse_proj_top_center - reverse_proj_bottom_center)
+    //                                       <= epsilon * epsilon
+    //                                   || normSquared(
+    //                                          proj_top_center_along_edge.closestPoint
+    //                                          - proj_bottom_center_along_edge.closestPoint
+    //                                      ) <= epsilon * epsilon;
+    //
+    //     normal = -normal;
+    //     if (has_contact_top_center && has_contact_bottom_center
+    //         && !produces_same_contacts) {
+    //         contact.normal     = normal;
+    //         contact.contacts_a = {
+    //             reverse_proj_bottom_center + normal * a.radius(),
+    //             reverse_proj_top_center + normal * a.radius()
+    //         };
+    //         contact.contacts_b = {
+    //             proj_bottom_center_along_edge.closestPoint,
+    //             proj_top_center_along_edge.closestPoint
+    //         };
+    //         contact.n_contacts = 2;
+    //     } else if (has_contact_top_center) {
+    //         contact.normal     = normal;
+    //         contact.contacts_a = {
+    //             reverse_proj_top_center + normal * a.radius(),
+    //         };
+    //         contact.contacts_b = {proj_top_center_along_edge.closestPoint};
+    //         contact.n_contacts = 1;
+    //     } else if (has_contact_bottom_center) {
+    //         contact.normal     = normal;
+    //         contact.contacts_a = {
+    //             reverse_proj_bottom_center + normal * a.radius(),
+    //         };
+    //         contact.contacts_b = {proj_bottom_center_along_edge.closestPoint};
+    //         contact.n_contacts = 1;
+    //     }
+    // }
+    //
+    // return contact;
 }
 
 Contacts<2> collide(const Polygon& a, const Polygon& b, float epsilon) {

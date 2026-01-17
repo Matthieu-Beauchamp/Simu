@@ -61,6 +61,8 @@ add_library(simu
         include/Simu/physics-2.0/constraint/ContactSolverStrategy.hpp
         include/Simu/profiler.hpp
         src/Simu/profiler.cpp
+        include/Simu/physics-2.0/collision/colliders/properties.hpp
+        include/Simu/physics-2.0/collision/colliders/gjk.hpp
 )
 
 target_sources(simu

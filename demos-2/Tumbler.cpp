@@ -130,6 +130,8 @@ void create_tumbler_outline(Simulation& simu) {
 
 
 void Tumbler::init(simu::Renderer& renderer) {
+    pause();
+
     count_ = 0;
     create_tumbler_outline(simu());
 }
