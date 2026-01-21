@@ -141,6 +141,56 @@ inline Contacts<2> create_contacts(
     return contacts;
 }
 
+Contacts<2>
+create_capsule_contacts(const Capsule& a, Vec2 v0, Vec2 v1, [[maybe_unused]] float epsilon) {
+    Vec2 d1 = a.top_center() - a.bottom_center();
+    Vec2 d2 = v1 - v0;
+    Mat2 A;
+    A(0, 0) = dot(d1, d1);
+    A(0, 1) = -dot(d1, d2);
+    A(1, 0) = -dot(d1, d2);
+    A(1, 1) = dot(d2, d2);
+
+    Solver solver = Solver(A);
+    float  s;
+    if (!solver.isValid()) {
+        // TODO: Use parallel check on d1, d2 instead.
+        //      And return 2 contacts
+        s = 0.5f;
+    } else {
+        Vec2 b = Vec2(dot(v0 - a.bottom_center(), d1), dot(a.bottom_center() - v0, d2));
+        s = clamp(solver.solve(b)[0], 0.f, 1.f);
+    }
+
+    Vec2 point_on_capsule = a.bottom_center() + s * d1;
+
+    auto projection_on_edge = LineBarycentric{v0, v1, point_on_capsule};
+    Vec2 point_on_edge      = projection_on_edge.closestPoint;
+    if (!projection_on_edge.is_projection_inside_segment()) {
+        point_on_capsule
+            = LineBarycentric{a.bottom_center(), a.top_center(), point_on_edge}.closestPoint;
+    }
+
+    float dist_squared = normSquared(point_on_edge - point_on_capsule);
+    if (dist_squared > a.radius() * a.radius()) {
+        return Contacts<2>::none();
+    }
+
+    // TODO: Edge intersects capsule segment -> deep penetration.
+    //      Can take edge normal with least penetration.
+    if (dist_squared < EPSILON * EPSILON) {
+        return Contacts<2>::none();
+    }
+
+    Vec2 normal = normalized(point_on_edge - point_on_capsule);
+    return {
+        .normal     = normal,
+        .contacts_a = {point_on_capsule + normal * a.radius()},
+        .contacts_b = {point_on_edge},
+        .n_contacts = 1
+    };
+}
+
 } // namespace
 
 namespace simu
@@ -369,11 +419,11 @@ Contacts<2> collide(const Capsule& a, const Capsule& b, float epsilon) {
 }
 
 // Valid only if the segment of the capsule a is completely outside of b
-// Use SAT on every edge of polygon and also the projection of each point on the capsule (n = proj - v)
 Contacts<2> collide_shallow(const Capsule& a, const Polygon& b, float epsilon) {
     float max_separation = std::numeric_limits<float>::lowest();
     int   edge_index     = -1;
 
+    // Find edge with best separation
     for (int i = 0; i < b.size(); ++i) {
         Vec2  v0         = b.vertex(i);
         Vec2  v1         = b.vertex((i + 1) % b.size());
@@ -391,17 +441,6 @@ Contacts<2> collide_shallow(const Capsule& a, const Polygon& b, float epsilon) {
             max_separation = separation;
             edge_index     = i;
         }
-
-        // TODO: Useless?
-        // auto projection = LineBarycentric(a.bottom_center(), a.top_center(), v0);
-        // Vec2 vertex_normal = normalized(projection.closestPoint - v0);
-        // float vertex_penetration = closest_point(b, projection.closestPoint, vertex_normal)
-        //                            - a.radius();
-        // if (vertex_penetration < 0.f && vertex_penetration > min_penetration) {
-        //     min_penetration = vertex_penetration;
-        //     is_edge_contact = false;
-        //     edge_index      = i;
-        // }
     }
 
     if (edge_index == -1) {
@@ -411,154 +450,7 @@ Contacts<2> collide_shallow(const Capsule& a, const Polygon& b, float epsilon) {
     Vec2 current_vertex = b.vertex(edge_index);
     Vec2 next_vertex    = b.vertex((edge_index + 1) % b.size());
 
-    auto current_vertex_on_segment = LineBarycentric{
-        a.bottom_center(), a.top_center(), current_vertex
-    };
-    auto next_vertex_on_segment = LineBarycentric{
-        a.bottom_center(), a.top_center(), next_vertex
-    };
-
-    // Check if normals going from a vertex to their projection gives a bigger separation.
-    // This handles cases where contact is on a vertex instead of an edge
-    // This part requires shallow collisions. It will not work if segment is inside polygon.
-    Vec2 current_vertex_to_proj = normalized(
-        current_vertex_on_segment.closestPoint - current_vertex
-    );
-    Vec2 next_vertex_to_proj = normalized(next_vertex_on_segment.closestPoint - next_vertex);
-
-    Vec2 current_vertex_contact;
-    float current_vertex_separation = separation_along_normal(a, b, current_vertex_to_proj, current_vertex_contact);
-
-    Vec2 next_vertex_contact;
-    float next_vertex_separation = separation_along_normal(a, b, next_vertex_to_proj, next_vertex_contact);
-
-    if (current_vertex_separation > a.radius() || next_vertex_separation > a.radius()) {
-        return Contacts<2>::none();
-    }
-
-    if (current_vertex_separation > next_vertex_separation
-        && current_vertex_separation > max_separation) {
-        if (current_vertex_separation < a.radius()) {
-            Vec2 normal = -current_vertex_to_proj;
-            return {
-                .normal = normal,
-                .contacts_a = {current_vertex_on_segment.closestPoint + normal * a.radius()},
-                .contacts_b = {current_vertex_contact},
-                .n_contacts = 1
-            };
-        }
-    } else if (next_vertex_separation > max_separation) {
-        if (next_vertex_separation < a.radius()) {
-            Vec2 normal = -normalized(next_vertex_to_proj);
-            return {
-                .normal = normal,
-                .contacts_a = {next_vertex_on_segment.closestPoint + normal * a.radius()},
-                .contacts_b = {next_vertex_contact},
-                .n_contacts = 1
-            };
-        }
-    }
-
-    Vec2 edge   = normalized(next_vertex - current_vertex);
-    Vec2 normal = perp(edge, true);
-
-    // TODO: Cannot check for parallel yet, should check if in corner...
-
-    // If not parallel enough, projecting contacts back on capsule's surface
-    // will produce notable error
-    bool is_parallel = cross(normal, normalized(a.up_axis())) <= PERPENDICULAR_EPSILON;
-    if (is_parallel) {
-        // TODO: project edge onto capsule and back
-    } else {
-        // TODO: Segment to segment closest point.
-        // TODO: Can be generalized to segment to capsule collision?
-
-        // Project edge on segment and segment on edge.
-        // Handle contact duplication to simplify to single contact where possible.
-
-        // Check for the normal of each segment, take the one with the least penetration.
-
-        // Check if both still produce a contact using that normal. Simplify if possible
-
-        // if both are in contact, check if parallel. If parallel do double projection,
-        // otherwise keep only deepest contact and its projection
-    }
-
-
-    // Project back onto the capsule's surface
-    auto reverse_proj_current_vertex_on_edge = LineBarycentric{
-        current_vertex, next_vertex, current_vertex_on_segment.closestPoint
-    };
-    auto reverse_proj_next_vertex_on_edge = LineBarycentric{
-        current_vertex, next_vertex, next_vertex_on_segment.closestPoint
-    };
-
-    Vec2
-
-        float dist_proj_top_center
-        = dot(normal, proj_top_center_along_edge.closestPoint - reverse_proj_top_center)
-          - a.radius();
-
-    float dist_proj_bottom_center = dot(normal,
-                                        proj_bottom_center_along_edge.closestPoint
-                                            - reverse_proj_bottom_center)
-                                    - a.radius();
-
-    bool has_contact_top_center    = dist_proj_top_center <= 0.f;
-    bool has_contact_bottom_center = dist_proj_bottom_center <= 0.f;
-
-    bool produces_same_contacts = normSquared(reverse_proj_top_center - reverse_proj_bottom_center)
-                                      <= epsilon * epsilon
-                                  || normSquared(
-                                         proj_top_center_along_edge.closestPoint
-                                         - proj_bottom_center_along_edge.closestPoint
-                                     ) <= epsilon * epsilon;
-
-
-    // TODO: If single contact and projection inside segment, adjust normal instead of using edge normal, should be axis normal.
-    Contacts<2> contacts;
-    if (has_contact_top_center && has_contact_bottom_center && !produces_same_contacts) {
-        contacts.normal     = normal;
-        contacts.contacts_a = {
-            reverse_proj_bottom_center + normal * a.radius(),
-            reverse_proj_top_center + normal * a.radius()
-        };
-        contacts.contacts_b = {
-            proj_bottom_center_along_edge.closestPoint,
-            proj_top_center_along_edge.closestPoint
-        };
-        contacts.n_contacts = 2;
-    } else if (has_contact_top_center) {
-        contacts.normal     = normal;
-        contacts.contacts_a = {
-            reverse_proj_top_center + normal * a.radius(),
-        };
-        contacts.contacts_b = {proj_top_center_along_edge.closestPoint};
-        contacts.n_contacts = 1;
-    } else if (has_contact_bottom_center) {
-        contacts.normal     = normal;
-        contacts.contacts_a = {
-            reverse_proj_bottom_center + normal * a.radius(),
-        };
-        contacts.contacts_b = {proj_bottom_center_along_edge.closestPoint};
-        contacts.n_contacts = 1;
-    } else {
-        // TODO: should check along capsule's sides? would prevent this code path
-        return Contacts<2>::none();
-    }
-
-    return contacts;
-    // } else {
-    //     Vec2 proj = LineBarycentric{a.bottom_center(), a.top_center(), b.vertex(edge_index)}
-    //                     .closestPoint;
-    //     Vec2 normal = normalized(b.vertex(edge_index) - proj);
-    //     return {
-    //         .normal     = normal,
-    //         .contacts_a = {proj + normal * a.radius()},
-    //         .contacts_b = {b.vertex(edge_index)},
-    //         .n_contacts = 1
-    //     };
-    // }
+    return create_capsule_contacts(a, current_vertex, next_vertex, epsilon);
 }
 
 // TODO: Don't do explicit SAT, keep best two contacts during projection.
